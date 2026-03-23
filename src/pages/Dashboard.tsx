@@ -12,16 +12,16 @@ const data = [
   { name: 'Sem 7', value: 4200 },
 ];
 
-export default function Dashboard() {
+export default function Dashboard({ setCurrentPage }: { setCurrentPage: (page: string) => void }) {
   return (
-    <div className="max-w-7xl mx-auto space-y-6 animate-in fade-in duration-500">
+    <div className="max-w-7xl mx-auto space-y-6 pb-6 animate-in fade-in duration-500">
       <div className="flex items-end justify-between">
         <div>
           <p className="text-gray-400 text-sm mb-1">Buenos días,</p>
           <h1 className="text-3xl font-light tracking-tight text-white">Dra. Marcela S.</h1>
         </div>
         <div className="flex gap-2">
-          <div className="glass-panel px-4 py-2 rounded-lg flex items-center gap-2 text-sm text-gray-300 cursor-pointer hover:bg-white/5 transition-colors">
+          <div onClick={() => setCurrentPage('metrics')} className="glass-panel px-4 py-2 rounded-lg flex items-center gap-2 text-sm text-gray-300 cursor-pointer hover:bg-white/5 transition-colors">
             <TrendingUp className="w-4 h-4 text-blue-400" />
             <span>Última Semana</span>
           </div>
@@ -56,19 +56,19 @@ export default function Dashboard() {
         <div className="lg:col-span-1 glass-panel rounded-2xl p-6">
           <div className="flex justify-between items-center mb-6">
             <h3 className="text-sm font-medium text-gray-200">Módulos Activos</h3>
-            <button className="text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1 transition-colors">
+            <button onClick={() => setCurrentPage('roadmap')} className="text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1 transition-colors">
               Ver todos <ChevronRight className="w-3 h-3" />
             </button>
           </div>
           <div className="grid grid-cols-2 gap-4">
-            <div className="bg-white/5 border border-white/10 rounded-xl p-4 hover:bg-white/10 transition-colors cursor-pointer group">
+            <div onClick={() => setCurrentPage('coach')} className="bg-white/5 border border-white/10 rounded-xl p-4 hover:bg-white/10 transition-colors cursor-pointer group">
               <div className="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
                 <MessageSquare className="w-4 h-4 text-blue-400" />
               </div>
               <p className="text-sm font-medium text-gray-200">Sanare Coach</p>
               <p className="text-xs text-gray-500 mt-1">Asistente IA 24/7</p>
             </div>
-            <div className="bg-white/5 border border-white/10 rounded-xl p-4 hover:bg-white/10 transition-colors cursor-pointer group">
+            <div onClick={() => setCurrentPage('oferta')} className="bg-white/5 border border-white/10 rounded-xl p-4 hover:bg-white/10 transition-colors cursor-pointer group">
               <div className="w-8 h-8 rounded-lg bg-purple-500/20 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
                 <Target className="w-4 h-4 text-purple-400" />
               </div>
@@ -88,7 +88,7 @@ export default function Dashboard() {
               { name: 'William Cooper', program: 'Programa 8 Semanas', img: 'https://i.pravatar.cc/150?img=12' },
               { name: 'Erick Snow', program: 'Seguimiento', img: 'https://i.pravatar.cc/150?img=13' },
             ].map((patient, i) => (
-              <div key={i} className="flex items-center gap-3 group cursor-pointer">
+              <div key={i} onClick={() => setCurrentPage('mensajes')} className="flex items-center gap-3 group cursor-pointer">
                 <img src={patient.img} alt={patient.name} className="w-10 h-10 rounded-full border border-white/10 group-hover:border-blue-500/50 transition-colors" />
                 <div>
                   <p className="text-sm font-medium text-gray-200 group-hover:text-white transition-colors">{patient.name}</p>
@@ -146,7 +146,7 @@ export default function Dashboard() {
             </div>
           </div>
           
-          <div className="mt-6 p-4 rounded-xl bg-gradient-to-r from-blue-500/10 to-transparent border border-blue-500/20 flex items-center justify-between cursor-pointer hover:bg-blue-500/20 transition-colors">
+          <div onClick={() => setCurrentPage('roadmap')} className="mt-6 p-4 rounded-xl bg-gradient-to-r from-blue-500/10 to-transparent border border-blue-500/20 flex items-center justify-between cursor-pointer hover:bg-blue-500/20 transition-colors">
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center">
                 <Play className="w-3 h-3 text-blue-400 ml-0.5" />
@@ -168,8 +168,8 @@ export default function Dashboard() {
             </div>
           </div>
           
-          <div className="flex-1 min-h-[200px] w-full">
-            <ResponsiveContainer width="100%" height="100%">
+          <div className="flex-1 w-full" style={{ minHeight: 200, minWidth: 0 }}>
+            <ResponsiveContainer width="100%" height={200}>
               <AreaChart data={data} margin={{ top: 10, right: 0, left: -20, bottom: 0 }}>
                 <defs>
                   <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">

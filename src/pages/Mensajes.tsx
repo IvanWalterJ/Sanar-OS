@@ -4,6 +4,7 @@ import { Hash, Lock, Send, Trophy, Users, Search, MoreVertical } from 'lucide-re
 export default function Mensajes() {
   const [activeChannel, setActiveChannel] = useState('privado');
   const [input, setInput] = useState('');
+  const [channelSearch, setChannelSearch] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const channels = [
@@ -68,9 +69,11 @@ export default function Mensajes() {
         <div className="p-4 border-b border-white/10">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
-            <input 
-              type="text" 
-              placeholder="Buscar canales..." 
+            <input
+              type="text"
+              value={channelSearch}
+              onChange={e => setChannelSearch(e.target.value)}
+              placeholder="Buscar canales..."
               className="w-full bg-white/5 border border-white/10 rounded-lg py-2 pl-9 pr-4 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500/50 transition-colors"
             />
           </div>
@@ -81,7 +84,7 @@ export default function Mensajes() {
             <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">Canales</p>
           </div>
           <div className="space-y-1 px-2">
-            {channels.map(channel => (
+            {channels.filter(c => c.name.toLowerCase().includes(channelSearch.toLowerCase())).map(channel => (
               <button
                 key={channel.id}
                 onClick={() => setActiveChannel(channel.id)}

@@ -1,8 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { CheckCircle2, Circle, Lock, ArrowRight, X, ListChecks } from 'lucide-react';
 
-export default function Roadmap() {
-  const [phases, setPhases] = useState([
+const INITIAL_PHASES = [
     {
       title: 'Fase 1: Diagnóstico Financiero',
       status: 'completed',
@@ -102,7 +101,21 @@ export default function Roadmap() {
         },
       ]
     }
-  ]);
+  ];
+
+function loadRoadmapPhases() {
+  try {
+    const saved = localStorage.getItem('sanare_roadmap');
+    return saved ? JSON.parse(saved) : INITIAL_PHASES;
+  } catch { return INITIAL_PHASES; }
+}
+
+export default function Roadmap() {
+  const [phases, setPhases] = useState(loadRoadmapPhases);
+
+  useEffect(() => {
+    localStorage.setItem('sanare_roadmap', JSON.stringify(phases));
+  }, [phases]);
 
   const [selectedTaskInfo, setSelectedTaskInfo] = useState<{phaseIndex: number, taskIndex: number} | null>(null);
 
@@ -213,7 +226,7 @@ export default function Roadmap() {
   const allReqsCompleted = selectedTask?.requirements.every(r => r.completed);
 
   return (
-    <div className="max-w-3xl mx-auto space-y-8 animate-in fade-in duration-500 relative">
+    <div className="max-w-3xl mx-auto space-y-8 pb-6 animate-in fade-in duration-500 relative">
       <div className="flex items-end justify-between">
         <div>
           <h1 className="text-3xl font-light tracking-tight text-white mb-2">Tu Hoja de Ruta</h1>

@@ -1,5 +1,5 @@
 import React from 'react';
-import { LayoutDashboard, Map, MessageSquare, Target, TrendingUp, Users, Settings, LogOut, Hexagon } from 'lucide-react';
+import { LayoutDashboard, Map, MessageSquare, Target, TrendingUp, Users, Settings, LogOut, Hexagon, UserCircle, Calculator, FileText, BookOpen } from 'lucide-react';
 import { motion } from 'motion/react';
 
 interface SidebarProps {
@@ -10,12 +10,16 @@ interface SidebarProps {
 
 export default function Sidebar({ currentPage, setCurrentPage, onOpenSettings }: SidebarProps) {
   const navItems = [
-    { id: 'dashboard', icon: LayoutDashboard },
-    { id: 'roadmap', icon: Map },
-    { id: 'coach', icon: MessageSquare },
-    { id: 'oferta', icon: Target },
-    { id: 'metrics', icon: TrendingUp },
-    { id: 'mensajes', icon: Users },
+    { id: 'dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+    { id: 'onboarding', icon: UserCircle, label: 'Diagnóstico' },
+    { id: 'roadmap', icon: Map, label: 'Hoja de Ruta' },
+    { id: 'coach', icon: MessageSquare, label: 'Coach' },
+    { id: 'oferta', icon: Target, label: 'Oferta' },
+    { id: 'phr', icon: Calculator, label: 'PHR' },
+    { id: 'contenido', icon: FileText, label: 'Contenido' },
+    { id: 'diario', icon: BookOpen, label: 'Diario' },
+    { id: 'metrics', icon: TrendingUp, label: 'Métricas' },
+    { id: 'mensajes', icon: Users, label: 'Mensajes' },
   ];
 
   return (
@@ -59,8 +63,8 @@ export default function Sidebar({ currentPage, setCurrentPage, onOpenSettings }:
                 />
               )}
               <item.icon className={`w-5 h-5 relative z-10 transition-transform duration-300 ${isActive ? 'drop-shadow-[0_0_8px_rgba(59,130,246,0.5)] scale-110' : 'group-hover:scale-110'}`} />
-              <span className="hidden lg:block ml-3 font-medium text-sm capitalize tracking-wide relative z-10">
-                {item.id.replace('-', ' ')}
+              <span className="hidden lg:block ml-3 font-medium text-sm tracking-wide relative z-10">
+                {item.label}
               </span>
             </button>
           );
@@ -75,7 +79,15 @@ export default function Sidebar({ currentPage, setCurrentPage, onOpenSettings }:
           <Settings className="w-5 h-5" />
           <span className="hidden lg:block ml-3 font-medium text-sm">Ajustes</span>
         </button>
-        <button className="w-full flex items-center justify-center lg:justify-start px-3 py-3 rounded-xl text-gray-400 hover:bg-red-500/10 hover:text-red-400 transition-all">
+        <button
+          onClick={() => {
+            if (window.confirm('¿Estás segura de que querés salir?')) {
+              setCurrentPage('dashboard');
+              window.location.reload();
+            }
+          }}
+          className="w-full flex items-center justify-center lg:justify-start px-3 py-3 rounded-xl text-gray-400 hover:bg-red-500/10 hover:text-red-400 transition-all"
+        >
           <LogOut className="w-5 h-5" />
           <span className="hidden lg:block ml-3 font-medium text-sm">Salir</span>
         </button>

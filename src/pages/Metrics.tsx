@@ -1,17 +1,30 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { Plus, X } from 'lucide-react';
 
+const INITIAL_METRICS = [
+  { name: 'Sem 1', visitas: 400, leads: 24, ventas: 2 },
+  { name: 'Sem 2', visitas: 600, leads: 35, ventas: 4 },
+  { name: 'Sem 3', visitas: 800, leads: 45, ventas: 5 },
+  { name: 'Sem 4', visitas: 1200, leads: 86, ventas: 12 },
+];
+
+function loadMetrics() {
+  try {
+    const saved = localStorage.getItem('sanare_metrics');
+    return saved ? JSON.parse(saved) : INITIAL_METRICS;
+  } catch { return INITIAL_METRICS; }
+}
+
 export default function Metrics() {
-  const [data, setData] = useState([
-    { name: 'Sem 1', visitas: 400, leads: 24, ventas: 2 },
-    { name: 'Sem 2', visitas: 600, leads: 35, ventas: 4 },
-    { name: 'Sem 3', visitas: 800, leads: 45, ventas: 5 },
-    { name: 'Sem 4', visitas: 1200, leads: 86, ventas: 12 },
-  ]);
+  const [data, setData] = useState(loadMetrics);
 
   const [showForm, setShowForm] = useState(false);
   const [newMetrics, setNewMetrics] = useState({ visitas: '', leads: '', ventas: '' });
+
+  useEffect(() => {
+    localStorage.setItem('sanare_metrics', JSON.stringify(data));
+  }, [data]);
 
   const handleAddMetrics = (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,7 +51,7 @@ export default function Metrics() {
   };
 
   return (
-    <div className="max-w-5xl mx-auto space-y-6 animate-in fade-in duration-500">
+    <div className="max-w-5xl mx-auto space-y-6 pb-6 animate-in fade-in duration-500">
       <div className="flex items-end justify-between">
         <div>
           <h1 className="text-3xl font-light tracking-tight text-white mb-2">Métricas</h1>

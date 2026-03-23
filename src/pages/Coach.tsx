@@ -2,18 +2,34 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Send, Bot, User, Sparkles } from 'lucide-react';
 import { GoogleGenAI } from '@google/genai';
 import Markdown from 'react-markdown';
+import { toast } from 'sonner';
+
+const INITIAL_MESSAGES = [
+  { role: 'assistant', content: 'Hola Dra. Marcela. Soy Sanare Coach. Conozco tu programa de 8 semanas y tu especialidad en nutrición. ¿En qué te ayudo hoy?' }
+];
+
+function loadCoachMessages() {
+  try {
+    const saved = localStorage.getItem('sanare_coach_messages');
+    return saved ? JSON.parse(saved) : INITIAL_MESSAGES;
+  } catch { return INITIAL_MESSAGES; }
+}
 
 export default function Coach() {
-  const [messages, setMessages] = useState([
-    { role: 'assistant', content: 'Hola Dra. Marcela. Soy Sanare Coach. Conozco tu programa de 8 semanas y tu especialidad en nutrición. ¿En qué te ayudo hoy?' }
-  ]);
+  const [messages, setMessages] = useState(loadCoachMessages);
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
-  
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // Auto-scroll al último mensaje
+    // Persist messages (only when not typing to avoid saving partial streams)
+    if (!isTyping) {
+      localStorage.setItem('sanare_coach_messages', JSON.stringify(messages));
+    }
+  }, [messages, isTyping]);
+
+  useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
@@ -41,7 +57,7 @@ export default function Coach() {
       }));
 
       const streamResponse = await ai.models.generateContentStream({
-        model: 'gemini-3.1-pro-preview',
+        model: 'gemini-2.5-flash',
         contents: contents,
         config: {
           systemInstruction: "Eres Sanare Coach, un asistente de IA exclusivo para profesionales de la salud que usan Sanare OS. Tu objetivo es ayudarlos a escalar sus clínicas digitales, crear ofertas high-ticket y mejorar sus ventas. Eres directo, profesional, estratégico y usas un tono premium. No das consejos médicos, solo de negocios y marketing digital en salud.",
@@ -59,6 +75,7 @@ export default function Coach() {
       }
     } catch (error) {
       console.error("Error calling Gemini:", error);
+      toast.error('Error de conexión con el Coach IA. Intentá de nuevo.');
       setMessages(prev => {
         const newMsgs = [...prev];
         newMsgs[newMsgs.length - 1].content = "Hubo un error de conexión. Por favor, intenta de nuevo.";

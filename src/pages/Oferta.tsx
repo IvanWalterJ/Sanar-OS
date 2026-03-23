@@ -1,9 +1,34 @@
 import React, { useState, useEffect } from 'react';
-import { Sparkles, Target, ArrowRight, CheckCircle2, LayoutTemplate, Download, ChevronLeft, Lock } from 'lucide-react';
+import { Sparkles, Target, Copy, CheckCircle2, LayoutTemplate, Download, ChevronLeft, Lock, Check } from 'lucide-react';
 import { GoogleGenAI, Type } from '@google/genai';
 import { motion, AnimatePresence } from 'motion/react';
+import { toast } from 'sonner';
 
 type Step = 'input' | 'variants' | 'landing';
+
+const VARIANTS_MODEL = 'gemini-2.5-flash';
+const LANDING_MODEL = 'gemini-2.5-pro';
+const MAX_RETRIES = 3;
+
+async function retryWithBackoff<T>(fn: () => Promise<T>): Promise<T> {
+  let lastError: any;
+  for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+    try {
+      return await fn();
+    } catch (err: any) {
+      lastError = err;
+      const isRetryable =
+        err?.status === 503 ||
+        err?.message?.includes('503') ||
+        err?.message?.includes('UNAVAILABLE') ||
+        err?.message?.includes('high demand');
+      if (!isRetryable || attempt === MAX_RETRIES - 1) throw err;
+      const delay = (attempt + 1) * 3000;
+      await new Promise((r) => setTimeout(r, delay));
+    }
+  }
+  throw lastError;
+}
 
 export default function Oferta() {
   const [step, setStep] = useState<Step>('input');
@@ -13,6 +38,7 @@ export default function Oferta() {
   const [variants, setVariants] = useState<any[]>([]);
   const [landingHtml, setLandingHtml] = useState<string>('');
   const [loadingPhraseIndex, setLoadingPhraseIndex] = useState(0);
+  const [copied, setCopied] = useState(false);
 
   const loadingPhrases = step === 'input' ? [
     "Analizando tu paciente ideal...",
@@ -43,13 +69,13 @@ export default function Oferta() {
     setIsGenerating(true);
     try {
       const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-      const prompt = `Actúa como un experto en marketing y ventas high-ticket para profesionales de la salud. 
+      const prompt = `Actúa como un experto en marketing y ventas high-ticket para profesionales de la salud.
       El profesional describe su servicio así: "${description}".
       Genera 3 variantes de oferta (Conservadora, Media, Ambiciosa) para un programa de salud online.
       Asegúrate de que los precios estén en USD y sean realistas para un programa premium.`;
 
-      const response = await ai.models.generateContent({
-        model: 'gemini-3.1-pro-preview',
+      const response = await retryWithBackoff(() => ai.models.generateContent({
+        model: VARIANTS_MODEL,
         contents: prompt,
         config: {
           responseMimeType: "application/json",
@@ -71,7 +97,7 @@ export default function Oferta() {
             }
           }
         }
-      });
+      }));
 
       const generatedVariants = JSON.parse(response.text || "[]");
       
@@ -90,9 +116,11 @@ export default function Oferta() {
     } catch (error: any) {
       console.error(error);
       if (error?.status === 429 || error?.message?.includes('429') || error?.message?.includes('quota') || error?.message?.includes('RESOURCE_EXHAUSTED')) {
-        alert("Has excedido el límite de uso de la IA (Error 429). Por favor, espera un momento e intenta de nuevo más tarde.");
+        toast.error("Has excedido el límite de uso de la IA (Error 429). Por favor, esperá un momento e intentá de nuevo.");
+      } else if (error?.status === 503 || error?.message?.includes('503') || error?.message?.includes('UNAVAILABLE') || error?.message?.includes('high demand')) {
+        toast.error("La IA está experimentando alta demanda en este momento. Se reintentó 3 veces sin éxito. Por favor, intentá en unos minutos.");
       } else {
-        alert("Hubo un error generando las variantes. Intenta de nuevo.");
+        toast.error("Hubo un error generando las variantes. Intentá de nuevo.");
       }
     } finally {
       setIsGenerating(false);
@@ -143,22 +171,24 @@ export default function Oferta() {
       - Usa Tailwind CSS via CDN: <script src="https://cdn.tailwindcss.com"></script>
       - El diseño debe verse exactamente como una landing page de un infoproducto high-ticket de lujo.`;
 
-      const response = await ai.models.generateContent({
-        model: 'gemini-3.1-pro-preview',
+      const response = await retryWithBackoff(() => ai.models.generateContent({
+        model: LANDING_MODEL,
         contents: prompt,
-      });
+      }));
 
       let html = response.text || "";
       html = html.replace(/```html/g, '').replace(/```/g, '').trim();
-      
+
       setLandingHtml(html);
       setStep('landing');
     } catch (error: any) {
       console.error(error);
       if (error?.status === 429 || error?.message?.includes('429') || error?.message?.includes('quota') || error?.message?.includes('RESOURCE_EXHAUSTED')) {
-        alert("Has excedido el límite de uso de la IA (Error 429). Por favor, espera un momento e intenta de nuevo más tarde.");
+        toast.error("Has excedido el límite de uso de la IA (Error 429). Por favor, esperá un momento e intentá de nuevo.");
+      } else if (error?.status === 503 || error?.message?.includes('503') || error?.message?.includes('UNAVAILABLE') || error?.message?.includes('high demand')) {
+        toast.error("La IA está experimentando alta demanda. Se reintentó 3 veces. Por favor, intentá en unos minutos.");
       } else {
-        alert("Hubo un error generando la landing page.");
+        toast.error("Hubo un error generando la landing page. Intentá de nuevo.");
       }
     } finally {
       setIsGenerating(false);
@@ -176,7 +206,7 @@ export default function Oferta() {
   };
 
   return (
-    <div className="max-w-5xl mx-auto space-y-6 animate-in fade-in duration-500 h-full flex flex-col relative">
+    <div className="max-w-5xl mx-auto space-y-6 animate-in fade-in duration-500 flex flex-col relative pb-6">
       {/* Loading Overlay */}
       <AnimatePresence>
         {isGenerating && (
@@ -350,7 +380,7 @@ export default function Oferta() {
       )}
 
       {step === 'landing' && (
-        <div className="flex-1 flex flex-col animate-in slide-in-from-bottom-4 duration-500 min-h-0">
+        <div className="flex flex-col animate-in slide-in-from-bottom-4 duration-500">
           <div className="flex items-center justify-between mb-6">
             <button 
               onClick={() => setStep('variants')}
@@ -362,14 +392,22 @@ export default function Oferta() {
               <button onClick={downloadHtml} className="px-4 py-2 rounded-lg glass-panel text-sm text-white hover:bg-white/10 transition-colors flex items-center gap-2">
                 <Download className="w-4 h-4" /> Descargar HTML
               </button>
-              <button className="px-4 py-2 rounded-lg bg-blue-500 hover:bg-blue-600 text-sm text-white transition-colors flex items-center gap-2 shadow-lg shadow-blue-500/20">
-                Deploy en Vercel <ArrowRight className="w-4 h-4" />
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(landingHtml);
+                  setCopied(true);
+                  setTimeout(() => setCopied(false), 2000);
+                }}
+                className="px-4 py-2 rounded-lg bg-blue-500 hover:bg-blue-600 text-sm text-white transition-colors flex items-center gap-2 shadow-lg shadow-blue-500/20"
+              >
+                {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                {copied ? 'Copiado!' : 'Copiar HTML'}
               </button>
             </div>
           </div>
 
-          <div className="flex-1 glass-panel rounded-2xl overflow-hidden flex flex-col border-white/20">
-            <div className="h-10 bg-black/40 border-b border-white/10 flex items-center px-4 gap-2">
+          <div className="glass-panel rounded-2xl overflow-hidden flex flex-col border-white/20">
+            <div className="h-10 bg-black/40 border-b border-white/10 flex items-center px-4 gap-2 shrink-0">
               <div className="flex gap-1.5">
                 <div className="w-3 h-3 rounded-full bg-red-500/80" />
                 <div className="w-3 h-3 rounded-full bg-yellow-500/80" />
@@ -379,9 +417,9 @@ export default function Oferta() {
                 <Lock className="w-3 h-3" /> tu-clinica-digital.sanare.os
               </div>
             </div>
-            <div className="flex-1 bg-white overflow-hidden">
-              <iframe 
-                srcDoc={landingHtml} 
+            <div className="bg-white" style={{ height: '75vh' }}>
+              <iframe
+                srcDoc={landingHtml}
                 className="w-full h-full border-none"
                 title="Landing Page Preview"
               />
