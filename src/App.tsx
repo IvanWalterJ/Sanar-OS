@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import Sidebar from './components/Sidebar';
 import Topbar from './components/Topbar';
 import Dashboard from './pages/Dashboard';
@@ -24,6 +24,11 @@ export default function App() {
   const [currentPage, setCurrentPage] = useState('dashboard');
   const [showSettings, setShowSettings] = useState(false);
   const [settingsTab, setSettingsTab] = useState<SettingsTab>('perfil');
+  const mainRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    if (mainRef.current) mainRef.current.scrollTop = 0;
+  }, [currentPage]);
 
   return (
     <div className="flex h-screen bg-[#0B0F19] text-white overflow-hidden font-sans selection:bg-blue-500/30">
@@ -39,7 +44,7 @@ export default function App() {
       
       <div className="flex-1 flex flex-col relative z-10 overflow-hidden">
         <Topbar setCurrentPage={setCurrentPage} />
-        <main className="flex-1 overflow-y-auto overflow-x-hidden overscroll-contain scrollbar-hide">
+        <main ref={mainRef} className="flex-1 overflow-y-auto overflow-x-hidden overscroll-contain scrollbar-hide">
           <div className="p-6">
             {currentPage === 'dashboard' && <Dashboard setCurrentPage={setCurrentPage} />}
             {currentPage === 'roadmap' && <Roadmap />}

@@ -20,7 +20,7 @@ export default function Coach() {
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
 
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     // Persist messages (only when not typing to avoid saving partial streams)
@@ -30,7 +30,9 @@ export default function Coach() {
   }, [messages, isTyping]);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (messagesContainerRef.current) {
+      messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+    }
   }, [messages]);
 
   const handleSend = async (e: React.FormEvent) => {
@@ -102,7 +104,7 @@ export default function Coach() {
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-6 space-y-6 scrollbar-hide">
+      <div ref={messagesContainerRef} className="flex-1 overflow-y-auto p-6 space-y-6 scrollbar-hide">
         {messages.map((msg, i) => (
           <div key={i} className={`flex gap-4 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
             <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
@@ -125,7 +127,6 @@ export default function Coach() {
             </div>
           </div>
         ))}
-        <div ref={messagesEndRef} />
       </div>
 
       <div className="p-4 border-t border-white/10 bg-white/5">

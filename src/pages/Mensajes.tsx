@@ -5,7 +5,7 @@ export default function Mensajes() {
   const [activeChannel, setActiveChannel] = useState('privado');
   const [input, setInput] = useState('');
   const [channelSearch, setChannelSearch] = useState('');
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
 
   const channels = [
     { id: 'privado', name: 'Mi Canal Privado', icon: Lock, unread: 0, type: 'private' },
@@ -25,7 +25,9 @@ export default function Mensajes() {
   const activeMessages = messages.filter(m => m.channelId === activeChannel);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (messagesContainerRef.current) {
+      messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+    }
   }, [activeMessages]);
 
   const handleSend = (e: React.FormEvent) => {
@@ -134,7 +136,7 @@ export default function Mensajes() {
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-6 space-y-6">
+        <div ref={messagesContainerRef} className="flex-1 overflow-y-auto p-6 space-y-6">
           {activeMessages.map((msg) => (
             <div key={msg.id} className={`flex gap-4 ${msg.isMe ? 'flex-row-reverse' : ''}`}>
               {!msg.isMe && (
@@ -165,7 +167,6 @@ export default function Mensajes() {
               </div>
             </div>
           ))}
-          <div ref={messagesEndRef} />
         </div>
 
         <div className="p-4 bg-white/5 border-t border-white/10">
