@@ -11,7 +11,7 @@ const INITIAL_METRICS = [
 
 function loadMetrics() {
   try {
-    const saved = localStorage.getItem('sanare_metrics');
+    const saved = localStorage.getItem('tcd_metrics');
     return saved ? JSON.parse(saved) : INITIAL_METRICS;
   } catch { return INITIAL_METRICS; }
 }
@@ -23,7 +23,7 @@ export default function Metrics() {
   const [newMetrics, setNewMetrics] = useState({ visitas: '', leads: '', ventas: '' });
 
   useEffect(() => {
-    localStorage.setItem('sanare_metrics', JSON.stringify(data));
+    localStorage.setItem('tcd_metrics', JSON.stringify(data));
   }, [data]);
 
   const handleAddMetrics = (e: React.FormEvent) => {
@@ -55,7 +55,7 @@ export default function Metrics() {
       <div className="flex items-end justify-between">
         <div>
           <h1 className="text-3xl font-light tracking-tight text-white mb-2">Métricas</h1>
-          <p className="text-gray-400">Semana {data.length} · Seguimiento de Embudo</p>
+          <p className="text-gray-400">Semana {data.length} · Progreso del programa</p>
         </div>
         <button 
           onClick={() => setShowForm(true)}

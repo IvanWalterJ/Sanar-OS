@@ -1,6 +1,28 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Hash, Lock, Send, Trophy, Users, Search, MoreVertical } from 'lucide-react';
 
+// ─── SUPABASE REALTIME (activar cuando Supabase esté configurado) ──────────────
+// import { createClient } from '@supabase/supabase-js'
+// const supabase = createClient(import.meta.env.VITE_SUPABASE_URL, import.meta.env.VITE_SUPABASE_ANON_KEY)
+//
+// Dentro del componente, reemplazar el estado de mensajes por:
+// const userId = 'UUID_DEL_USUARIO_AUTENTICADO'
+// useEffect(() => {
+//   const channel = supabase
+//     .channel('mensajes-room')
+//     .on('postgres_changes', {
+//       event: 'INSERT',
+//       schema: 'public',
+//       table: 'mensajes',
+//       filter: `receptor_id=eq.${userId}`
+//     }, (payload) => {
+//       setMessages(prev => [...prev, payload.new])
+//     })
+//     .subscribe()
+//   return () => supabase.removeChannel(channel)
+// }, [userId])
+// ─────────────────────────────────────────────────────────────────────────────────
+
 export default function Mensajes() {
   const [activeChannel, setActiveChannel] = useState('privado');
   const [input, setInput] = useState('');
@@ -10,16 +32,16 @@ export default function Mensajes() {
   const channels = [
     { id: 'privado', name: 'Mi Canal Privado', icon: Lock, unread: 0, type: 'private' },
     { id: 'victorias', name: 'Victorias de la Semana', icon: Trophy, unread: 0, type: 'public' },
-    { id: 'comunidad', name: 'Comunidad Sanare', icon: Users, unread: 5, type: 'public' },
+    { id: 'comunidad', name: 'Comunidad TCD', icon: Users, unread: 5, type: 'public' },
     { id: 'consultas', name: 'Consultas Generales', icon: Hash, unread: 0, type: 'public' },
   ];
 
   const [messages, setMessages] = useState([
-    { id: 1, author: 'Sanare OS', role: 'bot', content: '¡Bienvenida a tu programa! Tu canal privado está listo. Podés escribirle a Paolis aquí.', time: 'Lun 09:00', isMe: false, channelId: 'privado' },
+    { id: 1, author: 'Tu Clínica Digital', role: 'bot', content: '¡Bienvenida a tu programa de 90 días! Tu canal privado está listo. Podés escribirle al equipo aquí.', time: 'Lun 09:00', isMe: false, channelId: 'privado' },
     { id: 2, author: 'Dra. Marcela S.', role: 'user', content: 'Hola equipo, ya completé la fase 1. ¿Cómo seguimos?', time: 'Mar 14:30', isMe: true, channelId: 'privado' },
     { id: 3, author: 'Paolis', role: 'admin', content: '¡Excelente Marcela! Vi tus métricas. El PHR quedó súper bien. Te acabo de desbloquear la Fase 2 para que empieces con el diseño de la oferta.', time: 'Mar 15:45', isMe: false, channelId: 'privado' },
-    { id: 4, author: 'Sanare OS', role: 'bot', content: '⚠️ Alerta semana 4: Las visitas a la landing bajaron un 15%. Te sugiero revisar el módulo de tráfico orgánico.', time: 'Hoy 09:00', isMe: false, channelId: 'privado' },
-    { id: 5, author: 'Sanare OS', role: 'bot', content: '¡Comparte tus victorias de la semana aquí!', time: 'Lun 09:00', isMe: false, channelId: 'victorias' },
+    { id: 4, author: 'Tu Clínica Digital', role: 'bot', content: '📋 Recordatorio: Esta semana es clave para avanzar en tu Hoja de Ruta. ¿Cómo va tu tarea activa?', time: 'Hoy 09:00', isMe: false, channelId: 'privado' },
+    { id: 5, author: 'Tu Clínica Digital', role: 'bot', content: '¡Compartí tus victorias de la semana aquí! 🎉', time: 'Lun 09:00', isMe: false, channelId: 'victorias' },
   ]);
 
   const activeMessages = messages.filter(m => m.channelId === activeChannel);
@@ -127,7 +149,7 @@ export default function Mensajes() {
             <div>
               <h2 className="text-white font-medium">{channels.find(c => c.id === activeChannel)?.name}</h2>
               <p className="text-xs text-gray-500">
-                {activeChannel === 'privado' ? 'Solo visible para vos y el equipo Sanare' : 'Canal público de la comunidad'}
+                {activeChannel === 'privado' ? 'Solo visible para vos y el equipo' : 'Canal público de la comunidad'}
               </p>
             </div>
           </div>

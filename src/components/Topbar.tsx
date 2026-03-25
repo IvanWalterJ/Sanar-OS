@@ -1,21 +1,18 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, Bell, X, CheckCircle2, MessageSquare, LayoutDashboard, Map, Target, TrendingUp, Users, UserCircle, Calculator, FileText, BookOpen } from 'lucide-react';
+import { Search, Bell, X, CheckCircle2, MessageSquare, LayoutDashboard, Map, TrendingUp, Users, BookOpen, Library } from 'lucide-react';
 
 interface TopbarProps {
   setCurrentPage: (page: string) => void;
 }
 
 const searchablePages = [
-  { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, desc: 'Panel principal' },
-  { id: 'onboarding', label: 'Diagnóstico Digital', icon: UserCircle, desc: 'Diagnóstico de identidad digital con IA' },
-  { id: 'roadmap', label: 'Hoja de Ruta', icon: Map, desc: 'Tu progreso por fases' },
-  { id: 'coach', label: 'Sanare Coach', icon: MessageSquare, desc: 'Asistente IA 24/7' },
-  { id: 'oferta', label: 'Generador de Oferta', icon: Target, desc: 'Crear oferta premium con IA' },
-  { id: 'phr', label: 'Calculadora PHR', icon: Calculator, desc: 'Calculá tu Precio Hora Real' },
-  { id: 'contenido', label: 'Generador de Contenido', icon: FileText, desc: 'Ideas y calendario editorial con IA' },
-  { id: 'diario', label: 'Diario del Director', icon: BookOpen, desc: 'Liderazgo personal y reflexiones' },
-  { id: 'metrics', label: 'Métricas', icon: TrendingUp, desc: 'Seguimiento de embudo' },
+  { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, desc: 'Panel principal del programa' },
+  { id: 'roadmap', label: 'Hoja de Ruta', icon: Map, desc: 'Tu progreso en los 90 días' },
+  { id: 'coach', label: 'Coach IA', icon: MessageSquare, desc: 'Asistente IA con contexto de tu programa' },
   { id: 'mensajes', label: 'Mensajes', icon: Users, desc: 'Comunicación con el equipo' },
+  { id: 'metrics', label: 'Métricas', icon: TrendingUp, desc: 'Seguimiento de leads, conversaciones y ventas' },
+  { id: 'diario', label: 'Diario', icon: BookOpen, desc: 'Reflexión diaria de lunes a viernes' },
+  { id: 'biblioteca', label: 'Biblioteca', icon: Library, desc: 'Videos, herramientas, recursos y guiones' },
 ];
 
 export default function Topbar({ setCurrentPage }: TopbarProps) {
@@ -23,13 +20,20 @@ export default function Topbar({ setCurrentPage }: TopbarProps) {
   const [showSearch, setShowSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [notifications, setNotifications] = useState([
-    { id: 1, title: 'Fase 2 Desbloqueada', desc: 'Ya puedes comenzar con el diseño de tu oferta premium.', time: 'Hace 2 horas', icon: CheckCircle2, color: 'text-emerald-400', bg: 'bg-emerald-400/10', read: false, page: 'roadmap' },
-    { id: 2, title: 'Nuevo mensaje de Paolis', desc: '¡Excelente Marcela! Vi tus métricas...', time: 'Hace 5 horas', icon: MessageSquare, color: 'text-blue-400', bg: 'bg-blue-400/10', read: false, page: 'mensajes' },
-    { id: 3, title: 'Recordatorio', desc: 'No olvides cargar tus métricas de esta semana.', time: 'Ayer', icon: Bell, color: 'text-amber-400', bg: 'bg-amber-400/10', read: false, page: 'metrics' },
+    { id: 1, title: 'Hoja de Ruta lista', desc: 'Tu programa de 90 días está listo. Empezá con el Día 1.', time: 'Hoy', icon: CheckCircle2, color: 'text-emerald-400', bg: 'bg-emerald-400/10', read: false, page: 'roadmap' },
+    { id: 2, title: 'Mensaje del equipo', desc: '¡Bienvenida al programa! Estamos acá para acompañarte.', time: 'Hoy', icon: MessageSquare, color: 'text-blue-400', bg: 'bg-blue-400/10', read: false, page: 'mensajes' },
+    { id: 3, title: 'Recordatorio', desc: 'No olvides completar tu entrada del Diario de hoy.', time: 'Hoy', icon: Bell, color: 'text-amber-400', bg: 'bg-amber-400/10', read: false, page: 'diario' },
   ]);
 
   const searchInputRef = useRef<HTMLInputElement>(null);
   const unreadCount = notifications.filter(n => !n.read).length;
+
+  const profile = (() => {
+    try {
+      const saved = localStorage.getItem('tcd_profile');
+      return saved ? JSON.parse(saved) : { nombre: 'Profesional', especialidad: '' };
+    } catch { return { nombre: 'Profesional', especialidad: '' }; }
+  })();
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -77,7 +81,7 @@ export default function Topbar({ setCurrentPage }: TopbarProps) {
           className="flex items-center w-96 glass-panel rounded-full px-4 py-2 cursor-pointer hover:bg-white/5 transition-colors"
         >
           <Search className="w-4 h-4 text-gray-400" />
-          <span className="bg-transparent text-sm text-gray-500 ml-3">Buscar pacientes, tareas, métricas...</span>
+          <span className="bg-transparent text-sm text-gray-500 ml-3">Buscar secciones, tareas...</span>
           <div className="flex items-center justify-center w-8 h-5 rounded bg-white/10 text-[10px] text-gray-400 font-mono ml-auto">
             ⌘K
           </div>
@@ -130,8 +134,8 @@ export default function Topbar({ setCurrentPage }: TopbarProps) {
 
           <div className="flex items-center gap-3 pl-4 border-l border-white/10">
             <div className="text-right hidden md:block">
-              <p className="text-sm font-medium text-gray-200">Dra. Marcela S.</p>
-              <p className="text-xs text-blue-400">Nutricionista</p>
+              <p className="text-sm font-medium text-gray-200">{profile.nombre}</p>
+              {profile.especialidad && <p className="text-xs text-blue-400">{profile.especialidad}</p>}
             </div>
             <img
               src="https://i.pravatar.cc/150?img=32"

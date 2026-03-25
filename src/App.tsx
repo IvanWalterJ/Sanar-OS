@@ -10,25 +10,60 @@ import Dashboard from './pages/Dashboard';
 import Roadmap from './pages/Roadmap';
 import Coach from './pages/Coach';
 import Metrics from './pages/Metrics';
-import Oferta from './pages/Oferta';
 import Mensajes from './pages/Mensajes';
-import Onboarding from './pages/Onboarding';
-import PHRCalculator from './pages/PHRCalculator';
-import ContentGenerator from './pages/ContentGenerator';
 import DiarioDirector from './pages/DiarioDirector';
+import Biblioteca from './pages/Biblioteca';
 import { X, User, Bell, Shield, CreditCard } from 'lucide-react';
 
 type SettingsTab = 'perfil' | 'notificaciones' | 'seguridad' | 'facturacion';
+
+interface Profile {
+  nombre: string;
+  email: string;
+  especialidad: string;
+  fecha_inicio: string;
+  plan: 'DWY' | 'DFY';
+}
+
+function loadProfile(): Profile {
+  try {
+    const saved = localStorage.getItem('tcd_profile');
+    if (saved) return JSON.parse(saved);
+  } catch { /* noop */ }
+  const today = new Date().toISOString().split('T')[0];
+  return { nombre: 'Profesional', email: '', especialidad: '', fecha_inicio: today, plan: 'DWY' };
+}
 
 export default function App() {
   const [currentPage, setCurrentPage] = useState('dashboard');
   const [showSettings, setShowSettings] = useState(false);
   const [settingsTab, setSettingsTab] = useState<SettingsTab>('perfil');
+  const [profile, setProfile] = useState<Profile>(loadProfile);
+  const [profileDraft, setProfileDraft] = useState<Profile>(loadProfile);
   const mainRef = useRef<HTMLElement>(null);
+
+  // Initialize profile in localStorage if not present
+  useEffect(() => {
+    const existing = localStorage.getItem('tcd_profile');
+    if (!existing) {
+      localStorage.setItem('tcd_profile', JSON.stringify(profile));
+    }
+  }, []);
 
   useEffect(() => {
     if (mainRef.current) mainRef.current.scrollTop = 0;
   }, [currentPage]);
+
+  const openSettings = () => {
+    setProfileDraft(loadProfile());
+    setShowSettings(true);
+  };
+
+  const saveProfile = () => {
+    localStorage.setItem('tcd_profile', JSON.stringify(profileDraft));
+    setProfile(profileDraft);
+    setShowSettings(false);
+  };
 
   return (
     <div className="flex h-screen bg-[#0B0F19] text-white overflow-hidden font-sans selection:bg-blue-500/30">
@@ -36,12 +71,12 @@ export default function App() {
       <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] rounded-full bg-blue-600/20 blur-[120px] pointer-events-none" />
       <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] rounded-full bg-purple-600/20 blur-[120px] pointer-events-none" />
 
-      <Sidebar 
-        currentPage={currentPage} 
-        setCurrentPage={setCurrentPage} 
-        onOpenSettings={() => setShowSettings(true)} 
+      <Sidebar
+        currentPage={currentPage}
+        setCurrentPage={setCurrentPage}
+        onOpenSettings={openSettings}
       />
-      
+
       <div className="flex-1 flex flex-col relative z-10 overflow-hidden">
         <Topbar setCurrentPage={setCurrentPage} />
         <main ref={mainRef} className="flex-1 overflow-y-auto overflow-x-hidden overscroll-contain scrollbar-hide">
@@ -50,12 +85,9 @@ export default function App() {
             {currentPage === 'roadmap' && <Roadmap />}
             {currentPage === 'coach' && <Coach />}
             {currentPage === 'metrics' && <Metrics />}
-            {currentPage === 'oferta' && <Oferta />}
             {currentPage === 'mensajes' && <Mensajes />}
-            {currentPage === 'onboarding' && <Onboarding />}
-            {currentPage === 'phr' && <PHRCalculator />}
-            {currentPage === 'contenido' && <ContentGenerator />}
             {currentPage === 'diario' && <DiarioDirector />}
+            {currentPage === 'biblioteca' && <Biblioteca />}
           </div>
         </main>
       </div>
@@ -66,14 +98,14 @@ export default function App() {
           <div className="w-full max-w-2xl bg-[#111827] border border-white/10 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
             <div className="flex items-center justify-between p-6 border-b border-white/10">
               <h2 className="text-xl font-medium text-white">Ajustes de la Cuenta</h2>
-              <button 
+              <button
                 onClick={() => setShowSettings(false)}
                 className="text-gray-400 hover:text-white transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
-            
+
             <div className="flex flex-1 overflow-hidden">
               {/* Settings Sidebar */}
               <div className="w-1/3 border-r border-white/10 p-4 space-y-2 bg-white/[0.02]">
@@ -112,15 +144,50 @@ export default function App() {
                       <div className="space-y-4">
                         <div>
                           <label className="block text-xs text-gray-400 mb-1">Nombre Completo</label>
-                          <input type="text" defaultValue="Dra. Marcela S." className="w-full bg-black/20 border border-white/10 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-blue-500/50" />
+                          <input
+                            type="text"
+                            value={profileDraft.nombre}
+                            onChange={e => setProfileDraft({ ...profileDraft, nombre: e.target.value })}
+                            className="w-full bg-black/20 border border-white/10 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-blue-500/50"
+                          />
                         </div>
                         <div>
                           <label className="block text-xs text-gray-400 mb-1">Correo Electrónico</label>
-                          <input type="email" defaultValue="marcela@ejemplo.com" className="w-full bg-black/20 border border-white/10 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-blue-500/50" />
+                          <input
+                            type="email"
+                            value={profileDraft.email}
+                            onChange={e => setProfileDraft({ ...profileDraft, email: e.target.value })}
+                            className="w-full bg-black/20 border border-white/10 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-blue-500/50"
+                          />
                         </div>
                         <div>
                           <label className="block text-xs text-gray-400 mb-1">Especialidad</label>
-                          <input type="text" defaultValue="Nutricionista" className="w-full bg-black/20 border border-white/10 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-blue-500/50" />
+                          <input
+                            type="text"
+                            value={profileDraft.especialidad}
+                            onChange={e => setProfileDraft({ ...profileDraft, especialidad: e.target.value })}
+                            className="w-full bg-black/20 border border-white/10 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-blue-500/50"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs text-gray-400 mb-1">Fecha de inicio del programa</label>
+                          <input
+                            type="date"
+                            value={profileDraft.fecha_inicio}
+                            onChange={e => setProfileDraft({ ...profileDraft, fecha_inicio: e.target.value })}
+                            className="w-full bg-black/20 border border-white/10 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-blue-500/50"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs text-gray-400 mb-1">Plan</label>
+                          <select
+                            value={profileDraft.plan}
+                            onChange={e => setProfileDraft({ ...profileDraft, plan: e.target.value as 'DWY' | 'DFY' })}
+                            className="w-full bg-black/20 border border-white/10 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-blue-500/50"
+                          >
+                            <option value="DWY">DWY — Do it With You</option>
+                            <option value="DFY">DFY — Done For You</option>
+                          </select>
                         </div>
                       </div>
                     </div>
@@ -128,7 +195,7 @@ export default function App() {
                       <button onClick={() => setShowSettings(false)} className="px-5 py-2.5 rounded-xl text-sm font-medium text-gray-300 hover:text-white transition-colors">
                         Cancelar
                       </button>
-                      <button onClick={() => setShowSettings(false)} className="px-5 py-2.5 rounded-xl bg-blue-500 hover:bg-blue-600 text-white text-sm font-medium transition-colors shadow-lg shadow-blue-500/20">
+                      <button onClick={saveProfile} className="px-5 py-2.5 rounded-xl bg-blue-500 hover:bg-blue-600 text-white text-sm font-medium transition-colors shadow-lg shadow-blue-500/20">
                         Guardar Cambios
                       </button>
                     </div>
@@ -138,7 +205,7 @@ export default function App() {
                 {settingsTab === 'notificaciones' && (
                   <div className="space-y-6">
                     <h3 className="text-lg font-medium text-white mb-4">Preferencias de Notificaciones</h3>
-                    {['Alertas de métricas semanales', 'Mensajes del equipo', 'Recordatorios de tareas', 'Actualizaciones del programa'].map((item, i) => (
+                    {['Recordatorios del diario', 'Mensajes del equipo', 'Recordatorios de tareas', 'Resumen semanal'].map((item, i) => (
                       <label key={i} className="flex items-center justify-between py-3 border-b border-white/5">
                         <span className="text-sm text-gray-300">{item}</span>
                         <input type="checkbox" defaultChecked className="w-4 h-4 rounded accent-blue-500" />
@@ -172,9 +239,11 @@ export default function App() {
                     <div className="glass-panel p-4 rounded-xl">
                       <div className="flex items-center justify-between mb-2">
                         <span className="text-sm text-gray-300">Plan Actual</span>
-                        <span className="px-3 py-1 rounded-full bg-blue-500/20 text-blue-400 text-xs font-medium">Tu Clínica Digital — Core</span>
+                        <span className="px-3 py-1 rounded-full bg-blue-500/20 text-blue-400 text-xs font-medium">
+                          Tu Clínica Digital — {profile.plan}
+                        </span>
                       </div>
-                      <p className="text-xs text-gray-500">Próxima facturación: 15 de abril, 2026</p>
+                      <p className="text-xs text-gray-500">Programa de 90 días</p>
                     </div>
                     <div className="glass-panel p-4 rounded-xl">
                       <p className="text-sm text-gray-300 mb-2">Método de Pago</p>

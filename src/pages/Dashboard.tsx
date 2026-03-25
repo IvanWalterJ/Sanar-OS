@@ -1,222 +1,310 @@
-import React from 'react';
-import { TrendingUp, CheckCircle2, Clock, ChevronRight, MoreVertical, Play, MessageSquare, Target } from 'lucide-react';
-import { AreaChart, Area, ResponsiveContainer, Tooltip } from 'recharts';
+import React, { useEffect, useState } from 'react';
+import { Flame, CheckCircle2, Bot, ChevronRight, Circle } from 'lucide-react';
 
-const data = [
-  { name: 'Sem 1', value: 1200 },
-  { name: 'Sem 2', value: 1900 },
-  { name: 'Sem 3', value: 1500 },
-  { name: 'Sem 4', value: 2800 },
-  { name: 'Sem 5', value: 2400 },
-  { name: 'Sem 6', value: 3500 },
-  { name: 'Sem 7', value: 4200 },
-];
+interface Profile {
+  nombre: string;
+  especialidad: string;
+  fecha_inicio: string;
+  plan: string;
+}
+
+interface MetricWeek {
+  name: string;
+  leads: number;
+  ventas: number;
+  visitas?: number;
+}
+
+interface RoadmapTarea {
+  id: string;
+  titulo: string;
+  descripcion: string;
+  status: 'pendiente' | 'activa' | 'completada';
+}
+
+interface RoadmapFase {
+  id: number;
+  tareas: RoadmapTarea[];
+  status: string;
+}
+
+interface DiaryEntry {
+  fecha: string;
+}
+
+function loadProfile(): Profile {
+  try {
+    const saved = localStorage.getItem('tcd_profile');
+    if (saved) return JSON.parse(saved);
+  } catch { /* noop */ }
+  const today = new Date().toISOString().split('T')[0];
+  return { nombre: 'Profesional', especialidad: '', fecha_inicio: today, plan: 'DWY' };
+}
+
+function getProgramDay(fechaInicio: string): number {
+  if (!fechaInicio) return 1;
+  const inicio = new Date(fechaInicio);
+  const hoy = new Date();
+  const diff = Math.floor((hoy.getTime() - inicio.getTime()) / (1000 * 60 * 60 * 24));
+  return Math.max(1, Math.min(90, diff + 1));
+}
+
+function getActiveTask(): { tarea: RoadmapTarea; faseIdx: number; tareaIdx: number } | null {
+  try {
+    const roadmap = JSON.parse(localStorage.getItem('tcd_roadmap') || '{}');
+    const fases: RoadmapFase[] = roadmap.fases || [];
+    for (let fi = 0; fi < fases.length; fi++) {
+      for (let ti = 0; ti < fases[fi].tareas.length; ti++) {
+        const t = fases[fi].tareas[ti];
+        if (t.status === 'activa' || t.status === 'pendiente') {
+          return { tarea: t, faseIdx: fi, tareaIdx: ti };
+        }
+      }
+    }
+  } catch { /* noop */ }
+  return null;
+}
+
+function markTaskComplete(faseIdx: number, tareaIdx: number) {
+  try {
+    const roadmap = JSON.parse(localStorage.getItem('tcd_roadmap') || '{}');
+    if (!roadmap.fases?.[faseIdx]?.tareas?.[tareaIdx]) return;
+    roadmap.fases[faseIdx].tareas[tareaIdx].status = 'completada';
+    // activate next
+    for (let ti = tareaIdx + 1; ti < roadmap.fases[faseIdx].tareas.length; ti++) {
+      if (roadmap.fases[faseIdx].tareas[ti].status !== 'completada') {
+        roadmap.fases[faseIdx].tareas[ti].status = 'activa';
+        break;
+      }
+    }
+    localStorage.setItem('tcd_roadmap', JSON.stringify(roadmap));
+  } catch { /* noop */ }
+}
+
+function getDiaryStreak(): number {
+  try {
+    const diaryData = JSON.parse(localStorage.getItem('tcd_diary') || '{}');
+    const entries: DiaryEntry[] = diaryData.entries || [];
+    if (!entries.length) return 0;
+
+    const sorted = [...entries].sort((a, b) => b.fecha.localeCompare(a.fecha));
+    const today = new Date().toISOString().split('T')[0];
+    let streak = 0;
+    const d = new Date();
+
+    for (let i = 0; i < 30; i++) {
+      const dateStr = d.toISOString().split('T')[0];
+      const dayOfWeek = d.getDay();
+      if (dayOfWeek === 0 || dayOfWeek === 6) { d.setDate(d.getDate() - 1); continue; }
+      if (dateStr === today) { d.setDate(d.getDate() - 1); continue; }
+      if (sorted.some(e => e.fecha === dateStr)) {
+        streak++;
+        d.setDate(d.getDate() - 1);
+      } else break;
+    }
+    return streak;
+  } catch { return 0; }
+}
+
+type SemaforoColor = 'verde' | 'amarillo' | 'rojo' | 'gris';
+
+function getMetricSemaforo(): { leads: SemaforoColor; conversaciones: SemaforoColor; ventas: SemaforoColor } {
+  try {
+    const metrics: MetricWeek[] = JSON.parse(localStorage.getItem('tcd_metrics') || '[]');
+    if (metrics.length < 2) return { leads: 'gris', conversaciones: 'gris', ventas: 'gris' };
+
+    const cur = metrics[metrics.length - 1];
+    const prev = metrics[metrics.length - 2];
+
+    const classify = (cur: number, prev: number): SemaforoColor => {
+      if (prev === 0) return cur > 0 ? 'verde' : 'gris';
+      const pct = ((cur - prev) / prev) * 100;
+      if (pct > 5) return 'verde';
+      if (pct >= -5) return 'amarillo';
+      return 'rojo';
+    };
+
+    return {
+      leads: classify(cur.leads, prev.leads),
+      conversaciones: classify(cur.leads, prev.leads), // leads = conversations proxy
+      ventas: classify(cur.ventas, prev.ventas),
+    };
+  } catch { return { leads: 'gris', conversaciones: 'gris', ventas: 'gris' }; }
+}
+
+function getLastCoachMessage(): string {
+  try {
+    const msgs: Array<{ role: string; content: string }> = JSON.parse(localStorage.getItem('tcd_coach_messages') || '[]');
+    const assistantMsgs = msgs.filter(m => m.role === 'assistant' && m.content);
+    if (assistantMsgs.length) return assistantMsgs[assistantMsgs.length - 1].content.slice(0, 120) + (assistantMsgs[assistantMsgs.length - 1].content.length > 120 ? '…' : '');
+  } catch { /* noop */ }
+  return 'Estoy aquí para acompañarte en cada paso del programa. ¿En qué te ayudo hoy?';
+}
+
+const SEMAFORO_COLORS: Record<SemaforoColor, string> = {
+  verde: 'bg-emerald-500 shadow-[0_0_12px_rgba(16,185,129,0.5)]',
+  amarillo: 'bg-amber-400 shadow-[0_0_12px_rgba(251,191,36,0.5)]',
+  rojo: 'bg-red-500 shadow-[0_0_12px_rgba(239,68,68,0.5)]',
+  gris: 'bg-gray-600',
+};
+
+const SEMAFORO_LABELS: Record<SemaforoColor, string> = {
+  verde: 'Bien',
+  amarillo: 'Atención',
+  rojo: 'Revisar',
+  gris: 'Sin datos',
+};
 
 export default function Dashboard({ setCurrentPage }: { setCurrentPage: (page: string) => void }) {
+  const [profile] = useState<Profile>(loadProfile);
+  const [activeTaskInfo, setActiveTaskInfo] = useState<ReturnType<typeof getActiveTask>>(null);
+  const [streak, setStreak] = useState(0);
+  const [semaforo, setSemaforo] = useState<ReturnType<typeof getMetricSemaforo>>({ leads: 'gris', conversaciones: 'gris', ventas: 'gris' });
+  const [lastCoachMsg, setLastCoachMsg] = useState('');
+  const [taskDone, setTaskDone] = useState(false);
+
+  useEffect(() => {
+    setActiveTaskInfo(getActiveTask());
+    setStreak(getDiaryStreak());
+    setSemaforo(getMetricSemaforo());
+    setLastCoachMsg(getLastCoachMessage());
+  }, []);
+
+  const programDay = getProgramDay(profile.fecha_inicio);
+  const greeting = programDay === 1 ? '¡Bienvenida al programa!' : `Día ${programDay} de 90`;
+
+  const handleMarkComplete = () => {
+    if (!activeTaskInfo) return;
+    markTaskComplete(activeTaskInfo.faseIdx, activeTaskInfo.tareaIdx);
+    setTaskDone(true);
+    setActiveTaskInfo(getActiveTask());
+  };
+
   return (
-    <div className="max-w-7xl mx-auto space-y-6 pb-6 animate-in fade-in duration-500">
-      <div className="flex items-end justify-between">
-        <div>
-          <p className="text-gray-400 text-sm mb-1">Buenos días,</p>
-          <h1 className="text-3xl font-light tracking-tight text-white">Dra. Marcela S.</h1>
-        </div>
-        <div className="flex gap-2">
-          <div onClick={() => setCurrentPage('metrics')} className="glass-panel px-4 py-2 rounded-lg flex items-center gap-2 text-sm text-gray-300 cursor-pointer hover:bg-white/5 transition-colors">
-            <TrendingUp className="w-4 h-4 text-blue-400" />
-            <span>Última Semana</span>
+    <div className="max-w-3xl mx-auto space-y-5 pb-6 animate-in fade-in duration-500">
+
+      {/* Bloque 1 — Bienvenida */}
+      <div className="glass-panel p-6 rounded-2xl">
+        <p className="text-sm text-gray-400 mb-1">{greeting}</p>
+        <h1 className="text-3xl font-light tracking-tight text-white">{profile.nombre}</h1>
+        {profile.especialidad && (
+          <p className="text-sm text-blue-400 mt-1">{profile.especialidad}</p>
+        )}
+        <div className="mt-4 flex items-center gap-2">
+          <div className="flex-1 h-1.5 bg-white/10 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-gradient-to-r from-blue-500 to-purple-500 rounded-full transition-all duration-1000"
+              style={{ width: `${Math.round((programDay / 90) * 100)}%` }}
+            />
           </div>
+          <span className="text-xs text-gray-500 shrink-0">Día {programDay} / 90</span>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Main Progress Card */}
-        <div className="lg:col-span-1 glass-panel rounded-2xl p-6 relative overflow-hidden group">
-          <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 to-purple-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-          <div className="flex justify-between items-start mb-8 relative z-10">
-            <p className="text-xs font-medium text-gray-400 uppercase tracking-wider">Ingreso Mensual</p>
-            <div className="px-2 py-1 rounded bg-white/5 text-xs text-gray-300 border border-white/10">
-              Marzo
+      {/* Bloque 2 — Próxima tarea */}
+      <div className="glass-panel p-6 rounded-2xl">
+        <p className="text-xs text-gray-500 uppercase tracking-wider mb-3">Próxima tarea de la Hoja de Ruta</p>
+        {activeTaskInfo && !taskDone ? (
+          <div className="flex items-start gap-4">
+            <div className="w-9 h-9 rounded-xl bg-blue-500/20 flex items-center justify-center shrink-0 mt-0.5">
+              <Circle className="w-4 h-4 text-blue-400 fill-blue-400/20" />
             </div>
-          </div>
-          <div className="mb-8 relative z-10">
-            <h2 className="text-4xl font-light text-white mb-2">$4,500 <span className="text-lg text-gray-500">USD</span></h2>
-          </div>
-          <div className="space-y-2 relative z-10">
-            <div className="flex justify-between text-xs text-gray-400">
-              <span>Progreso hacia objetivo</span>
-              <span>$10,000 USD</span>
+            <div className="flex-1 min-w-0">
+              <p className="text-white font-medium">{activeTaskInfo.tarea.titulo}</p>
+              <p className="text-xs text-gray-400 mt-1 line-clamp-2">{activeTaskInfo.tarea.descripcion}</p>
             </div>
-            <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden">
-              <div className="h-full bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 w-[45%] rounded-full shadow-[0_0_10px_rgba(99,102,241,0.5)]" />
-            </div>
-          </div>
-        </div>
-
-        {/* Spaces / Modules */}
-        <div className="lg:col-span-1 glass-panel rounded-2xl p-6">
-          <div className="flex justify-between items-center mb-6">
-            <h3 className="text-sm font-medium text-gray-200">Módulos Activos</h3>
-            <button onClick={() => setCurrentPage('roadmap')} className="text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1 transition-colors">
-              Ver todos <ChevronRight className="w-3 h-3" />
+            <button
+              onClick={handleMarkComplete}
+              className="shrink-0 px-3 py-1.5 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 text-xs font-medium transition-colors border border-emerald-500/30 flex items-center gap-1"
+            >
+              <CheckCircle2 className="w-3 h-3" /> Completar
             </button>
           </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div onClick={() => setCurrentPage('coach')} className="bg-white/5 border border-white/10 rounded-xl p-4 hover:bg-white/10 transition-colors cursor-pointer group">
-              <div className="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
-                <MessageSquare className="w-4 h-4 text-blue-400" />
-              </div>
-              <p className="text-sm font-medium text-gray-200">Sanare Coach</p>
-              <p className="text-xs text-gray-500 mt-1">Asistente IA 24/7</p>
-            </div>
-            <div onClick={() => setCurrentPage('oferta')} className="bg-white/5 border border-white/10 rounded-xl p-4 hover:bg-white/10 transition-colors cursor-pointer group">
-              <div className="w-8 h-8 rounded-lg bg-purple-500/20 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
-                <Target className="w-4 h-4 text-purple-400" />
-              </div>
-              <p className="text-sm font-medium text-gray-200">Generador</p>
-              <p className="text-xs text-gray-500 mt-1">Oferta Premium</p>
+        ) : (
+          <div className="flex items-center gap-3">
+            <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+            <div>
+              <p className="text-white font-medium">{taskDone ? '¡Tarea completada!' : '¡Todas las tareas completadas!'}</p>
+              <button onClick={() => setCurrentPage('roadmap')} className="text-xs text-blue-400 hover:text-blue-300 transition-colors mt-0.5">
+                Ver Hoja de Ruta completa →
+              </button>
             </div>
           </div>
+        )}
+        <button
+          onClick={() => setCurrentPage('roadmap')}
+          className="mt-4 w-full flex items-center justify-between text-xs text-gray-500 hover:text-gray-300 transition-colors"
+        >
+          <span>Ver todas las tareas</span>
+          <ChevronRight className="w-3 h-3" />
+        </button>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+        {/* Bloque 3 — Racha del Diario */}
+        <div className="glass-panel p-6 rounded-2xl">
+          <p className="text-xs text-gray-500 uppercase tracking-wider mb-4">Racha del Diario</p>
+          <div className="flex items-center gap-3">
+            <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${streak > 0 ? 'bg-amber-500/20' : 'bg-white/5'}`}>
+              <Flame className={`w-6 h-6 ${streak > 0 ? 'text-amber-400' : 'text-gray-600'}`} />
+            </div>
+            <div>
+              <p className="text-3xl font-light text-white">{streak}</p>
+              <p className="text-xs text-gray-400">
+                {streak === 0 ? 'Sin racha aún' : streak === 1 ? 'día seguido' : 'días seguidos'}
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => setCurrentPage('diario')}
+            className="mt-4 w-full py-2 rounded-lg bg-white/5 hover:bg-white/10 text-xs text-gray-400 hover:text-white transition-colors"
+          >
+            {streak === 0 ? 'Empezar hoy' : 'Escribir entrada de hoy'}
+          </button>
         </div>
 
-        {/* Team / Patients */}
-        <div className="lg:col-span-1 glass-panel rounded-2xl p-6">
-          <h3 className="text-sm font-medium text-gray-200 mb-6">Pacientes Activos</h3>
-          <div className="space-y-4">
-            {[
-              { name: 'Alisa Snow', program: 'Programa 8 Semanas', img: 'https://i.pravatar.cc/150?img=1' },
-              { name: 'Karl Coleman', program: 'Consulta Inicial', img: 'https://i.pravatar.cc/150?img=11' },
-              { name: 'William Cooper', program: 'Programa 8 Semanas', img: 'https://i.pravatar.cc/150?img=12' },
-              { name: 'Erick Snow', program: 'Seguimiento', img: 'https://i.pravatar.cc/150?img=13' },
-            ].map((patient, i) => (
-              <div key={i} onClick={() => setCurrentPage('mensajes')} className="flex items-center gap-3 group cursor-pointer">
-                <img src={patient.img} alt={patient.name} className="w-10 h-10 rounded-full border border-white/10 group-hover:border-blue-500/50 transition-colors" />
-                <div>
-                  <p className="text-sm font-medium text-gray-200 group-hover:text-white transition-colors">{patient.name}</p>
-                  <p className="text-xs text-gray-500">{patient.program}</p>
+        {/* Bloque 4 — Semáforo de métricas */}
+        <div className="glass-panel p-6 rounded-2xl">
+          <p className="text-xs text-gray-500 uppercase tracking-wider mb-4">Semáforo de métricas</p>
+          <div className="space-y-3">
+            {([
+              { key: 'leads', label: 'Leads' },
+              { key: 'conversaciones', label: 'Conversaciones' },
+              { key: 'ventas', label: 'Ventas' },
+            ] as const).map(({ key, label }) => (
+              <div key={key} className="flex items-center justify-between">
+                <span className="text-sm text-gray-300">{label}</span>
+                <div className="flex items-center gap-2">
+                  <div className={`w-3 h-3 rounded-full ${SEMAFORO_COLORS[semaforo[key]]}`} />
+                  <span className="text-xs text-gray-500">{SEMAFORO_LABELS[semaforo[key]]}</span>
                 </div>
               </div>
             ))}
           </div>
+          <button
+            onClick={() => setCurrentPage('metrics')}
+            className="mt-4 w-full py-2 rounded-lg bg-white/5 hover:bg-white/10 text-xs text-gray-400 hover:text-white transition-colors"
+          >
+            Ver métricas completas
+          </button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Tasks */}
-        <div className="lg:col-span-1 glass-panel rounded-2xl p-6">
-          <div className="flex justify-between items-center mb-6">
-            <h3 className="text-sm font-medium text-gray-200">Foco de la Semana</h3>
-            <button className="w-6 h-6 rounded-full bg-white/5 flex items-center justify-center hover:bg-white/10 transition-colors">
-              <MoreVertical className="w-3 h-3 text-gray-400" />
-            </button>
+      {/* Bloque 5 — Quick Coach */}
+      <div
+        onClick={() => setCurrentPage('coach')}
+        className="glass-panel p-6 rounded-2xl cursor-pointer hover:bg-white/[0.03] transition-colors group"
+      >
+        <div className="flex items-start gap-4">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shrink-0 shadow-lg shadow-blue-500/20 group-hover:scale-105 transition-transform">
+            <Bot className="w-5 h-5 text-white" />
           </div>
-          <div className="space-y-5">
-            <div className="group">
-              <div className="flex items-start gap-3 mb-2">
-                <div className="mt-0.5"><CheckCircle2 className="w-4 h-4 text-blue-400" /></div>
-                <div className="flex-1">
-                  <p className="text-sm text-gray-200">Definir 3 paquetes de precios</p>
-                  <p className="text-xs text-gray-500 mt-1">Fase 2: Oferta</p>
-                </div>
-              </div>
-              <div className="ml-7 h-1 w-full bg-white/5 rounded-full overflow-hidden">
-                <div className="h-full bg-blue-500 w-full rounded-full" />
-              </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center justify-between mb-1">
+              <p className="text-sm font-medium text-white">Coach IA</p>
+              <ChevronRight className="w-4 h-4 text-gray-500 group-hover:text-blue-400 transition-colors" />
             </div>
-            <div className="group">
-              <div className="flex items-start gap-3 mb-2">
-                <div className="mt-0.5"><Clock className="w-4 h-4 text-purple-400" /></div>
-                <div className="flex-1">
-                  <p className="text-sm text-gray-200">Analizar oferta con IA</p>
-                  <p className="text-xs text-gray-500 mt-1">Fase 2: Oferta</p>
-                </div>
-                <span className="text-xs text-gray-500">50%</span>
-              </div>
-              <div className="ml-7 h-1 w-full bg-white/5 rounded-full overflow-hidden">
-                <div className="h-full bg-purple-500 w-[50%] rounded-full shadow-[0_0_8px_rgba(168,85,247,0.5)]" />
-              </div>
-            </div>
-            <div className="group">
-              <div className="flex items-start gap-3 mb-2">
-                <div className="mt-0.5"><div className="w-4 h-4 rounded-full border border-gray-600" /></div>
-                <div className="flex-1">
-                  <p className="text-sm text-gray-400">Agendar Sesión 2 con Javo</p>
-                  <p className="text-xs text-gray-600 mt-1">Fase 2: Oferta</p>
-                </div>
-              </div>
-            </div>
-          </div>
-          
-          <div onClick={() => setCurrentPage('roadmap')} className="mt-6 p-4 rounded-xl bg-gradient-to-r from-blue-500/10 to-transparent border border-blue-500/20 flex items-center justify-between cursor-pointer hover:bg-blue-500/20 transition-colors">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center">
-                <Play className="w-3 h-3 text-blue-400 ml-0.5" />
-              </div>
-              <span className="text-sm font-medium text-blue-400">Continuar Fase 2</span>
-            </div>
-            <span className="text-xs text-blue-400/60">50%</span>
-          </div>
-        </div>
-
-        {/* Metrics Table / Chart */}
-        <div className="lg:col-span-2 glass-panel rounded-2xl p-6 flex flex-col">
-          <div className="flex justify-between items-center mb-6">
-            <h3 className="text-sm font-medium text-gray-200">Evolución de Ingresos</h3>
-            <div className="flex gap-2">
-              <span className="px-3 py-1 rounded-full bg-blue-500/20 text-blue-400 text-xs font-medium border border-blue-500/30">
-                +15.3% vs mes anterior
-              </span>
-            </div>
-          </div>
-          
-          <div className="flex-1 w-full" style={{ minHeight: 200, minWidth: 0 }}>
-            <ResponsiveContainer width="100%" height={200}>
-              <AreaChart data={data} margin={{ top: 10, right: 0, left: -20, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.3}/>
-                    <stop offset="95%" stopColor="#3B82F6" stopOpacity={0}/>
-                  </linearGradient>
-                </defs>
-                <Tooltip 
-                  contentStyle={{ backgroundColor: '#111827', borderColor: 'rgba(255,255,255,0.1)', borderRadius: '8px', color: '#fff' }}
-                  itemStyle={{ color: '#3B82F6' }}
-                />
-                <Area type="monotone" dataKey="value" stroke="#3B82F6" strokeWidth={3} fillOpacity={1} fill="url(#colorValue)" />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-
-          <div className="mt-6">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="text-xs text-gray-500 border-b border-white/5">
-                  <th className="pb-3 font-medium">Métrica</th>
-                  <th className="pb-3 font-medium">Semana Actual</th>
-                  <th className="pb-3 font-medium">Semana Anterior</th>
-                  <th className="pb-3 font-medium text-right">Tendencia</th>
-                </tr>
-              </thead>
-              <tbody className="text-sm">
-                <tr className="border-b border-white/5 group hover:bg-white/[0.02] transition-colors">
-                  <td className="py-3 text-gray-300">Visitas Landing</td>
-                  <td className="py-3 text-white">1,245</td>
-                  <td className="py-3 text-gray-500">980</td>
-                  <td className="py-3 text-right text-emerald-400">+27%</td>
-                </tr>
-                <tr className="border-b border-white/5 group hover:bg-white/[0.02] transition-colors">
-                  <td className="py-3 text-gray-300">Leads Captados</td>
-                  <td className="py-3 text-white">86</td>
-                  <td className="py-3 text-gray-500">64</td>
-                  <td className="py-3 text-right text-emerald-400">+34%</td>
-                </tr>
-                <tr className="group hover:bg-white/[0.02] transition-colors">
-                  <td className="py-3 text-gray-300">Ventas Cerradas</td>
-                  <td className="py-3 text-white">12</td>
-                  <td className="py-3 text-gray-500">8</td>
-                  <td className="py-3 text-right text-emerald-400">+50%</td>
-                </tr>
-              </tbody>
-            </table>
+            <p className="text-xs text-gray-400 leading-relaxed line-clamp-2">{lastCoachMsg}</p>
           </div>
         </div>
       </div>
