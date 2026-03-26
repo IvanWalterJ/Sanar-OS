@@ -61,43 +61,46 @@ export default function App() {
       return;
     }
 
-    // Check existing session
-    supabase.auth.getSession()
-      .then(async ({ data: { session }, error }) => {
-        if (error || !session) {
-          setAuthState('logged_out');
-          return;
-        }
-        await loadSupabaseProfile(session.user.id, true);
-      })
-      .catch(() => setAuthState('logged_out'));
+    // Safety valve: never leave user stuck on spinner
+    const safetyTimer = setTimeout(() => {
+      setAuthState(prev => prev === 'loading' ? 'logged_out' : prev);
+    }, 5000);
 
-    // Listen for auth changes
+    // Single source of truth — handles page load (INITIAL_SESSION) + login + logout
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === 'SIGNED_OUT' || !session) {
+      if (!session || event === 'SIGNED_OUT') {
+        clearTimeout(safetyTimer);
         setSupabaseProfile(null);
         setAuthState('logged_out');
         return;
       }
-      if (event === 'SIGNED_IN' && session) {
-        await loadSupabaseProfile(session.user.id, true);
+      if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN') {
+        await loadSupabaseProfile(session.user.id);
+        clearTimeout(safetyTimer);
+        setAuthState('logged_in');
       }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      clearTimeout(safetyTimer);
+      subscription.unsubscribe();
+    };
   }, []);
 
-  async function loadSupabaseProfile(userId: string, resolveAuth = false) {
-    if (!supabase) {
-      if (resolveAuth) setAuthState('logged_in');
-      return;
-    }
+  async function loadSupabaseProfile(userId: string) {
+    if (!supabase) return;
     try {
-      const { data, error } = await supabase
+      const fetchPromise = supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
         .single();
+
+      const timeoutPromise = new Promise<{ data: null; error: Error }>((resolve) =>
+        setTimeout(() => resolve({ data: null, error: new Error('Profile fetch timeout') }), 4000)
+      );
+
+      const { data, error } = await Promise.race([fetchPromise, timeoutPromise]);
 
       if (!error && data) {
         setSupabaseProfile(data as SupabaseProfile);
@@ -111,14 +114,11 @@ export default function App() {
         };
         setProfile(p);
         setProfileDraft(p);
-      } else if (error) {
-        console.error('Error al cargar perfil:', error);
+      } else {
+        console.warn('loadSupabaseProfile: no data or timeout.', error?.message);
       }
     } catch (err) {
-      console.error('Excepción en loadSupabaseProfile:', err);
-    } finally {
-      // Always resolve auth state — never leave user stuck on loading screen
-      if (resolveAuth) setAuthState('logged_in');
+      console.error('loadSupabaseProfile exception:', err);
     }
   }
 
