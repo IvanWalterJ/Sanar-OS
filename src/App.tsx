@@ -64,22 +64,13 @@ export default function App() {
     // Check existing session
     supabase.auth.getSession()
       .then(async ({ data: { session }, error }) => {
-        if (error) {
-          console.error("Error de sesión Supabase:", error);
+        if (error || !session) {
           setAuthState('logged_out');
           return;
         }
-        if (!session) {
-          setAuthState('logged_out');
-          return;
-        }
-        await loadSupabaseProfile(session.user.id);
-        setAuthState('logged_in');
+        await loadSupabaseProfile(session.user.id, true);
       })
-      .catch((err) => {
-        console.error("Error catastrofico en getSession:", err);
-        setAuthState('logged_out');
-      });
+      .catch(() => setAuthState('logged_out'));
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
@@ -89,16 +80,18 @@ export default function App() {
         return;
       }
       if (event === 'SIGNED_IN' && session) {
-        await loadSupabaseProfile(session.user.id);
-        setAuthState('logged_in');
+        await loadSupabaseProfile(session.user.id, true);
       }
     });
 
     return () => subscription.unsubscribe();
   }, []);
 
-  async function loadSupabaseProfile(userId: string) {
-    if (!supabase) return;
+  async function loadSupabaseProfile(userId: string, resolveAuth = false) {
+    if (!supabase) {
+      if (resolveAuth) setAuthState('logged_in');
+      return;
+    }
     try {
       const { data, error } = await supabase
         .from('profiles')
@@ -106,12 +99,7 @@ export default function App() {
         .eq('id', userId)
         .single();
 
-      if (error) {
-        console.error("Error al cargar perfil (Posible error RLS 500 o falta fila):", error);
-        return;
-      }
-
-      if (data) {
+      if (!error && data) {
         setSupabaseProfile(data as SupabaseProfile);
         syncProfileToLocalStorage(data as SupabaseProfile);
         const p: Profile = {
@@ -123,9 +111,14 @@ export default function App() {
         };
         setProfile(p);
         setProfileDraft(p);
+      } else if (error) {
+        console.error('Error al cargar perfil:', error);
       }
     } catch (err) {
-      console.error("Excepción en loadSupabaseProfile:", err);
+      console.error('Excepción en loadSupabaseProfile:', err);
+    } finally {
+      // Always resolve auth state — never leave user stuck on loading screen
+      if (resolveAuth) setAuthState('logged_in');
     }
   }
 
@@ -180,7 +173,7 @@ export default function App() {
 
   // ─── Not logged in ──────────────────────────────────────────────────────────
   if (authState === 'logged_out') {
-    return <Login onLogin={() => setAuthState('loading')} />;
+    return <Login onLogin={() => { /* noop: onAuthStateChange handles state */ }} />;
   }
 
   // ─── Admin view ─────────────────────────────────────────────────────────────
