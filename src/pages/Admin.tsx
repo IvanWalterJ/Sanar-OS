@@ -103,7 +103,7 @@ export default function Admin({ adminProfile, onSignOut }: AdminProps) {
         if (metricas.length >= 2) {
           const cur = metricas[metricas.length - 1];
           const prev = metricas[metricas.length - 2];
-          const delta = (cur.leads + cur.sales) - (prev.leads + prev.sales);
+          const delta = (cur.leads + cur.ventas) - (prev.leads + prev.ventas);
           semaforo = delta > 0 ? 'verde' : delta === 0 ? 'amarillo' : 'rojo';
         } else if (tareas.some((t: any) => t.status === 'completada')) {
           semaforo = 'verde';
@@ -179,7 +179,7 @@ CONTEXTO:
 - Tareas completadas: ${selectedCliente.tareas_completadas} de ${selectedCliente.tareas_total}
 - Último check-in: estado="${lastDiary?.estado || 'sin datos'}", foco="${lastDiary?.foco || 'sin datos'}", cuello de botella="${lastDiary?.cuello || 'sin datos'}"
 - Tareas pendientes: ${pendingTasks.map((t: any) => t.tarea_id).join(', ') || 'ninguna'}
-- Última métrica: ${lastMetric ? `${lastMetric.leads} leads, ${lastMetric.sales} ventas` : 'sin métricas aún'}
+- Última métrica: ${lastMetric ? `${lastMetric.leads} leads, ${lastMetric.ventas} ventas` : 'sin métricas aún'}
 
 Respondé solo con las 3 recomendaciones en formato lista, sin introducción. Máximo 5 líneas total. En español.`;
 
@@ -509,18 +509,18 @@ Respondé solo con las 3 recomendaciones en formato lista, sin introducción. M�
                           <p className="text-gray-500 text-sm text-center py-12">Sin métricas</p>
                         ) : detalleMetricas.slice().reverse().map((m: any, i: number) => (
                           <div key={i} className="p-4 rounded-xl bg-white/[0.02] border border-white/[0.05] flex items-center justify-between">
-                            <span className="text-xs text-gray-400">Semana {m.week_number}</span>
+                            <span className="text-xs text-gray-400">{m.semana}</span>
                             <div className="flex items-center gap-6">
                               <div className="text-center">
                                 <p className="text-white text-sm font-medium">{m.leads}</p>
                                 <p className="text-[10px] text-gray-500">leads</p>
                               </div>
                               <div className="text-center">
-                                <p className="text-white text-sm font-medium">{m.calls ?? 0}</p>
-                                <p className="text-[10px] text-gray-500">llamadas</p>
+                                <p className="text-white text-sm font-medium">{m.conversaciones ?? 0}</p>
+                                <p className="text-[10px] text-gray-500">llamadas/conv.</p>
                               </div>
                               <div className="text-center">
-                                <p className="text-emerald-400 text-sm font-medium">{m.sales}</p>
+                                <p className="text-emerald-400 text-sm font-medium">{m.ventas}</p>
                                 <p className="text-[10px] text-gray-500">ventas</p>
                               </div>
                             </div>

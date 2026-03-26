@@ -66,7 +66,7 @@ LANGUAGE sql
 SECURITY DEFINER
 SET search_path = public
 AS $$
-  SELECT * FROM metricas WHERE user_id = target_user_id ORDER BY week_number;
+  SELECT * FROM metricas WHERE user_id = target_user_id ORDER BY semana;
 $$;
 
 -- ==========================================
