@@ -1,90 +1,184 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Hash, Lock, Send, Trophy, Users, Search, MoreVertical } from 'lucide-react';
+import { supabase, isSupabaseReady, type Mensaje } from '../lib/supabase';
 
-// ─── SUPABASE REALTIME (activar cuando Supabase esté configurado) ──────────────
-// import { createClient } from '@supabase/supabase-js'
-// const supabase = createClient(import.meta.env.VITE_SUPABASE_URL, import.meta.env.VITE_SUPABASE_ANON_KEY)
-//
-// Dentro del componente, reemplazar el estado de mensajes por:
-// const userId = 'UUID_DEL_USUARIO_AUTENTICADO'
-// useEffect(() => {
-//   const channel = supabase
-//     .channel('mensajes-room')
-//     .on('postgres_changes', {
-//       event: 'INSERT',
-//       schema: 'public',
-//       table: 'mensajes',
-//       filter: `receptor_id=eq.${userId}`
-//     }, (payload) => {
-//       setMessages(prev => [...prev, payload.new])
-//     })
-//     .subscribe()
-//   return () => supabase.removeChannel(channel)
-// }, [userId])
-// ─────────────────────────────────────────────────────────────────────────────────
+interface MensajesProps {
+  userId?: string;
+}
 
-export default function Mensajes() {
+interface MsgLocal {
+  id: string | number;
+  author: string;
+  rol: 'bot' | 'admin' | 'user';
+  content: string;
+  time: string;
+  isMe: boolean;
+  channelId: string;
+}
+
+const MOCK_MESSAGES: MsgLocal[] = [
+  { id: 1, author: 'Tu Clínica Digital', rol: 'bot', content: '¡Bienvenida a tu programa de 90 días! Tu canal privado está listo. Podés escribirle al equipo aquí.', time: 'Lun 09:00', isMe: false, channelId: 'privado' },
+  { id: 2, author: 'Vos', rol: 'user', content: 'Hola equipo, ya completé la fase 1. ¿Cómo seguimos?', time: 'Mar 14:30', isMe: true, channelId: 'privado' },
+  { id: 3, author: 'Paolis', rol: 'admin', content: '¡Excelente! Vi tus métricas. Te acabo de desbloquear la Fase 2 para que empieces con el diseño de la oferta.', time: 'Mar 15:45', isMe: false, channelId: 'privado' },
+  { id: 4, author: 'Tu Clínica Digital', rol: 'bot', content: '📋 Recordatorio: Esta semana es clave para avanzar en tu Hoja de Ruta. ¿Cómo va tu tarea activa?', time: 'Hoy 09:00', isMe: false, channelId: 'privado' },
+  { id: 5, author: 'Tu Clínica Digital', rol: 'bot', content: '¡Compartí tus victorias de la semana aquí! 🎉', time: 'Lun 09:00', isMe: false, channelId: 'victorias' },
+];
+
+function supabaseMsgToLocal(m: Mensaje, myUserId: string): MsgLocal {
+  const isMe = m.emisor_id === myUserId;
+  const profile = m.emisor as { nombre?: string; rol?: string } | undefined;
+  const rol: MsgLocal['rol'] = profile?.rol === 'admin' ? 'admin' : isMe ? 'user' : 'bot';
+  return {
+    id: m.id,
+    author: isMe ? 'Vos' : (profile?.nombre ?? 'Equipo'),
+    rol,
+    content: m.contenido,
+    time: new Date(m.created_at).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' }),
+    isMe,
+    channelId: m.canal,
+  };
+}
+
+export default function Mensajes({ userId }: MensajesProps) {
   const [activeChannel, setActiveChannel] = useState('privado');
   const [input, setInput] = useState('');
   const [channelSearch, setChannelSearch] = useState('');
+  const [messages, setMessages] = useState<MsgLocal[]>(MOCK_MESSAGES);
+  const [loadingMsgs, setLoadingMsgs] = useState(false);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
 
   const channels = [
     { id: 'privado', name: 'Mi Canal Privado', icon: Lock, unread: 0, type: 'private' },
     { id: 'victorias', name: 'Victorias de la Semana', icon: Trophy, unread: 0, type: 'public' },
-    { id: 'comunidad', name: 'Comunidad TCD', icon: Users, unread: 5, type: 'public' },
+    { id: 'comunidad', name: 'Comunidad TCD', icon: Users, unread: 0, type: 'public' },
     { id: 'consultas', name: 'Consultas Generales', icon: Hash, unread: 0, type: 'public' },
   ];
 
-  const [messages, setMessages] = useState([
-    { id: 1, author: 'Tu Clínica Digital', role: 'bot', content: '¡Bienvenida a tu programa de 90 días! Tu canal privado está listo. Podés escribirle al equipo aquí.', time: 'Lun 09:00', isMe: false, channelId: 'privado' },
-    { id: 2, author: 'Dra. Marcela S.', role: 'user', content: 'Hola equipo, ya completé la fase 1. ¿Cómo seguimos?', time: 'Mar 14:30', isMe: true, channelId: 'privado' },
-    { id: 3, author: 'Paolis', role: 'admin', content: '¡Excelente Marcela! Vi tus métricas. El PHR quedó súper bien. Te acabo de desbloquear la Fase 2 para que empieces con el diseño de la oferta.', time: 'Mar 15:45', isMe: false, channelId: 'privado' },
-    { id: 4, author: 'Tu Clínica Digital', role: 'bot', content: '📋 Recordatorio: Esta semana es clave para avanzar en tu Hoja de Ruta. ¿Cómo va tu tarea activa?', time: 'Hoy 09:00', isMe: false, channelId: 'privado' },
-    { id: 5, author: 'Tu Clínica Digital', role: 'bot', content: '¡Compartí tus victorias de la semana aquí! 🎉', time: 'Lun 09:00', isMe: false, channelId: 'victorias' },
-  ]);
+  // ─── Cargar mensajes desde Supabase ─────────────────────────────────────────
+  useEffect(() => {
+    if (!isSupabaseReady() || !supabase || !userId) return;
 
-  const activeMessages = messages.filter(m => m.channelId === activeChannel);
+    setLoadingMsgs(true);
+    supabase
+      .from('mensajes')
+      .select('*, emisor:profiles!emisor_id(nombre, rol)')
+      .or(
+        activeChannel === 'privado'
+          ? `emisor_id.eq.${userId},receptor_id.eq.${userId}`
+          : `canal.eq.${activeChannel}`
+      )
+      .eq('canal', activeChannel)
+      .order('created_at')
+      .then(({ data }) => {
+        if (data) {
+          setMessages((data as Mensaje[]).map(m => supabaseMsgToLocal(m, userId)));
+        }
+        setLoadingMsgs(false);
+      });
+  }, [userId, activeChannel]);
 
+  // ─── Supabase Realtime subscription ─────────────────────────────────────────
+  useEffect(() => {
+    if (!isSupabaseReady() || !supabase || !userId) return;
+
+    const channel = supabase
+      .channel(`mensajes-${activeChannel}-${userId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'mensajes',
+          filter: activeChannel === 'privado'
+            ? `receptor_id=eq.${userId}`
+            : `canal=eq.${activeChannel}`,
+        },
+        async (payload) => {
+          // Fetch the full message with profile data
+          if (!supabase) return;
+          const { data } = await supabase
+            .from('mensajes')
+            .select('*, emisor:profiles!emisor_id(nombre, rol)')
+            .eq('id', payload.new.id)
+            .single();
+
+          if (data) {
+            setMessages(prev => [...prev, supabaseMsgToLocal(data as Mensaje, userId)]);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [userId, activeChannel]);
+
+  // ─── Auto-scroll ─────────────────────────────────────────────────────────────
   useEffect(() => {
     if (messagesContainerRef.current) {
       messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
     }
-  }, [activeMessages]);
+  }, [messages]);
 
-  const handleSend = (e: React.FormEvent) => {
+  const activeMessages = messages.filter(m => m.channelId === activeChannel);
+
+  const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim()) return;
-
-    const newMessage = {
-      id: Date.now(),
-      author: 'Dra. Marcela S.',
-      role: 'user',
-      content: input,
-      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      isMe: true,
-      channelId: activeChannel
-    };
-
-    setMessages(prev => [...prev, newMessage]);
+    const text = input.trim();
     setInput('');
 
-    // Simulate bot reply in private channel
-    if (activeChannel === 'privado') {
-      setTimeout(() => {
-        const botReply = {
-          id: Date.now() + 1,
-          author: 'Paolis',
-          role: 'admin',
-          content: '¡Recibido! Lo reviso y te comento en breve.',
-          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          isMe: false,
-          channelId: 'privado'
-        };
-        setMessages(prev => [...prev, botReply]);
-      }, 1500);
+    if (isSupabaseReady() && supabase && userId) {
+      // Send via Supabase
+      await supabase.from('mensajes').insert({
+        canal: activeChannel,
+        emisor_id: userId,
+        receptor_id: activeChannel === 'privado' ? null : null, // admin will reply; community = broadcast
+        contenido: text,
+      });
+      // The Realtime subscription will pick it up for other users;
+      // add optimistically for current user
+      const optimistic: MsgLocal = {
+        id: `opt-${Date.now()}`,
+        author: 'Vos',
+        rol: 'user',
+        content: text,
+        time: new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' }),
+        isMe: true,
+        channelId: activeChannel,
+      };
+      setMessages(prev => [...prev, optimistic]);
+    } else {
+      // Fallback mock (no Supabase)
+      const newMessage: MsgLocal = {
+        id: Date.now(),
+        author: 'Vos',
+        rol: 'user',
+        content: text,
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        isMe: true,
+        channelId: activeChannel,
+      };
+      setMessages(prev => [...prev, newMessage]);
+
+      if (activeChannel === 'privado') {
+        setTimeout(() => {
+          setMessages(prev => [...prev, {
+            id: Date.now() + 1,
+            author: 'Paolis',
+            rol: 'admin',
+            content: '¡Recibido! Lo reviso y te comento en breve.',
+            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            isMe: false,
+            channelId: 'privado',
+          }]);
+        }, 1500);
+      }
     }
   };
+
+  const userNombre = (() => {
+    try { return JSON.parse(localStorage.getItem('tcd_profile') || '{}').nombre ?? 'Vos'; } catch { return 'Vos'; }
+  })();
 
   return (
     <div className="max-w-6xl mx-auto h-[calc(100vh-8rem)] flex glass-panel rounded-2xl overflow-hidden animate-in fade-in duration-500">
@@ -120,21 +214,21 @@ export default function Mensajes() {
                   <channel.icon className={`w-4 h-4 ${activeChannel === channel.id ? 'text-blue-400' : 'text-gray-500'}`} />
                   <span className="text-sm font-medium truncate">{channel.name}</span>
                 </div>
-                {channel.unread > 0 && (
-                  <span className="w-5 h-5 rounded-full bg-blue-500 text-white text-[10px] font-bold flex items-center justify-center">
-                    {channel.unread}
-                  </span>
+                {isSupabaseReady() && (
+                  <span className="w-2 h-2 rounded-full bg-emerald-500" title="Realtime activo" />
                 )}
               </button>
             ))}
           </div>
         </div>
-        
+
         <div className="p-4 border-t border-white/10">
           <div className="flex items-center gap-3">
-            <img src="https://i.pravatar.cc/150?img=32" alt="Profile" className="w-8 h-8 rounded-full border border-white/20" />
+            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500/40 to-purple-500/40 flex items-center justify-center text-sm font-medium text-white">
+              {userNombre.charAt(0).toUpperCase()}
+            </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-white truncate">Dra. Marcela S.</p>
+              <p className="text-sm font-medium text-white truncate">{userNombre}</p>
               <p className="text-xs text-emerald-400">En línea</p>
             </div>
           </div>
@@ -159,36 +253,47 @@ export default function Mensajes() {
         </div>
 
         <div ref={messagesContainerRef} className="flex-1 overflow-y-auto p-6 space-y-6">
-          {activeMessages.map((msg) => (
-            <div key={msg.id} className={`flex gap-4 ${msg.isMe ? 'flex-row-reverse' : ''}`}>
-              {!msg.isMe && (
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-xs font-bold ${
-                  msg.role === 'bot' ? 'bg-gradient-to-br from-blue-500 to-purple-600 text-white' : 'bg-amber-500 text-black'
-                }`}>
-                  {msg.author.charAt(0)}
-                </div>
-              )}
-              
-              <div className={`flex flex-col ${msg.isMe ? 'items-end' : 'items-start'} max-w-[75%]`}>
-                <div className="flex items-baseline gap-2 mb-1 mx-1">
-                  <span className="text-xs font-medium text-gray-300">{msg.author}</span>
-                  {msg.role === 'admin' && <span className="text-[9px] uppercase tracking-wider text-amber-400 bg-amber-400/10 px-1.5 py-0.5 rounded">Equipo</span>}
-                  {msg.role === 'bot' && <span className="text-[9px] uppercase tracking-wider text-blue-400 bg-blue-400/10 px-1.5 py-0.5 rounded">Sistema</span>}
-                  <span className="text-[10px] text-gray-600">{msg.time}</span>
-                </div>
-                
-                <div className={`rounded-2xl p-4 ${
-                  msg.isMe 
-                    ? 'bg-blue-600 text-white rounded-tr-sm' 
-                    : msg.role === 'bot' 
-                      ? 'bg-white/5 border border-white/10 text-gray-300 rounded-tl-sm'
-                      : 'bg-white/10 text-white rounded-tl-sm'
-                }`}>
-                  <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.content}</p>
+          {loadingMsgs ? (
+            <div className="flex items-center justify-center py-10">
+              <div className="w-5 h-5 border-2 border-blue-500/30 border-t-blue-500 rounded-full animate-spin" />
+            </div>
+          ) : activeMessages.length === 0 ? (
+            <div className="text-center py-10">
+              <p className="text-gray-500 text-sm">Sin mensajes en este canal todavía</p>
+              <p className="text-gray-600 text-xs mt-1">Sé el primero en escribir</p>
+            </div>
+          ) : (
+            activeMessages.map((msg) => (
+              <div key={msg.id} className={`flex gap-4 ${msg.isMe ? 'flex-row-reverse' : ''}`}>
+                {!msg.isMe && (
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-xs font-bold ${
+                    msg.rol === 'bot' ? 'bg-gradient-to-br from-blue-500 to-purple-600 text-white' : 'bg-amber-500 text-black'
+                  }`}>
+                    {msg.author.charAt(0)}
+                  </div>
+                )}
+
+                <div className={`flex flex-col ${msg.isMe ? 'items-end' : 'items-start'} max-w-[75%]`}>
+                  <div className="flex items-baseline gap-2 mb-1 mx-1">
+                    <span className="text-xs font-medium text-gray-300">{msg.author}</span>
+                    {msg.rol === 'admin' && <span className="text-[9px] uppercase tracking-wider text-amber-400 bg-amber-400/10 px-1.5 py-0.5 rounded">Equipo</span>}
+                    {msg.rol === 'bot' && <span className="text-[9px] uppercase tracking-wider text-blue-400 bg-blue-400/10 px-1.5 py-0.5 rounded">Sistema</span>}
+                    <span className="text-[10px] text-gray-600">{msg.time}</span>
+                  </div>
+
+                  <div className={`rounded-2xl p-4 ${
+                    msg.isMe
+                      ? 'bg-blue-600 text-white rounded-tr-sm'
+                      : msg.rol === 'bot'
+                        ? 'bg-white/5 border border-white/10 text-gray-300 rounded-tl-sm'
+                        : 'bg-white/10 text-white rounded-tl-sm'
+                  }`}>
+                    <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.content}</p>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            ))
+          )}
         </div>
 
         <div className="p-4 bg-white/5 border-t border-white/10">
@@ -199,14 +304,14 @@ export default function Mensajes() {
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && !e.shiftKey) {
                   e.preventDefault();
-                  handleSend(e);
+                  handleSend(e as unknown as React.FormEvent);
                 }
               }}
               placeholder="Escribí un mensaje al equipo..."
               className="flex-1 max-h-32 min-h-[52px] bg-black/20 border border-white/10 rounded-xl py-3.5 px-4 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/50 transition-all resize-none scrollbar-hide"
               rows={1}
             />
-            <button 
+            <button
               type="submit"
               disabled={!input.trim()}
               className="w-[52px] h-[52px] shrink-0 rounded-xl bg-blue-500 hover:bg-blue-600 disabled:opacity-50 disabled:hover:bg-blue-500 flex items-center justify-center text-white transition-colors shadow-lg shadow-blue-500/20"

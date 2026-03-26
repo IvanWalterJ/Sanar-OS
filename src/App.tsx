@@ -13,7 +13,12 @@ import Metrics from './pages/Metrics';
 import Mensajes from './pages/Mensajes';
 import DiarioDirector from './pages/DiarioDirector';
 import Biblioteca from './pages/Biblioteca';
-import { X, User, Bell, Shield, CreditCard } from 'lucide-react';
+import Login from './pages/Login';
+import Admin from './pages/Admin';
+import { X, User, Bell, Shield, CreditCard, LogOut } from 'lucide-react';
+import { supabase, isSupabaseReady, type Profile as SupabaseProfile } from './lib/supabase';
+import { signOut, syncProfileToLocalStorage } from './lib/auth';
+import { toast } from 'sonner';
 
 type SettingsTab = 'perfil' | 'notificaciones' | 'seguridad' | 'facturacion';
 
@@ -34,21 +39,76 @@ function loadProfile(): Profile {
   return { nombre: 'Profesional', email: '', especialidad: '', fecha_inicio: today, plan: 'DWY' };
 }
 
+type AuthState = 'loading' | 'logged_out' | 'logged_in';
+
 export default function App() {
   const [currentPage, setCurrentPage] = useState('dashboard');
   const [showSettings, setShowSettings] = useState(false);
   const [settingsTab, setSettingsTab] = useState<SettingsTab>('perfil');
   const [profile, setProfile] = useState<Profile>(loadProfile);
   const [profileDraft, setProfileDraft] = useState<Profile>(loadProfile);
+  const [authState, setAuthState] = useState<AuthState>('loading');
+  const [supabaseProfile, setSupabaseProfile] = useState<SupabaseProfile | null>(null);
   const mainRef = useRef<HTMLElement>(null);
 
-  // Initialize profile in localStorage if not present
+  // ─── Auth init ──────────────────────────────────────────────────────────────
   useEffect(() => {
-    const existing = localStorage.getItem('tcd_profile');
-    if (!existing) {
-      localStorage.setItem('tcd_profile', JSON.stringify(profile));
+    if (!isSupabaseReady() || !supabase) {
+      // No Supabase configured — skip auth, go straight to app (dev mode)
+      const existing = localStorage.getItem('tcd_profile');
+      if (!existing) localStorage.setItem('tcd_profile', JSON.stringify(profile));
+      setAuthState('logged_in');
+      return;
     }
+
+    // Check existing session
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (!session) {
+        setAuthState('logged_out');
+        return;
+      }
+      await loadSupabaseProfile(session.user.id);
+      setAuthState('logged_in');
+    });
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'SIGNED_OUT' || !session) {
+        setSupabaseProfile(null);
+        setAuthState('logged_out');
+        return;
+      }
+      if (event === 'SIGNED_IN' && session) {
+        await loadSupabaseProfile(session.user.id);
+        setAuthState('logged_in');
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
+
+  async function loadSupabaseProfile(userId: string) {
+    if (!supabase) return;
+    const { data } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', userId)
+      .single();
+
+    if (data) {
+      setSupabaseProfile(data as SupabaseProfile);
+      syncProfileToLocalStorage(data as SupabaseProfile);
+      const p: Profile = {
+        nombre: data.nombre,
+        email: data.email,
+        especialidad: data.especialidad ?? '',
+        fecha_inicio: data.fecha_inicio,
+        plan: data.plan,
+      };
+      setProfile(p);
+      setProfileDraft(p);
+    }
+  }
 
   useEffect(() => {
     if (mainRef.current) mainRef.current.scrollTop = 0;
@@ -59,12 +119,57 @@ export default function App() {
     setShowSettings(true);
   };
 
-  const saveProfile = () => {
+  const saveProfile = async () => {
     localStorage.setItem('tcd_profile', JSON.stringify(profileDraft));
     setProfile(profileDraft);
+
+    // Also update in Supabase if available
+    if (supabase && supabaseProfile) {
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          nombre: profileDraft.nombre,
+          especialidad: profileDraft.especialidad,
+          fecha_inicio: profileDraft.fecha_inicio,
+          plan: profileDraft.plan,
+        })
+        .eq('id', supabaseProfile.id);
+
+      if (error) {
+        toast.error('Error al guardar en la nube. Los cambios se guardaron localmente.');
+      }
+    }
+
     setShowSettings(false);
   };
 
+  const handleSignOut = async () => {
+    await signOut();
+    localStorage.removeItem('tcd_profile');
+    setShowSettings(false);
+    setAuthState('logged_out');
+  };
+
+  // ─── Loading state ──────────────────────────────────────────────────────────
+  if (authState === 'loading') {
+    return (
+      <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-blue-500/30 border-t-blue-500 rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  // ─── Not logged in ──────────────────────────────────────────────────────────
+  if (authState === 'logged_out') {
+    return <Login onLogin={() => setAuthState('loading')} />;
+  }
+
+  // ─── Admin view ─────────────────────────────────────────────────────────────
+  if (supabaseProfile?.rol === 'admin') {
+    return <Admin adminProfile={supabaseProfile} onSignOut={handleSignOut} />;
+  }
+
+  // ─── Main app ────────────────────────────────────────────────────────────────
   return (
     <div className="flex h-screen bg-[#0B0F19] text-white overflow-hidden font-sans selection:bg-blue-500/30">
       {/* Background Glow */}
@@ -85,7 +190,7 @@ export default function App() {
             {currentPage === 'roadmap' && <Roadmap />}
             {currentPage === 'coach' && <Coach />}
             {currentPage === 'metrics' && <Metrics />}
-            {currentPage === 'mensajes' && <Mensajes />}
+            {currentPage === 'mensajes' && <Mensajes userId={supabaseProfile?.id} />}
             {currentPage === 'diario' && <DiarioDirector />}
             {currentPage === 'biblioteca' && <Biblioteca />}
           </div>
@@ -108,25 +213,34 @@ export default function App() {
 
             <div className="flex flex-1 overflow-hidden">
               {/* Settings Sidebar */}
-              <div className="w-1/3 border-r border-white/10 p-4 space-y-2 bg-white/[0.02]">
-                {([
-                  { id: 'perfil' as SettingsTab, label: 'Perfil', icon: User },
-                  { id: 'notificaciones' as SettingsTab, label: 'Notificaciones', icon: Bell },
-                  { id: 'seguridad' as SettingsTab, label: 'Seguridad', icon: Shield },
-                  { id: 'facturacion' as SettingsTab, label: 'Facturación', icon: CreditCard },
-                ]).map(tab => (
-                  <button
-                    key={tab.id}
-                    onClick={() => setSettingsTab(tab.id)}
-                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-colors ${
-                      settingsTab === tab.id
-                        ? 'bg-blue-500/10 text-blue-400 font-medium'
-                        : 'text-gray-400 hover:bg-white/5 hover:text-gray-200'
-                    }`}
-                  >
-                    <tab.icon className="w-4 h-4" /> {tab.label}
-                  </button>
-                ))}
+              <div className="w-1/3 border-r border-white/10 p-4 space-y-2 bg-white/[0.02] flex flex-col">
+                <div className="flex-1 space-y-2">
+                  {([
+                    { id: 'perfil' as SettingsTab, label: 'Perfil', icon: User },
+                    { id: 'notificaciones' as SettingsTab, label: 'Notificaciones', icon: Bell },
+                    { id: 'seguridad' as SettingsTab, label: 'Seguridad', icon: Shield },
+                    { id: 'facturacion' as SettingsTab, label: 'Facturación', icon: CreditCard },
+                  ]).map(tab => (
+                    <button
+                      key={tab.id}
+                      onClick={() => setSettingsTab(tab.id)}
+                      className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-colors ${
+                        settingsTab === tab.id
+                          ? 'bg-blue-500/10 text-blue-400 font-medium'
+                          : 'text-gray-400 hover:bg-white/5 hover:text-gray-200'
+                      }`}
+                    >
+                      <tab.icon className="w-4 h-4" /> {tab.label}
+                    </button>
+                  ))}
+                </div>
+                {/* Sign out */}
+                <button
+                  onClick={handleSignOut}
+                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm text-red-400 hover:bg-red-500/10 transition-colors mt-auto"
+                >
+                  <LogOut className="w-4 h-4" /> Cerrar sesión
+                </button>
               </div>
 
               {/* Settings Content */}
@@ -135,12 +249,6 @@ export default function App() {
                   <div className="space-y-6">
                     <div>
                       <h3 className="text-lg font-medium text-white mb-4">Información Personal</h3>
-                      <div className="flex items-center gap-4 mb-6">
-                        <img src="https://i.pravatar.cc/150?img=32" alt="Profile" className="w-16 h-16 rounded-full border border-white/20" />
-                        <button className="px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg text-sm font-medium transition-colors">
-                          Cambiar Foto
-                        </button>
-                      </div>
                       <div className="space-y-4">
                         <div>
                           <label className="block text-xs text-gray-400 mb-1">Nombre Completo</label>
@@ -156,9 +264,10 @@ export default function App() {
                           <input
                             type="email"
                             value={profileDraft.email}
-                            onChange={e => setProfileDraft({ ...profileDraft, email: e.target.value })}
-                            className="w-full bg-black/20 border border-white/10 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-blue-500/50"
+                            disabled
+                            className="w-full bg-black/20 border border-white/10 rounded-lg px-4 py-2.5 text-gray-500 cursor-not-allowed"
                           />
+                          <p className="text-xs text-gray-600 mt-1">El email no se puede cambiar desde aquí</p>
                         </div>
                         <div>
                           <label className="block text-xs text-gray-400 mb-1">Especialidad</label>
@@ -217,26 +326,14 @@ export default function App() {
                 {settingsTab === 'seguridad' && (
                   <div className="space-y-6">
                     <h3 className="text-lg font-medium text-white mb-4">Seguridad</h3>
-                    <div className="space-y-4">
-                      <div>
-                        <label className="block text-xs text-gray-400 mb-1">Contraseña Actual</label>
-                        <input type="password" placeholder="••••••••" className="w-full bg-black/20 border border-white/10 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-blue-500/50" />
-                      </div>
-                      <div>
-                        <label className="block text-xs text-gray-400 mb-1">Nueva Contraseña</label>
-                        <input type="password" placeholder="••••••••" className="w-full bg-black/20 border border-white/10 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-blue-500/50" />
-                      </div>
-                    </div>
-                    <button className="px-5 py-2.5 rounded-xl bg-blue-500 hover:bg-blue-600 text-white text-sm font-medium transition-colors">
-                      Actualizar Contraseña
-                    </button>
+                    <p className="text-sm text-gray-400">Para cambiar tu contraseña, pedile a tu coach que te envíe un email de restablecimiento.</p>
                   </div>
                 )}
 
                 {settingsTab === 'facturacion' && (
                   <div className="space-y-6">
                     <h3 className="text-lg font-medium text-white mb-4">Facturación</h3>
-                    <div className="glass-panel p-4 rounded-xl">
+                    <div className="bg-white/[0.04] border border-white/10 p-4 rounded-xl">
                       <div className="flex items-center justify-between mb-2">
                         <span className="text-sm text-gray-300">Plan Actual</span>
                         <span className="px-3 py-1 rounded-full bg-blue-500/20 text-blue-400 text-xs font-medium">
@@ -244,11 +341,6 @@ export default function App() {
                         </span>
                       </div>
                       <p className="text-xs text-gray-500">Programa de 90 días</p>
-                    </div>
-                    <div className="glass-panel p-4 rounded-xl">
-                      <p className="text-sm text-gray-300 mb-2">Método de Pago</p>
-                      <p className="text-sm text-white">•••• •••• •••• 4242</p>
-                      <p className="text-xs text-gray-500 mt-1">Visa · Expira 12/27</p>
                     </div>
                   </div>
                 )}
