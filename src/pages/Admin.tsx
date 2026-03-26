@@ -4,7 +4,8 @@ import {
   Stethoscope, CheckCircle2, Circle, LogOut,
   MessageSquare, BookOpen, BarChart2, Calendar,
   TrendingUp, TrendingDown, Sparkles, Bot,
-  Hash, Trophy, Lock, Shield
+  Hash, Trophy, Lock, Shield,
+  CheckCheck, AlertTriangle
 } from 'lucide-react';
 import { supabase, type Profile, type Mensaje, isSupabaseReady } from '../lib/supabase';
 import { GoogleGenAI } from '@google/genai';

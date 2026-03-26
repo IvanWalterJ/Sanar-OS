@@ -84,7 +84,7 @@ export default function DiarioDirector({ userId }: { userId?: string }) {
           localStorage.setItem('tcd_diary_weekly', JSON.stringify(formatted));
         }
       })
-      .finally(() => setLoading(false));
+      .then(() => setLoading(false), () => setLoading(false));
   }, [userId]);
 
   const handleSubmit = async () => {
