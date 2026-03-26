@@ -1,76 +1,49 @@
--- Reparar infinite recursion en perfiles (borrar todas las políticas de profiles)
-DROP POLICY IF EXISTS "Admins can view all profiles" ON profiles;
-DROP POLICY IF EXISTS "Users can view own profile" ON profiles;
-DROP POLICY IF EXISTS "Users can update own profile" ON profiles;
-DROP POLICY IF EXISTS "Admins can update profiles" ON profiles;
-DROP POLICY IF EXISTS "Enable read access for all users" ON profiles;
-DROP POLICY IF EXISTS "Enable insert for authenticated users only" ON profiles;
-
-CREATE POLICY "Users can view own profile" ON profiles
-FOR SELECT USING ( auth.uid() = id );
-
-CREATE POLICY "Users can update own profile" ON profiles
-FOR UPDATE USING ( auth.uid() = id );
-
--- Reparación rápida de permisos compartidos básicos
-ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
-
 -- ==========================================
--- TABLAS ADICIONALES (CREACIÓN SEGURA)
--- Asegurarnos de que existan para el nuevo GPS
+-- 1. SINCRONIZADOR AUTOMÁTICO DE USUARIOS
 -- ==========================================
 
--- Tabla de Tareas (Roadmap)
-CREATE TABLE IF NOT EXISTS tareas_usuario (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
-    tarea_id TEXT NOT NULL,
-    status TEXT NOT NULL,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
+-- Esta función se encarga de crear el perfil automáticamente cuando agregás alguien en Auth
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER SET search_path = public
+AS $$
+BEGIN
+  INSERT INTO public.profiles (id, email, nombre, fecha_inicio, plan, rol)
+  VALUES (
+    new.id,
+    new.email,
+    'Usuario',
+    CURRENT_DATE,
+    'DWY',
+    'cliente'
+  );
+  RETURN new;
+END;
+$$;
 
-ALTER TABLE tareas_usuario ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "Users can view their tasks" ON tareas_usuario;
-DROP POLICY IF EXISTS "Users can insert their tasks" ON tareas_usuario;
-DROP POLICY IF EXISTS "Users can update their tasks" ON tareas_usuario;
-CREATE POLICY "Users can view their tasks" ON tareas_usuario FOR SELECT USING (auth.uid() = user_id);
-CREATE POLICY "Users can insert their tasks" ON tareas_usuario FOR INSERT WITH CHECK (auth.uid() = user_id);
-CREATE POLICY "Users can update their tasks" ON tareas_usuario FOR UPDATE USING (auth.uid() = user_id);
+-- Este trigger "escucha" cada vez que creás un usuario y ejecuta la función anterior
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE PROCEDURE public.handle_new_user();
 
--- Tabla Diario del Fundador (Check-in Semanal)
-CREATE TABLE IF NOT EXISTS diario_entradas (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
-    fecha DATE NOT NULL,
-    respuestas JSONB NOT NULL,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
 
-ALTER TABLE diario_entradas ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "Users can view their diary" ON diario_entradas;
-DROP POLICY IF EXISTS "Users can insert their diary" ON diario_entradas;
-DROP POLICY IF EXISTS "Users can update their diary" ON diario_entradas;
-CREATE POLICY "Users can view their diary" ON diario_entradas FOR SELECT USING (auth.uid() = user_id);
-CREATE POLICY "Users can insert their diary" ON diario_entradas FOR INSERT WITH CHECK (auth.uid() = user_id);
-CREATE POLICY "Users can update their diary" ON diario_entradas FOR UPDATE USING (auth.uid() = user_id);
+-- ==========================================
+-- 2. RECUPERAR USUARIOS YA CREADOS 
+-- ==========================================
+-- Esto va a meter en la tabla 'profiles' a la cuenta que creaste hace un rato 
+-- y que se quedó "huérfana" (por eso no podías entrar ni cambiarle el rol)
 
--- Tabla de Métricas (Negocio)
-CREATE TABLE IF NOT EXISTS metricas (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
-    week_number INTEGER NOT NULL,
-    leads INTEGER DEFAULT 0,
-    calls INTEGER DEFAULT 0,
-    sales INTEGER DEFAULT 0,
-    revenue NUMERIC DEFAULT 0,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
+INSERT INTO public.profiles (id, email, nombre, fecha_inicio, plan, rol)
+SELECT id, email, 'Mi Cuenta', CURRENT_DATE, 'DWY', 'cliente'
+FROM auth.users
+WHERE id NOT IN (SELECT id FROM public.profiles);
 
-ALTER TABLE metricas ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "Users can view their metrics" ON metricas;
-DROP POLICY IF EXISTS "Users can insert their metrics" ON metricas;
-DROP POLICY IF EXISTS "Users can update their metrics" ON metricas;
-CREATE POLICY "Users can view their metrics" ON metricas FOR SELECT USING (auth.uid() = user_id);
-CREATE POLICY "Users can insert their metrics" ON metricas FOR INSERT WITH CHECK (auth.uid() = user_id);
-CREATE POLICY "Users can update their metrics" ON metricas FOR UPDATE USING (auth.uid() = user_id);
+-- ==========================================
+-- 3. ASIGNAR ROL DE ADMIN AL FUNDADOR
+-- ==========================================
+-- Acá pone el EMAIL REAL con el que creaste tu usuario recién:
+UPDATE public.profiles 
+SET rol = 'admin' 
+WHERE email = 'TU_EMAIL_ACA';

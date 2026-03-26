@@ -62,14 +62,24 @@ export default function App() {
     }
 
     // Check existing session
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (!session) {
+    supabase.auth.getSession()
+      .then(async ({ data: { session }, error }) => {
+        if (error) {
+          console.error("Error de sesión Supabase:", error);
+          setAuthState('logged_out');
+          return;
+        }
+        if (!session) {
+          setAuthState('logged_out');
+          return;
+        }
+        await loadSupabaseProfile(session.user.id);
+        setAuthState('logged_in');
+      })
+      .catch((err) => {
+        console.error("Error catastrofico en getSession:", err);
         setAuthState('logged_out');
-        return;
-      }
-      await loadSupabaseProfile(session.user.id);
-      setAuthState('logged_in');
-    });
+      });
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
@@ -89,24 +99,33 @@ export default function App() {
 
   async function loadSupabaseProfile(userId: string) {
     if (!supabase) return;
-    const { data } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', userId)
-      .single();
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
 
-    if (data) {
-      setSupabaseProfile(data as SupabaseProfile);
-      syncProfileToLocalStorage(data as SupabaseProfile);
-      const p: Profile = {
-        nombre: data.nombre,
-        email: data.email,
-        especialidad: data.especialidad ?? '',
-        fecha_inicio: data.fecha_inicio,
-        plan: data.plan,
-      };
-      setProfile(p);
-      setProfileDraft(p);
+      if (error) {
+        console.error("Error al cargar perfil (Posible error RLS 500 o falta fila):", error);
+        return;
+      }
+
+      if (data) {
+        setSupabaseProfile(data as SupabaseProfile);
+        syncProfileToLocalStorage(data as SupabaseProfile);
+        const p: Profile = {
+          nombre: data.nombre,
+          email: data.email,
+          especialidad: data.especialidad ?? '',
+          fecha_inicio: data.fecha_inicio,
+          plan: data.plan,
+        };
+        setProfile(p);
+        setProfileDraft(p);
+      }
+    } catch (err) {
+      console.error("Excepción en loadSupabaseProfile:", err);
     }
   }
 
