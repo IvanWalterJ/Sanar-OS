@@ -1,5 +1,5 @@
 -- ==========================================
--- PASO 1: LIMPIAR TODAS LAS POLÍTICAS ROTAS
+-- LIMPIAR POLÍTICAS ROTAS EN PROFILES
 -- ==========================================
 DROP POLICY IF EXISTS "Admins can bypass RLS" ON profiles;
 DROP POLICY IF EXISTS "Admin by email" ON profiles;
@@ -9,27 +9,68 @@ DROP POLICY IF EXISTS "Admins can view all profiles" ON profiles;
 DROP POLICY IF EXISTS "Admins can update profiles" ON profiles;
 DROP POLICY IF EXISTS "Enable read access for all users" ON profiles;
 DROP POLICY IF EXISTS "Enable insert for authenticated users only" ON profiles;
+DROP POLICY IF EXISTS "Users can insert own profile" ON profiles;
 
--- ==========================================
--- PASO 2: POLÍTICAS SIMPLES (SIN RECURSIÓN)
--- ==========================================
--- Cada usuario puede ver su propia fila únicamente.
--- NO se chequea la tabla profiles para saber si es admin (eso causaba la recursión).
-CREATE POLICY "Users can view own profile" ON profiles
-  FOR SELECT USING (auth.uid() = id);
-
--- Cada usuario puede editar su propia fila.
-CREATE POLICY "Users can update own profile" ON profiles
-  FOR UPDATE USING (auth.uid() = id);
-
--- Permitir insertar (para el trigger automático de nuevos usuarios)
-CREATE POLICY "Users can insert own profile" ON profiles
-  FOR INSERT WITH CHECK (auth.uid() = id);
-
+-- POLÍTICAS LIMPIAS SIN RECURSIÓN
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 
+-- El service_role bypassa RLS automáticamente, así que solo necesitamos pólizas para authenticated
+CREATE POLICY "Authenticated users can view own profile" ON profiles
+  FOR SELECT USING (auth.uid() = id);
+
+CREATE POLICY "Authenticated users can update own profile" ON profiles  
+  FOR UPDATE USING (auth.uid() = id);
+
+CREATE POLICY "Allow insert on profiles" ON profiles
+  FOR INSERT WITH CHECK (auth.uid() = id);
+
 -- ==========================================
--- PASO 3: TRIGGER CREADOR DE PERFILES
+-- PERMISOS ADMIN: VER TODOS LOS DATOS
+-- Admin usa una función SECURITY DEFINER para bypasear RLS
+-- ==========================================
+
+-- Función para que el admin pueda leer todos los perfiles
+CREATE OR REPLACE FUNCTION get_all_profiles()
+RETURNS SETOF profiles
+LANGUAGE sql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT * FROM profiles WHERE rol = 'cliente' ORDER BY created_at DESC;
+$$;
+
+-- Función para que el admin pueda leer tareas de un user específico
+CREATE OR REPLACE FUNCTION get_user_tasks(target_user_id UUID)
+RETURNS SETOF tareas_usuario
+LANGUAGE sql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT * FROM tareas_usuario WHERE user_id = target_user_id;
+$$;
+
+-- Función para que el admin pueda leer entradas de diario de un user
+CREATE OR REPLACE FUNCTION get_user_diary(target_user_id UUID)
+RETURNS SETOF diario_entradas
+LANGUAGE sql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT * FROM diario_entradas WHERE user_id = target_user_id ORDER BY fecha DESC LIMIT 10;
+$$;
+
+-- Función para que el admin pueda leer métricas de un user
+CREATE OR REPLACE FUNCTION get_user_metrics(target_user_id UUID)
+RETURNS SETOF metricas
+LANGUAGE sql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT * FROM metricas WHERE user_id = target_user_id ORDER BY week_number;
+$$;
+
+-- ==========================================
+-- TRIGGER CREADOR DE PERFILES  
 -- ==========================================
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS trigger
@@ -57,8 +98,7 @@ CREATE TRIGGER on_auth_user_created
   FOR EACH ROW EXECUTE PROCEDURE public.handle_new_user();
 
 -- ==========================================
--- PASO 4: RECUPERAR USUARIOS HUÉRFANOS
--- (los que existen en Auth pero no en profiles)
+-- SYNC USUARIOS EXISTENTES SIN PERFIL
 -- ==========================================
 INSERT INTO public.profiles (id, email, nombre, fecha_inicio, plan, rol)
 SELECT id, email, 'Usuario', CURRENT_DATE, 'DWY', 'cliente'
@@ -67,8 +107,7 @@ WHERE id NOT IN (SELECT id FROM public.profiles)
 ON CONFLICT (id) DO NOTHING;
 
 -- ==========================================
--- PASO 5: ASIGNAR ROL ADMIN
--- (cambia el email por el tuyo)
+-- ASIGNAR ADMIN
 -- ==========================================
 UPDATE public.profiles 
 SET rol = 'admin' 
