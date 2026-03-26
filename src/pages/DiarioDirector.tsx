@@ -1,474 +1,323 @@
 import React, { useState, useEffect } from 'react';
-import { BookOpen, Sparkles, Loader2, ChevronDown, ChevronUp, Calendar, Flame, FileText } from 'lucide-react';
-import { GoogleGenAI } from '@google/genai';
-import Markdown from 'react-markdown';
+import { BookOpen, Loader2, Calendar, Flame, History, Check } from 'lucide-react';
+import { supabase, isSupabaseReady } from '../lib/supabase';
 import { toast } from 'sonner';
 
 interface DiaryEntry {
-  id: number;
-  fecha: string; // YYYY-MM-DD
+  id: string;
+  fecha: string;
   respuestas: {
-    q1: string;
-    q2: string;
-    q3: number; // 1-10 energía
-    q4: string;
-    q5: string;
+    estado: string;
+    victoria: string;
+    aprendizaje: string;
+    foco: string;
+    cuello: string;
+    metrica: string;
   };
 }
 
-interface WeeklySummary {
-  id: number;
-  semana_inicio: string; // YYYY-MM-DD (lunes)
-  resumen_texto: string;
-}
-
-interface DiaryData {
-  entries: DiaryEntry[];
-  resumenes: WeeklySummary[];
-}
-
-const PREGUNTAS = [
-  '¿Qué hice hoy hacia mi clínica digital?',
-  '¿Qué frenó mi avance hoy?',
-  '¿Cómo está mi energía? (1–10)',
-  '¿Qué me llevo aprendido?',
-  '¿Qué voy a hacer mañana?',
+const ESTADOS = [
+  { id: 'imparable', emoji: '🔥', label: 'Imparable' },
+  { id: 'bien', emoji: '👍', label: 'Bien' },
+  { id: 'remando', emoji: '😐', label: 'Remando' },
+  { id: 'bloqueado', emoji: '🆘', label: 'Bloqueado' },
 ];
+
+const METRICAS = ['Leads', 'Llamadas', 'Ventas', 'Entrega', 'Otro'];
 
 function getTodayStr(): string {
   return new Date().toISOString().split('T')[0];
 }
 
-function getDayOfWeek(): number {
-  return new Date().getDay(); // 0=Dom, 1=Lun, ..., 5=Vie, 6=Sab
+function calcStreak(entries: DiaryEntry[]): number {
+  return entries.length; // Simply counting total check-ins for the streak
 }
 
-function getMondayOfCurrentWeek(): string {
-  const d = new Date();
-  const day = d.getDay();
-  const diff = day === 0 ? -6 : 1 - day;
-  d.setDate(d.getDate() + diff);
-  return d.toISOString().split('T')[0];
-}
+export default function DiarioDirector({ userId }: { userId?: string }) {
+  const [entries, setEntries] = useState<DiaryEntry[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [respuestas, setRespuestas] = useState({
+    estado: 'bien',
+    victoria: '',
+    aprendizaje: '',
+    foco: '',
+    cuello: '',
+    metrica: 'Leads'
+  });
 
-function loadDiary(): DiaryData {
-  try {
-    const saved = localStorage.getItem('tcd_diary');
-    if (saved) return JSON.parse(saved);
-  } catch { /* noop */ }
-  return { entries: [], resumenes: [] };
-}
-
-function saveDiary(data: DiaryData) {
-  localStorage.setItem('tcd_diary', JSON.stringify(data));
-}
-
-export function calcDiaryStreak(entries: DiaryEntry[]): number {
-  if (!entries.length) return 0;
-  const today = getTodayStr();
-  const sorted = [...entries].sort((a, b) => b.fecha.localeCompare(a.fecha));
-  let streak = 0;
-  const d = new Date();
-
-  for (let i = 0; i < 30; i++) {
-    const dateStr = d.toISOString().split('T')[0];
-    const dayOfWeek = d.getDay();
-    // Skip weekends
-    if (dayOfWeek === 0 || dayOfWeek === 6) {
-      d.setDate(d.getDate() - 1);
-      continue;
-    }
-    // If today and no entry yet, that's ok (don't break streak)
-    if (dateStr === today) {
-      d.setDate(d.getDate() - 1);
-      continue;
-    }
-    const hasEntry = sorted.some(e => e.fecha === dateStr);
-    if (hasEntry) {
-      streak++;
-      d.setDate(d.getDate() - 1);
-    } else {
-      break;
-    }
-  }
-  return streak;
-}
-
-export default function DiarioDirector() {
-  const [data, setData] = useState<DiaryData>(loadDiary);
-  const [generating, setGenerating] = useState(false);
-  const [expandedEntry, setExpandedEntry] = useState<number | null>(null);
-  const [expandedSummary, setExpandedSummary] = useState<number | null>(null);
-  const [activeTab, setActiveTab] = useState<'entradas' | 'resumenes'>('entradas');
-
-  // Form state
-  const [respuestas, setRespuestas] = useState({ q1: '', q2: '', q3: 7, q4: '', q5: '' });
-
-  const dayOfWeek = getDayOfWeek();
-  const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
-  const isFriday = dayOfWeek === 5;
   const todayStr = getTodayStr();
-  const todayEntry = data.entries.find(e => e.fecha === todayStr);
-  const streak = calcDiaryStreak(data.entries);
+  const todayEntry = entries.find(e => e.fecha === todayStr);
+  const streak = calcStreak(entries);
 
   useEffect(() => {
-    saveDiary(data);
-  }, [data]);
+    // 1. Initial local load
+    try {
+      const saved = localStorage.getItem('tcd_diary_weekly');
+      if (saved) setEntries(JSON.parse(saved));
+    } catch { /* noop */ }
+
+    // 2. Load from Supabase
+    if (!isSupabaseReady() || !supabase || !userId) return;
+
+    setLoading(true);
+    supabase
+      .from('diario_entradas')
+      .select('*')
+      .eq('user_id', userId)
+      .order('fecha', { ascending: false })
+      .then(({ data }) => {
+        if (data) {
+          const formatted = data.map((d: any) => ({
+            id: String(d.id),
+            fecha: d.fecha,
+            respuestas: {
+              estado: d.respuestas.estado || 'bien',
+              victoria: d.respuestas.victoria || d.respuestas.q1 || '',
+              aprendizaje: d.respuestas.aprendizaje || d.respuestas.q4 || '',
+              foco: d.respuestas.foco || d.respuestas.q5 || '',
+              cuello: d.respuestas.cuello || d.respuestas.q2 || '',
+              metrica: d.respuestas.metrica || 'Otro',
+            }
+          }));
+          setEntries(formatted);
+          localStorage.setItem('tcd_diary_weekly', JSON.stringify(formatted));
+        }
+      })
+      .finally(() => setLoading(false));
+  }, [userId]);
 
   const handleSubmit = async () => {
-    if (!respuestas.q1.trim() || !respuestas.q2.trim() || !respuestas.q4.trim() || !respuestas.q5.trim()) {
-      toast.error('Completá todas las preguntas antes de guardar.');
+    if (!respuestas.victoria.trim() || !respuestas.aprendizaje.trim() || !respuestas.foco.trim()) {
+      toast.error('Por favor, completá los campos principales (Victoria, Aprendizaje, Foco).');
       return;
     }
 
-    setGenerating(true);
+    setSaving(true);
+    try {
+      let entryId = String(Date.now());
+      const newEntry: DiaryEntry = { id: entryId, fecha: todayStr, respuestas: { ...respuestas } };
 
-    const newEntry: DiaryEntry = {
-      id: Date.now(),
-      fecha: todayStr,
-      respuestas: { ...respuestas },
-    };
+      if (isSupabaseReady() && supabase && userId) {
+        const { data: saved } = await supabase
+          .from('diario_entradas')
+          .upsert(
+            { user_id: userId, fecha: todayStr, respuestas: { ...respuestas } },
+            { onConflict: 'user_id,fecha' }
+          )
+          .select()
+          .single();
 
-    const newData: DiaryData = {
-      ...data,
-      entries: [newEntry, ...data.entries.filter(e => e.fecha !== todayStr)],
-      resumenes: [...data.resumenes],
-    };
-
-    // Friday: generate weekly summary
-    if (isFriday) {
-      const monday = getMondayOfCurrentWeek();
-      const weekEntries = newData.entries.filter(e => e.fecha >= monday && e.fecha <= todayStr);
-
-      if (weekEntries.length >= 1) {
-        try {
-          const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-          const entryText = weekEntries.map(e =>
-            `Fecha: ${e.fecha}\n1. Hice: ${e.respuestas.q1}\n2. Bloqueó: ${e.respuestas.q2}\n3. Energía: ${e.respuestas.q3}/10\n4. Aprendí: ${e.respuestas.q4}\n5. Mañana: ${e.respuestas.q5}`
-          ).join('\n\n---\n\n');
-
-          const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
-            contents: [{ role: 'user', parts: [{ text: entryText }] }],
-            config: {
-              systemInstruction: `Sos el Coach IA de Tu Clínica Digital. Acabás de leer las entradas del diario de esta semana de un profesional de la salud construyendo su clínica digital. Generá un resumen semanal breve y útil (máximo 5 párrafos) con este formato markdown:
-
-**Qué avanzó esta semana:**
-[lo concreto que hizo hacia su clínica]
-
-**Patrón de bloqueo detectado:**
-[qué se repite como obstáculo, si aplica]
-
-**Cómo estuvo la energía:**
-[análisis del slider 1-10 a lo largo de la semana]
-
-**Qué aprendió:**
-[síntesis de aprendizajes]
-
-**Para la semana que viene:**
-[una acción concreta y específica basada en lo que escribió]
-
-Sé directo, empático y práctico. No uses lenguaje genérico.`,
-            }
-          });
-
-          const existingResumeIndex = newData.resumenes.findIndex(r => r.semana_inicio === monday);
-          const newResumen: WeeklySummary = {
-            id: Date.now() + 1,
-            semana_inicio: monday,
-            resumen_texto: response.text || '',
-          };
-
-          if (existingResumeIndex >= 0) {
-            newData.resumenes[existingResumeIndex] = newResumen;
-          } else {
-            newData.resumenes = [newResumen, ...newData.resumenes];
-          }
-
-          toast.success('¡Entrada guardada y resumen semanal generado!');
-        } catch (error) {
-          console.error('Error generating summary:', error);
-          toast.success('Entrada guardada. No se pudo generar el resumen semanal.');
-        }
+        if (saved) newEntry.id = String(saved.id);
       }
-    } else {
-      toast.success('Entrada del día guardada.');
-    }
 
-    setData(newData);
-    setRespuestas({ q1: '', q2: '', q3: 7, q4: '', q5: '' });
-    setGenerating(false);
+      const updatedEntries = [newEntry, ...entries.filter(e => e.fecha !== todayStr)];
+      setEntries(updatedEntries);
+      localStorage.setItem('tcd_diary_weekly', JSON.stringify(updatedEntries));
+      
+      toast.success('Check-in semanal guardado correctamente.');
+    } catch (e) {
+      toast.error('Ocurrió un error al guardar el Check-in.');
+    } finally {
+      setSaving(false);
+    }
   };
 
-  // Weekend screen
-  if (isWeekend) {
-    return (
-      <div className="max-w-lg mx-auto mt-20 text-center animate-in fade-in duration-500">
-        <div className="glass-panel p-12 rounded-2xl">
-          <div className="w-16 h-16 rounded-2xl bg-amber-500/10 flex items-center justify-center mx-auto mb-6">
-            <BookOpen className="w-8 h-8 text-amber-400" />
-          </div>
-          <h2 className="text-2xl font-light text-white mb-3">Es fin de semana</h2>
-          <p className="text-gray-400 text-sm leading-relaxed">
-            El diario es de lunes a viernes. Volvé el lunes para registrar tu próximo día.
-          </p>
-          {streak > 0 && (
-            <div className="mt-6 flex items-center justify-center gap-2 text-amber-400">
-              <Flame className="w-5 h-5" />
-              <span className="text-lg font-medium">{streak} días seguidos</span>
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="max-w-2xl mx-auto space-y-6 pb-6 animate-in fade-in duration-500">
-      <div className="flex items-end justify-between">
+    <div className="max-w-3xl mx-auto space-y-8 pb-12 animate-in fade-in duration-500">
+      <div className="flex justify-between items-end">
         <div>
-          <h1 className="text-3xl font-light tracking-tight text-white mb-2">Diario</h1>
+          <h1 className="text-3xl font-light tracking-tight text-white mb-2">Check-in de Lunes</h1>
           <p className="text-gray-400 text-sm flex items-center gap-2">
             <Calendar className="w-4 h-4" />
             {new Date().toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' })}
-            {isFriday && <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 text-xs">Viernes — se genera resumen semanal</span>}
           </p>
         </div>
         {streak > 0 && (
-          <div className="flex items-center gap-1.5 text-amber-400">
+          <div className="flex items-center gap-1.5 text-amber-500 bg-amber-500/10 px-3 py-1.5 rounded-lg border border-amber-500/20">
             <Flame className="w-4 h-4" />
-            <span className="text-sm font-medium">{streak} {streak === 1 ? 'día' : 'días'} seguidos</span>
+            <span className="text-sm font-bold">{streak} check-ins</span>
           </div>
         )}
       </div>
 
-      {/* Today's entry form or already-filled state */}
-      {todayEntry ? (
-        <div className="glass-panel p-6 rounded-2xl border border-emerald-500/20 bg-emerald-500/5">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-emerald-500/20 flex items-center justify-center">
-              <BookOpen className="w-5 h-5 text-emerald-400" />
-            </div>
-            <div>
-              <p className="text-white font-medium">Entrada de hoy completa</p>
-              <p className="text-xs text-gray-400">Ya registraste tu día de hoy. Volvé mañana.</p>
-            </div>
-          </div>
-          <div className="mt-4 grid grid-cols-5 gap-2">
-            {[todayEntry.respuestas.q1, todayEntry.respuestas.q2, `Energía: ${todayEntry.respuestas.q3}/10`, todayEntry.respuestas.q4, todayEntry.respuestas.q5].map((r, i) => (
-              <div key={i} className="col-span-5 flex items-start gap-2 text-sm">
-                <span className="text-gray-500 shrink-0 w-4">{i + 1}.</span>
-                <span className="text-gray-300 line-clamp-1">{r}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      ) : (
-        <div className="glass-panel p-6 rounded-2xl space-y-6">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center">
-              <BookOpen className="w-5 h-5 text-white" />
-            </div>
-            <div>
-              <h3 className="text-lg font-medium text-white">Entrada del día</h3>
-              <p className="text-xs text-gray-400">5 preguntas · Cierre de tu jornada</p>
-            </div>
-          </div>
-
-          {/* Q1 */}
-          <div>
-            <label className="block text-sm text-amber-200 font-medium mb-2">
-              1. {PREGUNTAS[0]}
-            </label>
-            <textarea
-              value={respuestas.q1}
-              onChange={e => setRespuestas({ ...respuestas, q1: e.target.value })}
-              placeholder="Describí qué hiciste hoy..."
-              rows={3}
-              className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white text-sm placeholder-gray-500 focus:outline-none focus:border-blue-500/50 resize-none"
-            />
-          </div>
-
-          {/* Q2 */}
-          <div>
-            <label className="block text-sm text-amber-200 font-medium mb-2">
-              2. {PREGUNTAS[1]}
-            </label>
-            <textarea
-              value={respuestas.q2}
-              onChange={e => setRespuestas({ ...respuestas, q2: e.target.value })}
-              placeholder="¿Qué obstáculo apareció hoy?"
-              rows={2}
-              className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white text-sm placeholder-gray-500 focus:outline-none focus:border-blue-500/50 resize-none"
-            />
-          </div>
-
-          {/* Q3 — Energy slider */}
-          <div>
-            <label className="block text-sm text-amber-200 font-medium mb-3">
-              3. {PREGUNTAS[2]}
-            </label>
-            <div className="flex items-center gap-4">
-              <span className="text-xs text-gray-500 w-4">1</span>
-              <input
-                type="range"
-                min={1}
-                max={10}
-                value={respuestas.q3}
-                onChange={e => setRespuestas({ ...respuestas, q3: parseInt(e.target.value) })}
-                className="flex-1 accent-amber-500"
-              />
-              <span className="text-xs text-gray-500 w-4">10</span>
-              <div className="w-12 h-8 rounded-lg bg-amber-500/20 flex items-center justify-center">
-                <span className="text-amber-400 font-bold text-sm">{respuestas.q3}</span>
-              </div>
-            </div>
-            <div className="flex justify-between text-xs text-gray-600 mt-1 px-5">
-              <span>Sin energía</span>
-              <span>Llena de energía</span>
-            </div>
-          </div>
-
-          {/* Q4 */}
-          <div>
-            <label className="block text-sm text-amber-200 font-medium mb-2">
-              4. {PREGUNTAS[3]}
-            </label>
-            <textarea
-              value={respuestas.q4}
-              onChange={e => setRespuestas({ ...respuestas, q4: e.target.value })}
-              placeholder="¿Qué insight o aprendizaje te llevás de hoy?"
-              rows={2}
-              className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white text-sm placeholder-gray-500 focus:outline-none focus:border-blue-500/50 resize-none"
-            />
-          </div>
-
-          {/* Q5 */}
-          <div>
-            <label className="block text-sm text-amber-200 font-medium mb-2">
-              5. {PREGUNTAS[4]}
-            </label>
-            <textarea
-              value={respuestas.q5}
-              onChange={e => setRespuestas({ ...respuestas, q5: e.target.value })}
-              placeholder="Una acción concreta para mañana..."
-              rows={2}
-              className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white text-sm placeholder-gray-500 focus:outline-none focus:border-blue-500/50 resize-none"
-            />
-          </div>
-
-          <button
-            onClick={handleSubmit}
-            disabled={generating}
-            className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 disabled:opacity-50 text-white font-medium transition-all shadow-lg shadow-amber-500/20"
-          >
-            {generating ? (
-              <><Loader2 className="w-4 h-4 animate-spin" /> {isFriday ? 'Guardando y generando resumen semanal...' : 'Guardando...'}</>
-            ) : (
-              <><Sparkles className="w-4 h-4" /> {isFriday ? 'Guardar y generar resumen semanal' : 'Guardar entrada del día'}</>
-            )}
-          </button>
+      {loading && entries.length === 0 && (
+        <div className="flex items-center gap-2 text-indigo-400">
+          <Loader2 className="w-4 h-4 animate-spin" /> Cargando historial...
         </div>
       )}
 
-      {/* History tabs */}
-      {(data.entries.length > 0 || data.resumenes.length > 0) && (
-        <div className="space-y-4">
-          <div className="flex gap-2">
-            <button
-              onClick={() => setActiveTab('entradas')}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${activeTab === 'entradas' ? 'bg-white/10 text-white' : 'text-gray-400 hover:text-gray-200'}`}
-            >
-              <BookOpen className="w-4 h-4 inline mr-2" />
-              Entradas ({data.entries.length})
-            </button>
-            <button
-              onClick={() => setActiveTab('resumenes')}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${activeTab === 'resumenes' ? 'bg-white/10 text-white' : 'text-gray-400 hover:text-gray-200'}`}
-            >
-              <FileText className="w-4 h-4 inline mr-2" />
-              Resúmenes semanales ({data.resumenes.length})
-            </button>
+      {!todayEntry && (
+        <div className="glass-panel p-8 rounded-2xl border-white/5 shadow-2xl">
+          <div className="flex items-center gap-4 mb-8">
+            <div className="w-12 h-12 rounded-xl bg-indigo-500/20 flex items-center justify-center border border-indigo-500/30">
+              <BookOpen className="w-6 h-6 text-indigo-400" />
+            </div>
+            <div>
+              <h2 className="text-xl font-medium text-white">Reflexión estratégica</h2>
+              <p className="text-sm text-gray-400">Frenar 5 minutos para alinear el foco y acelerar el doble.</p>
+            </div>
           </div>
 
-          {activeTab === 'entradas' && (
-            <div className="space-y-3">
-              {data.entries.map(entry => (
-                <div key={entry.id} className="glass-panel rounded-xl overflow-hidden">
-                  <button
-                    onClick={() => setExpandedEntry(expandedEntry === entry.id ? null : entry.id)}
-                    className="w-full p-4 flex items-center justify-between text-left hover:bg-white/[0.02] transition-colors"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center shrink-0">
-                        <span className="text-amber-400 font-bold text-xs">{entry.respuestas.q3}</span>
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-white">{new Date(entry.fecha + 'T12:00:00').toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
-                        <p className="text-xs text-gray-500 line-clamp-1 mt-0.5">{entry.respuestas.q1}</p>
-                      </div>
-                    </div>
-                    {expandedEntry === entry.id ? <ChevronUp className="w-4 h-4 text-gray-500" /> : <ChevronDown className="w-4 h-4 text-gray-500" />}
-                  </button>
-
-                  {expandedEntry === entry.id && (
-                    <div className="px-4 pb-4 space-y-3 animate-in fade-in duration-200">
-                      {[
-                        { q: PREGUNTAS[0], a: entry.respuestas.q1 },
-                        { q: PREGUNTAS[1], a: entry.respuestas.q2 },
-                        { q: PREGUNTAS[2], a: `${entry.respuestas.q3}/10` },
-                        { q: PREGUNTAS[3], a: entry.respuestas.q4 },
-                        { q: PREGUNTAS[4], a: entry.respuestas.q5 },
-                      ].map((item, i) => (
-                        <div key={i} className="p-3 rounded-lg bg-white/5">
-                          <p className="text-xs text-gray-500 mb-1">{item.q}</p>
-                          <p className="text-sm text-gray-300">{item.a}</p>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              ))}
+          <div className="space-y-8">
+            {/* 1. Estado */}
+            <div>
+               <label className="block text-sm text-gray-300 font-bold mb-3 uppercase tracking-wider">1. ¿Cómo es tu estado general?</label>
+               <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                 {ESTADOS.map(e => (
+                   <button 
+                     key={e.id}
+                     onClick={() => setRespuestas({...respuestas, estado: e.id})}
+                     className={`p-3 rounded-xl border flex flex-col items-center gap-2 transition-all group ${
+                       respuestas.estado === e.id 
+                         ? 'bg-indigo-500/20 border-indigo-500 text-indigo-300 shadow-[0_0_15px_rgba(99,102,241,0.2)]' 
+                         : 'bg-white/[0.02] border-white/5 text-gray-400 hover:bg-white/10'
+                     }`}
+                   >
+                     <span className={`text-2xl transition-transform ${respuestas.estado === e.id ? 'scale-110' : 'group-hover:scale-110'}`}>
+                       {e.emoji}
+                     </span>
+                     <span className="text-xs font-bold uppercase tracking-wider">{e.label}</span>
+                   </button>
+                 ))}
+               </div>
             </div>
-          )}
 
-          {activeTab === 'resumenes' && (
-            <div className="space-y-3">
-              {data.resumenes.length === 0 && (
-                <div className="glass-panel p-8 rounded-xl text-center">
-                  <p className="text-gray-400 text-sm">Los resúmenes semanales se generan automáticamente cada viernes.</p>
-                </div>
-              )}
-              {data.resumenes.map(resumen => (
-                <div key={resumen.id} className="glass-panel rounded-xl overflow-hidden">
-                  <button
-                    onClick={() => setExpandedSummary(expandedSummary === resumen.id ? null : resumen.id)}
-                    className="w-full p-4 flex items-center justify-between text-left hover:bg-white/[0.02] transition-colors"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-lg bg-purple-500/10 flex items-center justify-center shrink-0">
-                        <Sparkles className="w-4 h-4 text-purple-400" />
-                      </div>
-                      <p className="text-sm font-medium text-white">
-                        Semana del {new Date(resumen.semana_inicio + 'T12:00:00').toLocaleDateString('es-AR', { day: 'numeric', month: 'long' })}
-                      </p>
-                    </div>
-                    {expandedSummary === resumen.id ? <ChevronUp className="w-4 h-4 text-gray-500" /> : <ChevronDown className="w-4 h-4 text-gray-500" />}
-                  </button>
-
-                  {expandedSummary === resumen.id && (
-                    <div className="px-4 pb-4 animate-in fade-in duration-200">
-                      <div className="p-4 rounded-xl bg-purple-500/5 border border-purple-500/20">
-                        <div className="prose prose-invert max-w-none text-sm prose-p:text-gray-300 prose-headings:text-purple-300 prose-strong:text-white">
-                          <Markdown>{resumen.resumen_texto}</Markdown>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              ))}
+            {/* 2 & 3 */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="block text-sm text-gray-300 font-bold mb-3 uppercase tracking-wider">2. Principal victoria (Semana pasada)</label>
+                <textarea 
+                  placeholder="¿Qué salió bien? ¿Qué avance lograste?" 
+                  className="w-full bg-black/20 border border-white/10 rounded-xl p-4 text-white text-sm focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 resize-none h-28 transition-all" 
+                  value={respuestas.victoria} 
+                  onChange={e => setRespuestas({...respuestas, victoria: e.target.value})} 
+                />
+              </div>
+              <div>
+                <label className="block text-sm text-gray-300 font-bold mb-3 uppercase tracking-wider">3. Mayor aprendizaje o error</label>
+                <textarea 
+                  placeholder="¿De qué te diste cuenta? ¿Qué vas a evitar hacer esta semana?" 
+                  className="w-full bg-black/20 border border-white/10 rounded-xl p-4 text-white text-sm focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/50 resize-none h-28 transition-all" 
+                  value={respuestas.aprendizaje} 
+                  onChange={e => setRespuestas({...respuestas, aprendizaje: e.target.value})} 
+                />
+              </div>
             </div>
-          )}
+
+            {/* 4 */}
+            <div>
+              <label className="block text-sm text-indigo-300 font-bold mb-3 uppercase tracking-wider">4. Foco Único de esta semana</label>
+              <textarea 
+                placeholder='"Si solo pudiera hacer una cosa esta semana y sentir que valió la pena, sería..."' 
+                className="w-full bg-indigo-500/5 border border-indigo-500/30 rounded-xl p-5 text-white text-base focus:border-indigo-400 focus:ring-1 focus:ring-indigo-400 resize-none h-24 placeholder-indigo-300/30 shadow-[inset_0_2px_10px_rgba(0,0,0,0.2)]" 
+                value={respuestas.foco} 
+                onChange={e => setRespuestas({...respuestas, foco: e.target.value})} 
+              />
+            </div>
+
+            {/* 5 */}
+            <div>
+              <label className="block text-sm text-gray-300 font-bold mb-3 uppercase tracking-wider">5. Cuellos de botella</label>
+              <textarea 
+                placeholder="¿Qué te está impidiendo avanzar más rápido? ¿Necesitas resolver algo puntual?" 
+                className="w-full bg-black/20 border border-white/10 rounded-xl p-4 text-white text-sm focus:border-red-500/50 focus:ring-1 focus:ring-red-500/50 resize-none h-24 transition-all" 
+                value={respuestas.cuello} 
+                onChange={e => setRespuestas({...respuestas, cuello: e.target.value})} 
+              />
+            </div>
+
+            {/* 6. Select Metric */}
+            <div>
+              <label className="block text-sm text-gray-300 font-bold mb-4 uppercase tracking-wider">6. Métrica prioritaria</label>
+              <div className="flex flex-wrap gap-3">
+                {METRICAS.map(m => (
+                  <button 
+                     key={m}
+                     onClick={() => setRespuestas({...respuestas, metrica: m})}
+                     className={`px-5 py-2.5 rounded-full border text-[11px] font-bold uppercase tracking-widest transition-all ${
+                       respuestas.metrica === m 
+                         ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-400 shadow-[0_0_10px_rgba(16,185,129,0.2)]' 
+                         : 'bg-white/5 border-transparent text-gray-400 hover:bg-white/10 hover:text-white'
+                     }`}
+                  >
+                    {m}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="pt-6 border-t border-white/5">
+              <button 
+                onClick={handleSubmit} 
+                disabled={saving} 
+                className="w-full py-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-bold tracking-widest uppercase transition-all shadow-lg flex justify-center items-center gap-2"
+              >
+                {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Check className="w-5 h-5" />}
+                {saving ? 'Guardando check-in...' : 'Completar Check-in Semanal'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {todayEntry && (
+        <div className="glass-panel p-6 rounded-2xl border border-emerald-500/20 bg-emerald-500/5 flex items-center gap-4">
+          <div className="w-12 h-12 rounded-full bg-emerald-500/20 flex items-center justify-center shrink-0 border border-emerald-500/30">
+            <Check className="w-6 h-6 text-emerald-400" />
+          </div>
+          <div>
+            <h3 className="text-lg font-medium text-emerald-400">¡Check-in completado!</h3>
+            <p className="text-sm text-emerald-400/70">Ya estructuraste tu semana. Tu foco principal es: <strong className="text-white">"{todayEntry.respuestas.foco}"</strong>.</p>
+          </div>
+        </div>
+      )}
+
+      {entries.length > 0 && (
+        <div className="mt-12 space-y-6">
+          <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest pl-2 flex items-center gap-2">
+            <History className="w-4 h-4" /> Historial de Check-ins
+          </h3>
+          <div className="grid grid-cols-1 gap-4">
+            {entries.map(entry => (
+               <div key={entry.id} className="glass-panel p-6 rounded-2xl border-l-[3px] border-l-indigo-500 hover:border-l-indigo-400 transition-colors bg-gradient-to-r from-indigo-500/[0.02] to-transparent">
+                 <div className="flex justify-between items-start mb-6 border-b border-white/5 pb-4">
+                   <div>
+                     <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest bg-indigo-500/10 px-3 py-1.5 rounded-lg border border-indigo-500/20">
+                       Semana del {new Date(entry.fecha + 'T12:00:00').toLocaleDateString('es-AR', { day: 'numeric', month: 'long' })}
+                     </span>
+                   </div>
+                   <div className="bg-white/5 rounded-full px-3 py-1 flex items-center gap-2 border border-white/10 text-xs text-white font-medium uppercase tracking-wider">
+                     {ESTADOS.find(e => e.id === entry.respuestas.estado)?.emoji || '👍'} 
+                     {ESTADOS.find(e => e.id === entry.respuestas.estado)?.label || 'Bien'}
+                   </div>
+                 </div>
+                 
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
+                   <div>
+                     <span className="text-gray-500 block text-[10px] font-bold uppercase tracking-widest mb-1.5">🎯 Foco</span>
+                     <p className="text-indigo-200 font-medium text-sm bg-indigo-500/5 p-3 rounded-xl border border-indigo-500/10">
+                       {entry.respuestas.foco}
+                     </p>
+                   </div>
+                   <div>
+                     <span className="text-gray-500 block text-[10px] font-bold uppercase tracking-widest mb-1.5">🏆 Victoria</span>
+                     <p className="text-gray-300 text-sm p-3">{entry.respuestas.victoria}</p>
+                   </div>
+                   <div>
+                     <span className="text-gray-500 block text-[10px] font-bold uppercase tracking-widest mb-1.5">💡 Aprendizaje</span>
+                     <p className="text-gray-300 text-sm p-3">{entry.respuestas.aprendizaje}</p>
+                   </div>
+                   <div className="flex items-center gap-4 p-3">
+                     <span className="text-gray-500 block text-[10px] font-bold uppercase tracking-widest">Métrica:</span>
+                     <span className="inline-block bg-emerald-500/10 border border-emerald-500/20 px-3 py-1 rounded-full text-[10px] text-emerald-400 font-bold uppercase tracking-widest">
+                       {entry.respuestas.metrica}
+                     </span>
+                   </div>
+                 </div>
+               </div>
+            ))}
+          </div>
         </div>
       )}
     </div>

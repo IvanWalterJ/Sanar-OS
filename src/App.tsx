@@ -186,13 +186,13 @@ export default function App() {
         <Topbar setCurrentPage={setCurrentPage} />
         <main ref={mainRef} className="flex-1 overflow-y-auto overflow-x-hidden overscroll-contain scrollbar-hide">
           <div className="p-6">
-            {currentPage === 'dashboard' && <Dashboard setCurrentPage={setCurrentPage} />}
-            {currentPage === 'roadmap' && <Roadmap />}
-            {currentPage === 'coach' && <Coach />}
-            {currentPage === 'metrics' && <Metrics />}
+            {currentPage === 'dashboard' && <Dashboard setCurrentPage={setCurrentPage} userId={supabaseProfile?.id} />}
+            {currentPage === 'roadmap' && <Roadmap userId={supabaseProfile?.id} />}
+            {currentPage === 'coach' && <Coach userId={supabaseProfile?.id} />}
+            {currentPage === 'metrics' && <Metrics userId={supabaseProfile?.id} />}
             {currentPage === 'mensajes' && <Mensajes userId={supabaseProfile?.id} />}
-            {currentPage === 'diario' && <DiarioDirector />}
-            {currentPage === 'biblioteca' && <Biblioteca />}
+            {currentPage === 'diario' && <DiarioDirector userId={supabaseProfile?.id} />}
+            {currentPage === 'biblioteca' && <Biblioteca userId={supabaseProfile?.id} />}
           </div>
         </main>
       </div>

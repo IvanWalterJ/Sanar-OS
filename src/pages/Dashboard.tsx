@@ -1,310 +1,185 @@
 import React, { useEffect, useState } from 'react';
-import { Flame, CheckCircle2, Bot, ChevronRight, Circle } from 'lucide-react';
+import { ChevronRight, CheckCircle2, Clock, Calendar } from 'lucide-react';
+import { supabase, isSupabaseReady } from '../lib/supabase';
+import { SEED_ROADMAP } from '../lib/roadmapSeed';
 
-interface Profile {
-  nombre: string;
-  especialidad: string;
-  fecha_inicio: string;
-  plan: string;
+function getCategoryColor(cat: string) {
+  if (!cat) return 'bg-gray-500/10 text-gray-400 border-gray-500/20';
+  switch (cat.toLowerCase()) {
+    case 'oferta': return 'bg-purple-500/10 text-purple-400 border-purple-500/20';
+    case 'sistema': return 'bg-blue-500/10 text-blue-400 border-blue-500/20';
+    case 'contenido': return 'bg-pink-500/10 text-pink-400 border-pink-500/20';
+    case 'mentalidad': return 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20';
+    default: return 'bg-gray-500/10 text-gray-400 border-gray-500/20';
+  }
 }
 
-interface MetricWeek {
-  name: string;
-  leads: number;
-  ventas: number;
-  visitas?: number;
+function MetricCard({ label, value, sub }: { label: string; value: string; sub: string }) {
+  return (
+    <div className="glass-panel p-5 rounded-2xl border-white/5 bg-white/[0.01]">
+      <p className="text-[10px] text-gray-500 uppercase tracking-widest mb-2 font-semibold">{label}</p>
+      <p className="text-2xl font-light text-white tracking-tight">{value}</p>
+      <p className="text-xs text-emerald-400 mt-1">{sub}</p>
+    </div>
+  );
 }
 
-interface RoadmapTarea {
-  id: string;
-  titulo: string;
-  descripcion: string;
-  status: 'pendiente' | 'activa' | 'completada';
-}
-
-interface RoadmapFase {
-  id: number;
-  tareas: RoadmapTarea[];
-  status: string;
-}
-
-interface DiaryEntry {
-  fecha: string;
-}
-
-function loadProfile(): Profile {
-  try {
-    const saved = localStorage.getItem('tcd_profile');
-    if (saved) return JSON.parse(saved);
-  } catch { /* noop */ }
-  const today = new Date().toISOString().split('T')[0];
-  return { nombre: 'Profesional', especialidad: '', fecha_inicio: today, plan: 'DWY' };
-}
-
-function getProgramDay(fechaInicio: string): number {
-  if (!fechaInicio) return 1;
-  const inicio = new Date(fechaInicio);
-  const hoy = new Date();
-  const diff = Math.floor((hoy.getTime() - inicio.getTime()) / (1000 * 60 * 60 * 24));
-  return Math.max(1, Math.min(90, diff + 1));
-}
-
-function getActiveTask(): { tarea: RoadmapTarea; faseIdx: number; tareaIdx: number } | null {
-  try {
-    const roadmap = JSON.parse(localStorage.getItem('tcd_roadmap') || '{}');
-    const fases: RoadmapFase[] = roadmap.fases || [];
-    for (let fi = 0; fi < fases.length; fi++) {
-      for (let ti = 0; ti < fases[fi].tareas.length; ti++) {
-        const t = fases[fi].tareas[ti];
-        if (t.status === 'activa' || t.status === 'pendiente') {
-          return { tarea: t, faseIdx: fi, tareaIdx: ti };
-        }
-      }
-    }
-  } catch { /* noop */ }
-  return null;
-}
-
-function markTaskComplete(faseIdx: number, tareaIdx: number) {
-  try {
-    const roadmap = JSON.parse(localStorage.getItem('tcd_roadmap') || '{}');
-    if (!roadmap.fases?.[faseIdx]?.tareas?.[tareaIdx]) return;
-    roadmap.fases[faseIdx].tareas[tareaIdx].status = 'completada';
-    // activate next
-    for (let ti = tareaIdx + 1; ti < roadmap.fases[faseIdx].tareas.length; ti++) {
-      if (roadmap.fases[faseIdx].tareas[ti].status !== 'completada') {
-        roadmap.fases[faseIdx].tareas[ti].status = 'activa';
-        break;
-      }
-    }
-    localStorage.setItem('tcd_roadmap', JSON.stringify(roadmap));
-  } catch { /* noop */ }
-}
-
-function getDiaryStreak(): number {
-  try {
-    const diaryData = JSON.parse(localStorage.getItem('tcd_diary') || '{}');
-    const entries: DiaryEntry[] = diaryData.entries || [];
-    if (!entries.length) return 0;
-
-    const sorted = [...entries].sort((a, b) => b.fecha.localeCompare(a.fecha));
-    const today = new Date().toISOString().split('T')[0];
-    let streak = 0;
-    const d = new Date();
-
-    for (let i = 0; i < 30; i++) {
-      const dateStr = d.toISOString().split('T')[0];
-      const dayOfWeek = d.getDay();
-      if (dayOfWeek === 0 || dayOfWeek === 6) { d.setDate(d.getDate() - 1); continue; }
-      if (dateStr === today) { d.setDate(d.getDate() - 1); continue; }
-      if (sorted.some(e => e.fecha === dateStr)) {
-        streak++;
-        d.setDate(d.getDate() - 1);
-      } else break;
-    }
-    return streak;
-  } catch { return 0; }
-}
-
-type SemaforoColor = 'verde' | 'amarillo' | 'rojo' | 'gris';
-
-function getMetricSemaforo(): { leads: SemaforoColor; conversaciones: SemaforoColor; ventas: SemaforoColor } {
-  try {
-    const metrics: MetricWeek[] = JSON.parse(localStorage.getItem('tcd_metrics') || '[]');
-    if (metrics.length < 2) return { leads: 'gris', conversaciones: 'gris', ventas: 'gris' };
-
-    const cur = metrics[metrics.length - 1];
-    const prev = metrics[metrics.length - 2];
-
-    const classify = (cur: number, prev: number): SemaforoColor => {
-      if (prev === 0) return cur > 0 ? 'verde' : 'gris';
-      const pct = ((cur - prev) / prev) * 100;
-      if (pct > 5) return 'verde';
-      if (pct >= -5) return 'amarillo';
-      return 'rojo';
-    };
-
-    return {
-      leads: classify(cur.leads, prev.leads),
-      conversaciones: classify(cur.leads, prev.leads), // leads = conversations proxy
-      ventas: classify(cur.ventas, prev.ventas),
-    };
-  } catch { return { leads: 'gris', conversaciones: 'gris', ventas: 'gris' }; }
-}
-
-function getLastCoachMessage(): string {
-  try {
-    const msgs: Array<{ role: string; content: string }> = JSON.parse(localStorage.getItem('tcd_coach_messages') || '[]');
-    const assistantMsgs = msgs.filter(m => m.role === 'assistant' && m.content);
-    if (assistantMsgs.length) return assistantMsgs[assistantMsgs.length - 1].content.slice(0, 120) + (assistantMsgs[assistantMsgs.length - 1].content.length > 120 ? '…' : '');
-  } catch { /* noop */ }
-  return 'Estoy aquí para acompañarte en cada paso del programa. ¿En qué te ayudo hoy?';
-}
-
-const SEMAFORO_COLORS: Record<SemaforoColor, string> = {
-  verde: 'bg-emerald-500 shadow-[0_0_12px_rgba(16,185,129,0.5)]',
-  amarillo: 'bg-amber-400 shadow-[0_0_12px_rgba(251,191,36,0.5)]',
-  rojo: 'bg-red-500 shadow-[0_0_12px_rgba(239,68,68,0.5)]',
-  gris: 'bg-gray-600',
-};
-
-const SEMAFORO_LABELS: Record<SemaforoColor, string> = {
-  verde: 'Bien',
-  amarillo: 'Atención',
-  rojo: 'Revisar',
-  gris: 'Sin datos',
-};
-
-export default function Dashboard({ setCurrentPage }: { setCurrentPage: (page: string) => void }) {
-  const [profile] = useState<Profile>(loadProfile);
-  const [activeTaskInfo, setActiveTaskInfo] = useState<ReturnType<typeof getActiveTask>>(null);
-  const [streak, setStreak] = useState(0);
-  const [semaforo, setSemaforo] = useState<ReturnType<typeof getMetricSemaforo>>({ leads: 'gris', conversaciones: 'gris', ventas: 'gris' });
-  const [lastCoachMsg, setLastCoachMsg] = useState('');
-  const [taskDone, setTaskDone] = useState(false);
+export default function Dashboard({ setCurrentPage, userId }: { setCurrentPage: (page: string) => void, userId?: string }) {
+  const [data, setData] = useState({
+    profile: { nombre: 'Fundadora', fecha_inicio: new Date().toISOString() },
+    semanaActual: 1,
+    totalTareas: 90,
+    completadas: 0,
+    tareasHoy: [] as any[],
+    hitosCompletados: 0,
+    racha: 0
+  });
 
   useEffect(() => {
-    setActiveTaskInfo(getActiveTask());
-    setStreak(getDiaryStreak());
-    setSemaforo(getMetricSemaforo());
-    setLastCoachMsg(getLastCoachMessage());
-  }, []);
+    async function loadData() {
+      // 1. Load Local
+      const p = JSON.parse(localStorage.getItem('tcd_profile') || '{}');
+      const dInicio = p.fecha_inicio ? new Date(p.fecha_inicio) : new Date();
+      const diff = Math.floor((new Date().getTime() - dInicio.getTime()) / (1000 * 60 * 60 * 24));
+      const semActual = Math.max(1, Math.min(12, Math.floor(diff / 7) + 1));
+      
+      let tot = 0;
+      let comp = 0;
+      let hoy: any[] = [];
+      const rm = JSON.parse(localStorage.getItem('tcd_roadmap_v2') || JSON.stringify(SEED_ROADMAP));
+      
+      rm.forEach((pil: any) => pil.semanas.forEach((s: any) => s.tareas.forEach((t: any) => {
+        tot++;
+        if (t.status === 'completada') comp++;
+        else if (s.numero <= semActual && hoy.length < 3) hoy.push(t);
+      })));
 
-  const programDay = getProgramDay(profile.fecha_inicio);
-  const greeting = programDay === 1 ? '¡Bienvenida al programa!' : `Día ${programDay} de 90`;
+      const diary = JSON.parse(localStorage.getItem('tcd_diary') || '{}');
+      const rachaLocal = diary.entries ? diary.entries.length : 0; // Aproximado
 
-  const handleMarkComplete = () => {
-    if (!activeTaskInfo) return;
-    markTaskComplete(activeTaskInfo.faseIdx, activeTaskInfo.tareaIdx);
-    setTaskDone(true);
-    setActiveTaskInfo(getActiveTask());
-  };
+      setData({
+        profile: { nombre: p.nombre || 'Fundadora', fecha_inicio: p.fecha_inicio || new Date().toISOString() },
+        semanaActual: semActual,
+        totalTareas: tot,
+        completadas: comp,
+        tareasHoy: hoy,
+        hitosCompletados: Math.max(0, semActual > 3 ? 1 : 0), // Mock dinámico
+        racha: rachaLocal
+      });
+
+      // 2. Fetch from Supabase
+      if (isSupabaseReady() && supabase && userId) {
+        // Tareas
+        const { data: tu } = await supabase.from('tareas_usuario').select('*, tarea:tareas_template(*)').eq('user_id', userId);
+        if (tu && tu.length > 0) {
+          let sTot = 0, sComp = 0;
+          let sHoy: any[] = [];
+          rm.forEach((pil: any) => pil.semanas.forEach((s: any) => s.tareas.forEach((t: any) => {
+            sTot++;
+            const dbT = tu.find((u: any) => u.tarea?.titulo === t.titulo);
+            const status = dbT ? dbT.estado : t.status;
+            if (status === 'completada') sComp++;
+            else if (s.numero <= semActual && sHoy.length < 3) sHoy.push({ ...t, status });
+          })));
+          
+          setData(prev => ({ ...prev, totalTareas: sTot, completadas: sComp, tareasHoy: sHoy }));
+        }
+        
+        // Diario Racha
+        const { data: qd } = await supabase.from('diario_entradas').select('id').eq('user_id', userId);
+        if (qd) setData(prev => ({ ...prev, racha: qd.length }));
+      }
+    }
+    loadData();
+  }, [userId]);
 
   return (
-    <div className="max-w-3xl mx-auto space-y-5 pb-6 animate-in fade-in duration-500">
-
-      {/* Bloque 1 — Bienvenida */}
-      <div className="glass-panel p-6 rounded-2xl">
-        <p className="text-sm text-gray-400 mb-1">{greeting}</p>
-        <h1 className="text-3xl font-light tracking-tight text-white">{profile.nombre}</h1>
-        {profile.especialidad && (
-          <p className="text-sm text-blue-400 mt-1">{profile.especialidad}</p>
-        )}
-        <div className="mt-4 flex items-center gap-2">
-          <div className="flex-1 h-1.5 bg-white/10 rounded-full overflow-hidden">
-            <div
-              className="h-full bg-gradient-to-r from-blue-500 to-purple-500 rounded-full transition-all duration-1000"
-              style={{ width: `${Math.round((programDay / 90) * 100)}%` }}
-            />
-          </div>
-          <span className="text-xs text-gray-500 shrink-0">Día {programDay} / 90</span>
-        </div>
-      </div>
-
-      {/* Bloque 2 — Próxima tarea */}
-      <div className="glass-panel p-6 rounded-2xl">
-        <p className="text-xs text-gray-500 uppercase tracking-wider mb-3">Próxima tarea de la Hoja de Ruta</p>
-        {activeTaskInfo && !taskDone ? (
-          <div className="flex items-start gap-4">
-            <div className="w-9 h-9 rounded-xl bg-blue-500/20 flex items-center justify-center shrink-0 mt-0.5">
-              <Circle className="w-4 h-4 text-blue-400 fill-blue-400/20" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-white font-medium">{activeTaskInfo.tarea.titulo}</p>
-              <p className="text-xs text-gray-400 mt-1 line-clamp-2">{activeTaskInfo.tarea.descripcion}</p>
-            </div>
-            <button
-              onClick={handleMarkComplete}
-              className="shrink-0 px-3 py-1.5 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 text-xs font-medium transition-colors border border-emerald-500/30 flex items-center gap-1"
-            >
-              <CheckCircle2 className="w-3 h-3" /> Completar
-            </button>
-          </div>
-        ) : (
-          <div className="flex items-center gap-3">
-            <CheckCircle2 className="w-5 h-5 text-emerald-400" />
-            <div>
-              <p className="text-white font-medium">{taskDone ? '¡Tarea completada!' : '¡Todas las tareas completadas!'}</p>
-              <button onClick={() => setCurrentPage('roadmap')} className="text-xs text-blue-400 hover:text-blue-300 transition-colors mt-0.5">
-                Ver Hoja de Ruta completa →
-              </button>
-            </div>
-          </div>
-        )}
-        <button
-          onClick={() => setCurrentPage('roadmap')}
-          className="mt-4 w-full flex items-center justify-between text-xs text-gray-500 hover:text-gray-300 transition-colors"
-        >
-          <span>Ver todas las tareas</span>
-          <ChevronRight className="w-3 h-3" />
-        </button>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-        {/* Bloque 3 — Racha del Diario */}
-        <div className="glass-panel p-6 rounded-2xl">
-          <p className="text-xs text-gray-500 uppercase tracking-wider mb-4">Racha del Diario</p>
-          <div className="flex items-center gap-3">
-            <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${streak > 0 ? 'bg-amber-500/20' : 'bg-white/5'}`}>
-              <Flame className={`w-6 h-6 ${streak > 0 ? 'text-amber-400' : 'text-gray-600'}`} />
-            </div>
-            <div>
-              <p className="text-3xl font-light text-white">{streak}</p>
-              <p className="text-xs text-gray-400">
-                {streak === 0 ? 'Sin racha aún' : streak === 1 ? 'día seguido' : 'días seguidos'}
-              </p>
-            </div>
-          </div>
-          <button
-            onClick={() => setCurrentPage('diario')}
-            className="mt-4 w-full py-2 rounded-lg bg-white/5 hover:bg-white/10 text-xs text-gray-400 hover:text-white transition-colors"
-          >
-            {streak === 0 ? 'Empezar hoy' : 'Escribir entrada de hoy'}
+    <div className="max-w-4xl mx-auto space-y-6 pb-12 animate-in fade-in duration-500">
+      
+      {/* ZONA A — Header contextual */}
+      <div className="relative overflow-hidden glass-panel p-8 rounded-2xl border border-indigo-500/20 bg-indigo-500/[0.03]">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/10 blur-[100px] rounded-full" />
+        <div className="relative z-10">
+          <p className="text-2xl font-light text-white mb-2">Buenos días, {data.profile.nombre}. 🌿</p>
+          <p className="text-sm text-gray-400 max-w-lg mb-6 leading-relaxed">
+            Estás en la <strong className="text-gray-200">Semana {data.semanaActual} de 12</strong>. Hoy tenés <strong className="text-indigo-400">{data.tareasHoy.length} tareas pendientes</strong> orientadas a tu objetivo.
+          </p>
+          <button onClick={() => setCurrentPage('roadmap')} className="text-[11px] font-bold text-indigo-400 hover:text-indigo-300 transition-colors flex items-center gap-1.5 uppercase tracking-widest bg-indigo-500/10 px-4 py-2 rounded-lg border border-indigo-500/20 w-max">
+            Ver hoja de ruta <ChevronRight className="w-3.5 h-3.5" />
           </button>
         </div>
+      </div>
 
-        {/* Bloque 4 — Semáforo de métricas */}
-        <div className="glass-panel p-6 rounded-2xl">
-          <p className="text-xs text-gray-500 uppercase tracking-wider mb-4">Semáforo de métricas</p>
+      {/* ZONA B — 4 tarjetas de métricas clave */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <MetricCard label="Semanas completadas" value={`${data.semanaActual}/12`} sub="En tiempo ✅" />
+        <MetricCard label="Hitos alcanzados" value={`${data.hitosCompletados}/8`} sub="+1 esta semana" />
+        <MetricCard label="Tareas completadas" value={`${data.completadas}/${data.totalTareas || 90}`} sub={`${Math.round((data.completadas/Math.max(1, data.totalTareas))*100)}% del total`} />
+        <MetricCard label="Racha de diario" value={`${data.racha} días`} sub="🔥 récord" />
+      </div>
+
+      {/* ZONA C — Dos columnas */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        {/* Foco de Hoy (60%) */}
+        <div className="lg:col-span-7 glass-panel p-6 rounded-2xl">
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-[11px] font-bold text-white tracking-widest uppercase">Tu foco de hoy</h2>
+            <button onClick={() => setCurrentPage('roadmap')} className="text-[10px] text-gray-500 hover:text-indigo-400 uppercase font-bold tracking-wider transition-colors">
+              Ir a tareas →
+            </button>
+          </div>
+          
           <div className="space-y-3">
-            {([
-              { key: 'leads', label: 'Leads' },
-              { key: 'conversaciones', label: 'Conversaciones' },
-              { key: 'ventas', label: 'Ventas' },
-            ] as const).map(({ key, label }) => (
-              <div key={key} className="flex items-center justify-between">
-                <span className="text-sm text-gray-300">{label}</span>
-                <div className="flex items-center gap-2">
-                  <div className={`w-3 h-3 rounded-full ${SEMAFORO_COLORS[semaforo[key]]}`} />
-                  <span className="text-xs text-gray-500">{SEMAFORO_LABELS[semaforo[key]]}</span>
+            {data.tareasHoy.length === 0 ? (
+               <div className="py-10 text-center border border-dashed border-white/5 rounded-xl bg-white/[0.01]">
+                 <CheckCircle2 className="w-8 h-8 text-emerald-500/50 mx-auto mb-3" />
+                 <p className="text-sm text-gray-400">Todo al día. Estás libre.</p>
+               </div>
+            ) : data.tareasHoy.map((t, idx) => (
+              <div key={idx} className="group flex items-start gap-4 p-4 rounded-xl bg-white/[0.02] border border-white/5 hover:bg-white/[0.04] hover:border-white/10 transition-all cursor-pointer" onClick={() => setCurrentPage('roadmap')}>
+                <div className="shrink-0 mt-0.5">
+                  <div className="w-5 h-5 rounded-full border border-gray-600 group-hover:border-indigo-500 transition-colors flex items-center justify-center">
+                    <div className="w-1.5 h-1.5 bg-transparent group-hover:bg-indigo-500 rounded-full" />
+                  </div>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-gray-200">{t.titulo}</p>
+                  <div className="flex flex-wrap items-center gap-3 mt-3">
+                    <span className={`text-[9px] uppercase font-bold px-2 py-0.5 rounded-full border tracking-wider ${getCategoryColor(t.categoria)}`}>
+                      {t.categoria || 'Generica'}
+                    </span>
+                    <span className="text-[10px] text-gray-500 flex items-center gap-1 font-medium">
+                      <Clock className="w-3 h-3" /> {t.tiempo_estimado || '15 min'}
+                    </span>
+                  </div>
                 </div>
               </div>
             ))}
           </div>
-          <button
-            onClick={() => setCurrentPage('metrics')}
-            className="mt-4 w-full py-2 rounded-lg bg-white/5 hover:bg-white/10 text-xs text-gray-400 hover:text-white transition-colors"
-          >
-            Ver métricas completas
-          </button>
         </div>
-      </div>
 
-      {/* Bloque 5 — Quick Coach */}
-      <div
-        onClick={() => setCurrentPage('coach')}
-        className="glass-panel p-6 rounded-2xl cursor-pointer hover:bg-white/[0.03] transition-colors group"
-      >
-        <div className="flex items-start gap-4">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shrink-0 shadow-lg shadow-blue-500/20 group-hover:scale-105 transition-transform">
-            <Bot className="w-5 h-5 text-white" />
+        {/* Próximo Hito (40%) */}
+        <div className="lg:col-span-5 glass-panel p-6 rounded-2xl relative overflow-hidden flex flex-col justify-between border-indigo-500/15 bg-gradient-to-br from-indigo-500/[0.02] to-transparent">
+          <div className="absolute -top-10 -right-10 w-40 h-40 bg-indigo-500/10 blur-[50px] rounded-full" />
+          
+          <div>
+            <h2 className="text-[11px] font-bold text-indigo-400 tracking-widest uppercase mb-6 flex items-center gap-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse ring-4 ring-indigo-500/20" /> Próximo hito
+            </h2>
+            <p className="text-xl font-medium text-white mb-3 line-clamp-2 leading-tight">Sistema automatizado funcionando</p>
+            <p className="text-xs text-gray-400 flex items-center gap-1.5">
+              <Calendar className="w-3.5 h-3.5" /> Semana 8 (en {Math.max(1, 8 - data.semanaActual)} semanas)
+            </p>
           </div>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center justify-between mb-1">
-              <p className="text-sm font-medium text-white">Coach IA</p>
-              <ChevronRight className="w-4 h-4 text-gray-500 group-hover:text-blue-400 transition-colors" />
+
+          <div className="mt-10">
+            <div className="flex justify-between items-center mb-3">
+              <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Progreso del hito</span>
+              <span className="text-[10px] text-white bg-white/10 px-2 py-0.5 rounded-full">Faltan 3 tareas</span>
             </div>
-            <p className="text-xs text-gray-400 leading-relaxed line-clamp-2">{lastCoachMsg}</p>
+            <div className="h-2 bg-white/5 rounded-full overflow-hidden">
+              <div className="h-full bg-indigo-500 rounded-full" style={{ width: '40%' }} />
+            </div>
           </div>
         </div>
       </div>
