@@ -6,6 +6,7 @@ interface SidebarProps {
   setCurrentPage: (page: string) => void;
   onOpenSettings: () => void;
   onSignOut: () => void;
+  messageBadge?: number;
 }
 
 function getSidebarData() {
@@ -36,7 +37,7 @@ function getSidebarData() {
   return { profile, progress, hasPending, semana };
 }
 
-export default function Sidebar({ currentPage, setCurrentPage, onOpenSettings, onSignOut }: SidebarProps) {
+export default function Sidebar({ currentPage, setCurrentPage, onOpenSettings, onSignOut, messageBadge = 0 }: SidebarProps) {
   const [data, setData] = useState(getSidebarData());
 
   useEffect(() => {
@@ -60,7 +61,7 @@ export default function Sidebar({ currentPage, setCurrentPage, onOpenSettings, o
       items: [
         { id: 'coach', icon: MessageSquare, label: 'Coach IA' },
         { id: 'diario', icon: BookOpen, label: 'Diario del Fundador' },
-        { id: 'mensajes', icon: Users, label: 'Mensajes' },
+        { id: 'mensajes', icon: Users, label: 'Mensajes', badge: messageBadge > 0 },
         { id: 'biblioteca', icon: Library, label: 'Biblioteca' },
       ]
     },

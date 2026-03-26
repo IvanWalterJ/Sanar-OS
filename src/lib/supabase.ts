@@ -52,6 +52,8 @@ export interface Mensaje {
   emisor_id?: string;
   receptor_id?: string;
   contenido: string;
+  tipo_archivo?: 'imagen' | 'audio';
+  archivo_url?: string;
   created_at: string;
   emisor?: Profile;
 }

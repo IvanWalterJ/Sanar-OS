@@ -5,7 +5,7 @@ import {
   MessageSquare, BookOpen, BarChart2, Calendar,
   TrendingUp, TrendingDown, Sparkles, Bot,
   Hash, Trophy, Lock, Shield,
-  CheckCheck, AlertTriangle
+  CheckCheck, AlertTriangle, Image, Mic
 } from 'lucide-react';
 import { supabase, type Profile, type Mensaje, isSupabaseReady } from '../lib/supabase';
 import { GoogleGenAI } from '@google/genai';
@@ -51,7 +51,10 @@ function GlobalChat({ canal, adminProfile }: { canal: string, adminProfile: Prof
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(true);
   const [enviando, setEnviando] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
+  const audioInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!supabase) return;
@@ -70,11 +73,11 @@ function GlobalChat({ canal, adminProfile }: { canal: string, adminProfile: Prof
       .channel(`admin-global-${canal}`)
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'mensajes', filter: `canal=eq.${canal}` },
         async (payload) => {
-          const { data } = await supabase.from('mensajes').select('*, emisor:profiles!emisor_id(nombre, rol)').eq('id', payload.new.id).single();
+          const { data } = await supabase!.from('mensajes').select('*, emisor:profiles!emisor_id(nombre, rol)').eq('id', payload.new.id).single();
           if (data) setMessages(prev => [...prev, data as Mensaje]);
         }
       ).subscribe();
-    return () => { supabase.removeChannel(channel); };
+    return () => { supabase!.removeChannel(channel); };
   }, [canal]);
 
   useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
@@ -95,6 +98,26 @@ function GlobalChat({ canal, adminProfile }: { canal: string, adminProfile: Prof
     }
   }
 
+  async function handleUploadFile(file: File, tipo: 'imagen' | 'audio') {
+    if (!supabase) return;
+    setUploading(true);
+    try {
+      const ext = file.name.split('.').pop() ?? (tipo === 'imagen' ? 'jpg' : 'mp3');
+      const path = `admin/${Date.now()}.${ext}`;
+      const { data, error } = await supabase.storage.from('mensajes-archivos').upload(path, file);
+      if (error) throw error;
+      const { data: { publicUrl } } = supabase.storage.from('mensajes-archivos').getPublicUrl(data.path);
+      const { error: msgErr } = await supabase.from('mensajes').insert({
+        canal, emisor_id: adminProfile.id, contenido: '', tipo_archivo: tipo, archivo_url: publicUrl
+      });
+      if (msgErr) throw msgErr;
+    } catch {
+      toast.error('Error subiendo archivo. Verificá que el bucket exista en Supabase.');
+    } finally {
+      setUploading(false);
+    }
+  }
+
   const getTitle = () => {
     switch (canal) {
       case 'comunidad': return { t: 'Comunidad TCD', d: 'Chat general entre todos los clientes de la academia.', i: Users };
@@ -107,6 +130,12 @@ function GlobalChat({ canal, adminProfile }: { canal: string, adminProfile: Prof
 
   return (
     <div className="flex flex-col h-full bg-white/[0.02] border border-white/[0.06] rounded-2xl overflow-hidden">
+      {/* Hidden file inputs */}
+      <input ref={imageInputRef} type="file" accept="image/*" className="hidden"
+        onChange={e => { const f = e.target.files?.[0]; if (f) handleUploadFile(f, 'imagen'); e.target.value = ''; }} />
+      <input ref={audioInputRef} type="file" accept="audio/*" className="hidden"
+        onChange={e => { const f = e.target.files?.[0]; if (f) handleUploadFile(f, 'audio'); e.target.value = ''; }} />
+
       <div className="p-6 border-b border-white/[0.06] shrink-0 bg-white/[0.01]">
         <div className="flex items-center gap-3 mb-1">
           <div className="w-10 h-10 rounded-xl bg-purple-500/20 border border-purple-500/30 flex items-center justify-center">
@@ -118,7 +147,7 @@ function GlobalChat({ canal, adminProfile }: { canal: string, adminProfile: Prof
           </div>
         </div>
       </div>
-      
+
       <div className="flex-1 overflow-y-auto p-6 scrollbar-hide space-y-4">
         {loading ? (
           <div className="flex justify-center py-10"><Loader2 className="w-6 h-6 text-purple-400 animate-spin" /></div>
@@ -136,15 +165,22 @@ function GlobalChat({ canal, adminProfile }: { canal: string, adminProfile: Prof
                 <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
                   isBot ? 'bg-indigo-500/20 text-indigo-400' : 'bg-white/10 text-white'
                 }`}>
-                  {isBot ? <Shield className="w-4 h-4" /> : m.emisor?.nombre.charAt(0).toUpperCase()}
+                  {isBot ? <Shield className="w-4 h-4" /> : (m.emisor?.nombre ?? '?').charAt(0).toUpperCase()}
                 </div>
                 <div className={`p-4 rounded-2xl text-sm leading-relaxed ${
-                  isMe ? 'bg-purple-600/30 text-purple-100 border border-purple-500/20 rounded-tr-sm' 
+                  isMe ? 'bg-purple-600/30 text-purple-100 border border-purple-500/20 rounded-tr-sm'
                        : isBot ? 'bg-indigo-600/20 text-indigo-100 border border-indigo-500/20 rounded-tl-sm'
                        : 'bg-white/[0.04] text-gray-200 border border-white/[0.05] rounded-tl-sm'
                 }`}>
                   {!isMe && <p className="text-[10px] font-bold uppercase tracking-wider mb-1 opacity-60 text-indigo-300">{m.emisor?.nombre}</p>}
-                  <p>{m.contenido}</p>
+                  {m.tipo_archivo === 'imagen' && m.archivo_url && (
+                    <img src={m.archivo_url} alt="imagen" className="max-w-xs rounded-xl mb-2 cursor-pointer hover:opacity-90"
+                         onClick={() => window.open(m.archivo_url)} />
+                  )}
+                  {m.tipo_archivo === 'audio' && m.archivo_url && (
+                    <audio controls src={m.archivo_url} className="w-full mb-2 rounded-lg" />
+                  )}
+                  {m.contenido && <p>{m.contenido}</p>}
                   <p className="text-[10px] mt-2 opacity-40 text-right">
                     {new Date(m.created_at).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}
                   </p>
@@ -157,22 +193,35 @@ function GlobalChat({ canal, adminProfile }: { canal: string, adminProfile: Prof
       </div>
 
       <div className="p-4 border-t border-white/[0.06] shrink-0 bg-white/[0.01]">
-        <div className="flex gap-2">
+        <div className="flex gap-2 items-end">
+          {/* Attach buttons */}
+          <div className="flex flex-col gap-1 shrink-0">
+            <button type="button" onClick={() => imageInputRef.current?.click()} disabled={uploading}
+              title="Subir imagen"
+              className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 flex items-center justify-center text-gray-400 hover:text-white transition-colors disabled:opacity-50">
+              <Image className="w-4 h-4" />
+            </button>
+            <button type="button" onClick={() => audioInputRef.current?.click()} disabled={uploading}
+              title="Subir audio"
+              className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 flex items-center justify-center text-gray-400 hover:text-white transition-colors disabled:opacity-50">
+              <Mic className="w-4 h-4" />
+            </button>
+          </div>
           <input
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && send()}
-            placeholder="Enviar mensaje al canal..."
-            disabled={enviando}
-            className="flex-1 bg-black/40 border border-white/10 rounded-xl py-3 px-5 text-sm text-white focus:outline-none focus:border-purple-500/50 transition-all"
+            placeholder={uploading ? 'Subiendo archivo...' : 'Enviar mensaje al canal...'}
+            disabled={enviando || uploading}
+            className="flex-1 bg-black/40 border border-white/10 rounded-xl py-3 px-5 text-sm text-white focus:outline-none focus:border-purple-500/50 transition-all disabled:opacity-50"
           />
           <button
             onClick={send}
-            disabled={!input.trim() || enviando}
-            className="w-12 h-12 rounded-xl bg-purple-600 hover:bg-purple-500 flex items-center justify-center transition-colors disabled:opacity-50"
+            disabled={!input.trim() || enviando || uploading}
+            className="w-12 h-12 rounded-xl bg-purple-600 hover:bg-purple-500 flex items-center justify-center transition-colors disabled:opacity-50 shrink-0"
           >
-            {enviando ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
+            {enviando || uploading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
           </button>
         </div>
       </div>
@@ -184,6 +233,7 @@ function GlobalChat({ canal, adminProfile }: { canal: string, adminProfile: Prof
 
 export default function Admin({ adminProfile, onSignOut }: AdminProps) {
   const [mainTab, setMainTab] = useState<MainTab>('dashboard');
+  const [channelUnread, setChannelUnread] = useState<Record<string, number>>({});
   
   // Clientes Dashboard
   const [clientes, setClientes] = useState<ClienteConEstado[]>([]);
@@ -212,7 +262,42 @@ export default function Admin({ adminProfile, onSignOut }: AdminProps) {
   const [creando, setCreando] = useState(false);
 
   useEffect(() => { cargarClientes(); }, []);
-  
+
+  // ─── Notificaciones de canales de chat (admin) ────────────────────────────
+  useEffect(() => {
+    if (!supabase) return;
+    const chatChannels = ['comunidad', 'victorias', 'consultas'] as const;
+    const ICONS = { comunidad: Users, victorias: Trophy, consultas: Hash } as const;
+
+    const subs = chatChannels.map(ch =>
+      supabase!.channel(`admin-notif-${ch}`)
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'mensajes', filter: `canal=eq.${ch}` },
+          async (payload) => {
+            if (ch === mainTab) return;
+            if (payload.new.emisor_id === adminProfile.id) return;
+
+            const { data: m } = await supabase!.from('mensajes')
+              .select('*, emisor:profiles!emisor_id(nombre, rol)')
+              .eq('id', payload.new.id).single();
+
+            const nombre = (m?.emisor as { nombre?: string } | undefined)?.nombre ?? 'Alguien';
+            const preview = (payload.new.contenido ?? '').slice(0, 60);
+            const ChIcon = ICONS[ch];
+
+            toast(nombre, {
+              description: preview || '📎 Archivo adjunto',
+              action: { label: 'Ver →', onClick: () => setMainTab(ch) },
+              icon: React.createElement(ChIcon, { className: 'w-4 h-4 text-purple-400' }),
+              duration: 6000,
+            });
+
+            setChannelUnread(prev => ({ ...prev, [ch]: (prev[ch] ?? 0) + 1 }));
+          }
+        ).subscribe()
+    );
+    return () => { subs.forEach(s => supabase!.removeChannel(s)); };
+  }, [mainTab, adminProfile.id]);
+
   // Realtime Privado Chat Subscription para Admin
   useEffect(() => {
     if (!supabase || !selectedCliente || mainTab !== 'dashboard') return;
@@ -444,24 +529,34 @@ Respondé solo con las 3 recomendaciones en formato lista, sin introducción. M�
           <nav className="space-y-1">
             {[
               { id: 'dashboard', label: 'Clientes', icon: Users },
-              { id: 'comunidad', label: 'Comunidad', icon: Users, badge: true },
-              { id: 'victorias', label: 'Victorias', icon: Trophy, badge: true },
-              { id: 'consultas', label: 'Consultas', icon: Hash, badge: true },
-            ].map(item => (
-              <button
-                key={item.id}
-                onClick={() => setMainTab(item.id as MainTab)}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all group ${
-                  mainTab === item.id
-                    ? 'bg-indigo-500/10 text-indigo-400'
-                    : 'text-gray-400 hover:bg-white/[0.04] hover:text-white'
-                }`}
-              >
-                <item.icon className="w-4 h-4" />
-                {item.label}
-                {item.badge && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-purple-500" />}
-              </button>
-            ))}
+              { id: 'comunidad', label: 'Comunidad', icon: Users },
+              { id: 'victorias', label: 'Victorias', icon: Trophy },
+              { id: 'consultas', label: 'Consultas', icon: Hash },
+            ].map(item => {
+              const unread = channelUnread[item.id] ?? 0;
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => {
+                    setMainTab(item.id as MainTab);
+                    setChannelUnread(prev => ({ ...prev, [item.id]: 0 }));
+                  }}
+                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all group ${
+                    mainTab === item.id
+                      ? 'bg-indigo-500/10 text-indigo-400'
+                      : 'text-gray-400 hover:bg-white/[0.04] hover:text-white'
+                  }`}
+                >
+                  <item.icon className="w-4 h-4" />
+                  {item.label}
+                  {unread > 0 && (
+                    <span className="ml-auto min-w-[18px] h-[18px] px-1 rounded-full bg-purple-500 text-white text-[10px] font-bold flex items-center justify-center">
+                      {unread}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
           </nav>
         </div>
 

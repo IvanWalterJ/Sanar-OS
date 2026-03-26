@@ -48,7 +48,9 @@ export default function App() {
   const [profile, setProfile] = useState<Profile>(loadProfile);
   const [profileDraft, setProfileDraft] = useState<Profile>(loadProfile);
   const [authState, setAuthState] = useState<AuthState>('loading');
+  const [profileLoading, setProfileLoading] = useState(false);
   const [supabaseProfile, setSupabaseProfile] = useState<SupabaseProfile | null>(null);
+  const [unreadMessages, setUnreadMessages] = useState(0);
   const mainRef = useRef<HTMLElement>(null);
 
   // ─── Auth init ──────────────────────────────────────────────────────────────
@@ -75,8 +77,10 @@ export default function App() {
         return;
       }
       if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN') {
+        setProfileLoading(true);
         await loadSupabaseProfile(session.user.id);
         clearTimeout(safetyTimer);
+        setProfileLoading(false);
         setAuthState('logged_in');
       }
     });
@@ -163,7 +167,7 @@ export default function App() {
   };
 
   // ─── Loading state ──────────────────────────────────────────────────────────
-  if (authState === 'loading') {
+  if (authState === 'loading' || profileLoading) {
     return (
       <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center">
         <div className="w-8 h-8 border-2 border-blue-500/30 border-t-blue-500 rounded-full animate-spin" />
@@ -193,6 +197,7 @@ export default function App() {
         setCurrentPage={setCurrentPage}
         onOpenSettings={openSettings}
         onSignOut={handleSignOut}
+        messageBadge={unreadMessages}
       />
 
       <div className="flex-1 flex flex-col relative z-10 overflow-hidden">
@@ -203,7 +208,7 @@ export default function App() {
             {currentPage === 'roadmap' && <Roadmap userId={supabaseProfile?.id} />}
             {currentPage === 'coach' && <Coach userId={supabaseProfile?.id} />}
             {currentPage === 'metrics' && <Metrics userId={supabaseProfile?.id} />}
-            {currentPage === 'mensajes' && <Mensajes userId={supabaseProfile?.id} />}
+            {currentPage === 'mensajes' && <Mensajes userId={supabaseProfile?.id} onUnreadChange={setUnreadMessages} />}
             {currentPage === 'diario' && <DiarioDirector userId={supabaseProfile?.id} />}
             {currentPage === 'biblioteca' && <Biblioteca userId={supabaseProfile?.id} />}
           </div>

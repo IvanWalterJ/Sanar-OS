@@ -1,9 +1,11 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { Hash, Lock, Send, Trophy, Users, Search, MoreVertical } from 'lucide-react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { Hash, Lock, Send, Trophy, Users, Search, MoreVertical, Image, Mic } from 'lucide-react';
 import { supabase, isSupabaseReady, type Mensaje } from '../lib/supabase';
+import { toast } from 'sonner';
 
 interface MensajesProps {
   userId?: string;
+  onUnreadChange?: (n: number) => void;
 }
 
 interface MsgLocal {
@@ -14,6 +16,8 @@ interface MsgLocal {
   time: string;
   isMe: boolean;
   channelId: string;
+  archivoUrl?: string;
+  tipoArchivo?: 'imagen' | 'audio';
 }
 
 const MOCK_MESSAGES: MsgLocal[] = [
@@ -36,23 +40,41 @@ function supabaseMsgToLocal(m: Mensaje, myUserId: string): MsgLocal {
     time: new Date(m.created_at).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' }),
     isMe,
     channelId: m.canal,
+    archivoUrl: m.archivo_url,
+    tipoArchivo: m.tipo_archivo,
   };
 }
 
-export default function Mensajes({ userId }: MensajesProps) {
+const CHANNELS = [
+  { id: 'privado',   name: 'Mi Canal Privado',      icon: Lock,   type: 'private' },
+  { id: 'victorias', name: 'Victorias de la Semana', icon: Trophy, type: 'public'  },
+  { id: 'comunidad', name: 'Comunidad TCD',           icon: Users,  type: 'public'  },
+  { id: 'consultas', name: 'Consultas Generales',     icon: Hash,   type: 'public'  },
+] as const;
+
+export default function Mensajes({ userId, onUnreadChange }: MensajesProps) {
   const [activeChannel, setActiveChannel] = useState('privado');
   const [input, setInput] = useState('');
   const [channelSearch, setChannelSearch] = useState('');
   const [messages, setMessages] = useState<MsgLocal[]>(MOCK_MESSAGES);
   const [loadingMsgs, setLoadingMsgs] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [unreadMap, setUnreadMap] = useState<Record<string, number>>({});
   const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
+  const audioInputRef = useRef<HTMLInputElement>(null);
 
-  const channels = [
-    { id: 'privado', name: 'Mi Canal Privado', icon: Lock, unread: 0, type: 'private' },
-    { id: 'victorias', name: 'Victorias de la Semana', icon: Trophy, unread: 0, type: 'public' },
-    { id: 'comunidad', name: 'Comunidad TCD', icon: Users, unread: 0, type: 'public' },
-    { id: 'consultas', name: 'Consultas Generales', icon: Hash, unread: 0, type: 'public' },
-  ];
+  // Sync total unread with parent (for Sidebar badge)
+  useEffect(() => {
+    const total = Object.values(unreadMap).reduce((a, b) => a + b, 0);
+    onUnreadChange?.(total);
+  }, [unreadMap, onUnreadChange]);
+
+  // Reset unread for active channel when switching
+  const handleChannelSwitch = useCallback((ch: string) => {
+    setActiveChannel(ch);
+    setUnreadMap(prev => ({ ...prev, [ch]: 0 }));
+  }, []);
 
   // ─── Cargar mensajes desde Supabase ─────────────────────────────────────────
   useEffect(() => {
@@ -77,7 +99,7 @@ export default function Mensajes({ userId }: MensajesProps) {
       });
   }, [userId, activeChannel]);
 
-  // ─── Supabase Realtime subscription ─────────────────────────────────────────
+  // ─── Supabase Realtime — canal activo ────────────────────────────────────────
   useEffect(() => {
     if (!isSupabaseReady() || !supabase || !userId) return;
 
@@ -94,7 +116,6 @@ export default function Mensajes({ userId }: MensajesProps) {
             : `canal=eq.${activeChannel}`,
         },
         async (payload) => {
-          // Fetch the full message with profile data
           if (!supabase) return;
           const { data } = await supabase
             .from('mensajes')
@@ -112,6 +133,58 @@ export default function Mensajes({ userId }: MensajesProps) {
     return () => { supabase.removeChannel(channel); };
   }, [userId, activeChannel]);
 
+  // ─── Supabase Realtime — todos los canales (notificaciones) ─────────────────
+  useEffect(() => {
+    if (!isSupabaseReady() || !supabase || !userId) return;
+
+    const subs = CHANNELS.map(ch =>
+      supabase!
+        .channel(`notif-${ch.id}-${userId}`)
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'mensajes',
+            filter: ch.id === 'privado'
+              ? `receptor_id=eq.${userId}`
+              : `canal=eq.${ch.id}`,
+          },
+          async (payload) => {
+            // Ignorar si el canal está activo o es mensaje propio
+            if (ch.id === activeChannel) return;
+            if (payload.new.emisor_id === userId) return;
+
+            // Obtener nombre del emisor
+            const { data: m } = await supabase!
+              .from('mensajes')
+              .select('*, emisor:profiles!emisor_id(nombre, rol)')
+              .eq('id', payload.new.id)
+              .single();
+
+            const nombre = (m?.emisor as { nombre?: string } | undefined)?.nombre ?? 'Alguien';
+            const preview = (payload.new.contenido ?? '').slice(0, 60);
+            const ChIcon = ch.icon;
+
+            toast(nombre, {
+              description: preview || '📎 Archivo adjunto',
+              action: {
+                label: 'Ver →',
+                onClick: () => handleChannelSwitch(ch.id),
+              },
+              icon: React.createElement(ChIcon, { className: 'w-4 h-4 text-blue-400' }),
+              duration: 6000,
+            });
+
+            setUnreadMap(prev => ({ ...prev, [ch.id]: (prev[ch.id] ?? 0) + 1 }));
+          }
+        )
+        .subscribe()
+    );
+
+    return () => { subs.forEach(s => supabase!.removeChannel(s)); };
+  }, [userId, activeChannel, handleChannelSwitch]);
+
   // ─── Auto-scroll ─────────────────────────────────────────────────────────────
   useEffect(() => {
     if (messagesContainerRef.current) {
@@ -128,15 +201,12 @@ export default function Mensajes({ userId }: MensajesProps) {
     setInput('');
 
     if (isSupabaseReady() && supabase && userId) {
-      // Send via Supabase
       await supabase.from('mensajes').insert({
         canal: activeChannel,
         emisor_id: userId,
-        receptor_id: activeChannel === 'privado' ? null : null, // admin will reply; community = broadcast
+        receptor_id: null,
         contenido: text,
       });
-      // The Realtime subscription will pick it up for other users;
-      // add optimistically for current user
       const optimistic: MsgLocal = {
         id: `opt-${Date.now()}`,
         author: 'Vos',
@@ -148,7 +218,6 @@ export default function Mensajes({ userId }: MensajesProps) {
       };
       setMessages(prev => [...prev, optimistic]);
     } else {
-      // Fallback mock (no Supabase)
       const newMessage: MsgLocal = {
         id: Date.now(),
         author: 'Vos',
@@ -173,6 +242,52 @@ export default function Mensajes({ userId }: MensajesProps) {
           }]);
         }, 1500);
       }
+    }
+  };
+
+  const handleUploadFile = async (file: File, tipo: 'imagen' | 'audio') => {
+    if (!isSupabaseReady() || !supabase || !userId) {
+      toast.error('Conectá Supabase para subir archivos');
+      return;
+    }
+    setUploading(true);
+    try {
+      const ext = file.name.split('.').pop() ?? (tipo === 'imagen' ? 'jpg' : 'mp3');
+      const path = `${userId}/${Date.now()}.${ext}`;
+      const { data, error } = await supabase.storage
+        .from('mensajes-archivos')
+        .upload(path, file);
+      if (error) throw error;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('mensajes-archivos')
+        .getPublicUrl(data.path);
+
+      await supabase.from('mensajes').insert({
+        canal: activeChannel,
+        emisor_id: userId,
+        receptor_id: null,
+        contenido: '',
+        tipo_archivo: tipo,
+        archivo_url: publicUrl,
+      });
+
+      const optimistic: MsgLocal = {
+        id: `opt-${Date.now()}`,
+        author: 'Vos',
+        rol: 'user',
+        content: '',
+        time: new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' }),
+        isMe: true,
+        channelId: activeChannel,
+        archivoUrl: publicUrl,
+        tipoArchivo: tipo,
+      };
+      setMessages(prev => [...prev, optimistic]);
+    } catch {
+      toast.error('Error subiendo archivo. Verificá que el bucket exista en Supabase.');
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -202,10 +317,10 @@ export default function Mensajes({ userId }: MensajesProps) {
             <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">Canales</p>
           </div>
           <div className="space-y-1 px-2">
-            {channels.filter(c => c.name.toLowerCase().includes(channelSearch.toLowerCase())).map(channel => (
+            {CHANNELS.filter(c => c.name.toLowerCase().includes(channelSearch.toLowerCase())).map(channel => (
               <button
                 key={channel.id}
-                onClick={() => setActiveChannel(channel.id)}
+                onClick={() => handleChannelSwitch(channel.id)}
                 className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-colors ${
                   activeChannel === channel.id ? 'bg-blue-500/20 text-blue-400' : 'text-gray-300 hover:bg-white/5'
                 }`}
@@ -214,9 +329,16 @@ export default function Mensajes({ userId }: MensajesProps) {
                   <channel.icon className={`w-4 h-4 ${activeChannel === channel.id ? 'text-blue-400' : 'text-gray-500'}`} />
                   <span className="text-sm font-medium truncate">{channel.name}</span>
                 </div>
-                {isSupabaseReady() && (
-                  <span className="w-2 h-2 rounded-full bg-emerald-500" title="Realtime activo" />
-                )}
+                <div className="flex items-center gap-1.5">
+                  {(unreadMap[channel.id] ?? 0) > 0 && (
+                    <span className="min-w-[18px] h-[18px] px-1 rounded-full bg-blue-500 text-white text-[10px] font-bold flex items-center justify-center">
+                      {unreadMap[channel.id]}
+                    </span>
+                  )}
+                  {isSupabaseReady() && (unreadMap[channel.id] ?? 0) === 0 && (
+                    <span className="w-2 h-2 rounded-full bg-emerald-500" title="Realtime activo" />
+                  )}
+                </div>
               </button>
             ))}
           </div>
@@ -239,9 +361,9 @@ export default function Mensajes({ userId }: MensajesProps) {
       <div className="flex-1 flex flex-col bg-black/10">
         <div className="h-16 border-b border-white/10 flex items-center justify-between px-6 bg-white/5">
           <div className="flex items-center gap-3">
-            {channels.find(c => c.id === activeChannel)?.icon && React.createElement(channels.find(c => c.id === activeChannel)!.icon, { className: "w-5 h-5 text-gray-400" })}
+            {CHANNELS.find(c => c.id === activeChannel) && React.createElement(CHANNELS.find(c => c.id === activeChannel)!.icon, { className: "w-5 h-5 text-gray-400" })}
             <div>
-              <h2 className="text-white font-medium">{channels.find(c => c.id === activeChannel)?.name}</h2>
+              <h2 className="text-white font-medium">{CHANNELS.find(c => c.id === activeChannel)?.name}</h2>
               <p className="text-xs text-gray-500">
                 {activeChannel === 'privado' ? 'Solo visible para vos y el equipo' : 'Canal público de la comunidad'}
               </p>
@@ -288,7 +410,20 @@ export default function Mensajes({ userId }: MensajesProps) {
                         ? 'bg-white/5 border border-white/10 text-gray-300 rounded-tl-sm'
                         : 'bg-white/10 text-white rounded-tl-sm'
                   }`}>
-                    <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.content}</p>
+                    {msg.tipoArchivo === 'imagen' && msg.archivoUrl && (
+                      <img
+                        src={msg.archivoUrl}
+                        alt="imagen"
+                        className="max-w-xs rounded-xl mb-2 cursor-pointer hover:opacity-90 transition-opacity"
+                        onClick={() => window.open(msg.archivoUrl)}
+                      />
+                    )}
+                    {msg.tipoArchivo === 'audio' && msg.archivoUrl && (
+                      <audio controls src={msg.archivoUrl} className="w-full mb-2 rounded-lg" />
+                    )}
+                    {msg.content && (
+                      <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.content}</p>
+                    )}
                   </div>
                 </div>
               </div>
@@ -296,8 +431,47 @@ export default function Mensajes({ userId }: MensajesProps) {
           )}
         </div>
 
+        {/* Input area */}
         <div className="p-4 bg-white/5 border-t border-white/10">
-          <form className="relative flex items-end gap-2" onSubmit={handleSend}>
+          {/* Hidden file inputs */}
+          <input
+            ref={imageInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={e => { const f = e.target.files?.[0]; if (f) handleUploadFile(f, 'imagen'); e.target.value = ''; }}
+          />
+          <input
+            ref={audioInputRef}
+            type="file"
+            accept="audio/*"
+            className="hidden"
+            onChange={e => { const f = e.target.files?.[0]; if (f) handleUploadFile(f, 'audio'); e.target.value = ''; }}
+          />
+
+          <form className="flex items-end gap-2" onSubmit={handleSend}>
+            {/* Attach buttons */}
+            <div className="flex flex-col gap-1 shrink-0">
+              <button
+                type="button"
+                onClick={() => imageInputRef.current?.click()}
+                disabled={uploading}
+                title="Subir imagen"
+                className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 flex items-center justify-center text-gray-400 hover:text-white transition-colors disabled:opacity-50"
+              >
+                <Image className="w-4 h-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => audioInputRef.current?.click()}
+                disabled={uploading}
+                title="Subir audio"
+                className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 flex items-center justify-center text-gray-400 hover:text-white transition-colors disabled:opacity-50"
+              >
+                <Mic className="w-4 h-4" />
+              </button>
+            </div>
+
             <textarea
               value={input}
               onChange={(e) => setInput(e.target.value)}
@@ -307,16 +481,20 @@ export default function Mensajes({ userId }: MensajesProps) {
                   handleSend(e as unknown as React.FormEvent);
                 }
               }}
-              placeholder="Escribí un mensaje al equipo..."
-              className="flex-1 max-h-32 min-h-[52px] bg-black/20 border border-white/10 rounded-xl py-3.5 px-4 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/50 transition-all resize-none scrollbar-hide"
+              placeholder={uploading ? 'Subiendo archivo...' : 'Escribí un mensaje al equipo...'}
+              disabled={uploading}
+              className="flex-1 max-h-32 min-h-[52px] bg-black/20 border border-white/10 rounded-xl py-3.5 px-4 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/50 transition-all resize-none scrollbar-hide disabled:opacity-50"
               rows={1}
             />
             <button
               type="submit"
-              disabled={!input.trim()}
+              disabled={!input.trim() || uploading}
               className="w-[52px] h-[52px] shrink-0 rounded-xl bg-blue-500 hover:bg-blue-600 disabled:opacity-50 disabled:hover:bg-blue-500 flex items-center justify-center text-white transition-colors shadow-lg shadow-blue-500/20"
             >
-              <Send className="w-5 h-5 ml-1" />
+              {uploading
+                ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                : <Send className="w-5 h-5 ml-1" />
+              }
             </button>
           </form>
         </div>
