@@ -192,6 +192,7 @@ export default function App() {
         currentPage={currentPage}
         setCurrentPage={setCurrentPage}
         onOpenSettings={openSettings}
+        onSignOut={handleSignOut}
       />
 
       <div className="flex-1 flex flex-col relative z-10 overflow-hidden">

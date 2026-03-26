@@ -5,6 +5,7 @@ interface SidebarProps {
   currentPage: string;
   setCurrentPage: (page: string) => void;
   onOpenSettings: () => void;
+  onSignOut: () => void;
 }
 
 function getSidebarData() {
@@ -35,7 +36,7 @@ function getSidebarData() {
   return { profile, progress, hasPending, semana };
 }
 
-export default function Sidebar({ currentPage, setCurrentPage, onOpenSettings }: SidebarProps) {
+export default function Sidebar({ currentPage, setCurrentPage, onOpenSettings, onSignOut }: SidebarProps) {
   const [data, setData] = useState(getSidebarData());
 
   useEffect(() => {
@@ -68,9 +69,8 @@ export default function Sidebar({ currentPage, setCurrentPage, onOpenSettings }:
       items: [
         { id: 'ajustes', icon: Settings, label: 'Ajustes', action: onOpenSettings },
         { id: 'salir', icon: LogOut, label: 'Salir', action: () => {
-          if (window.confirm('¿Estás segura de que querés salir?')) {
-            setCurrentPage('dashboard');
-            window.location.reload();
+          if (window.confirm('¿Estás seguro de que querés salir?')) {
+            onSignOut();
           }
         }},
       ]
