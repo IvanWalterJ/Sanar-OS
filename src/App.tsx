@@ -70,14 +70,21 @@ export default function App() {
     }, 5000);
 
     // Single source of truth — handles page load (INITIAL_SESSION) + login + logout
+    // TOKEN_REFRESHED is intentionally ignored to avoid UI flicker when switching tabs
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (!session || event === 'SIGNED_OUT') {
+      if (event === 'SIGNED_OUT' || !session) {
         clearTimeout(safetyTimer);
         setSupabaseProfile(null);
         setAuthState('logged_out');
         return;
       }
+      if (event === 'TOKEN_REFRESHED') {
+        // Token silently refreshed — user is still logged in, no UI update needed
+        clearTimeout(safetyTimer);
+        return;
+      }
       if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN') {
+        // Only do a full profile load on real login / first load, not on tab refocus
         setProfileLoading(true);
         await loadSupabaseProfile(session.user.id);
         clearTimeout(safetyTimer);
@@ -168,7 +175,7 @@ export default function App() {
   };
 
   // ─── Loading state ──────────────────────────────────────────────────────────
-  if (authState === 'loading' || profileLoading) {
+  if (authState === 'loading') {
     return (
       <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center">
         <div className="w-8 h-8 border-2 border-blue-500/30 border-t-blue-500 rounded-full animate-spin" />
