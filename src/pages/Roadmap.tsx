@@ -1,9 +1,8 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   CheckCircle2,
   Circle,
   Lock,
-  ChevronDown,
   ChevronUp,
   Star,
   Trophy,
@@ -39,19 +38,6 @@ interface Props {
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-function getPilarColorClasses(color: string, estado: EstadoPilar) {
-  const base = `border rounded-2xl transition-all duration-300`;
-  if (estado === 'completado') return `${base} bg-${color}-500/20 border-${color}-500/40`;
-  if (estado === 'en_progreso') return `${base} bg-${color}-500/10 border-${color}-500/25`;
-  return `${base} bg-white/3 border-white/8`;
-}
-
-function getEmojiEstado(estado: EstadoPilar) {
-  if (estado === 'completado') return '✅';
-  if (estado === 'en_progreso') return '⚡';
-  return '🔒';
-}
-
 // ─── Componente principal ─────────────────────────────────────────────────────
 
 export default function Roadmap({ userId, perfil }: Props) {
@@ -61,6 +47,7 @@ export default function Roadmap({ userId, perfil }: Props) {
   const [pilarAbierto, setPilarAbierto] = useState<number | null>(null);
   const [celebracion, setCelebracion] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const detalleRef = useRef<HTMLDivElement>(null);
 
   // ─── Cargar datos de Supabase ───────────────────────────────────────────
   useEffect(() => {
@@ -123,10 +110,13 @@ export default function Roadmap({ userId, perfil }: Props) {
         case 'completar_anterior': {
           const anterior = pilares.find((p) => p.numero === pilar.numero - 1);
           if (!anterior) { desbloqueado = true; break; }
-          const estrellasPrevias = anterior.metas.filter(
+          const totalEstrellasPrevias = anterior.metas.filter((m) => m.es_estrella).length;
+          const estrellasPreviasCompletadas = anterior.metas.filter(
             (m) => m.es_estrella && completadas.has(`${anterior.numero}-${m.codigo}`),
           ).length;
-          desbloqueado = estrellasPrevias >= (pilar.estrellas_requeridas ?? 1);
+          // Requiere todas las ★ del pilar anterior (o el mínimo configurado, el que sea menor)
+          const requeridas = Math.min(pilar.estrellas_requeridas ?? totalEstrellasPrevias, totalEstrellasPrevias);
+          desbloqueado = estrellasPreviasCompletadas >= requeridas;
           break;
         }
         case 'venta_real':
@@ -275,18 +265,28 @@ export default function Roadmap({ userId, perfil }: Props) {
 
       {/* ── Mapa visual de 9 pilares ── */}
       <div className="grid grid-cols-3 gap-3">
-        {pilaresConEstado.map((pilar) => (
+        {pilaresConEstado.map((pilar) => {
+          const isSelected = pilarAbierto === pilar.numero;
+          return (
           <button
             key={pilar.numero}
-            onClick={() => setPilarAbierto(pilarAbierto === pilar.numero ? null : pilar.numero)}
+            onClick={() => {
+              const siguiente = pilarAbierto === pilar.numero ? null : pilar.numero;
+              setPilarAbierto(siguiente);
+              if (siguiente !== null) {
+                setTimeout(() => detalleRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
+              }
+            }}
             disabled={pilar.estado === 'bloqueado'}
             className={`relative text-left p-4 rounded-2xl border transition-all duration-300 ${
               pilar.estado === 'bloqueado'
-                ? 'bg-white/3 border-white/8 cursor-not-allowed opacity-50'
+                ? 'bg-white/[0.03] border-white/[0.08] cursor-not-allowed opacity-50'
+                : isSelected
+                ? `bg-${pilar.color}-500/25 border-${pilar.color}-500/60 shadow-lg shadow-${pilar.color}-500/20 scale-[1.02]`
                 : pilar.estado === 'completado'
-                ? `bg-${pilar.color}-500/20 border-${pilar.color}-500/40 hover:bg-${pilar.color}-500/25`
-                : `bg-${pilar.color}-500/10 border-${pilar.color}-500/25 hover:bg-${pilar.color}-500/15`
-            } ${pilarAbierto === pilar.numero ? 'ring-2 ring-white/20' : ''}`}
+                ? `bg-${pilar.color}-500/15 border-${pilar.color}-500/35 hover:bg-${pilar.color}-500/20`
+                : `bg-${pilar.color}-500/8 border-${pilar.color}-500/20 hover:bg-${pilar.color}-500/12`
+            }`}
           >
             <div className="flex items-start justify-between mb-2">
               <span className="text-2xl">{pilar.emoji}</span>
@@ -323,7 +323,8 @@ export default function Roadmap({ userId, perfil }: Props) {
               </p>
             )}
           </button>
-        ))}
+          );
+        })}
       </div>
 
       {/* ── Detalle del pilar seleccionado ── */}
@@ -332,7 +333,7 @@ export default function Roadmap({ userId, perfil }: Props) {
         if (!pilar || pilar.estado === 'bloqueado') return null;
 
         return (
-          <div className="glass-panel rounded-2xl overflow-hidden animate-in slide-in-from-top duration-300">
+          <div ref={detalleRef} className="glass-panel rounded-2xl overflow-hidden animate-in slide-in-from-top duration-300 scroll-mt-6">
             {/* Cabecera del pilar */}
             <div className="p-6 border-b border-white/5">
               <div className="flex items-center justify-between">
