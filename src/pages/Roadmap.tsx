@@ -274,7 +274,7 @@ export default function Roadmap({ userId, perfil }: Props) {
               const siguiente = pilarAbierto === pilar.numero ? null : pilar.numero;
               setPilarAbierto(siguiente);
               if (siguiente !== null) {
-                setTimeout(() => detalleRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
+                setTimeout(() => detalleRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 80);
               }
             }}
             disabled={pilar.estado === 'bloqueado'}
@@ -333,7 +333,7 @@ export default function Roadmap({ userId, perfil }: Props) {
         if (!pilar || pilar.estado === 'bloqueado') return null;
 
         return (
-          <div ref={detalleRef} className="glass-panel rounded-2xl overflow-hidden animate-in slide-in-from-top duration-300 scroll-mt-6">
+          <div ref={detalleRef} className="glass-panel rounded-2xl animate-in fade-in slide-in-from-bottom-2 duration-300 scroll-mt-4">
             {/* Cabecera del pilar */}
             <div className="p-6 border-b border-white/5">
               <div className="flex items-center justify-between">
