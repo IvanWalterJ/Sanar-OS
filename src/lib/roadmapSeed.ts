@@ -1,217 +1,388 @@
-export type TareaCategoria = 'Oferta' | 'Sistema' | 'Contenido' | 'Mentalidad';
+import type { MetaCodigo } from './supabase';
 
-export interface RoadmapTarea {
-  id: string;
-  semana: number;
+// ─── Tipos base ───────────────────────────────────────────────────────────────
+
+export type TipoDesbloqueo =
+  | 'auto'            // siempre disponible al crear cuenta
+  | 'completar_anterior' // tareas ★ del pilar anterior
+  | 'venta_real'      // al menos 1 venta registrada
+  | 'qa_verde';       // QA 24/24 puntos verdes en meta 6.B
+
+export interface RoadmapMeta {
+  codigo: MetaCodigo;
   titulo: string;
+  descripcion: string;
+  es_estrella: boolean;  // tareas ★ que desbloquean el siguiente pilar
   tiempo_estimado: string;
-  categoria: TareaCategoria;
-  status: 'pendiente' | 'activa' | 'completada';
-}
-
-export interface RoadmapSemana {
-  numero: number;
-  titulo: string;
-  tareas: RoadmapTarea[];
+  herramienta_id?: string; // herramienta de Biblioteca asignada (ej: 'A1')
+  agente_id?: string;      // agente IA asignado
 }
 
 export interface RoadmapPilar {
-  id: number;
+  numero: 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8;
   titulo: string;
+  subtitulo: string;       // descripción corta del pilar
   emoji: string;
-  expanded: boolean;
-  semanas: RoadmapSemana[];
+  color: string;           // color Tailwind para el mapa visual
+  desbloqueo: TipoDesbloqueo;
+  estrellas_requeridas?: number; // cuántas ★ del pilar anterior se necesitan
+  metas: RoadmapMeta[];
 }
 
-export const SEED_ROADMAP: RoadmapPilar[] = [
+// ─── Los 9 Pilares del Método CLÍNICA ────────────────────────────────────────
+
+export const SEED_ROADMAP_V2: RoadmapPilar[] = [
+  // ─── PILAR 0: Onboarding ────────────────────────────────────────────────
   {
-    id: 1,
-    titulo: 'IDENTIDAD Y OFERTA',
+    numero: 0,
+    titulo: 'Onboarding',
+    subtitulo: 'El Coach te conoce',
+    emoji: '🌱',
+    color: 'emerald',
+    desbloqueo: 'auto',
+    metas: [
+      {
+        codigo: 'O.A',
+        titulo: 'El Coach te conoce',
+        descripcion:
+          'Completa tu perfil completo: especialidad, nicho, historia de origen, por qué oficial, visión financiera y carta del día 91. Esta información precarga todas las herramientas IA de la Biblioteca.',
+        es_estrella: true,
+        tiempo_estimado: '20–30 min',
+        herramienta_id: 'A1',
+      },
+    ],
+  },
+
+  // ─── PILAR 1: Identidad ─────────────────────────────────────────────────
+  {
+    numero: 1,
+    titulo: 'Identidad',
+    subtitulo: 'Tu fundamento como emprendedor/a',
     emoji: '💎',
-    expanded: true,
-    semanas: [
+    color: 'violet',
+    desbloqueo: 'completar_anterior',
+    estrellas_requeridas: 1,
+    metas: [
       {
-        numero: 1,
-        titulo: 'Sesión 1-1: Base',
-        tareas: [
-          { id: 'p1s1t1', semana: 1, categoria: 'Oferta', tiempo_estimado: '15 min', status: 'activa', titulo: 'Definir propósito en 1 oración (el "para qué" que nadie puede copiar)' },
-          { id: 'p1s1t2', semana: 1, categoria: 'Oferta', tiempo_estimado: '30 min', status: 'pendiente', titulo: 'Escribir tu historia en formato A→B→C (Infierno, Brecha, Cielo)' },
-          { id: 'p1s1t3', semana: 1, categoria: 'Mentalidad', tiempo_estimado: '15 min', status: 'pendiente', titulo: 'Identificar tu legado a 3 años' },
-          { id: 'p1s1t4', semana: 1, categoria: 'Oferta', tiempo_estimado: '20 min', status: 'pendiente', titulo: 'Completar Biblia de Negocio — Capítulo 1: Quién soy' },
-          { id: 'p1s1t5', semana: 1, categoria: 'Oferta', tiempo_estimado: '20 min', status: 'pendiente', titulo: 'Definir tu nicho específico (no "psicóloga" — "psicóloga de vínculos para mujeres ejecutivas")' }
-        ]
+        codigo: '1.A',
+        titulo: 'Identidad como fundador/a',
+        descripcion:
+          'Define quién eres como emprendedor/a del sector salud: tu propósito, valores y el legado que querés construir a 3 años.',
+        es_estrella: true,
+        tiempo_estimado: '25 min',
+        herramienta_id: 'A2',
       },
       {
-        numero: 2,
-        titulo: 'Sesión 1-1: Oferta',
-        tareas: [
-          { id: 'p1s2t1', semana: 2, categoria: 'Oferta', tiempo_estimado: '15 min', status: 'pendiente', titulo: 'Nombrar tu protocolo/método propio' },
-          { id: 'p1s2t2', semana: 2, categoria: 'Oferta', tiempo_estimado: '15 min', status: 'pendiente', titulo: 'Definir la promesa de transformación en 1 línea' },
-          { id: 'p1s2t3', semana: 2, categoria: 'Oferta', tiempo_estimado: '5 min', status: 'pendiente', titulo: 'Establecer la duración exacta del protocolo (ej: 12 semanas)' },
-          { id: 'p1s2t4', semana: 2, categoria: 'Oferta', tiempo_estimado: '20 min', status: 'pendiente', titulo: 'Listar los 5 resultados verificables del proceso' },
-          { id: 'p1s2t5', semana: 2, categoria: 'Oferta', tiempo_estimado: '10 min', status: 'pendiente', titulo: 'Definir precio del protocolo individual (en USD)' },
-          { id: 'p1s2t6', semana: 2, categoria: 'Mentalidad', tiempo_estimado: '10 min', status: 'pendiente', titulo: 'Calcular tu hora real actual (usar calculadora)' },
-          { id: 'p1s2t7', semana: 2, categoria: 'Mentalidad', tiempo_estimado: '10 min', status: 'pendiente', titulo: 'Calcular brecha entre hora real y precio del protocolo' },
-          { id: 'p1s2t8', semana: 2, categoria: 'Oferta', tiempo_estimado: '30 min', status: 'pendiente', titulo: 'Escribir objeciones top 3 y respuestas' },
-          { id: 'p1s2t9', semana: 2, categoria: 'Oferta', tiempo_estimado: '20 min', status: 'pendiente', titulo: 'Validar la oferta con 1 cliente actual: "¿Comprarías esto?"' },
-          { id: 'p1s2t10', semana: 2, categoria: 'Oferta', tiempo_estimado: '20 min', status: 'pendiente', titulo: 'Biblia de Negocio — Capítulo 2: Qué ofrezco' }
-        ]
-      }
-    ]
+        codigo: '1.B',
+        titulo: 'Historia personal documentada',
+        descripcion:
+          'Escribe tu historia de origen en 3 versiones: larga (300 palabras), media (150 palabras) y corta (50 palabras). La herramienta IA genera las 3 a partir de tus respuestas.',
+        es_estrella: true,
+        tiempo_estimado: '30 min',
+        herramienta_id: 'A3',
+        agente_id: 'agente-historia',
+      },
+      {
+        codigo: '1.C',
+        titulo: 'Creencias reformuladas',
+        descripcion:
+          'Identifica las 3 creencias limitantes más fuertes sobre dinero, vocación y visibilidad. El Coach las reformula en creencias potenciadoras con evidencia de tu propia historia.',
+        es_estrella: true,
+        tiempo_estimado: '25 min',
+        herramienta_id: 'A4',
+      },
+      {
+        codigo: '1.D',
+        titulo: 'Visión financiera clara',
+        descripcion:
+          'Define tu meta financiera a 90 días (en USD), calcula cuántos protocolos necesitás vender, y establece el ingreso que considera "libertad" para vos. Usa la calculadora PHR.',
+        es_estrella: true,
+        tiempo_estimado: '20 min',
+        herramienta_id: 'B1',
+      },
+    ],
   },
+
+  // ─── PILAR 2: Claridad y Oferta ─────────────────────────────────────────
   {
-    id: 2,
-    titulo: 'SISTEMA Y AUTOMATIZACIÓN',
-    emoji: '⚙️',
-    expanded: false,
-    semanas: [
+    numero: 2,
+    titulo: 'Claridad y Oferta',
+    subtitulo: 'A quién ayudás y qué les ofrecés',
+    emoji: '🎯',
+    color: 'blue',
+    desbloqueo: 'completar_anterior',
+    estrellas_requeridas: 6,
+    metas: [
       {
-        numero: 3,
-        titulo: 'Comunicación base',
-        tareas: [
-          { id: 'p2s3t1', semana: 3, categoria: 'Sistema', tiempo_estimado: '20 min', status: 'pendiente', titulo: 'Configurar WhatsApp Business (no el personal)' },
-          { id: 'p2s3t2', semana: 3, categoria: 'Sistema', tiempo_estimado: '15 min', status: 'pendiente', titulo: 'Escribir mensaje de bienvenida automático' },
-          { id: 'p2s3t3', semana: 3, categoria: 'Sistema', tiempo_estimado: '30 min', status: 'pendiente', titulo: 'Escribir 5 respuestas rápidas para preguntas frecuentes' },
-          { id: 'p2s3t4', semana: 3, categoria: 'Sistema', tiempo_estimado: '5 min', status: 'pendiente', titulo: 'Configurar mensaje de ausencia fuera de horario' },
-          { id: 'p2s3t5', semana: 3, categoria: 'Sistema', tiempo_estimado: '10 min', status: 'pendiente', titulo: 'Probar el flujo completo desde un número externo' }
-        ]
+        codigo: '2.A',
+        titulo: 'Nicho específico validado',
+        descripcion:
+          'Define tu nicho con máxima especificidad: no "psicóloga" sino "psicóloga de ansiedad para mujeres profesionales de 30-45 años". Valida con 3 personas reales de ese perfil.',
+        es_estrella: true,
+        tiempo_estimado: '30 min',
+        herramienta_id: 'B2',
       },
       {
-        numero: 4,
-        titulo: 'Agenda y CRM',
-        tareas: [
-          { id: 'p2s4t1', semana: 4, categoria: 'Sistema', tiempo_estimado: '15 min', status: 'pendiente', titulo: 'Elegir herramienta de agenda online (Calendly / GHL)' },
-          { id: 'p2s4t2', semana: 4, categoria: 'Sistema', tiempo_estimado: '20 min', status: 'pendiente', titulo: 'Configurar disponibilidad y tipos de turno' },
-          { id: 'p2s4t3', semana: 4, categoria: 'Sistema', tiempo_estimado: '10 min', status: 'pendiente', titulo: 'Activar recordatorio automático 24h antes' },
-          { id: 'p2s4t4', semana: 4, categoria: 'Sistema', tiempo_estimado: '10 min', status: 'pendiente', titulo: 'Activar confirmación automática al agendar' },
-          { id: 'p2s4t5', semana: 4, categoria: 'Sistema', tiempo_estimado: '15 min', status: 'pendiente', titulo: 'Configurar seguimiento post-consulta (mensaje D+1)' },
-          { id: 'p2s4t6', semana: 4, categoria: 'Sistema', tiempo_estimado: '10 min', status: 'pendiente', titulo: 'Conectar agenda con Google Calendar' },
-          { id: 'p2s4t7', semana: 4, categoria: 'Sistema', tiempo_estimado: '15 min', status: 'pendiente', titulo: 'Testear flujo completo: reserva → confirmación → recordatorio' },
-          { id: 'p2s5t1', semana: 5, categoria: 'Sistema', tiempo_estimado: '45 min', status: 'pendiente', titulo: 'Configurar GHL / CRM básico' },
-          { id: 'p2s5t2', semana: 5, categoria: 'Sistema', tiempo_estimado: '15 min', status: 'pendiente', titulo: 'Crear pipeline: Lead → Consulta → Protocolo activo → Completado' },
-          { id: 'p2s5t3', semana: 5, categoria: 'Sistema', tiempo_estimado: '20 min', status: 'pendiente', titulo: 'Importar contactos actuales al CRM' }
-        ]
+        codigo: '2.B',
+        titulo: 'Avatar de cliente ideal completo',
+        descripcion:
+          'Construye el perfil completo de tu cliente ideal: demografía, dolores profundos, deseos, objeciones, lenguaje exacto que usa y plataformas donde está.',
+        es_estrella: true,
+        tiempo_estimado: '35 min',
+        herramienta_id: 'B3',
       },
       {
-        numero: 6,
-        titulo: 'ManyChat + Instagram',
-        tareas: [
-          { id: 'p2s6t1', semana: 6, categoria: 'Sistema', tiempo_estimado: '15 min', status: 'pendiente', titulo: 'Crear cuenta ManyChat conectada a Instagram' },
-          { id: 'p2s6t2', semana: 6, categoria: 'Sistema', tiempo_estimado: '10 min', status: 'pendiente', titulo: 'Definir 3 palabras clave disparadoras (ej: "INFO", "PROTOCOLO")' },
-          { id: 'p2s6t3', semana: 6, categoria: 'Sistema', tiempo_estimado: '30 min', status: 'pendiente', titulo: 'Escribir respuesta automática para cada keyword' },
-          { id: 'p2s6t4', semana: 6, categoria: 'Sistema', tiempo_estimado: '30 min', status: 'pendiente', titulo: 'Configurar secuencia de seguimiento (D+1, D+3, D+7)' },
-          { id: 'p2s6t5', semana: 6, categoria: 'Sistema', tiempo_estimado: '15 min', status: 'pendiente', titulo: 'Probar flujo completo desde cuenta externa' },
-          { id: 'p2s6t6', semana: 6, categoria: 'Contenido', tiempo_estimado: '15 min', status: 'pendiente', titulo: 'Publicar primer contenido con keyword visible en el caption' }
-        ]
+        codigo: '2.C',
+        titulo: 'Posicionamiento validado con personas reales',
+        descripcion:
+          'Escribe tu propuesta de valor única en 1 oración. Testea con 3 personas de tu nicho: ¿entienden inmediatamente de qué se trata?',
+        es_estrella: true,
+        tiempo_estimado: '25 min',
+        herramienta_id: 'B4',
       },
-      {
-        numero: 7,
-        titulo: 'Cobros internacionales',
-        tareas: [
-          { id: 'p2s7t1', semana: 7, categoria: 'Sistema', tiempo_estimado: '45 min', status: 'pendiente', titulo: 'Crear cuenta Stripe (o TiendaNube Pagos / Hotmart)' },
-          { id: 'p2s7t2', semana: 7, categoria: 'Sistema', tiempo_estimado: '10 min', status: 'pendiente', titulo: 'Configurar cobro en USD' },
-          { id: 'p2s7t3', semana: 7, categoria: 'Oferta', tiempo_estimado: '15 min', status: 'pendiente', titulo: 'Crear link de pago para el protocolo' },
-          { id: 'p2s7t4', semana: 7, categoria: 'Sistema', tiempo_estimado: '15 min', status: 'pendiente', titulo: 'Testear pago desde tarjeta extranjera' },
-          { id: 'p2s7t5', semana: 7, categoria: 'Sistema', tiempo_estimado: '15 min', status: 'pendiente', titulo: 'Integrar link de pago en el flujo post-llamada' }
-        ]
-      }
-    ]
+    ],
   },
+
+  // ─── PILAR 3: Programa y Precio ─────────────────────────────────────────
   {
-    id: 3,
-    titulo: 'CONTENIDO Y CAPTACIÓN',
+    numero: 3,
+    titulo: 'Programa y Precio',
+    subtitulo: 'La estructura que vende tu transformación',
+    emoji: '📐',
+    color: 'indigo',
+    desbloqueo: 'completar_anterior',
+    estrellas_requeridas: 6,
+    metas: [
+      {
+        codigo: '3.A',
+        titulo: 'Estructura del programa',
+        descripcion:
+          'Define el protocolo/método propio: nombre, duración, módulos o fases, sesiones incluidas, formato (1-1, grupal, híbrido) y resultados verificables en cada fase.',
+        es_estrella: true,
+        tiempo_estimado: '45 min',
+        herramienta_id: 'B5',
+        agente_id: 'agente-oferta',
+      },
+      {
+        codigo: '3.B',
+        titulo: 'Precio con justificación de valor',
+        descripcion:
+          'Establece el precio del protocolo con justificación de valor (no de costo). Calcula el ROI del cliente: cuánto vale para él/ella lograr el resultado prometido.',
+        es_estrella: true,
+        tiempo_estimado: '30 min',
+        herramienta_id: 'B6',
+      },
+      {
+        codigo: '3.C',
+        titulo: 'Pre-venta validada con 1 pago real',
+        descripcion:
+          'Ofrece el protocolo a precio de pre-lanzamiento a 3-5 personas de tu red. El objetivo es 1 pago real que valide la oferta antes de construir el sistema completo.',
+        es_estrella: true,
+        tiempo_estimado: '60 min',
+      },
+    ],
+  },
+
+  // ─── PILAR 4: Presencia Digital ─────────────────────────────────────────
+  {
+    numero: 4,
+    titulo: 'Presencia Digital',
+    subtitulo: 'Tu clínica digital calibrada',
     emoji: '📱',
-    expanded: false,
-    semanas: [
+    color: 'cyan',
+    desbloqueo: 'venta_real',
+    metas: [
       {
-        numero: 3,
-        titulo: 'Contenido base',
-        tareas: [
-          { id: 'p3s3t1', semana: 3, categoria: 'Contenido', tiempo_estimado: '20 min', status: 'pendiente', titulo: 'Definir los 3 temas pilares de tu contenido (de la Matriz de Transformación)' },
-          { id: 'p3s3t2', semana: 3, categoria: 'Contenido', tiempo_estimado: '15 min', status: 'pendiente', titulo: 'Escribir tu bio de Instagram optimizada (con quién ayudás y qué resultado)' },
-          { id: 'p3s3t3', semana: 3, categoria: 'Contenido', tiempo_estimado: '60 min', status: 'pendiente', titulo: 'Crear lead magnet: práctica, guía o checklist descargable' },
-          { id: 'p3s3t4', semana: 3, categoria: 'Contenido', tiempo_estimado: '45 min', status: 'pendiente', titulo: 'Grabar Reel de presentación ("quién soy y a quién ayudo")' },
-          { id: 'p3s3t5', semana: 3, categoria: 'Contenido', tiempo_estimado: '15 min', status: 'pendiente', titulo: 'Publicar primer Reel con llamada a la acción clara' }
-        ]
+        codigo: '4.A',
+        titulo: 'Presencia digital calibrada',
+        descripcion:
+          'Calibra todos los puntos de presencia digital: bio de Instagram, highlights, link en bio, foto de perfil, nombre de usuario y la energía visual general de tu cuenta.',
+        es_estrella: true,
+        tiempo_estimado: '45 min',
+        herramienta_id: 'D1',
       },
-      {
-        numero: 4,
-        titulo: 'VSL / Video de ventas',
-        tareas: [
-          { id: 'p3s4t1', semana: 4, categoria: 'Contenido', tiempo_estimado: '60 min', status: 'pendiente', titulo: 'Escribir guión del VSL (5 partes: hook, dolor, villano, método, CTA)' },
-          { id: 'p3s4t2', semana: 4, categoria: 'Contenido', tiempo_estimado: '45 min', status: 'pendiente', titulo: 'Grabar el VSL (puede ser simple, fondo neutro, buena luz)' },
-          { id: 'p3s4t3', semana: 4, categoria: 'Contenido', tiempo_estimado: '60 min', status: 'pendiente', titulo: 'Editar el VSL (máximo 15 minutos)' },
-          { id: 'p3s5t1', semana: 5, categoria: 'Sistema', tiempo_estimado: '60 min', status: 'pendiente', titulo: 'Crear landing page con el VSL arriba' },
-          { id: 'p3s5t2', semana: 5, categoria: 'Sistema', tiempo_estimado: '20 min', status: 'pendiente', titulo: 'Añadir formulario de pre-calificación (3 preguntas)' },
-          { id: 'p3s5t3', semana: 5, categoria: 'Sistema', tiempo_estimado: '15 min', status: 'pendiente', titulo: 'Conectar formulario a Calendly / agenda' },
-          { id: 'p3s5t4', semana: 5, categoria: 'Sistema', tiempo_estimado: '15 min', status: 'pendiente', titulo: 'Testear flujo completo de landing → formulario → agenda' }
-        ]
-      },
-      {
-        numero: 6,
-        titulo: 'Anuncios',
-        tareas: [
-          { id: 'p3s6t1', semana: 6, categoria: 'Sistema', tiempo_estimado: '30 min', status: 'pendiente', titulo: 'Crear cuenta de Meta Ads Business Manager' },
-          { id: 'p3s6t2', semana: 6, categoria: 'Sistema', tiempo_estimado: '20 min', status: 'pendiente', titulo: 'Instalar Pixel de Meta en la landing' },
-          { id: 'p3s7t1', semana: 7, categoria: 'Contenido', tiempo_estimado: '30 min', status: 'pendiente', titulo: 'Escribir guión del Anuncio 1 (ángulo: el dolor del estancamiento)' },
-          { id: 'p3s7t2', semana: 7, categoria: 'Contenido', tiempo_estimado: '30 min', status: 'pendiente', titulo: 'Escribir guión del Anuncio 2 (ángulo: el contraste antes/después)' },
-          { id: 'p3s7t3', semana: 7, categoria: 'Contenido', tiempo_estimado: '30 min', status: 'pendiente', titulo: 'Escribir guión del Anuncio 3 (ángulo: la autoridad del profesional)' },
-          { id: 'p3s7t4', semana: 7, categoria: 'Contenido', tiempo_estimado: '60 min', status: 'pendiente', titulo: 'Grabar los 3 anuncios' },
-          { id: 'p3s8t1', semana: 8, categoria: 'Sistema', tiempo_estimado: '45 min', status: 'pendiente', titulo: 'Configurar campaña en Meta Ads (objetivo: leads)' },
-          { id: 'p3s8t2', semana: 8, categoria: 'Sistema', tiempo_estimado: '15 min', status: 'pendiente', titulo: 'Definir audiencia: intereses, edad, geo (LATAM o local)' },
-          { id: 'p3s8t3', semana: 8, categoria: 'Sistema', tiempo_estimado: '10 min', status: 'pendiente', titulo: 'Lanzar campaña con presupuesto mínimo ($10-15 USD/día)' },
-          { id: 'p3s8t4', semana: 8, categoria: 'Mentalidad', tiempo_estimado: '10 min', status: 'pendiente', titulo: 'Monitorear CPL (costo por lead) los primeros 3 días' },
-          { id: 'p3s8t5', semana: 8, categoria: 'Sistema', tiempo_estimado: '15 min', status: 'pendiente', titulo: 'Ajustar el anuncio con mejor rendimiento (pausar los otros 2)' }
-        ]
-      },
-      {
-        numero: 9,
-        titulo: 'YouTube (opcional pero poderoso)',
-        tareas: [
-          { id: 'p3s9t1', semana: 9, categoria: 'Contenido', tiempo_estimado: '30 min', status: 'pendiente', titulo: 'Crear canal de YouTube con branding consistente' },
-          { id: 'p3s9t2', semana: 9, categoria: 'Contenido', tiempo_estimado: '60 min', status: 'pendiente', titulo: 'Grabar Video 1 (el pilar de dolor — 20-30 min)' },
-          { id: 'p3s9t3', semana: 9, categoria: 'Contenido', tiempo_estimado: '20 min', status: 'pendiente', titulo: 'Publicar Video 1 con descripción y link al VSL' },
-          { id: 'p3s10t1', semana: 10, categoria: 'Contenido', tiempo_estimado: '60 min', status: 'pendiente', titulo: 'Grabar y publicar Video 2 (pilar hormonal / técnico)' },
-          { id: 'p3s11t1', semana: 11, categoria: 'Contenido', tiempo_estimado: '60 min', status: 'pendiente', titulo: 'Grabar y publicar Video 3 (el método paso a paso)' },
-          { id: 'p3s12t1', semana: 12, categoria: 'Contenido', tiempo_estimado: '60 min', status: 'pendiente', titulo: 'Crear 3 Reels de cada video (9 Reels totales)' },
-          { id: 'p3s12t2', semana: 12, categoria: 'Contenido', tiempo_estimado: '15 min', status: 'pendiente', titulo: 'Publicar con frecuencia mínima: 1 reel por semana' }
-        ]
-      }
-    ]
+    ],
   },
+
+  // ─── PILAR 5: Sistema de Publicación y Captación ─────────────────────────
   {
-    id: 4,
-    titulo: 'MENTALIDAD Y PROCESO PROPIO',
-    emoji: '🌿',
-    expanded: false,
-    semanas: [
+    numero: 5,
+    titulo: 'Publicación y Captación',
+    subtitulo: 'El sistema que atrae clientes de forma constante',
+    emoji: '📡',
+    color: 'sky',
+    desbloqueo: 'completar_anterior',
+    estrellas_requeridas: 5,
+    metas: [
       {
-        numero: 1,
-        titulo: 'Diagnóstico interno',
-        tareas: [
-          { id: 'p4s1t1', semana: 1, categoria: 'Mentalidad', tiempo_estimado: '15 min', status: 'pendiente', titulo: 'Calcular hora real neta (cuánto ganás de verdad por hora)' },
-          { id: 'p4s1t2', semana: 1, categoria: 'Mentalidad', tiempo_estimado: '10 min', status: 'pendiente', titulo: 'Identificar el "techo" actual de ingresos con el modelo actual' },
-          { id: 'p4s1t3', semana: 1, categoria: 'Mentalidad', tiempo_estimado: '15 min', status: 'pendiente', titulo: 'Nombrar la creencia limitante central sobre el dinero y la vocación' },
-          { id: 'p4s1t4', semana: 1, categoria: 'Mentalidad', tiempo_estimado: '15 min', status: 'pendiente', titulo: 'Escribir la diferencia entre "cobrar por tiempo" y "cobrar por resultado"' },
-          { id: 'p4s2t1', semana: 2, categoria: 'Mentalidad', tiempo_estimado: '30 min', status: 'pendiente', titulo: 'Leer Capítulo 6 del libro (La Trampa Elegante)' },
-          { id: 'p4s2t2', semana: 2, categoria: 'Mentalidad', tiempo_estimado: '30 min', status: 'pendiente', titulo: 'Leer Capítulo 7 (Lo que se automatiza y lo que no)' },
-          { id: 'p4s3t1', semana: 3, categoria: 'Mentalidad', tiempo_estimado: '30 min', status: 'pendiente', titulo: 'Leer Capítulo 8 (El precio del resultado)' },
-          { id: 'p4s3t2', semana: 3, categoria: 'Mentalidad', tiempo_estimado: '10 min', status: 'pendiente', titulo: 'Responder: ¿cuándo fue la última vez que llegaste bien al final del día?' },
-          { id: 'p4s3t3', semana: 3, categoria: 'Mentalidad', tiempo_estimado: '15 min', status: 'pendiente', titulo: 'Definir tu versión de "llegar bien" en palabras concretas' },
-          { id: 'p4s4t1', semana: 4, categoria: 'Mentalidad', tiempo_estimado: '10 min', status: 'pendiente', titulo: 'Identificar 1 proceso que hoy hacés vos y que podría automatizarse' },
-          { id: 'p4s4t2', semana: 4, categoria: 'Mentalidad', tiempo_estimado: '15 min', status: 'pendiente', titulo: 'Escribir en el Diario la respuesta a: "¿qué parte de mi proceso personal tengo pendiente?"' }
-        ]
+        codigo: '5.A',
+        titulo: 'Sistema de publicación activo',
+        descripcion:
+          'Activa el sistema de publicación semanal: 1 video (Reel/story/live) + 3 stories diarias de los 3 tipos del banco (valor, proceso, prueba social). No opcional.',
+        es_estrella: true,
+        tiempo_estimado: '60 min',
+        herramienta_id: 'C1',
+        agente_id: 'agente-contenido',
       },
       {
-        numero: 5,
-        titulo: 'Hitos de mentalidad',
-        tareas: [
-          { id: 'p4s5t1', semana: 5, categoria: 'Oferta', tiempo_estimado: '45 min', status: 'pendiente', titulo: 'Tener la primera consulta de venta del protocolo (aunque no cierre)' },
-          { id: 'p4s6t1', semana: 6, categoria: 'Oferta', tiempo_estimado: '0 min', status: 'pendiente', titulo: 'Cerrar el primer protocolo al nuevo precio' },
-          { id: 'p4s7t1', semana: 7, categoria: 'Oferta', tiempo_estimado: '0 min', status: 'pendiente', titulo: 'Recibir el primer pago en USD de alguien fuera de tu ciudad' },
-          { id: 'p4s8t1', semana: 8, categoria: 'Mentalidad', tiempo_estimado: '0 min', status: 'pendiente', titulo: 'Decirle "no" a un paciente que no encaja con el protocolo nuevo' }
-        ]
-      }
-    ]
-  }
+        codigo: '5.B',
+        titulo: 'Sistema de captación activo',
+        descripcion:
+          'Conecta Instagram con ManyChat (o equivalente): configura 3 keywords disparadoras, respuestas automáticas y la secuencia de seguimiento post-interacción.',
+        es_estrella: true,
+        tiempo_estimado: '60 min',
+        herramienta_id: 'D2',
+      },
+    ],
+  },
+
+  // ─── PILAR 6: Embudo ────────────────────────────────────────────────────
+  {
+    numero: 6,
+    titulo: 'Embudo',
+    subtitulo: 'El sistema que convierte visitas en ventas',
+    emoji: '🔄',
+    color: 'amber',
+    desbloqueo: 'completar_anterior',
+    estrellas_requeridas: 4,
+    metas: [
+      {
+        codigo: '6.A',
+        titulo: 'Embudo completo conectado',
+        descripcion:
+          'Conecta todos los componentes del embudo: contenido → CTA → lead magnet o link → formulario de pre-calificación → agenda → llamada de venta → link de pago.',
+        es_estrella: true,
+        tiempo_estimado: '90 min',
+        herramienta_id: 'D3',
+        agente_id: 'agente-embudo',
+      },
+      {
+        codigo: '6.B',
+        titulo: 'QA completo del embudo',
+        descripcion:
+          'Testea el embudo completo desde el punto de vista del cliente. Usa la checklist de 24 puntos del Coach. Los 24 puntos en verde desbloquean el Pilar 7.',
+        es_estrella: true,
+        tiempo_estimado: '60 min',
+      },
+    ],
+  },
+
+  // ─── PILAR 7: Campañas y Ventas ─────────────────────────────────────────
+  {
+    numero: 7,
+    titulo: 'Campañas y Ventas',
+    subtitulo: 'Amplificar y cerrar',
+    emoji: '🚀',
+    color: 'orange',
+    desbloqueo: 'qa_verde',
+    metas: [
+      {
+        codigo: '7.A',
+        titulo: 'Campañas activas con métricas positivas',
+        descripcion:
+          'Lanza campañas de paid media (Meta Ads) o de contenido pago. Define presupuesto, audiencia, creativos y objetivos. Monitorea CPL y ajusta en los primeros 3 días.',
+        es_estrella: true,
+        tiempo_estimado: '90 min',
+        herramienta_id: 'E1',
+      },
+      {
+        codigo: '7.B',
+        titulo: 'Guiones de venta dominados',
+        descripcion:
+          'Prepara y practica el guión de llamada de venta personalizado: apertura, diagnóstico, presentación, manejo de objeciones y cierre. El Agente de Venta genera el guión completo.',
+        es_estrella: true,
+        tiempo_estimado: '60 min',
+        herramienta_id: 'E2',
+        agente_id: 'agente-venta',
+      },
+      {
+        codigo: '7.C',
+        titulo: 'Primera venta cerrada',
+        descripcion:
+          'Cierra la primera venta del protocolo a precio completo (sin descuento). Registra la venta en la app: monto, canal y protocolo de cierre. Este hito activa la notificación especial del Coach.',
+        es_estrella: true,
+        tiempo_estimado: '0 min (acción real)',
+      },
+    ],
+  },
+
+  // ─── PILAR 8: Optimización ──────────────────────────────────────────────
+  {
+    numero: 8,
+    titulo: 'Optimización',
+    subtitulo: 'Consolidar y escalar',
+    emoji: '⚡',
+    color: 'rose',
+    desbloqueo: 'completar_anterior',
+    estrellas_requeridas: 7,
+    metas: [
+      {
+        codigo: '8.A',
+        titulo: 'Embudo optimizado',
+        descripcion:
+          'Analiza las métricas de las últimas 4 semanas: CPL, tasa de conversión de leads a llamadas, tasa de cierre. Identifica el cuello de botella y aplica 1 cambio de alto impacto.',
+        es_estrella: true,
+        tiempo_estimado: '60 min',
+        herramienta_id: 'E3',
+      },
+      {
+        codigo: '8.B',
+        titulo: 'Retrospectiva y plan del siguiente nivel',
+        descripcion:
+          'Retrospectiva completa de los 90 días con el Agente de Retrospectiva: logros, aprendizajes, patrones del Diario, próximos 3 meses. El Coach genera el plan del nivel siguiente.',
+        es_estrella: true,
+        tiempo_estimado: '90 min',
+        agente_id: 'agente-retrospectiva',
+      },
+    ],
+  },
 ];
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+/** Total de metas en todo el programa */
+export const TOTAL_METAS = SEED_ROADMAP_V2.reduce(
+  (acc, pilar) => acc + pilar.metas.length,
+  0,
+);
+
+/** Total de tareas ★ por pilar */
+export const ESTRELLAS_POR_PILAR: Record<number, number> = SEED_ROADMAP_V2.reduce(
+  (acc, pilar) => ({
+    ...acc,
+    [pilar.numero]: pilar.metas.filter((m) => m.es_estrella).length,
+  }),
+  {} as Record<number, number>,
+);
+
+/** Determina el nivel de avatar (1-5) basado en el pilar completado más alto */
+export function calcularNivel(pilarCompletadoMasAlto: number): 1 | 2 | 3 | 4 | 5 {
+  if (pilarCompletadoMasAlto >= 8) return 5;
+  if (pilarCompletadoMasAlto >= 6) return 4;
+  if (pilarCompletadoMasAlto >= 4) return 3;
+  if (pilarCompletadoMasAlto >= 2) return 2;
+  return 1;
+}
+
+/** Calcula el día del programa a partir de la fecha de inicio */
+export function calcularDiaPrograma(fechaInicio: string): number {
+  const inicio = new Date(fechaInicio);
+  const hoy = new Date();
+  const diff = Math.floor((hoy.getTime() - inicio.getTime()) / (1000 * 60 * 60 * 24));
+  return Math.min(90, Math.max(1, diff + 1));
+}
+
+/** Retorna el color CSS para el estado del pilar en el mapa visual */
+export function colorEstadoPilar(
+  estado: 'completado' | 'en_progreso' | 'bloqueado',
+  color: string,
+): string {
+  switch (estado) {
+    case 'completado':
+      return `bg-${color}-500 border-${color}-400 text-white`;
+    case 'en_progreso':
+      return `bg-${color}-500/30 border-${color}-500/60 text-${color}-200`;
+    case 'bloqueado':
+      return 'bg-white/5 border-white/10 text-white/30';
+  }
+}

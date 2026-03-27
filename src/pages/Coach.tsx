@@ -3,6 +3,7 @@ import { Send, Bot, User, Sparkles, RefreshCw, Zap } from 'lucide-react';
 import { GoogleGenAI } from '@google/genai';
 import Markdown from 'react-markdown';
 import { toast } from 'sonner';
+import { buildCoachSystemPrompt, detectarContextoConversacion } from '../lib/coachPrompt';
 
 interface Message {
   role: 'assistant' | 'user';
@@ -16,49 +17,6 @@ const SUGGESTIONS = [
   "¿Cómo acelero mis citas?"
 ];
 
-function buildSystemPrompt(): string {
-  const profile = JSON.parse(localStorage.getItem('tcd_profile') || '{}');
-  const dInicio = profile.fecha_inicio ? new Date(profile.fecha_inicio) : new Date();
-  const diff = Math.floor((new Date().getTime() - dInicio.getTime()) / (1000 * 60 * 60 * 24));
-  const semanaActual = Math.max(1, Math.min(12, Math.floor(diff / 7) + 1));
-  const nombre = profile.nombre || 'Fundadora';
-
-  let tareasPendientes: string[] = [];
-  try {
-    const rm = JSON.parse(localStorage.getItem('tcd_roadmap_v2') || '[]');
-    rm.forEach((p: any) => p.semanas.forEach((s: any) => s.tareas.forEach((t: any) => {
-      if (t.status !== 'completada' && s.numero <= semanaActual) tareasPendientes.push(t.titulo);
-    })));
-  } catch { /* noop */ }
-  const tareasStr = tareasPendientes.slice(0, 3).join(' | ');
-
-  let ultimoCheckin = '';
-  try {
-    const diary = JSON.parse(localStorage.getItem('tcd_diary_weekly') || '[]');
-    if (diary.length > 0) {
-      const last = diary[0].respuestas;
-      ultimoCheckin = `Estado: ${last.estado}. Foco: ${last.foco}. Cuello de botella: ${last.cuello}`;
-    }
-  } catch { /* noop */ }
-
-  return `Sos un Coach de Negocios para Profesionales de la Salud que están en un programa de implementación guiada en 90 días (12 semanas). 
-Tu filosofía se basa en el libro 'Los Sanadores Libres'. Tu tono es directo, hiper al grano, exigente pero empático y mentor.
-NO das largos sermones. NO hacés intros robóticas largas. Respondés con listas cortas, preguntas desafiantes o el paso atómico a tomar HOY. Conocés exactamente la situación actual del profesional.
-
-DATOS DEL USUARIO:
-- Nombre: ${nombre}
-- Semana actual: Semana ${semanaActual} de 12
-- Tareas pendientes clave de hoy: ${tareasStr || 'Al día'}
-- Último Check-in Semanal: ${ultimoCheckin || 'Sin datos'}
-
-INSTRUCCIONES CRÍTICAS:
-- Tu objetivo es desenredar su cabeza y ponerla a ejecutar las tareas pendientes (la hoja de ruta).
-- Si la persona tiene bloqueos según su Check-in, atacá eso si la persona te da la apertura.
-- No des consejos médicos, solo arquitectura de negocios, ventas, sistemas automáticos y mentalidad de sanador libre.
-- No repitas siempre el mismo formato. Sé conversacional.
-- Si vas a preguntar, hacé UNA sola pregunta de cierre de alto impacto. No abrumes con múltiples preguntas.
-- Usá dialecto argentino neutro/profesional (vos, querés, podés).`;
-}
 
 function buildInitialMessage(): Message {
   const profile = JSON.parse(localStorage.getItem('tcd_profile') || '{}');
@@ -121,16 +79,20 @@ export default function Coach({ userId }: { userId?: string }) {
 
     try {
       setMessages(prev => [...prev, { role: 'assistant', content: '' }]);
-      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+      const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY || '' });
       const contents = newMessages.map(msg => ({
         role: msg.role === 'assistant' ? 'model' : 'user',
         parts: [{ text: msg.content }]
       }));
 
+      const extraCtx = detectarContextoConversacion(text);
+      const perfil = JSON.parse(localStorage.getItem('tcd_profile') || '{}');
+      const systemPrompt = buildCoachSystemPrompt({ perfil, ...extraCtx });
+
       const streamResponse = await ai.models.generateContentStream({
         model: 'gemini-2.5-flash',
         contents: contents,
-        config: { systemInstruction: buildSystemPrompt() }
+        config: { systemInstruction: systemPrompt }
       });
 
       let fullResponse = '';

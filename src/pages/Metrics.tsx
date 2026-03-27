@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { AreaChart, Area, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
 import { Plus, X, Lock, CheckCircle2, Clock } from 'lucide-react';
 import { supabase, isSupabaseReady, type MetricaSemana } from '../lib/supabase';
-import { SEED_ROADMAP } from '../lib/roadmapSeed';
+import { SEED_ROADMAP_V2 as SEED_ROADMAP } from '../lib/roadmapSeed';
 
 interface LocalMetric {
   name: string;

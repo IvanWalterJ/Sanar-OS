@@ -26,9 +26,14 @@ interface ClienteConEstado extends Profile {
   tareas_completadas: number;
   tareas_total: number;
   ultima_entrada_diario?: string;
+  // v2.0
+  racha_diario: number;
+  ventas_count: number;
+  estado_garantia: 'en_camino' | 'en_riesgo' | 'activada';
+  progreso_porcentaje: number;
 }
 
-type MainTab = 'dashboard' | 'comunidad' | 'victorias' | 'consultas';
+type MainTab = 'dashboard' | 'comunidad' | 'victorias' | 'consultas' | 'metricas_globales';
 type DetalleTab = 'resumen' | 'diario' | 'metricas' | 'mensajes';
 
 const SEMAFORO_CONFIG = {
@@ -254,6 +259,10 @@ export default function Admin({ adminProfile, onSignOut }: AdminProps) {
   const [iaLoading, setIaLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  // Métricas globales
+  const [metricasGlobales, setMetricasGlobales] = useState<any>(null);
+  const [metricasLoading, setMetricasLoading] = useState(false);
+
   // Formulario nuevo cliente con contraseña local
   const [nuevoForm, setNuevoForm] = useState({
     nombre: '', email: '', password: '', especialidad: '', plan: 'DWY' as 'DWY' | 'DFY',
@@ -262,6 +271,10 @@ export default function Admin({ adminProfile, onSignOut }: AdminProps) {
   const [creando, setCreando] = useState(false);
 
   useEffect(() => { cargarClientes(); }, []);
+
+  useEffect(() => {
+    if (mainTab === 'metricas_globales' && !metricasGlobales) cargarMetricasGlobales();
+  }, [mainTab]);
 
   // ─── Notificaciones de canales de chat (admin) ────────────────────────────
   useEffect(() => {
@@ -327,6 +340,19 @@ export default function Admin({ adminProfile, onSignOut }: AdminProps) {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [detalleMensajes]);
 
+  async function cargarMetricasGlobales() {
+    if (!supabase) return;
+    setMetricasLoading(true);
+    try {
+      const { data } = await supabase.rpc('get_metricas_globales');
+      setMetricasGlobales(data ?? {});
+    } catch {
+      toast.error('Error cargando métricas globales');
+    } finally {
+      setMetricasLoading(false);
+    }
+  }
+
   async function cargarClientes() {
     if (!supabase) return;
     setLoading(true);
@@ -356,14 +382,41 @@ export default function Admin({ adminProfile, onSignOut }: AdminProps) {
           semaforo = 'verde';
         }
 
+        // v2.0: calcular racha de diario, ventas y garantía
+        const entradas = diarioRes.data ?? [];
+        let rachaActual = 0;
+        const hoy = new Date();
+        for (let i = 0; i < 30; i++) {
+          const d = new Date(hoy); d.setDate(hoy.getDate() - i);
+          const dStr = d.toISOString().split('T')[0];
+          if (entradas.some((e: any) => e.fecha === dStr)) rachaActual++;
+          else if (i > 0) break;
+        }
+
+        const ventasRes = await supabase.rpc('get_user_ventas', { target_user_id: p.id }).then(r => r, () => ({ data: [] }));
+        const ventas_count = (ventasRes.data ?? []).length;
+
+        const tareasEstrella = tareas.filter((t: any) => t.es_estrella && t.completada).length;
+        const diarioCount = entradas.length;
+        const metricasCount = metricas.length;
+        let estado_garantia: ClienteConEstado['estado_garantia'] = 'en_camino';
+        if (ventas_count === 0 && dia >= 60) {
+          if (tareasEstrella >= 10 && diarioCount >= 60 && metricasCount >= 8) estado_garantia = 'activada';
+          else if (dia >= 75) estado_garantia = 'en_riesgo';
+        }
+
         return {
           ...p,
           dia_programa: dia,
           semana_programa: semana,
           semaforo,
-          tareas_completadas: tareas.filter((t: any) => t.status === 'completada').length,
+          tareas_completadas: tareas.filter((t: any) => t.status === 'completada' || t.completada).length,
           tareas_total: tareas.length,
           ultima_entrada_diario: ultimaDiario,
+          racha_diario: rachaActual,
+          ventas_count,
+          estado_garantia,
+          progreso_porcentaje: (p as any).progreso_porcentaje ?? 0,
         } as ClienteConEstado;
       }));
       setClientes(clientesConEstado);
@@ -529,6 +582,7 @@ Respondé solo con las 3 recomendaciones en formato lista, sin introducción. M�
           <nav className="space-y-1">
             {[
               { id: 'dashboard', label: 'Clientes', icon: Users },
+              { id: 'metricas_globales', label: 'Métricas Globales', icon: BarChart2 },
               { id: 'comunidad', label: 'Comunidad', icon: Users },
               { id: 'victorias', label: 'Victorias', icon: Trophy },
               { id: 'consultas', label: 'Consultas', icon: Hash },
@@ -580,12 +634,99 @@ Respondé solo con las 3 recomendaciones en formato lista, sin introducción. M�
       <main className="flex-1 flex flex-col relative z-10 overflow-hidden bg-[url('https://grainy-gradients.vercel.app/noise.svg')] bg-opacity-50">
         <header className="h-16 border-b border-white/[0.05] flex items-center px-6 shrink-0 bg-black/20 backdrop-blur-md">
           <h2 className="text-sm font-semibold text-gray-200 capitalize tracking-wide">
-            {mainTab === 'dashboard' ? 'Panel de Control - Clientes' : `Canal: ${mainTab}`}
+            {mainTab === 'dashboard' ? 'Panel de Control - Clientes' : mainTab === 'metricas_globales' ? 'Métricas Globales del Programa' : `Canal: ${mainTab}`}
           </h2>
         </header>
 
         <div className="flex-1 overflow-auto p-6 scrollbar-hide">
-          {mainTab !== 'dashboard' ? (
+          {mainTab === 'metricas_globales' ? (
+            <div className="max-w-5xl mx-auto space-y-6">
+              {metricasLoading ? (
+                <div className="flex items-center justify-center py-24"><Loader2 className="w-6 h-6 text-indigo-400 animate-spin" /></div>
+              ) : (
+                <>
+                  {/* KPI Cards */}
+                  <div className="grid grid-cols-4 gap-4">
+                    {[
+                      { label: 'MRR Total', value: metricasGlobales?.mrr_total != null ? `$${Number(metricasGlobales.mrr_total).toLocaleString('es-AR')}` : '—', icon: TrendingUp, color: 'text-emerald-400', bg: 'from-emerald-500/10' },
+                      { label: 'Churn mensual', value: metricasGlobales?.churn_mensual != null ? `${metricasGlobales.churn_mensual}%` : '—', icon: TrendingDown, color: 'text-red-400', bg: 'from-red-500/10' },
+                      { label: 'Usuarios activos', value: metricasGlobales?.usuarios_activos ?? clientes.length, icon: Users, color: 'text-indigo-400', bg: 'from-indigo-500/10' },
+                      { label: 'Racha promedio', value: metricasGlobales?.racha_promedio_diario != null ? `${Math.round(metricasGlobales.racha_promedio_diario)} días` : `${clientes.length > 0 ? Math.round(clientes.reduce((a, c) => a + c.racha_diario, 0) / clientes.length) : 0} días`, icon: Calendar, color: 'text-amber-400', bg: 'from-amber-500/10' },
+                    ].map((stat, i) => (
+                      <div key={i} className={`bg-gradient-to-b ${stat.bg} to-transparent bg-white/[0.02] border border-white/[0.05] rounded-3xl p-6 relative overflow-hidden`}>
+                        <stat.icon className={`w-5 h-5 ${stat.color} mb-4`} />
+                        <p className="text-3xl font-light text-white mb-1">{stat.value}</p>
+                        <p className="text-xs text-gray-500 uppercase tracking-wider font-semibold">{stat.label}</p>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Completitud por pilar */}
+                  <div className="bg-white/[0.02] border border-white/[0.05] rounded-3xl p-6">
+                    <h3 className="text-xs font-bold uppercase tracking-widest text-gray-500 mb-6 flex items-center gap-2">
+                      <BarChart2 className="w-3.5 h-3.5" /> Tasa de Completitud por Pilar
+                    </h3>
+                    {metricasGlobales?.completitud_por_pilar ? (
+                      <div className="space-y-3">
+                        {(metricasGlobales.completitud_por_pilar as { pilar: number; pct: number }[]).map(p => (
+                          <div key={p.pilar} className="flex items-center gap-4">
+                            <span className="text-xs text-gray-400 w-16 shrink-0 font-mono">Pilar {p.pilar}</span>
+                            <div className="flex-1 h-2 bg-white/5 rounded-full overflow-hidden">
+                              <div className="h-full bg-gradient-to-r from-indigo-500 to-violet-500 rounded-full transition-all" style={{ width: `${p.pct}%` }} />
+                            </div>
+                            <span className="text-xs text-white w-10 text-right font-medium">{p.pct}%</span>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        {Array.from({ length: 9 }, (_, i) => {
+                          const completadas = clientes.reduce((acc, c) => acc + c.tareas_completadas, 0);
+                          const total = clientes.reduce((acc, c) => acc + c.tareas_total, 0);
+                          const pct = total > 0 ? Math.round((completadas / total) * 100) : 0;
+                          return (
+                            <div key={i} className="flex items-center gap-4">
+                              <span className="text-xs text-gray-400 w-16 shrink-0 font-mono">Pilar {i}</span>
+                              <div className="flex-1 h-2 bg-white/5 rounded-full overflow-hidden">
+                                <div className="h-full bg-gradient-to-r from-indigo-500 to-violet-500 rounded-full" style={{ width: `${pct}%` }} />
+                              </div>
+                              <span className="text-xs text-white w-10 text-right font-medium">{pct}%</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Estado garantía */}
+                  <div className="grid grid-cols-3 gap-4">
+                    {[
+                      { label: 'En camino', count: clientes.filter(c => c.estado_garantia === 'en_camino').length, color: 'text-emerald-400', bg: 'bg-emerald-500/10 border-emerald-500/20' },
+                      { label: 'En riesgo', count: clientes.filter(c => c.estado_garantia === 'en_riesgo').length, color: 'text-amber-400', bg: 'bg-amber-500/10 border-amber-500/20' },
+                      { label: 'Garantía activada', count: clientes.filter(c => c.estado_garantia === 'activada').length, color: 'text-red-400', bg: 'bg-red-500/10 border-red-500/20' },
+                    ].map((s, i) => (
+                      <div key={i} className={`${s.bg} border rounded-2xl p-5 flex items-center gap-4`}>
+                        <Shield className={`w-8 h-8 ${s.color}`} />
+                        <div>
+                          <p className={`text-2xl font-light ${s.color}`}>{s.count}</p>
+                          <p className="text-xs text-gray-400 font-medium">{s.label}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="flex justify-end">
+                    <button
+                      onClick={() => { setMetricasGlobales(null); cargarMetricasGlobales(); }}
+                      className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-xs text-gray-400 hover:text-white hover:bg-white/10 transition-colors"
+                    >
+                      <Loader2 className="w-3.5 h-3.5" /> Actualizar
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          ) : mainTab !== 'dashboard' ? (
             <div className="max-w-4xl mx-auto h-full">
               <GlobalChat canal={mainTab} adminProfile={adminProfile} />
             </div>
@@ -649,10 +790,29 @@ Respondé solo con las 3 recomendaciones en formato lista, sin introducción. M�
                               {cliente.nombre.charAt(0).toUpperCase()}
                             </div>
                             <div className="flex-1 min-w-0">
-                              <h3 className="text-sm font-semibold text-white truncate mb-0.5">{cliente.nombre}</h3>
+                              <div className="flex items-center gap-2 mb-0.5">
+                                <h3 className="text-sm font-semibold text-white truncate">{cliente.nombre}</h3>
+                                {cliente.plan === 'DFY' && (
+                                  <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-400 border border-purple-500/20 shrink-0">DFY</span>
+                                )}
+                              </div>
                               <p className="text-[10px] text-gray-400">
-                                Sem {cliente.semana_programa}/12 · <span className={SEMAFORO_CONFIG[cliente.semaforo].text}>{SEMAFORO_CONFIG[cliente.semaforo].label}</span>
+                                Día {cliente.dia_programa}/90 · <span className={SEMAFORO_CONFIG[cliente.semaforo].text}>{SEMAFORO_CONFIG[cliente.semaforo].label}</span>
                               </p>
+                              <div className="flex items-center gap-2 mt-1">
+                                {cliente.racha_diario > 0 && (
+                                  <span className="text-[9px] text-amber-400/80 font-medium">🔥 {cliente.racha_diario}d</span>
+                                )}
+                                {cliente.ventas_count > 0 && (
+                                  <span className="text-[9px] text-emerald-400/80 font-medium">💰 {cliente.ventas_count} venta{cliente.ventas_count !== 1 ? 's' : ''}</span>
+                                )}
+                                {cliente.estado_garantia === 'activada' && (
+                                  <span className="text-[9px] text-red-400/80 font-bold">⚠ Garantía</span>
+                                )}
+                                {cliente.estado_garantia === 'en_riesgo' && (
+                                  <span className="text-[9px] text-amber-400/80 font-bold">⚠ En riesgo</span>
+                                )}
+                              </div>
                             </div>
                             <ChevronRight className="w-4 h-4 text-gray-600 shrink-0" />
                           </div>
@@ -720,6 +880,36 @@ Respondé solo con las 3 recomendaciones en formato lista, sin introducción. M�
                           {/* ── RESUMEN ── */}
                           {detalleTab === 'resumen' && (
                             <div className="space-y-6">
+                              {/* v2.0 Status Bar */}
+                              <div className="grid grid-cols-4 gap-3">
+                                <div className="bg-white/[0.02] border border-white/[0.05] rounded-2xl p-4 text-center">
+                                  <p className="text-2xl font-light text-white">{selectedCliente.dia_programa}</p>
+                                  <p className="text-[10px] text-gray-500 uppercase tracking-wider mt-1">Día / 90</p>
+                                </div>
+                                <div className="bg-white/[0.02] border border-white/[0.05] rounded-2xl p-4 text-center">
+                                  <p className="text-2xl font-light text-amber-400">🔥 {selectedCliente.racha_diario}</p>
+                                  <p className="text-[10px] text-gray-500 uppercase tracking-wider mt-1">Racha diario</p>
+                                </div>
+                                <div className="bg-white/[0.02] border border-white/[0.05] rounded-2xl p-4 text-center">
+                                  <p className="text-2xl font-light text-emerald-400">{selectedCliente.ventas_count}</p>
+                                  <p className="text-[10px] text-gray-500 uppercase tracking-wider mt-1">Ventas reales</p>
+                                </div>
+                                <div className={`rounded-2xl p-4 text-center border ${
+                                  selectedCliente.estado_garantia === 'activada' ? 'bg-red-500/10 border-red-500/30' :
+                                  selectedCliente.estado_garantia === 'en_riesgo' ? 'bg-amber-500/10 border-amber-500/30' :
+                                  'bg-white/[0.02] border-white/[0.05]'
+                                }`}>
+                                  <Shield className={`w-6 h-6 mx-auto mb-1 ${
+                                    selectedCliente.estado_garantia === 'activada' ? 'text-red-400' :
+                                    selectedCliente.estado_garantia === 'en_riesgo' ? 'text-amber-400' : 'text-gray-600'
+                                  }`} />
+                                  <p className={`text-[10px] uppercase tracking-wider font-bold ${
+                                    selectedCliente.estado_garantia === 'activada' ? 'text-red-400' :
+                                    selectedCliente.estado_garantia === 'en_riesgo' ? 'text-amber-400' : 'text-gray-500'
+                                  }`}>{selectedCliente.estado_garantia === 'activada' ? 'Garantía' : selectedCliente.estado_garantia === 'en_riesgo' ? 'En riesgo' : 'En camino'}</p>
+                                </div>
+                              </div>
+
                               <div className="grid grid-cols-2 gap-4">
                                 <div className="bg-white/[0.02] border border-white/[0.05] rounded-2xl p-5">
                                   <p className="text-[10px] text-gray-500 uppercase tracking-widest mb-1 font-bold">Progreso de Tareas</p>

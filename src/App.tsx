@@ -13,6 +13,7 @@ import Metrics from './pages/Metrics';
 import Mensajes from './pages/Mensajes';
 import DiarioDirector from './pages/DiarioDirector';
 import Biblioteca from './pages/Biblioteca';
+import Agentes from './pages/Agentes';
 import Login from './pages/Login';
 import Admin from './pages/Admin';
 import { X, User, Bell, Shield, CreditCard, LogOut } from 'lucide-react';
@@ -209,8 +210,20 @@ export default function App() {
             {currentPage === 'coach' && <Coach userId={supabaseProfile?.id} />}
             {currentPage === 'metrics' && <Metrics userId={supabaseProfile?.id} />}
             {currentPage === 'mensajes' && <Mensajes userId={supabaseProfile?.id} onUnreadChange={setUnreadMessages} />}
-            {currentPage === 'diario' && <DiarioDirector userId={supabaseProfile?.id} />}
+            {currentPage === 'diario' && (
+              <DiarioDirector
+                userId={supabaseProfile?.id}
+                geminiKey={import.meta.env.VITE_GEMINI_API_KEY}
+              />
+            )}
             {currentPage === 'biblioteca' && <Biblioteca userId={supabaseProfile?.id} />}
+            {currentPage === 'agentes' && (
+              <Agentes
+                userId={supabaseProfile?.id}
+                perfil={supabaseProfile ?? undefined}
+                geminiKey={import.meta.env.VITE_GEMINI_API_KEY}
+              />
+            )}
           </div>
         </main>
       </div>

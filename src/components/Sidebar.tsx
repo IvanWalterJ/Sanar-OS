@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { LayoutDashboard, Map as RoadmapIcon, MessageSquare, TrendingUp, Users, Settings, LogOut, Hexagon, BookOpen, Library } from 'lucide-react';
+import { LayoutDashboard, Map as RoadmapIcon, MessageSquare, TrendingUp, Users, Settings, LogOut, Hexagon, BookOpen, Library, Bot } from 'lucide-react';
 
 interface SidebarProps {
   currentPage: string;
@@ -63,6 +63,7 @@ export default function Sidebar({ currentPage, setCurrentPage, onOpenSettings, o
         { id: 'diario', icon: BookOpen, label: 'Diario del Fundador' },
         { id: 'mensajes', icon: Users, label: 'Mensajes', badge: messageBadge > 0 },
         { id: 'biblioteca', icon: Library, label: 'Biblioteca' },
+        { id: 'agentes', icon: Bot, label: 'Agentes IA' },
       ]
     },
     {

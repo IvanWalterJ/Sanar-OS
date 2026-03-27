@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { ChevronRight, CheckCircle2, Clock, Calendar } from 'lucide-react';
 import { supabase, isSupabaseReady } from '../lib/supabase';
-import { SEED_ROADMAP } from '../lib/roadmapSeed';
+import { SEED_ROADMAP_V2 as SEED_ROADMAP } from '../lib/roadmapSeed';
 
 function getCategoryColor(cat: string) {
   if (!cat) return 'bg-gray-500/10 text-gray-400 border-gray-500/20';
