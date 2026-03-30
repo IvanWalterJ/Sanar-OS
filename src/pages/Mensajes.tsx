@@ -22,7 +22,7 @@ interface MsgLocal {
 
 const MOCK_MESSAGES: MsgLocal[] = [
   { id: 1, author: 'Tu Clínica Digital', rol: 'bot', content: '¡Bienvenida a tu programa de 90 días! Tu canal privado está listo. Podés escribirle al equipo aquí.', time: 'Lun 09:00', isMe: false, channelId: 'privado' },
-  { id: 2, author: myName, rol: 'user', content: 'Hola equipo, ya completé la fase 1. ¿Cómo seguimos?', time: 'Mar 14:30', isMe: true, channelId: 'privado' },
+  { id: 2, author: 'Vos', rol: 'user', content: 'Hola equipo, ya completé la fase 1. ¿Cómo seguimos?', time: 'Mar 14:30', isMe: true, channelId: 'privado' },
   { id: 3, author: 'Paolis', rol: 'admin', content: '¡Excelente! Vi tus métricas. Te acabo de desbloquear la Fase 2 para que empieces con el diseño de la oferta.', time: 'Mar 15:45', isMe: false, channelId: 'privado' },
   { id: 4, author: 'Tu Clínica Digital', rol: 'bot', content: '📋 Recordatorio: Esta semana es clave para avanzar en tu Hoja de Ruta. ¿Cómo va tu tarea activa?', time: 'Hoy 09:00', isMe: false, channelId: 'privado' },
   { id: 5, author: 'Tu Clínica Digital', rol: 'bot', content: '¡Compartí tus victorias de la semana aquí! 🎉', time: 'Lun 09:00', isMe: false, channelId: 'victorias' },
