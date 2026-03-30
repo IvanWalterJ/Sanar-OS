@@ -263,6 +263,7 @@ export default function Admin({ adminProfile, onSignOut }: AdminProps) {
   // Métricas globales
   const [metricasGlobales, setMetricasGlobales] = useState<any>(null);
   const [metricasLoading, setMetricasLoading] = useState(false);
+  const [filtroMetricasId, setFiltroMetricasId] = useState<string | null>(null); // null = global
 
   // Formulario nuevo cliente con contraseña local
   const [nuevoForm, setNuevoForm] = useState({
@@ -275,6 +276,7 @@ export default function Admin({ adminProfile, onSignOut }: AdminProps) {
 
   useEffect(() => {
     if (mainTab === 'metricas_globales' && !metricasGlobales) cargarMetricasGlobales();
+    if (mainTab !== 'metricas_globales') setFiltroMetricasId(null);
   }, [mainTab]);
 
   // ─── Notificaciones de canales de chat (admin) ────────────────────────────
@@ -677,90 +679,259 @@ Respondé solo con las 3 recomendaciones en formato lista, sin introducción. M�
 
         <div className="flex-1 overflow-auto p-6 scrollbar-hide">
           {mainTab === 'metricas_globales' ? (
-            <div className="max-w-5xl mx-auto space-y-6">
-              {metricasLoading ? (
-                <div className="flex items-center justify-center py-24"><Loader2 className="w-6 h-6 text-indigo-400 animate-spin" /></div>
-              ) : (
+            <div className="max-w-6xl mx-auto space-y-6">
+              {/* ── Filtro de cliente ── */}
+              <div className="flex flex-wrap gap-2 items-center">
+                <button
+                  onClick={() => setFiltroMetricasId(null)}
+                  className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all border ${
+                    filtroMetricasId === null
+                      ? 'bg-indigo-500/20 border-indigo-500/50 text-indigo-300'
+                      : 'bg-white/[0.03] border-white/[0.07] text-gray-400 hover:text-white hover:bg-white/[0.06]'
+                  }`}
+                >
+                  🌐 Global ({clientes.length})
+                </button>
+                {clientes.map(c => (
+                  <button
+                    key={c.id}
+                    onClick={() => setFiltroMetricasId(c.id)}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all border ${
+                      filtroMetricasId === c.id
+                        ? 'bg-indigo-500/20 border-indigo-500/50 text-indigo-300'
+                        : 'bg-white/[0.03] border-white/[0.07] text-gray-400 hover:text-white hover:bg-white/[0.06]'
+                    }`}
+                  >
+                    <span className={`w-2 h-2 rounded-full ${SEMAFORO_CONFIG[c.semaforo].class}`} />
+                    {c.nombre.split(' ')[0]}
+                  </button>
+                ))}
+                <button
+                  onClick={() => { setMetricasGlobales(null); cargarMetricasGlobales(); cargarClientes(); }}
+                  className="ml-auto flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/[0.03] border border-white/[0.07] text-xs text-gray-500 hover:text-white transition-colors"
+                >
+                  <Loader2 className="w-3.5 h-3.5" /> Actualizar
+                </button>
+              </div>
+
+              {filtroMetricasId === null ? (
+                /* ── VISTA GLOBAL ── */
                 <>
-                  {/* KPI Cards */}
-                  <div className="grid grid-cols-4 gap-4">
+                  {/* KPIs */}
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     {[
-                      { label: 'MRR Total', value: metricasGlobales?.mrr_total != null ? `$${Number(metricasGlobales.mrr_total).toLocaleString('es-AR')}` : '—', icon: TrendingUp, color: 'text-emerald-400', bg: 'from-emerald-500/10' },
-                      { label: 'Churn mensual', value: metricasGlobales?.churn_mensual != null ? `${metricasGlobales.churn_mensual}%` : '—', icon: TrendingDown, color: 'text-red-400', bg: 'from-red-500/10' },
-                      { label: 'Usuarios activos', value: metricasGlobales?.usuarios_activos ?? clientes.length, icon: Users, color: 'text-indigo-400', bg: 'from-indigo-500/10' },
-                      { label: 'Racha promedio', value: metricasGlobales?.racha_promedio_diario != null ? `${Math.round(metricasGlobales.racha_promedio_diario)} días` : `${clientes.length > 0 ? Math.round(clientes.reduce((a, c) => a + c.racha_diario, 0) / clientes.length) : 0} días`, icon: Calendar, color: 'text-amber-400', bg: 'from-amber-500/10' },
-                    ].map((stat, i) => (
-                      <div key={i} className={`bg-gradient-to-b ${stat.bg} to-transparent bg-white/[0.02] border border-white/[0.05] rounded-3xl p-6 relative overflow-hidden`}>
-                        <stat.icon className={`w-5 h-5 ${stat.color} mb-4`} />
-                        <p className="text-3xl font-light text-white mb-1">{stat.value}</p>
-                        <p className="text-xs text-gray-500 uppercase tracking-wider font-semibold">{stat.label}</p>
+                      {
+                        label: 'Profesionales activos', value: clientes.length,
+                        icon: Users, color: 'text-indigo-400', glow: 'shadow-indigo-500/20',
+                        bg: 'from-indigo-600/15 to-indigo-600/5', border: 'border-indigo-500/20',
+                      },
+                      {
+                        label: 'En ritmo 🟢', value: clientes.filter(c => c.semaforo === 'verde').length,
+                        icon: CheckCheck, color: 'text-emerald-400', glow: 'shadow-emerald-500/20',
+                        bg: 'from-emerald-600/15 to-emerald-600/5', border: 'border-emerald-500/20',
+                      },
+                      {
+                        label: 'Necesitan atención', value: clientes.filter(c => c.semaforo === 'rojo' || c.semaforo === 'amarillo').length,
+                        icon: AlertTriangle, color: 'text-amber-400', glow: 'shadow-amber-500/20',
+                        bg: 'from-amber-600/15 to-amber-600/5', border: 'border-amber-500/20',
+                      },
+                      {
+                        label: 'Progreso promedio',
+                        value: clientes.length
+                          ? `${Math.round(clientes.reduce((a, c) => a + (c.tareas_total > 0 ? (c.tareas_completadas / c.tareas_total) * 100 : (c.progreso_porcentaje ?? 0)), 0) / clientes.length)}%`
+                          : '—',
+                        icon: TrendingUp, color: 'text-violet-400', glow: 'shadow-violet-500/20',
+                        bg: 'from-violet-600/15 to-violet-600/5', border: 'border-violet-500/20',
+                      },
+                    ].map((s, i) => (
+                      <div key={i} className={`bg-gradient-to-b ${s.bg} border ${s.border} rounded-2xl p-5 shadow-lg ${s.glow}`}>
+                        <s.icon className={`w-5 h-5 ${s.color} mb-3`} />
+                        <p className={`text-3xl font-light ${s.color} mb-1`}>{s.value}</p>
+                        <p className="text-xs text-gray-500 font-semibold uppercase tracking-wider">{s.label}</p>
                       </div>
                     ))}
                   </div>
 
-                  {/* Completitud por pilar */}
-                  <div className="bg-white/[0.02] border border-white/[0.05] rounded-3xl p-6">
-                    <h3 className="text-xs font-bold uppercase tracking-widest text-gray-500 mb-6 flex items-center gap-2">
-                      <BarChart2 className="w-3.5 h-3.5" /> Tasa de Completitud por Pilar
-                    </h3>
-                    {metricasGlobales?.completitud_por_pilar ? (
-                      <div className="space-y-3">
-                        {(metricasGlobales.completitud_por_pilar as { pilar: number; pct: number }[]).map(p => (
-                          <div key={p.pilar} className="flex items-center gap-4">
-                            <span className="text-xs text-gray-400 w-16 shrink-0 font-mono">Pilar {p.pilar}</span>
-                            <div className="flex-1 h-2 bg-white/5 rounded-full overflow-hidden">
-                              <div className="h-full bg-gradient-to-r from-indigo-500 to-violet-500 rounded-full transition-all" style={{ width: `${p.pct}%` }} />
+                  {/* Tabla de progreso por cliente */}
+                  <div className="bg-white/[0.02] border border-white/[0.06] rounded-2xl overflow-hidden">
+                    <div className="px-6 py-4 border-b border-white/[0.05] flex items-center justify-between">
+                      <h3 className="text-xs font-bold uppercase tracking-widest text-gray-400 flex items-center gap-2">
+                        <BarChart2 className="w-3.5 h-3.5 text-indigo-400" /> Progreso individual
+                      </h3>
+                      <span className="text-[10px] text-gray-600 uppercase tracking-wider">Click en una fila para ver detalle</span>
+                    </div>
+                    <div className="divide-y divide-white/[0.04]">
+                      {clientes.length === 0 ? (
+                        <p className="text-gray-600 text-sm text-center py-10">Sin datos de clientes</p>
+                      ) : clientes.map(c => {
+                        const pct = c.tareas_total > 0
+                          ? Math.round((c.tareas_completadas / c.tareas_total) * 100)
+                          : (c.progreso_porcentaje ?? 0);
+                        const pilarActual = SEED_ROADMAP_V2.findIndex((p, idx) => {
+                          const completadasPilar = SEED_ROADMAP_V2.slice(0, idx + 1).reduce((a, p2) => a + p2.metas.length, 0);
+                          return completadasPilar > c.tareas_completadas;
+                        });
+                        return (
+                          <button
+                            key={c.id}
+                            onClick={() => setFiltroMetricasId(c.id)}
+                            className="w-full flex items-center gap-4 px-6 py-4 hover:bg-white/[0.03] transition-colors text-left group"
+                          >
+                            <div className={`w-2 h-2 rounded-full shrink-0 ${SEMAFORO_CONFIG[c.semaforo].class}`} />
+                            <div className="w-32 shrink-0">
+                              <p className="text-sm font-semibold text-white group-hover:text-indigo-300 transition-colors truncate">{c.nombre}</p>
+                              <p className="text-[10px] text-gray-500">Día {c.dia_programa}/90</p>
                             </div>
-                            <span className="text-xs text-white w-10 text-right font-medium">{p.pct}%</span>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="space-y-3">
-                        {Array.from({ length: 9 }, (_, i) => {
-                          const completadas = clientes.reduce((acc, c) => acc + c.tareas_completadas, 0);
-                          const total = clientes.reduce((acc, c) => acc + c.tareas_total, 0);
-                          const pct = total > 0 ? Math.round((completadas / total) * 100) : 0;
-                          return (
-                            <div key={i} className="flex items-center gap-4">
-                              <span className="text-xs text-gray-400 w-16 shrink-0 font-mono">Pilar {i}</span>
-                              <div className="flex-1 h-2 bg-white/5 rounded-full overflow-hidden">
-                                <div className="h-full bg-gradient-to-r from-indigo-500 to-violet-500 rounded-full" style={{ width: `${pct}%` }} />
+                            <div className="flex-1">
+                              <div className="flex items-center justify-between mb-1">
+                                <span className="text-[10px] text-gray-500">Pilar {Math.max(0, pilarActual)}</span>
+                                <span className="text-xs font-bold text-white">{pct}%</span>
                               </div>
-                              <span className="text-xs text-white w-10 text-right font-medium">{pct}%</span>
+                              <div className="h-2 bg-white/5 rounded-full overflow-hidden">
+                                <div
+                                  className="h-full rounded-full transition-all"
+                                  style={{
+                                    width: `${pct}%`,
+                                    background: pct >= 70 ? 'linear-gradient(to right, #10b981, #34d399)' :
+                                      pct >= 40 ? 'linear-gradient(to right, #6366f1, #8b5cf6)' :
+                                      'linear-gradient(to right, #3b82f6, #6366f1)',
+                                  }}
+                                />
+                              </div>
                             </div>
-                          );
-                        })}
-                      </div>
-                    )}
+                            <div className="flex items-center gap-5 shrink-0">
+                              {c.racha_diario > 0 && <div className="text-center"><p className="text-sm font-bold text-amber-400">🔥 {c.racha_diario}</p><p className="text-[9px] text-gray-600 uppercase">Racha</p></div>}
+                              <div className="text-center"><p className={`text-sm font-bold ${c.ventas_count > 0 ? 'text-emerald-400' : 'text-gray-600'}`}>{c.ventas_count}</p><p className="text-[9px] text-gray-600 uppercase">Ventas</p></div>
+                              <div className="text-center"><p className="text-sm font-semibold text-gray-300">{c.tareas_completadas}<span className="text-gray-600 font-normal">/{c.tareas_total}</span></p><p className="text-[9px] text-gray-600 uppercase">Tareas</p></div>
+                              <ChevronRight className="w-4 h-4 text-gray-700 group-hover:text-indigo-400 transition-colors" />
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
 
                   {/* Estado garantía */}
                   <div className="grid grid-cols-3 gap-4">
                     {[
-                      { label: 'En camino', count: clientes.filter(c => c.estado_garantia === 'en_camino').length, color: 'text-emerald-400', bg: 'bg-emerald-500/10 border-emerald-500/20' },
-                      { label: 'En riesgo', count: clientes.filter(c => c.estado_garantia === 'en_riesgo').length, color: 'text-amber-400', bg: 'bg-amber-500/10 border-amber-500/20' },
-                      { label: 'Garantía activada', count: clientes.filter(c => c.estado_garantia === 'activada').length, color: 'text-red-400', bg: 'bg-red-500/10 border-red-500/20' },
+                      { label: 'En camino al resultado', icon: '✅', count: clientes.filter(c => c.estado_garantia === 'en_camino').length, color: 'text-emerald-400', border: 'border-emerald-500/20', bg: 'bg-emerald-500/5' },
+                      { label: 'En riesgo de garantía', icon: '⚠️', count: clientes.filter(c => c.estado_garantia === 'en_riesgo').length, color: 'text-amber-400', border: 'border-amber-500/20', bg: 'bg-amber-500/5' },
+                      { label: 'Garantía activada', icon: '🛡️', count: clientes.filter(c => c.estado_garantia === 'activada').length, color: 'text-red-400', border: 'border-red-500/20', bg: 'bg-red-500/5' },
                     ].map((s, i) => (
-                      <div key={i} className={`${s.bg} border rounded-2xl p-5 flex items-center gap-4`}>
-                        <Shield className={`w-8 h-8 ${s.color}`} />
+                      <div key={i} className={`${s.bg} border ${s.border} rounded-2xl p-5 flex items-center gap-4`}>
+                        <span className="text-3xl">{s.icon}</span>
                         <div>
-                          <p className={`text-2xl font-light ${s.color}`}>{s.count}</p>
+                          <p className={`text-3xl font-light ${s.color} mb-0.5`}>{s.count}</p>
                           <p className="text-xs text-gray-400 font-medium">{s.label}</p>
                         </div>
                       </div>
                     ))}
                   </div>
-
-                  <div className="flex justify-end">
-                    <button
-                      onClick={() => { setMetricasGlobales(null); cargarMetricasGlobales(); }}
-                      className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-xs text-gray-400 hover:text-white hover:bg-white/10 transition-colors"
-                    >
-                      <Loader2 className="w-3.5 h-3.5" /> Actualizar
-                    </button>
-                  </div>
                 </>
+              ) : (
+                /* ── VISTA INDIVIDUAL ── */
+                (() => {
+                  const c = clientes.find(x => x.id === filtroMetricasId);
+                  if (!c) return null;
+                  const pct = c.tareas_total > 0
+                    ? Math.round((c.tareas_completadas / c.tareas_total) * 100)
+                    : (c.progreso_porcentaje ?? 0);
+                  return (
+                    <div className="space-y-5">
+                      {/* Header del cliente */}
+                      <div className="flex items-center gap-4 bg-gradient-to-r from-indigo-600/10 to-transparent border border-indigo-500/20 rounded-2xl p-5">
+                        <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-500/30 to-violet-500/30 border border-indigo-500/30 flex items-center justify-center text-xl font-bold text-white">
+                          {c.nombre.charAt(0)}
+                        </div>
+                        <div className="flex-1">
+                          <h3 className="text-xl font-semibold text-white">{c.nombre}</h3>
+                          <p className="text-sm text-gray-400">{c.especialidad || 'Profesional de la salud'} · {c.email}</p>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <span className={`w-2.5 h-2.5 rounded-full ${SEMAFORO_CONFIG[c.semaforo].class}`} />
+                          <span className={`text-sm font-semibold ${SEMAFORO_CONFIG[c.semaforo].text}`}>{SEMAFORO_CONFIG[c.semaforo].label}</span>
+                        </div>
+                      </div>
+
+                      {/* KPIs individuales */}
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        {[
+                          { label: 'Día del programa', value: `${c.dia_programa}/90`, color: 'text-indigo-400', icon: Calendar },
+                          { label: 'Tareas completadas', value: `${c.tareas_completadas}/${c.tareas_total}`, color: 'text-violet-400', icon: CheckCircle2 },
+                          { label: 'Racha diario', value: c.racha_diario > 0 ? `🔥 ${c.racha_diario} días` : '—', color: 'text-amber-400', icon: TrendingUp },
+                          { label: 'Ventas registradas', value: c.ventas_count, color: 'text-emerald-400', icon: TrendingUp },
+                        ].map((s, i) => (
+                          <div key={i} className="bg-white/[0.03] border border-white/[0.07] rounded-2xl p-4">
+                            <p className={`text-2xl font-light ${s.color} mb-1`}>{s.value}</p>
+                            <p className="text-[10px] text-gray-500 uppercase tracking-wider font-semibold">{s.label}</p>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Barra de progreso total */}
+                      <div className="bg-white/[0.02] border border-white/[0.06] rounded-2xl p-5">
+                        <div className="flex items-center justify-between mb-3">
+                          <p className="text-xs font-bold uppercase tracking-widest text-gray-400">Progreso en el programa</p>
+                          <p className="text-2xl font-light text-white">{pct}%</p>
+                        </div>
+                        <div className="h-3 bg-white/5 rounded-full overflow-hidden mb-2">
+                          <div
+                            className="h-full rounded-full transition-all duration-700"
+                            style={{
+                              width: `${pct}%`,
+                              background: pct >= 70 ? 'linear-gradient(to right, #10b981, #34d399)' : 'linear-gradient(to right, #6366f1, #8b5cf6)',
+                            }}
+                          />
+                        </div>
+                        <div className="flex justify-between text-[10px] text-gray-600">
+                          <span>Inicio</span>
+                          <span>{c.tareas_completadas} de {c.tareas_total} tareas · Día {c.dia_programa} de 90</span>
+                          <span>Meta</span>
+                        </div>
+                      </div>
+
+                      {/* Progreso por pilar */}
+                      <div className="bg-white/[0.02] border border-white/[0.06] rounded-2xl p-5">
+                        <h3 className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-5 flex items-center gap-2">
+                          <BarChart2 className="w-3.5 h-3.5 text-indigo-400" /> Estimación por pilar
+                        </h3>
+                        <div className="space-y-3">
+                          {SEED_ROADMAP_V2.map(pilar => {
+                            const metasPilar = pilar.metas.length;
+                            const completadasEstimadas = Math.min(
+                              metasPilar,
+                              Math.max(0, c.tareas_completadas - SEED_ROADMAP_V2.slice(0, pilar.numero).reduce((a, p) => a + p.metas.length, 0))
+                            );
+                            const pctPilar = metasPilar > 0 ? Math.round((completadasEstimadas / metasPilar) * 100) : 0;
+                            const colors = ['indigo','violet','blue','cyan','emerald','amber','orange','rose','pink'];
+                            const col = colors[pilar.numero % colors.length];
+                            return (
+                              <div key={pilar.numero} className="flex items-center gap-3">
+                                <span className="text-base w-7 text-center shrink-0">{pilar.emoji}</span>
+                                <span className="text-xs text-gray-400 w-32 truncate shrink-0">{pilar.titulo}</span>
+                                <div className="flex-1 h-2 bg-white/5 rounded-full overflow-hidden">
+                                  <div
+                                    className={`h-full bg-${col}-500 rounded-full transition-all`}
+                                    style={{ width: `${pctPilar}%` }}
+                                  />
+                                </div>
+                                <span className="text-xs text-gray-400 w-10 text-right shrink-0">{completadasEstimadas}/{metasPilar}</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                        <p className="text-[10px] text-gray-600 mt-3">* Estimación basada en completitud secuencial. Para datos exactos por pilar, activá el RLS de admin en Supabase.</p>
+                      </div>
+
+                      <button
+                        onClick={() => { setSelectedCliente(c); setMainTab('dashboard'); setDetalleTab('resumen'); }}
+                        className="w-full py-3 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-sm font-semibold hover:bg-indigo-500/20 transition-colors"
+                      >
+                        Ver perfil completo con diario, métricas y mensajes →
+                      </button>
+                    </div>
+                  );
+                })()
               )}
             </div>
           ) : mainTab !== 'dashboard' ? (
@@ -770,28 +941,25 @@ Respondé solo con las 3 recomendaciones en formato lista, sin introducción. M�
           ) : (
             <>
               {/* Stats row */}
-              <div className="grid grid-cols-4 gap-4 mb-8">
+              <div className="grid grid-cols-4 gap-4 mb-6">
                 {[
-                  { label: 'Clientes activos', value: clientes.length, icon: Users, color: 'text-indigo-400', bg: 'from-indigo-500/10 to-transparent' },
-                  { label: 'En ritmo', value: clientes.filter(c => c.semaforo === 'verde').length, icon: CheckCheck, color: 'text-emerald-400', bg: 'from-emerald-500/10 to-transparent' },
-                  { label: 'Necesitan atención', value: clientes.filter(c => c.semaforo === 'rojo').length, icon: AlertTriangle, color: 'text-red-400', bg: 'from-red-500/10 to-transparent' },
-                  { label: 'Progreso', value: clientes.length ? `${Math.round(clientes.reduce((acc, c) => acc + (c.tareas_total > 0 ? (c.tareas_completadas / c.tareas_total) * 100 : 0), 0) / clientes.length)}%` : '—', icon: TrendingUp, color: 'text-amber-400', bg: 'from-amber-500/10 to-transparent' },
+                  { label: 'Clientes activos', value: clientes.length, icon: Users, color: 'text-indigo-300', border: 'border-indigo-500/25', bg: 'from-indigo-600/20 to-indigo-600/5' },
+                  { label: 'En ritmo 🟢', value: clientes.filter(c => c.semaforo === 'verde').length, icon: CheckCheck, color: 'text-emerald-300', border: 'border-emerald-500/25', bg: 'from-emerald-600/20 to-emerald-600/5' },
+                  { label: 'Necesitan atención', value: clientes.filter(c => c.semaforo === 'rojo' || c.semaforo === 'amarillo').length, icon: AlertTriangle, color: 'text-amber-300', border: 'border-amber-500/25', bg: 'from-amber-600/20 to-amber-600/5' },
+                  { label: 'Progreso promedio', value: clientes.length ? `${Math.round(clientes.reduce((acc, c) => acc + (c.tareas_total > 0 ? (c.tareas_completadas / c.tareas_total) * 100 : (c.progreso_porcentaje ?? 0)), 0) / clientes.length)}%` : '—', icon: TrendingUp, color: 'text-violet-300', border: 'border-violet-500/25', bg: 'from-violet-600/20 to-violet-600/5' },
                 ].map((stat, i) => (
-                  <div key={i} className={`bg-gradient-to-b ${stat.bg} bg-white/[0.02] border border-white/[0.05] rounded-3xl p-6 relative overflow-hidden group hover:border-white/10 transition-colors`}>
-                    <div className="absolute top-0 right-0 p-4 opacity-20 group-hover:opacity-40 transition-opacity">
-                      <stat.icon className={`w-16 h-16 ${stat.color} -rotate-12 transform scale-125`} />
-                    </div>
-                    <stat.icon className={`w-5 h-5 ${stat.color} mb-4`} />
-                    <p className="text-3xl font-light text-white mb-1 tracking-tight">{stat.value}</p>
+                  <div key={i} className={`bg-gradient-to-b ${stat.bg} border ${stat.border} rounded-2xl p-5 relative overflow-hidden`}>
+                    <stat.icon className={`w-5 h-5 ${stat.color} mb-3 opacity-70`} />
+                    <p className={`text-3xl font-light ${stat.color} mb-1 tracking-tight`}>{stat.value}</p>
                     <p className="text-xs text-gray-500 uppercase tracking-wider font-semibold">{stat.label}</p>
                   </div>
                 ))}
               </div>
 
               {/* Main layout Dashboard */}
-              <div className="flex gap-6 h-[calc(100vh-280px)] min-h-[500px]">
+              <div className="flex gap-6" style={{ height: 'calc(100vh - 220px)', minHeight: 540 }}>
                 {/* Lista de clientes */}
-                <div className="w-[320px] shrink-0 flex flex-col">
+                <div className={`shrink-0 flex flex-col transition-all duration-300 ${selectedCliente ? 'w-[280px]' : 'w-full max-w-2xl mx-auto'}`}>
                   <div className="flex items-center justify-between mb-4">
                     <h2 className="text-[11px] font-bold uppercase tracking-widest text-gray-500">Directorio ({clientes.length})</h2>
                     <button
@@ -861,7 +1029,7 @@ Respondé solo con las 3 recomendaciones en formato lista, sin introducción. M�
 
                 {/* Panel de detalle */}
                 {selectedCliente ? (
-                  <div className="flex-1 bg-white/[0.02] border border-white/[0.05] rounded-3xl overflow-hidden flex flex-col shadow-2xl relative">
+                  <div className="flex-1 bg-[#0a0a10] border border-white/[0.08] rounded-2xl overflow-hidden flex flex-col shadow-2xl relative">
                     {/* Header Pestaña Detalle */}
                     <div className="absolute top-0 right-0 p-4">
                       <button onClick={() => setSelectedCliente(null)} className="p-2 rounded-full bg-black/40 text-gray-400 hover:text-white hover:bg-white/10 transition-colors backdrop-blur-md">
