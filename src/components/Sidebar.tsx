@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { LayoutDashboard, Map as RoadmapIcon, MessageSquare, TrendingUp, Users, Settings, LogOut, Hexagon, BookOpen, Library, Bot } from 'lucide-react';
+import { SEED_ROADMAP_V2 } from '../lib/roadmapSeed';
 
 interface SidebarProps {
   currentPage: string;
@@ -20,14 +21,17 @@ function getSidebarData() {
   let progress = 0;
   let hasPending = false;
   try {
-    const rm = JSON.parse(localStorage.getItem('tcd_roadmap_v2') || '[]');
+    const saved = localStorage.getItem('tcd_hoja_ruta_v2');
+    const completadasSet = new Set<string>(saved ? JSON.parse(saved) : []);
     let total = 0;
     let comp = 0;
-    rm.forEach((p: any) => p.semanas.forEach((s: any) => s.tareas.forEach((t: any) => {
-      total++;
-      if (t.status === 'completada') comp++;
-      if (t.status === 'activa' || t.status === 'pendiente') hasPending = true;
-    })));
+    for (const pil of SEED_ROADMAP_V2) {
+      for (const meta of pil.metas ?? []) {
+        total++;
+        if (completadasSet.has(`${pil.numero}-${meta.codigo}`)) comp++;
+        else hasPending = true;
+      }
+    }
     progress = total === 0 ? 0 : Math.round((comp / total) * 100);
   } catch { /* noop */ }
 

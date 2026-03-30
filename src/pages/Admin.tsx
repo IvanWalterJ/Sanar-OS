@@ -8,6 +8,7 @@ import {
   CheckCheck, AlertTriangle, Image, Mic
 } from 'lucide-react';
 import { supabase, type Profile, type Mensaje, isSupabaseReady } from '../lib/supabase';
+import { SEED_ROADMAP_V2 } from '../lib/roadmapSeed';
 import { GoogleGenAI } from '@google/genai';
 import { toast } from 'sonner';
 import { createClient } from '@supabase/supabase-js';
@@ -368,7 +369,22 @@ export default function Admin({ adminProfile, onSignOut }: AdminProps) {
           supabase.rpc('get_user_diary', { target_user_id: p.id }),
         ]);
 
-        const tareas = tareasRes.data ?? [];
+        // Fallback: if RPC returns no tasks, query hoja_de_ruta directly
+        let tareas = tareasRes.data ?? [];
+        if (tareas.length === 0) {
+          const { data: hrRows } = await supabase
+            .from('hoja_de_ruta')
+            .select('pilar_numero, meta_codigo, completada, es_estrella')
+            .eq('usuario_id', p.id);
+          if (hrRows && hrRows.length > 0) {
+            tareas = hrRows.map((r: any) => ({
+              ...r,
+              status: r.completada ? 'completada' : 'pendiente',
+            }));
+          }
+        }
+        // Calculate total from seed when RPC doesn't provide it
+        const totalFromSeed = SEED_ROADMAP_V2.reduce((acc, pil) => acc + pil.metas.length, 0);
         const metricas = metricasRes.data ?? [];
         const ultimaDiario = diarioRes.data?.[0]?.fecha;
 
@@ -411,7 +427,7 @@ export default function Admin({ adminProfile, onSignOut }: AdminProps) {
           semana_programa: semana,
           semaforo,
           tareas_completadas: tareas.filter((t: any) => t.status === 'completada' || t.completada).length,
-          tareas_total: tareas.length,
+          tareas_total: tareas.length > 0 ? tareas.length : totalFromSeed,
           ultima_entrada_diario: ultimaDiario,
           racha_diario: rachaActual,
           ventas_count,
@@ -437,7 +453,21 @@ export default function Admin({ adminProfile, onSignOut }: AdminProps) {
           supabase.rpc('get_user_diary', { target_user_id: userId }),
           supabase.rpc('get_user_metrics', { target_user_id: userId }),
         ]);
-        setDetalleTareas(t.data ?? []);
+        // Fallback: if RPC returns no tasks, query hoja_de_ruta directly
+        let tareasDetalle = t.data ?? [];
+        if (tareasDetalle.length === 0) {
+          const { data: hrRows } = await supabase
+            .from('hoja_de_ruta')
+            .select('pilar_numero, meta_codigo, completada, es_estrella')
+            .eq('usuario_id', userId);
+          if (hrRows && hrRows.length > 0) {
+            tareasDetalle = hrRows.map((r: any) => ({
+              ...r,
+              status: r.completada ? 'completada' : 'pendiente',
+            }));
+          }
+        }
+        setDetalleTareas(tareasDetalle);
         setDetalleDiario((d.data ?? []).slice(0, 3));
         setDetalleMetricas(m.data ?? []);
       } else if (detalleTab === 'diario') {

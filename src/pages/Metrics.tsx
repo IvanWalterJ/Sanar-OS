@@ -12,12 +12,7 @@ interface LocalMetric {
   ventas: number;
 }
 
-const INITIAL_METRICS: LocalMetric[] = [
-  { name: 'Sem 1', visitas: 400, leads: 24, ventas: 2 },
-  { name: 'Sem 2', visitas: 600, leads: 35, ventas: 4 },
-  { name: 'Sem 3', visitas: 800, leads: 45, ventas: 5 },
-  { name: 'Sem 4', visitas: 1200, leads: 86, ventas: 12 },
-];
+const INITIAL_METRICS: LocalMetric[] = [];
 
 function getISOWeek(): string {
   const d = new Date();
@@ -29,8 +24,8 @@ function getISOWeek(): string {
 function loadMetricsLocal(): LocalMetric[] {
   try {
     const saved = localStorage.getItem('tcd_metrics');
-    return saved ? JSON.parse(saved) : INITIAL_METRICS;
-  } catch { return INITIAL_METRICS; }
+    return saved ? JSON.parse(saved) : [];
+  } catch { return []; }
 }
 
 function saveMetricsLocal(data: LocalMetric[]) {
@@ -83,18 +78,23 @@ function TabProgreso({ userId }: { userId?: string }) {
     const diff = Math.floor((new Date().getTime() - dInicio.getTime()) / (1000 * 60 * 60 * 24));
     const semActual = Math.max(1, Math.min(12, Math.floor(diff / 7) + 1));
 
-    let tot = 0, comp = 0;
-    const rm = JSON.parse(localStorage.getItem('tcd_roadmap_v2') || JSON.stringify(SEED_ROADMAP));
-    rm.forEach((pil: any) => pil.semanas.forEach((s: any) => s.tareas.forEach((t: any) => {
-      tot++;
-      if (t.status === 'completada') comp++;
-    })));
+    let tot = 0, comp = 0, hitosComp = 0;
+    try {
+      const saved = localStorage.getItem('tcd_hoja_ruta_v2');
+      const completadasSet = new Set<string>(saved ? JSON.parse(saved) : []);
+      for (const pil of SEED_ROADMAP) {
+        const metasPilar = pil.metas ?? [];
+        const compPilar = metasPilar.filter((m: any) => completadasSet.has(`${pil.numero}-${m.codigo}`)).length;
+        tot += metasPilar.length;
+        comp += compPilar;
+        if (compPilar >= metasPilar.length && metasPilar.length > 0) hitosComp++;
+      }
+    } catch { /* noop */ }
 
-    const diary = JSON.parse(localStorage.getItem('tcd_diary') || '{}');
-    const diasD = diary.entries ? diary.entries.length : 0;
-    const hitos = Math.max(0, semActual > 3 ? 1 : 0); 
-    
-    setProgData({ semanaActual: semActual, totTareas: tot, compTareas: comp, diasDiario: diasD, hitos });
+    const diary = JSON.parse(localStorage.getItem('tcd_diario_v2') || '{}');
+    const diasD = Array.isArray(diary.entries) ? diary.entries.length : 0;
+
+    setProgData({ semanaActual: semActual, totTareas: tot, compTareas: comp, diasDiario: diasD, hitos: hitosComp });
   }, []);
 
   const chartData = Array.from({length: 12}).map((_, i) => ({
@@ -273,48 +273,58 @@ function TabNegocio({ userId }: { userId?: string }) {
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        {[
-          { label: 'Visitas Landing', value: currentWeek.visitas.toLocaleString(), trend: calcTrend(currentWeek.visitas, prevWeek.visitas), color: 'text-blue-400' },
-          { label: 'Leads Captados', value: currentWeek.leads.toLocaleString(), trend: calcTrend(currentWeek.leads, prevWeek.leads), color: 'text-purple-400' },
-          { label: 'Conversión a Lead', value: currentWeek.visitas > 0 ? `${((currentWeek.leads / currentWeek.visitas) * 100).toFixed(1)}%` : '—', trend: '', color: 'text-pink-400' },
-          { label: 'Ventas Cerradas', value: currentWeek.ventas.toLocaleString(), trend: calcTrend(currentWeek.ventas, prevWeek.ventas), color: 'text-emerald-400' },
-        ].map((stat, i) => (
-          <div key={i} className="glass-panel p-5 rounded-2xl">
-            <p className="text-[10px] text-gray-500 uppercase tracking-widest mb-2 font-semibold">{stat.label}</p>
-            <div className="flex items-end justify-between">
-              <h3 className="text-3xl font-light text-white tracking-tight">{stat.value}</h3>
-              {stat.trend && <span className={`text-[11px] font-bold ${stat.color}`}>{stat.trend}</span>}
+      {data.length === 0 ? (
+        <div className="glass-panel p-12 rounded-2xl border border-dashed border-white/10 text-center">
+          <p className="text-4xl mb-4">📊</p>
+          <p className="text-sm font-medium text-gray-300 mb-2">Todavía no hay métricas registradas</p>
+          <p className="text-xs text-gray-500 max-w-sm mx-auto">Cargá los datos de tu primera semana usando el botón "Cargar Semana" para empezar a ver la evolución de tu negocio.</p>
+        </div>
+      ) : (
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            {[
+              { label: 'Visitas Landing', value: currentWeek.visitas.toLocaleString(), trend: calcTrend(currentWeek.visitas, prevWeek.visitas), color: 'text-blue-400' },
+              { label: 'Leads Captados', value: currentWeek.leads.toLocaleString(), trend: calcTrend(currentWeek.leads, prevWeek.leads), color: 'text-purple-400' },
+              { label: 'Conversión a Lead', value: currentWeek.visitas > 0 ? `${((currentWeek.leads / currentWeek.visitas) * 100).toFixed(1)}%` : '—', trend: '', color: 'text-pink-400' },
+              { label: 'Ventas Cerradas', value: currentWeek.ventas.toLocaleString(), trend: calcTrend(currentWeek.ventas, prevWeek.ventas), color: 'text-emerald-400' },
+            ].map((stat, i) => (
+              <div key={i} className="glass-panel p-5 rounded-2xl">
+                <p className="text-[10px] text-gray-500 uppercase tracking-widest mb-2 font-semibold">{stat.label}</p>
+                <div className="flex items-end justify-between">
+                  <h3 className="text-3xl font-light text-white tracking-tight">{stat.value}</h3>
+                  {stat.trend && <span className={`text-[11px] font-bold ${stat.color}`}>{stat.trend}</span>}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="glass-panel p-6 rounded-2xl">
+            <div className="flex items-center justify-between mb-8">
+              <h3 className="text-sm font-semibold text-gray-200 tracking-widest uppercase">Evolución del Embudo</h3>
+              <div className="flex gap-4 text-xs font-medium text-gray-400">
+                <div className="flex items-center gap-2"><div className="w-2.5 h-2.5 rounded-full bg-blue-500" /> Visitas</div>
+                <div className="flex items-center gap-2"><div className="w-2.5 h-2.5 rounded-full bg-purple-500" /> Leads</div>
+              </div>
+            </div>
+            <div className="h-[350px] w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={data} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="colorVisitas" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#3B82F6" stopOpacity={0.3} /><stop offset="95%" stopColor="#3B82F6" stopOpacity={0} /></linearGradient>
+                    <linearGradient id="colorLeads" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#A855F7" stopOpacity={0.3} /><stop offset="95%" stopColor="#A855F7" stopOpacity={0} /></linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                  <XAxis dataKey="name" stroke="rgba(255,255,255,0.2)" tick={{ fill: 'rgba(255,255,255,0.5)', fontSize: 11 }} />
+                  <YAxis stroke="rgba(255,255,255,0.2)" tick={{ fill: 'rgba(255,255,255,0.5)', fontSize: 11 }} />
+                  <RechartsTooltip contentStyle={{ backgroundColor: '#111827', borderColor: 'rgba(255,255,255,0.1)', borderRadius: '8px', color: '#fff' }} />
+                  <Area type="monotone" dataKey="visitas" stroke="#3B82F6" strokeWidth={2} fillOpacity={1} fill="url(#colorVisitas)" />
+                  <Area type="monotone" dataKey="leads" stroke="#A855F7" strokeWidth={2} fillOpacity={1} fill="url(#colorLeads)" />
+                </AreaChart>
+              </ResponsiveContainer>
             </div>
           </div>
-        ))}
-      </div>
-
-      <div className="glass-panel p-6 rounded-2xl">
-        <div className="flex items-center justify-between mb-8">
-          <h3 className="text-sm font-semibold text-gray-200 tracking-widest uppercase">Evolución del Embudo</h3>
-          <div className="flex gap-4 text-xs font-medium text-gray-400">
-            <div className="flex items-center gap-2"><div className="w-2.5 h-2.5 rounded-full bg-blue-500" /> Visitas</div>
-            <div className="flex items-center gap-2"><div className="w-2.5 h-2.5 rounded-full bg-purple-500" /> Leads</div>
-          </div>
-        </div>
-        <div className="h-[350px] w-full">
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={data} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
-              <defs>
-                <linearGradient id="colorVisitas" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#3B82F6" stopOpacity={0.3} /><stop offset="95%" stopColor="#3B82F6" stopOpacity={0} /></linearGradient>
-                <linearGradient id="colorLeads" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#A855F7" stopOpacity={0.3} /><stop offset="95%" stopColor="#A855F7" stopOpacity={0} /></linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
-              <XAxis dataKey="name" stroke="rgba(255,255,255,0.2)" tick={{ fill: 'rgba(255,255,255,0.5)', fontSize: 11 }} />
-              <YAxis stroke="rgba(255,255,255,0.2)" tick={{ fill: 'rgba(255,255,255,0.5)', fontSize: 11 }} />
-              <RechartsTooltip contentStyle={{ backgroundColor: '#111827', borderColor: 'rgba(255,255,255,0.1)', borderRadius: '8px', color: '#fff' }} />
-              <Area type="monotone" dataKey="visitas" stroke="#3B82F6" strokeWidth={2} fillOpacity={1} fill="url(#colorVisitas)" />
-              <Area type="monotone" dataKey="leads" stroke="#A855F7" strokeWidth={2} fillOpacity={1} fill="url(#colorLeads)" />
-            </AreaChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
+        </>
+      )}
     </div>
   );
 }
