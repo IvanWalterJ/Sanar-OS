@@ -4,6 +4,7 @@ import { GoogleGenAI } from '@google/genai';
 import Markdown from 'react-markdown';
 import { toast } from 'sonner';
 import { buildCoachSystemPrompt, detectarContextoConversacion } from '../lib/coachPrompt';
+import { getUserKnowledgeBase } from '../lib/userKnowledgeBase';
 
 interface Message {
   role: 'assistant' | 'user';
@@ -50,6 +51,7 @@ export default function Coach({ userId }: { userId?: string }) {
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const knowledgeBaseRef = useRef<string>('');
 
   useEffect(() => {
     if (!isTyping) {
@@ -62,6 +64,11 @@ export default function Coach({ userId }: { userId?: string }) {
       messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
     }
   }, [messages]);
+
+  // Cargar base de conocimiento al montar (se cachea en ref para no recalcular)
+  useEffect(() => {
+    getUserKnowledgeBase(userId).then(kb => { knowledgeBaseRef.current = kb; });
+  }, [userId]);
 
   const resetConversation = () => {
     const fresh = [buildInitialMessage()];
@@ -87,7 +94,7 @@ export default function Coach({ userId }: { userId?: string }) {
 
       const extraCtx = detectarContextoConversacion(text);
       const perfil = JSON.parse(localStorage.getItem('tcd_profile') || '{}');
-      const systemPrompt = buildCoachSystemPrompt({ perfil, ...extraCtx });
+      const systemPrompt = buildCoachSystemPrompt({ perfil, ...extraCtx, baseDeConocimiento: knowledgeBaseRef.current || undefined });
 
       const streamResponse = await ai.models.generateContentStream({
         model: 'gemini-2.5-flash',

@@ -6,10 +6,11 @@
  * - Agentes: hacen el trabajo complejo de extremo a extremo en una conversación,
  *   combinando múltiples herramientas y adaptándose al diálogo
  */
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { Loader2, Send, RotateCcw, Copy, CheckCircle2 } from 'lucide-react';
 import type { ProfileV2 } from '../lib/supabase';
 import { toast } from 'sonner';
+import { getUserKnowledgeBase } from '../lib/userKnowledgeBase';
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 
@@ -245,6 +246,11 @@ export default function Agentes({
   const [inputUsuario, setInputUsuario] = useState('');
   const [cargando, setCargando] = useState(false);
   const [copiado, setCopiado] = useState(false);
+  const knowledgeBaseRef = useRef<string>('');
+
+  useEffect(() => {
+    getUserKnowledgeBase(userId).then(kb => { knowledgeBaseRef.current = kb; });
+  }, [userId]);
 
   const iniciarAgente = useCallback(
     (agente: ConfigAgente) => {
@@ -288,9 +294,12 @@ export default function Agentes({
           .map((m) => `${m.rol === 'usuario' ? 'Usuario' : 'Agente'}: ${m.contenido}`)
           .join('\n\n');
 
+        const baseConocimiento = knowledgeBaseRef.current
+          ? `\n\n=== BASE DE CONOCIMIENTO DEL PROFESIONAL ===\n${knowledgeBaseRef.current}`
+          : '';
         const resultado = await ai.models.generateContent({
           model: 'gemini-2.5-flash',
-          contents: `${agenteActivo.sistemPrompt(perfil ?? {})}\n\n---HISTORIAL---\n${historial}\n\nAgente:`,
+          contents: `${agenteActivo.sistemPrompt(perfil ?? {})}${baseConocimiento}\n\n---HISTORIAL---\n${historial}\n\nAgente:`,
         });
 
         const respuesta = resultado.text ?? 'Sin respuesta del agente.';

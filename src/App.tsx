@@ -213,7 +213,7 @@ export default function App() {
         <main ref={mainRef} className="flex-1 overflow-y-auto overflow-x-hidden overscroll-contain scrollbar-hide">
           <div className="p-6">
             {currentPage === 'dashboard' && <Dashboard setCurrentPage={setCurrentPage} userId={supabaseProfile?.id} />}
-            {currentPage === 'roadmap' && <Roadmap userId={supabaseProfile?.id} />}
+            {currentPage === 'roadmap' && <Roadmap userId={supabaseProfile?.id} perfil={supabaseProfile ?? undefined} geminiKey={import.meta.env.VITE_GEMINI_API_KEY} onNavigate={setCurrentPage} />}
             {currentPage === 'coach' && <Coach userId={supabaseProfile?.id} />}
             {currentPage === 'metrics' && <Metrics userId={supabaseProfile?.id} />}
             {currentPage === 'mensajes' && <Mensajes userId={supabaseProfile?.id} onUnreadChange={setUnreadMessages} />}

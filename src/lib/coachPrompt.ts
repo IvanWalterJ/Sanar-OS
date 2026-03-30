@@ -22,6 +22,7 @@ export interface ContextoCoach {
   esRetrospectivaMensual?: boolean;
   esCallDeVenta?: boolean;
   hayBloqueoPersistente?: boolean;
+  baseDeConocimiento?: string;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -219,9 +220,15 @@ El profesional está haciendo la revisión mensual. Estructura la conversación 
     `.trim();
   }
 
+  // ─── Base de conocimiento ────────────────────────────────────────────────────
+
+  const CONOCIMIENTO_SECTION = ctx.baseDeConocimiento
+    ? `=== BASE DE CONOCIMIENTO DEL PROFESIONAL ===\nDocumentos generados con herramientas IA en tareas completadas. Usá esta información para personalizar absolutamente todo lo que respondés.\n\n${ctx.baseDeConocimiento}`.trim()
+    : '';
+
   // ─── Prompt final ───────────────────────────────────────────────────────────
 
-  return [BASE, CONTEXTO_USUARIO, DIARIO_SECTION, SECCIONES_CONDICIONALES]
+  return [BASE, CONTEXTO_USUARIO, CONOCIMIENTO_SECTION, DIARIO_SECTION, SECCIONES_CONDICIONALES]
     .filter(Boolean)
     .join('\n\n');
 }

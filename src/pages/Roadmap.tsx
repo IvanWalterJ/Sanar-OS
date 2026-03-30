@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   CheckCircle2,
   Circle,
@@ -8,9 +8,10 @@ import {
   Trophy,
   Zap,
   AlertCircle,
+  FileText,
 } from 'lucide-react';
 import { supabase, isSupabaseReady } from '../lib/supabase';
-import type { HojaDeRutaItem, VentaRegistrada } from '../lib/supabase';
+import type { HojaDeRutaItem, VentaRegistrada, ProfileV2 } from '../lib/supabase';
 import {
   SEED_ROADMAP_V2,
   calcularNivel,
@@ -19,6 +20,7 @@ import {
   type RoadmapMeta,
 } from '../lib/roadmapSeed';
 import { NIVEL_NOMBRES } from '../lib/supabase';
+import TaskDetailModal from '../components/TaskDetailModal';
 
 // ─── Tipos locales ────────────────────────────────────────────────────────────
 
@@ -33,20 +35,24 @@ interface PilarConEstado extends RoadmapPilar {
 
 interface Props {
   userId?: string;
-  perfil?: { nombre?: string; dia_programa?: number };
+  perfil?: Partial<ProfileV2>;
+  geminiKey?: string;
+  onNavigate?: (page: string) => void;
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 // ─── Componente principal ─────────────────────────────────────────────────────
 
-export default function Roadmap({ userId, perfil }: Props) {
+export default function Roadmap({ userId, perfil, geminiKey, onNavigate }: Props) {
   const [completadas, setCompletadas] = useState<Set<string>>(new Set());
   const [ventas, setVentas] = useState<VentaRegistrada[]>([]);
   const [qaVerde, setQaVerde] = useState(false);
   const [pilarAbierto, setPilarAbierto] = useState<number | null>(null);
   const [celebracion, setCelebracion] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [selectedMeta, setSelectedMeta] = useState<{ meta: RoadmapMeta; pilar: RoadmapPilar; estado: EstadoPilar } | null>(null);
+  const [taskOutputs, setTaskOutputs] = useState<Map<string, string>>(new Map());
   const detalleRef = useRef<HTMLDivElement>(null);
 
   // ─── Cargar datos de Supabase ───────────────────────────────────────────
@@ -92,6 +98,46 @@ export default function Roadmap({ userId, perfil }: Props) {
   useEffect(() => {
     localStorage.setItem('tcd_hoja_ruta_v2', JSON.stringify([...completadas]));
   }, [completadas]);
+
+  // ─── Cargar outputs de tareas guardados ────────────────────────────────
+  useEffect(() => {
+    const outputs = new Map<string, string>();
+    // 1. localStorage: tcd_herramienta_* keys cross-referenced with seed
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (!k?.startsWith('tcd_herramienta_')) continue;
+      const herramientaId = k.replace('tcd_herramienta_', '');
+      for (const pilar of SEED_ROADMAP_V2) {
+        for (const meta of pilar.metas) {
+          if (meta.herramienta_id === herramientaId) {
+            const val = localStorage.getItem(k);
+            if (val) outputs.set(`${pilar.numero}-${meta.codigo}`, val);
+          }
+        }
+      }
+    }
+    // 2. Supabase: rows with output_generado
+    if (isSupabaseReady() && supabase && userId) {
+      supabase
+        .from('hoja_de_ruta')
+        .select('pilar_numero,meta_codigo,output_generado')
+        .eq('usuario_id', userId)
+        .not('output_generado', 'is', null)
+        .then(({ data }) => {
+          if (!data) { setTaskOutputs(outputs); return; }
+          const updated = new Map(outputs);
+          for (const row of data as Array<{ pilar_numero: number; meta_codigo: string; output_generado: Record<string, unknown> | null }>) {
+            const key = `${row.pilar_numero}-${row.meta_codigo}`;
+            if (row.output_generado?.texto && typeof row.output_generado.texto === 'string') {
+              updated.set(key, row.output_generado.texto);
+            }
+          }
+          setTaskOutputs(updated);
+        });
+    } else {
+      setTaskOutputs(outputs);
+    }
+  }, [userId]);
 
   // ─── Lógica de desbloqueo ───────────────────────────────────────────────
   const calcularEstadoPilar = useCallback(
@@ -193,6 +239,16 @@ export default function Roadmap({ userId, perfil }: Props) {
     },
     [completadas, userId],
   );
+
+  // ─── Aprobar output de tarea ───────────────────────────────────────────
+  const handleTaskApprove = useCallback((outputTexto: string) => {
+    if (!selectedMeta) return;
+    const key = `${selectedMeta.pilar.numero}-${selectedMeta.meta.codigo}`;
+    setTaskOutputs(prev => new Map(prev).set(key, outputTexto));
+    setCompletadas(prev => { const next = new Set(prev); next.add(key); return next; });
+    setCelebracion(`⭐ Documento guardado: ${selectedMeta.meta.titulo}`);
+    setTimeout(() => setCelebracion(null), 3500);
+  }, [selectedMeta]);
 
   if (loading) {
     return (
@@ -327,6 +383,20 @@ export default function Roadmap({ userId, perfil }: Props) {
         })}
       </div>
 
+      {/* ── Modal de detalle / herramienta de tarea ── */}
+      {selectedMeta && (
+        <TaskDetailModal
+          tarea={{ ...selectedMeta.meta, pilarNumero: selectedMeta.pilar.numero, pilarTitulo: selectedMeta.pilar.titulo }}
+          onClose={() => setSelectedMeta(null)}
+          onNavigate={onNavigate ?? (() => {})}
+          userId={userId}
+          perfil={perfil}
+          geminiKey={geminiKey}
+          outputExistente={taskOutputs.get(`${selectedMeta.pilar.numero}-${selectedMeta.meta.codigo}`)}
+          onApprove={handleTaskApprove}
+        />
+      )}
+
       {/* ── Detalle del pilar seleccionado ── */}
       {pilarAbierto !== null && (() => {
         const pilar = pilaresConEstado.find((p) => p.numero === pilarAbierto);
@@ -387,20 +457,24 @@ export default function Roadmap({ userId, perfil }: Props) {
               {pilar.metas.map((meta) => {
                 const key = `${pilar.numero}-${meta.codigo}`;
                 const estaCompletada = completadas.has(key);
+                const tieneOutput = taskOutputs.has(key);
 
                 return (
                   <div
                     key={meta.codigo}
-                    onClick={() => toggleMeta(pilar.numero, meta, pilar.estado)}
+                    onClick={() => setSelectedMeta({ meta, pilar, estado: pilar.estado })}
                     className={`group flex items-start gap-4 p-4 rounded-xl cursor-pointer transition-all border ${
                       estaCompletada
                         ? 'bg-emerald-500/5 border-emerald-500/15'
                         : 'bg-white/[0.02] border-white/5 hover:bg-white/[0.04] hover:border-white/10'
                     }`}
                   >
-                    <div className="shrink-0 mt-0.5">
+                    <div
+                      className="shrink-0 mt-0.5"
+                      onClick={(e) => { e.stopPropagation(); toggleMeta(pilar.numero, meta, pilar.estado); }}
+                    >
                       {estaCompletada ? (
-                        <CheckCircle2 className="w-5 h-5 text-emerald-500" />
+                        <CheckCircle2 className="w-5 h-5 text-emerald-500 hover:text-emerald-400 transition-colors" />
                       ) : (
                         <Circle className="w-5 h-5 text-gray-600 group-hover:text-gray-400 transition-colors" />
                       )}
@@ -412,6 +486,9 @@ export default function Roadmap({ userId, perfil }: Props) {
                         </span>
                         {meta.es_estrella && (
                           <Star className="w-3 h-3 text-yellow-400 fill-yellow-400" />
+                        )}
+                        {tieneOutput && (
+                          <FileText className="w-3 h-3 text-emerald-400" title="Documento guardado" />
                         )}
                         {meta.herramienta_id && (
                           <span className="text-[9px] text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 px-1.5 py-0.5 rounded-full font-medium">
