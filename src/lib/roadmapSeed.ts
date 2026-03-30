@@ -190,7 +190,8 @@ export const SEED_ROADMAP_V2: RoadmapPilar[] = [
     subtitulo: 'Tu clínica digital calibrada',
     emoji: '📱',
     color: 'cyan',
-    desbloqueo: 'venta_real',
+    desbloqueo: 'completar_anterior',
+    estrellas_requeridas: 3,
     metas: [
       {
         codigo: '4.A',

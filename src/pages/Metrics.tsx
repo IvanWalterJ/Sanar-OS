@@ -24,7 +24,19 @@ function getISOWeek(): string {
 function loadMetricsLocal(): LocalMetric[] {
   try {
     const saved = localStorage.getItem('tcd_metrics');
-    return saved ? JSON.parse(saved) : [];
+    if (!saved) return [];
+    const parsed = JSON.parse(saved);
+    // Detect and discard legacy demo data (old INITIAL_METRICS pattern)
+    if (
+      Array.isArray(parsed) &&
+      parsed.length === 4 &&
+      parsed[0]?.visitas === 400 &&
+      parsed[0]?.leads === 24
+    ) {
+      localStorage.removeItem('tcd_metrics');
+      return [];
+    }
+    return parsed;
   } catch { return []; }
 }
 

@@ -1,6 +1,13 @@
 @import "tailwindcss";
 @plugin "@tailwindcss/typography";
 
+/* Safelist: dynamic pilar color classes used in Roadmap.tsx */
+@source inline("{bg,border,shadow}-{emerald,violet,blue,indigo,cyan,sky,amber,orange,rose}-500");
+@source inline("{bg,border,shadow}-{emerald,violet,blue,indigo,cyan,sky,amber,orange,rose}-400");
+@source inline("bg-{emerald,violet,blue,indigo,cyan,sky,amber,orange,rose}-500/{5,8,10,12,15,20,25,30,35,60}");
+@source inline("border-{emerald,violet,blue,indigo,cyan,sky,amber,orange,rose}-500/{15,20,25,30,35,60}");
+@source inline("shadow-{emerald,violet,blue,indigo,cyan,sky,amber,orange,rose}-500/{10,15,20}");
+
 html,
 body,
 #root {
