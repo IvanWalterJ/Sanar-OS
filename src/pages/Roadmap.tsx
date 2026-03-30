@@ -99,6 +99,13 @@ export default function Roadmap({ userId, perfil, geminiKey, onNavigate }: Props
     localStorage.setItem('tcd_hoja_ruta_v2', JSON.stringify([...completadas]));
   }, [completadas]);
 
+  // ─── Sincronizar progreso en perfil de Supabase (para el Admin) ────────
+  useEffect(() => {
+    if (!isSupabaseReady() || !supabase || !userId) return;
+    const pct = TOTAL_METAS === 0 ? 0 : Math.round((completadas.size / TOTAL_METAS) * 100);
+    supabase.from('profiles').update({ progreso_porcentaje: pct }).eq('id', userId).then(() => {});
+  }, [completadas, userId]);
+
   // ─── Cargar outputs de tareas guardados ────────────────────────────────
   useEffect(() => {
     const outputs = new Map<string, string>();

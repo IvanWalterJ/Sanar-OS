@@ -421,12 +421,19 @@ export default function Admin({ adminProfile, onSignOut }: AdminProps) {
           else if (dia >= 75) estado_garantia = 'en_riesgo';
         }
 
+        const tareasCompletadas = tareas.filter((t: any) => t.status === 'completada' || t.completada).length;
+        // Fallback: derive from progreso_porcentaje on profile when task data is unavailable
+        const progPct = (p as any).progreso_porcentaje ?? 0;
+        const tareasCompletadasFallback = tareasCompletadas === 0 && progPct > 0
+          ? Math.round((progPct / 100) * totalFromSeed)
+          : tareasCompletadas;
+
         return {
           ...p,
           dia_programa: dia,
           semana_programa: semana,
           semaforo,
-          tareas_completadas: tareas.filter((t: any) => t.status === 'completada' || t.completada).length,
+          tareas_completadas: tareasCompletadasFallback,
           tareas_total: tareas.length > 0 ? tareas.length : totalFromSeed,
           ultima_entrada_diario: ultimaDiario,
           racha_diario: rachaActual,

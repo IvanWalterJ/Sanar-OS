@@ -60,7 +60,7 @@ export default function Biblioteca({ userId }: BibliotecaProps) {
               }`}
             >
               <span>{g.emoji}</span>
-              <span>Grupo {gId}</span>
+              <span>{g.titulo}</span>
               <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${isActive ? `bg-${g.color}-500/20` : 'bg-white/5'}`}>
                 {(HERRAMIENTAS_POR_GRUPO[gId] ?? []).length}
               </span>
@@ -72,7 +72,7 @@ export default function Biblioteca({ userId }: BibliotecaProps) {
       {/* Descripción del grupo */}
       <div className={`bg-${grupoInfo.color}-500/5 border border-${grupoInfo.color}-500/20 rounded-2xl px-5 py-4`}>
         <p className="text-sm text-gray-300">
-          <span className="font-semibold text-white">{grupoInfo.emoji} Grupo {grupoActivo} — {grupoInfo.titulo}:</span>{' '}
+          <span className="font-semibold text-white">{grupoInfo.emoji} {grupoInfo.titulo}:</span>{' '}
           {grupoInfo.descripcion}
         </p>
       </div>

@@ -8,6 +8,7 @@ import { supabase, isSupabaseReady } from '../lib/supabase';
 import type { ProfileV2 } from '../lib/supabase';
 import { getHerramienta, type CampoInput } from '../lib/herramientas';
 import { toast } from 'sonner';
+import Markdown from 'react-markdown';
 
 // ─── Componente ───────────────────────────────────────────────────────────────
 
@@ -286,9 +287,13 @@ export default function HerramientaDetalle({ herramientaId, userId, perfil, gemi
             </div>
           </div>
 
-          <div className="bg-black/20 rounded-xl p-4 text-sm text-gray-200 leading-relaxed whitespace-pre-wrap font-mono min-h-24">
-            {output || (
-              <span className="text-gray-500 flex items-center gap-2">
+          <div className="bg-black/20 rounded-xl p-4 min-h-24">
+            {output ? (
+              <div className="prose prose-invert prose-sm max-w-none text-gray-200 [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 [&_h1]:text-base [&_h2]:text-sm [&_h3]:text-sm [&_strong]:text-white [&_ul]:pl-4 [&_ol]:pl-4 [&_li]:my-1 [&_p]:my-2 [&_hr]:border-white/10">
+                <Markdown>{output}</Markdown>
+              </div>
+            ) : (
+              <span className="text-gray-500 flex items-center gap-2 text-sm">
                 <Loader2 className="w-4 h-4 animate-spin" /> Generando...
               </span>
             )}

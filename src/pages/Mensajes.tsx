@@ -22,19 +22,20 @@ interface MsgLocal {
 
 const MOCK_MESSAGES: MsgLocal[] = [
   { id: 1, author: 'Tu Clínica Digital', rol: 'bot', content: '¡Bienvenida a tu programa de 90 días! Tu canal privado está listo. Podés escribirle al equipo aquí.', time: 'Lun 09:00', isMe: false, channelId: 'privado' },
-  { id: 2, author: 'Vos', rol: 'user', content: 'Hola equipo, ya completé la fase 1. ¿Cómo seguimos?', time: 'Mar 14:30', isMe: true, channelId: 'privado' },
+  { id: 2, author: myName, rol: 'user', content: 'Hola equipo, ya completé la fase 1. ¿Cómo seguimos?', time: 'Mar 14:30', isMe: true, channelId: 'privado' },
   { id: 3, author: 'Paolis', rol: 'admin', content: '¡Excelente! Vi tus métricas. Te acabo de desbloquear la Fase 2 para que empieces con el diseño de la oferta.', time: 'Mar 15:45', isMe: false, channelId: 'privado' },
   { id: 4, author: 'Tu Clínica Digital', rol: 'bot', content: '📋 Recordatorio: Esta semana es clave para avanzar en tu Hoja de Ruta. ¿Cómo va tu tarea activa?', time: 'Hoy 09:00', isMe: false, channelId: 'privado' },
   { id: 5, author: 'Tu Clínica Digital', rol: 'bot', content: '¡Compartí tus victorias de la semana aquí! 🎉', time: 'Lun 09:00', isMe: false, channelId: 'victorias' },
 ];
 
-function supabaseMsgToLocal(m: Mensaje, myUserId: string): MsgLocal {
+function supabaseMsgToLocal(m: Mensaje, myUserId: string, myName?: string): MsgLocal {
   const isMe = m.emisor_id === myUserId;
   const profile = m.emisor as { nombre?: string; rol?: string } | undefined;
   const rol: MsgLocal['rol'] = profile?.rol === 'admin' ? 'admin' : isMe ? 'user' : 'bot';
+  const fallbackMyName = myName ?? (() => { try { return JSON.parse(localStorage.getItem('tcd_profile') || '{}').nombre || 'Yo'; } catch { return 'Yo'; } })();
   return {
     id: m.id,
-    author: isMe ? 'Vos' : (profile?.nombre ?? 'Equipo'),
+    author: isMe ? fallbackMyName : (profile?.nombre ?? 'Equipo'),
     rol,
     content: m.contenido,
     time: new Date(m.created_at).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' }),
@@ -53,6 +54,9 @@ const CHANNELS = [
 ] as const;
 
 export default function Mensajes({ userId, onUnreadChange }: MensajesProps) {
+  // Nombre del usuario actual desde localStorage
+  const myName = (() => { try { return JSON.parse(localStorage.getItem('tcd_profile') || '{}').nombre || 'Yo'; } catch { return 'Yo'; } })();
+
   const [activeChannel, setActiveChannel] = useState('privado');
   const [input, setInput] = useState('');
   const [channelSearch, setChannelSearch] = useState('');
@@ -93,7 +97,7 @@ export default function Mensajes({ userId, onUnreadChange }: MensajesProps) {
       .order('created_at')
       .then(({ data }) => {
         if (data) {
-          setMessages((data as Mensaje[]).map(m => supabaseMsgToLocal(m, userId)));
+          setMessages((data as Mensaje[]).map(m => supabaseMsgToLocal(m, userId, myName)));
         }
         setLoadingMsgs(false);
       });
@@ -124,7 +128,7 @@ export default function Mensajes({ userId, onUnreadChange }: MensajesProps) {
             .single();
 
           if (data) {
-            setMessages(prev => [...prev, supabaseMsgToLocal(data as Mensaje, userId)]);
+            setMessages(prev => [...prev, supabaseMsgToLocal(data as Mensaje, userId, myName)]);
           }
         }
       )
@@ -209,7 +213,7 @@ export default function Mensajes({ userId, onUnreadChange }: MensajesProps) {
       });
       const optimistic: MsgLocal = {
         id: `opt-${Date.now()}`,
-        author: 'Vos',
+        author: myName,
         rol: 'user',
         content: text,
         time: new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' }),
@@ -220,7 +224,7 @@ export default function Mensajes({ userId, onUnreadChange }: MensajesProps) {
     } else {
       const newMessage: MsgLocal = {
         id: Date.now(),
-        author: 'Vos',
+        author: myName,
         rol: 'user',
         content: text,
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
@@ -274,7 +278,7 @@ export default function Mensajes({ userId, onUnreadChange }: MensajesProps) {
 
       const optimistic: MsgLocal = {
         id: `opt-${Date.now()}`,
-        author: 'Vos',
+        author: myName,
         rol: 'user',
         content: '',
         time: new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' }),

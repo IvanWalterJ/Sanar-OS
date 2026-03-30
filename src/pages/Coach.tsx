@@ -4,7 +4,7 @@ import { GoogleGenAI } from '@google/genai';
 import Markdown from 'react-markdown';
 import { toast } from 'sonner';
 import { buildCoachSystemPrompt, detectarContextoConversacion } from '../lib/coachPrompt';
-import { getUserKnowledgeBase } from '../lib/userKnowledgeBase';
+import { getUserKnowledgeBase, getUserKnowledgeBaseSync } from '../lib/userKnowledgeBase';
 
 interface Message {
   role: 'assistant' | 'user';
@@ -51,7 +51,7 @@ export default function Coach({ userId }: { userId?: string }) {
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
-  const knowledgeBaseRef = useRef<string>('');
+  const knowledgeBaseRef = useRef<string>(getUserKnowledgeBaseSync());
 
   useEffect(() => {
     if (!isTyping) {
