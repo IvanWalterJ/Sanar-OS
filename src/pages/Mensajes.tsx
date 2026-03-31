@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { Hash, Lock, Send, Trophy, Users, Search, MoreVertical, Image, Mic } from 'lucide-react';
+import { Hash, Lock, Send, Trophy, Users, Search, MoreVertical, Image, Mic, Shield } from 'lucide-react';
 import { supabase, isSupabaseReady, type Mensaje } from '../lib/supabase';
 import { toast } from 'sonner';
 
@@ -11,6 +11,7 @@ interface MensajesProps {
 interface MsgLocal {
   id: string | number;
   author: string;
+  authorId?: string;
   rol: 'bot' | 'admin' | 'user';
   content: string;
   time: string;
@@ -22,10 +23,6 @@ interface MsgLocal {
 
 const MOCK_MESSAGES: MsgLocal[] = [
   { id: 1, author: 'Tu Clínica Digital', rol: 'bot', content: '¡Bienvenida a tu programa de 90 días! Tu canal privado está listo. Podés escribirle al equipo aquí.', time: 'Lun 09:00', isMe: false, channelId: 'privado' },
-  { id: 2, author: 'Vos', rol: 'user', content: 'Hola equipo, ya completé la fase 1. ¿Cómo seguimos?', time: 'Mar 14:30', isMe: true, channelId: 'privado' },
-  { id: 3, author: 'Paolis', rol: 'admin', content: '¡Excelente! Vi tus métricas. Te acabo de desbloquear la Fase 2 para que empieces con el diseño de la oferta.', time: 'Mar 15:45', isMe: false, channelId: 'privado' },
-  { id: 4, author: 'Tu Clínica Digital', rol: 'bot', content: '📋 Recordatorio: Esta semana es clave para avanzar en tu Hoja de Ruta. ¿Cómo va tu tarea activa?', time: 'Hoy 09:00', isMe: false, channelId: 'privado' },
-  { id: 5, author: 'Tu Clínica Digital', rol: 'bot', content: '¡Compartí tus victorias de la semana aquí! 🎉', time: 'Lun 09:00', isMe: false, channelId: 'victorias' },
 ];
 
 function supabaseMsgToLocal(m: Mensaje, myUserId: string, myName?: string): MsgLocal {
@@ -35,6 +32,7 @@ function supabaseMsgToLocal(m: Mensaje, myUserId: string, myName?: string): MsgL
   const fallbackMyName = myName ?? (() => { try { return JSON.parse(localStorage.getItem('tcd_profile') || '{}').nombre || 'Yo'; } catch { return 'Yo'; } })();
   return {
     id: m.id,
+    authorId: m.emisor_id,
     author: isMe ? fallbackMyName : (profile?.nombre ?? 'Equipo'),
     rol,
     content: m.contenido,
@@ -53,8 +51,23 @@ const CHANNELS = [
   { id: 'consultas', name: 'Consultas Generales',     icon: Hash,   type: 'public'  },
 ] as const;
 
+// Colores de avatar deterministas por nombre
+function avatarColor(name: string): string {
+  const colors = [
+    'bg-indigo-500/30 text-indigo-200',
+    'bg-violet-500/30 text-violet-200',
+    'bg-emerald-500/30 text-emerald-200',
+    'bg-amber-500/30 text-amber-200',
+    'bg-pink-500/30 text-pink-200',
+    'bg-cyan-500/30 text-cyan-200',
+    'bg-orange-500/30 text-orange-200',
+  ];
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) hash += name.charCodeAt(i);
+  return colors[hash % colors.length];
+}
+
 export default function Mensajes({ userId, onUnreadChange }: MensajesProps) {
-  // Nombre del usuario actual desde localStorage
   const myName = (() => { try { return JSON.parse(localStorage.getItem('tcd_profile') || '{}').nombre || 'Yo'; } catch { return 'Yo'; } })();
 
   const [activeChannel, setActiveChannel] = useState('privado');
@@ -68,13 +81,11 @@ export default function Mensajes({ userId, onUnreadChange }: MensajesProps) {
   const imageInputRef = useRef<HTMLInputElement>(null);
   const audioInputRef = useRef<HTMLInputElement>(null);
 
-  // Sync total unread with parent (for Sidebar badge)
   useEffect(() => {
     const total = Object.values(unreadMap).reduce((a, b) => a + b, 0);
     onUnreadChange?.(total);
   }, [unreadMap, onUnreadChange]);
 
-  // Reset unread for active channel when switching
   const handleChannelSwitch = useCallback((ch: string) => {
     setActiveChannel(ch);
     setUnreadMap(prev => ({ ...prev, [ch]: 0 }));
@@ -104,6 +115,8 @@ export default function Mensajes({ userId, onUnreadChange }: MensajesProps) {
   }, [userId, activeChannel]);
 
   // ─── Supabase Realtime — canal activo ────────────────────────────────────────
+  // Para canales públicos: el insert propio lo manejamos con optimistic, NO escuchar propio
+  // Para canal privado: escuchar solo mensajes RECIBIDOS (del admin), el propio es optimistic
   useEffect(() => {
     if (!isSupabaseReady() || !supabase || !userId) return;
 
@@ -120,6 +133,9 @@ export default function Mensajes({ userId, onUnreadChange }: MensajesProps) {
             : `canal=eq.${activeChannel}`,
         },
         async (payload) => {
+          // Para canales públicos: ignorar propios mensajes (ya están por optimistic)
+          if (activeChannel !== 'privado' && payload.new.emisor_id === userId) return;
+
           if (!supabase) return;
           const { data } = await supabase
             .from('mensajes')
@@ -137,7 +153,7 @@ export default function Mensajes({ userId, onUnreadChange }: MensajesProps) {
     return () => { supabase.removeChannel(channel); };
   }, [userId, activeChannel]);
 
-  // ─── Supabase Realtime — todos los canales (notificaciones) ─────────────────
+  // ─── Notificaciones de otros canales ─────────────────────────────────────────
   useEffect(() => {
     if (!isSupabaseReady() || !supabase || !userId) return;
 
@@ -155,11 +171,9 @@ export default function Mensajes({ userId, onUnreadChange }: MensajesProps) {
               : `canal=eq.${ch.id}`,
           },
           async (payload) => {
-            // Ignorar si el canal está activo o es mensaje propio
             if (ch.id === activeChannel) return;
             if (payload.new.emisor_id === userId) return;
 
-            // Obtener nombre del emisor
             const { data: m } = await supabase!
               .from('mensajes')
               .select('*, emisor:profiles!emisor_id(nombre, rol)')
@@ -172,10 +186,7 @@ export default function Mensajes({ userId, onUnreadChange }: MensajesProps) {
 
             toast(nombre, {
               description: preview || '📎 Archivo adjunto',
-              action: {
-                label: 'Ver →',
-                onClick: () => handleChannelSwitch(ch.id),
-              },
+              action: { label: 'Ver →', onClick: () => handleChannelSwitch(ch.id) },
               icon: React.createElement(ChIcon, { className: 'w-4 h-4 text-blue-400' }),
               duration: 6000,
             });
@@ -205,14 +216,10 @@ export default function Mensajes({ userId, onUnreadChange }: MensajesProps) {
     setInput('');
 
     if (isSupabaseReady() && supabase && userId) {
-      await supabase.from('mensajes').insert({
-        canal: activeChannel,
-        emisor_id: userId,
-        receptor_id: null,
-        contenido: text,
-      });
+      // Optimistic insert inmediato
       const optimistic: MsgLocal = {
         id: `opt-${Date.now()}`,
+        authorId: userId,
         author: myName,
         rol: 'user',
         content: text,
@@ -221,6 +228,13 @@ export default function Mensajes({ userId, onUnreadChange }: MensajesProps) {
         channelId: activeChannel,
       };
       setMessages(prev => [...prev, optimistic]);
+
+      await supabase.from('mensajes').insert({
+        canal: activeChannel,
+        emisor_id: userId,
+        receptor_id: null,
+        contenido: text,
+      });
     } else {
       const newMessage: MsgLocal = {
         id: Date.now(),
@@ -237,7 +251,7 @@ export default function Mensajes({ userId, onUnreadChange }: MensajesProps) {
         setTimeout(() => {
           setMessages(prev => [...prev, {
             id: Date.now() + 1,
-            author: 'Paolis',
+            author: 'Equipo',
             rol: 'admin',
             content: '¡Recibido! Lo reviso y te comento en breve.',
             time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
@@ -267,17 +281,10 @@ export default function Mensajes({ userId, onUnreadChange }: MensajesProps) {
         .from('mensajes-archivos')
         .getPublicUrl(data.path);
 
-      await supabase.from('mensajes').insert({
-        canal: activeChannel,
-        emisor_id: userId,
-        receptor_id: null,
-        contenido: '',
-        tipo_archivo: tipo,
-        archivo_url: publicUrl,
-      });
-
+      // Optimistic insert para archivos también
       const optimistic: MsgLocal = {
         id: `opt-${Date.now()}`,
+        authorId: userId,
         author: myName,
         rol: 'user',
         content: '',
@@ -288,6 +295,15 @@ export default function Mensajes({ userId, onUnreadChange }: MensajesProps) {
         tipoArchivo: tipo,
       };
       setMessages(prev => [...prev, optimistic]);
+
+      await supabase.from('mensajes').insert({
+        canal: activeChannel,
+        emisor_id: userId,
+        receptor_id: null,
+        contenido: '',
+        tipo_archivo: tipo,
+        archivo_url: publicUrl,
+      });
     } catch {
       toast.error('Error subiendo archivo. Verificá que el bucket exista en Supabase.');
     } finally {
@@ -295,14 +311,12 @@ export default function Mensajes({ userId, onUnreadChange }: MensajesProps) {
     }
   };
 
-  const userNombre = (() => {
-    try { return JSON.parse(localStorage.getItem('tcd_profile') || '{}').nombre ?? 'Vos'; } catch { return 'Vos'; }
-  })();
+  const userNombre = myName;
 
   return (
-    <div className="max-w-6xl mx-auto h-[calc(100vh-8rem)] flex glass-panel rounded-2xl overflow-hidden animate-in fade-in duration-500">
+    <div className="h-[calc(100vh-5rem)] flex glass-panel overflow-hidden animate-in fade-in duration-500">
       {/* Sidebar Channels */}
-      <div className="w-72 border-r border-white/10 bg-black/20 flex flex-col">
+      <div className="w-72 border-r border-white/10 bg-black/20 flex flex-col shrink-0">
         <div className="p-4 border-b border-white/10">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
@@ -348,9 +362,10 @@ export default function Mensajes({ userId, onUnreadChange }: MensajesProps) {
           </div>
         </div>
 
+        {/* Current user info */}
         <div className="p-4 border-t border-white/10">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500/40 to-purple-500/40 flex items-center justify-center text-sm font-medium text-white">
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold shrink-0 ${avatarColor(userNombre)}`}>
               {userNombre.charAt(0).toUpperCase()}
             </div>
             <div className="flex-1 min-w-0">
@@ -362,8 +377,9 @@ export default function Mensajes({ userId, onUnreadChange }: MensajesProps) {
       </div>
 
       {/* Chat Area */}
-      <div className="flex-1 flex flex-col bg-black/10">
-        <div className="h-16 border-b border-white/10 flex items-center justify-between px-6 bg-white/5">
+      <div className="flex-1 flex flex-col bg-black/10 min-w-0">
+        {/* Header */}
+        <div className="h-16 border-b border-white/10 flex items-center justify-between px-6 bg-white/5 shrink-0">
           <div className="flex items-center gap-3">
             {CHANNELS.find(c => c.id === activeChannel) && React.createElement(CHANNELS.find(c => c.id === activeChannel)!.icon, { className: "w-5 h-5 text-gray-400" })}
             <div>
@@ -378,7 +394,8 @@ export default function Mensajes({ userId, onUnreadChange }: MensajesProps) {
           </button>
         </div>
 
-        <div ref={messagesContainerRef} className="flex-1 overflow-y-auto p-6 space-y-6">
+        {/* Messages */}
+        <div ref={messagesContainerRef} className="flex-1 overflow-y-auto p-6 space-y-4">
           {loadingMsgs ? (
             <div className="flex items-center justify-center py-10">
               <div className="w-5 h-5 border-2 border-blue-500/30 border-t-blue-500 rounded-full animate-spin" />
@@ -390,29 +407,36 @@ export default function Mensajes({ userId, onUnreadChange }: MensajesProps) {
             </div>
           ) : (
             activeMessages.map((msg) => (
-              <div key={msg.id} className={`flex gap-4 ${msg.isMe ? 'flex-row-reverse' : ''}`}>
-                {!msg.isMe && (
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-xs font-bold ${
-                    msg.rol === 'bot' ? 'bg-gradient-to-br from-blue-500 to-purple-600 text-white' : 'bg-amber-500 text-black'
-                  }`}>
-                    {msg.author.charAt(0)}
-                  </div>
-                )}
+              <div key={msg.id} className={`flex gap-3 items-end max-w-[80%] ${msg.isMe ? 'ml-auto flex-row-reverse' : ''}`}>
+                {/* Avatar */}
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-xs font-bold border ${
+                  msg.rol === 'admin'
+                    ? 'bg-indigo-500/20 border-indigo-500/30 text-indigo-300'
+                    : msg.rol === 'bot'
+                    ? 'bg-gradient-to-br from-blue-500/30 to-purple-500/30 border-blue-500/30 text-white'
+                    : `${avatarColor(msg.author)} border-transparent`
+                }`}>
+                  {msg.rol === 'admin' ? <Shield className="w-3.5 h-3.5" /> : msg.author.charAt(0).toUpperCase()}
+                </div>
 
-                <div className={`flex flex-col ${msg.isMe ? 'items-end' : 'items-start'} max-w-[75%]`}>
-                  <div className="flex items-baseline gap-2 mb-1 mx-1">
+                <div className={`flex flex-col gap-1 ${msg.isMe ? 'items-end' : 'items-start'}`}>
+                  {/* Name + badge + time */}
+                  <div className={`flex items-baseline gap-2 px-1 ${msg.isMe ? 'flex-row-reverse' : ''}`}>
                     <span className="text-xs font-medium text-gray-300">{msg.author}</span>
-                    {msg.rol === 'admin' && <span className="text-[9px] uppercase tracking-wider text-amber-400 bg-amber-400/10 px-1.5 py-0.5 rounded">Equipo</span>}
+                    {msg.rol === 'admin' && <span className="text-[9px] uppercase tracking-wider text-indigo-400 bg-indigo-400/10 px-1.5 py-0.5 rounded">Coach</span>}
                     {msg.rol === 'bot' && <span className="text-[9px] uppercase tracking-wider text-blue-400 bg-blue-400/10 px-1.5 py-0.5 rounded">Sistema</span>}
                     <span className="text-[10px] text-gray-600">{msg.time}</span>
                   </div>
 
-                  <div className={`rounded-2xl p-4 ${
+                  {/* Bubble */}
+                  <div className={`rounded-2xl px-4 py-3 ${
                     msg.isMe
                       ? 'bg-blue-600 text-white rounded-tr-sm'
                       : msg.rol === 'bot'
-                        ? 'bg-white/5 border border-white/10 text-gray-300 rounded-tl-sm'
-                        : 'bg-white/10 text-white rounded-tl-sm'
+                      ? 'bg-white/5 border border-white/10 text-gray-300 rounded-tl-sm'
+                      : msg.rol === 'admin'
+                      ? 'bg-indigo-600/20 border border-indigo-500/20 text-indigo-100 rounded-tl-sm'
+                      : 'bg-white/10 text-white rounded-tl-sm'
                   }`}>
                     {msg.tipoArchivo === 'imagen' && msg.archivoUrl && (
                       <img
@@ -436,42 +460,20 @@ export default function Mensajes({ userId, onUnreadChange }: MensajesProps) {
         </div>
 
         {/* Input area */}
-        <div className="p-4 bg-white/5 border-t border-white/10">
-          {/* Hidden file inputs */}
-          <input
-            ref={imageInputRef}
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={e => { const f = e.target.files?.[0]; if (f) handleUploadFile(f, 'imagen'); e.target.value = ''; }}
-          />
-          <input
-            ref={audioInputRef}
-            type="file"
-            accept="audio/*"
-            className="hidden"
-            onChange={e => { const f = e.target.files?.[0]; if (f) handleUploadFile(f, 'audio'); e.target.value = ''; }}
-          />
+        <div className="p-4 bg-white/5 border-t border-white/10 shrink-0">
+          <input ref={imageInputRef} type="file" accept="image/*" className="hidden"
+            onChange={e => { const f = e.target.files?.[0]; if (f) handleUploadFile(f, 'imagen'); e.target.value = ''; }} />
+          <input ref={audioInputRef} type="file" accept="audio/*" className="hidden"
+            onChange={e => { const f = e.target.files?.[0]; if (f) handleUploadFile(f, 'audio'); e.target.value = ''; }} />
 
           <form className="flex items-end gap-2" onSubmit={handleSend}>
-            {/* Attach buttons */}
             <div className="flex flex-col gap-1 shrink-0">
-              <button
-                type="button"
-                onClick={() => imageInputRef.current?.click()}
-                disabled={uploading}
-                title="Subir imagen"
-                className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 flex items-center justify-center text-gray-400 hover:text-white transition-colors disabled:opacity-50"
-              >
+              <button type="button" onClick={() => imageInputRef.current?.click()} disabled={uploading} title="Subir imagen"
+                className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 flex items-center justify-center text-gray-400 hover:text-white transition-colors disabled:opacity-50">
                 <Image className="w-4 h-4" />
               </button>
-              <button
-                type="button"
-                onClick={() => audioInputRef.current?.click()}
-                disabled={uploading}
-                title="Subir audio"
-                className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 flex items-center justify-center text-gray-400 hover:text-white transition-colors disabled:opacity-50"
-              >
+              <button type="button" onClick={() => audioInputRef.current?.click()} disabled={uploading} title="Subir audio"
+                className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 flex items-center justify-center text-gray-400 hover:text-white transition-colors disabled:opacity-50">
                 <Mic className="w-4 h-4" />
               </button>
             </div>
@@ -490,11 +492,8 @@ export default function Mensajes({ userId, onUnreadChange }: MensajesProps) {
               className="flex-1 max-h-32 min-h-[52px] bg-black/20 border border-white/10 rounded-xl py-3.5 px-4 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/50 transition-all resize-none scrollbar-hide disabled:opacity-50"
               rows={1}
             />
-            <button
-              type="submit"
-              disabled={!input.trim() || uploading}
-              className="w-[52px] h-[52px] shrink-0 rounded-xl bg-blue-500 hover:bg-blue-600 disabled:opacity-50 disabled:hover:bg-blue-500 flex items-center justify-center text-white transition-colors shadow-lg shadow-blue-500/20"
-            >
+            <button type="submit" disabled={!input.trim() || uploading}
+              className="w-[52px] h-[52px] shrink-0 rounded-xl bg-blue-500 hover:bg-blue-600 disabled:opacity-50 flex items-center justify-center text-white transition-colors shadow-lg shadow-blue-500/20">
               {uploading
                 ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                 : <Send className="w-5 h-5 ml-1" />

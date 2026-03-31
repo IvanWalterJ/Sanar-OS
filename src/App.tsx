@@ -53,6 +53,7 @@ export default function App() {
   const [profileLoading, setProfileLoading] = useState(false);
   const [supabaseProfile, setSupabaseProfile] = useState<SupabaseProfile | null>(null);
   const [unreadMessages, setUnreadMessages] = useState(0);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const mainRef = useRef<HTMLElement>(null);
 
   // ─── Auth init ──────────────────────────────────────────────────────────────
@@ -207,32 +208,39 @@ export default function App() {
         onOpenSettings={openSettings}
         onSignOut={handleSignOut}
         messageBadge={unreadMessages}
+        collapsed={sidebarCollapsed}
+        onToggleCollapse={() => setSidebarCollapsed(v => !v)}
       />
 
       <div className="flex-1 flex flex-col relative z-10 overflow-hidden">
         <Topbar setCurrentPage={setCurrentPage} />
         <main ref={mainRef} className="flex-1 overflow-y-auto overflow-x-hidden overscroll-contain scrollbar-hide">
-          <div className="p-6">
-            {currentPage === 'dashboard' && <Dashboard setCurrentPage={setCurrentPage} userId={supabaseProfile?.id} />}
-            {currentPage === 'roadmap' && <Roadmap userId={supabaseProfile?.id} perfil={supabaseProfile ?? undefined} geminiKey={import.meta.env.VITE_GEMINI_API_KEY} onNavigate={setCurrentPage} />}
-            {currentPage === 'coach' && <Coach userId={supabaseProfile?.id} />}
-            {currentPage === 'metrics' && <Metrics userId={supabaseProfile?.id} />}
-            {currentPage === 'mensajes' && <Mensajes userId={supabaseProfile?.id} onUnreadChange={setUnreadMessages} />}
-            {currentPage === 'diario' && (
-              <DiarioDirector
-                userId={supabaseProfile?.id}
-                geminiKey={import.meta.env.VITE_GEMINI_API_KEY}
-              />
-            )}
-            {currentPage === 'biblioteca' && <Biblioteca userId={supabaseProfile?.id} />}
-            {currentPage === 'agentes' && (
-              <Agentes
-                userId={supabaseProfile?.id}
-                perfil={supabaseProfile ?? undefined}
-                geminiKey={import.meta.env.VITE_GEMINI_API_KEY}
-              />
-            )}
-          </div>
+          {currentPage === 'mensajes' ? (
+            <div className="h-full">
+              <Mensajes userId={supabaseProfile?.id} onUnreadChange={setUnreadMessages} />
+            </div>
+          ) : (
+            <div className="p-6">
+              {currentPage === 'dashboard' && <Dashboard setCurrentPage={setCurrentPage} userId={supabaseProfile?.id} />}
+              {currentPage === 'roadmap' && <Roadmap userId={supabaseProfile?.id} perfil={supabaseProfile ?? undefined} geminiKey={import.meta.env.VITE_GEMINI_API_KEY} onNavigate={setCurrentPage} />}
+              {currentPage === 'coach' && <Coach userId={supabaseProfile?.id} />}
+              {currentPage === 'metrics' && <Metrics userId={supabaseProfile?.id} />}
+              {currentPage === 'diario' && (
+                <DiarioDirector
+                  userId={supabaseProfile?.id}
+                  geminiKey={import.meta.env.VITE_GEMINI_API_KEY}
+                />
+              )}
+              {currentPage === 'biblioteca' && <Biblioteca userId={supabaseProfile?.id} />}
+              {currentPage === 'agentes' && (
+                <Agentes
+                  userId={supabaseProfile?.id}
+                  perfil={supabaseProfile ?? undefined}
+                  geminiKey={import.meta.env.VITE_GEMINI_API_KEY}
+                />
+              )}
+            </div>
+          )}
         </main>
       </div>
 
