@@ -4,6 +4,21 @@ import { HERRAMIENTAS_POR_GRUPO, GRUPOS_INFO } from '../lib/herramientas';
 import { VIDEOS, getYoutubeEmbedUrl, getYoutubeVideoId, type VideoModulo } from '../lib/videos';
 import HerramientaDetalle from './HerramientaDetalle';
 
+function loadAdminVideos(): VideoModulo[] {
+  try {
+    const raw: Array<{ id: string; grupo: string; titulo: string; descripcion: string; youtubeUrl: string; duracion?: string }> =
+      JSON.parse(localStorage.getItem('tcd_admin_videos') || '[]');
+    return raw.map(v => ({
+      id: v.id,
+      grupo: v.grupo as VideoModulo['grupo'],
+      titulo: v.titulo,
+      descripcion: v.descripcion,
+      youtubeUrl: v.youtubeUrl,
+      duracion: v.duracion,
+    }));
+  } catch { return []; }
+}
+
 type GrupoId = 'A' | 'B' | 'C' | 'D' | 'E';
 type Modo = 'herramientas' | 'videos';
 
@@ -21,6 +36,7 @@ export default function Biblioteca({ userId }: BibliotecaProps) {
   const tabsRef = useRef<HTMLDivElement>(null);
 
   const geminiKey = import.meta.env.VITE_GEMINI_API_KEY || '';
+  const allVideos = [...VIDEOS, ...loadAdminVideos()];
 
   // Check scroll state for the tabs row
   function updateScrollState() {
@@ -66,7 +82,7 @@ export default function Biblioteca({ userId }: BibliotecaProps) {
 
   const grupoInfo = GRUPOS_INFO[grupoActivo];
   const herramientas = HERRAMIENTAS_POR_GRUPO[grupoActivo] ?? [];
-  const videosDelGrupo = VIDEOS.filter(v => v.grupo === grupoActivo);
+  const videosDelGrupo = allVideos.filter(v => v.grupo === grupoActivo);
 
   return (
     <div className="max-w-5xl mx-auto space-y-8 pb-12 animate-in fade-in duration-500">
@@ -115,7 +131,7 @@ export default function Biblioteca({ userId }: BibliotecaProps) {
             const isActive = grupoActivo === gId;
             const count = modo === 'herramientas'
               ? (HERRAMIENTAS_POR_GRUPO[gId] ?? []).length
-              : VIDEOS.filter(v => v.grupo === gId).length;
+              : allVideos.filter(v => v.grupo === gId).length;
             return (
               <button
                 key={gId}
@@ -209,7 +225,7 @@ export default function Biblioteca({ userId }: BibliotecaProps) {
               <Youtube className="w-12 h-12 text-red-500/30 mb-4" />
               <p className="text-gray-400 text-sm font-medium mb-2">No hay videos en este grupo todavía</p>
               <p className="text-gray-600 text-xs max-w-sm leading-relaxed">
-                Para agregar videos, editá el archivo <code className="bg-white/5 px-1.5 py-0.5 rounded font-mono text-gray-400">src/lib/videos.ts</code> y agregá objetos al array <code className="bg-white/5 px-1 rounded font-mono text-gray-400">VIDEOS</code> con la URL de YouTube y el grupo correspondiente.
+                El coach puede agregar videos desde el panel de administración en la sección <strong className="text-gray-400">Videos</strong>.
               </p>
             </div>
           ) : (

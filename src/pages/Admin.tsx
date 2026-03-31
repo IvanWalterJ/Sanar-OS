@@ -6,7 +6,8 @@ import {
   MessageSquare, BookOpen, BarChart2, Calendar,
   TrendingUp, TrendingDown, Sparkles, Bot,
   Hash, Trophy, Lock, Shield,
-  CheckCheck, AlertTriangle, Image, Mic, Settings, Camera
+  CheckCheck, AlertTriangle, Image, Mic, Settings, Camera,
+  Video, Trash2, Youtube, Play
 } from 'lucide-react';
 import { supabase, type Profile, type Mensaje, isSupabaseReady } from '../lib/supabase';
 import { SEED_ROADMAP_V2 } from '../lib/roadmapSeed';
@@ -36,8 +37,30 @@ interface ClienteConEstado extends Profile {
   progreso_porcentaje: number;
 }
 
-type MainTab = 'dashboard' | 'comunidad' | 'victorias' | 'consultas' | 'metricas_globales';
+type MainTab = 'dashboard' | 'comunidad' | 'victorias' | 'consultas' | 'metricas_globales' | 'mensajes_privados' | 'videos';
 type DetalleTab = 'resumen' | 'diario' | 'metricas' | 'mensajes';
+
+interface AdminVideo {
+  id: string;
+  grupo: 'A' | 'B' | 'C' | 'D' | 'E';
+  titulo: string;
+  descripcion: string;
+  youtubeUrl: string;
+  duracion?: string;
+}
+
+const PILARES: { id: AdminVideo['grupo']; label: string }[] = [
+  { id: 'A', label: 'A — Identidad y Mentalidad' },
+  { id: 'B', label: 'B — Claridad y Oferta' },
+  { id: 'C', label: 'C — Contenido y Captación' },
+  { id: 'D', label: 'D — Infraestructura Digital' },
+  { id: 'E', label: 'E — Conversión y Ventas' },
+];
+
+function getYoutubeId(url: string): string | null {
+  const m = url.match(/(?:v=|youtu\.be\/|embed\/)([a-zA-Z0-9_-]{11})/);
+  return m ? m[1] : null;
+}
 
 const SEMAFORO_CONFIG = {
   verde: { class: 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]', label: 'En ritmo', text: 'text-emerald-400' },
@@ -289,6 +312,23 @@ export default function Admin({ adminProfile, onSignOut }: AdminProps) {
   });
   const [creando, setCreando] = useState(false);
 
+  // Mensajes privados (WhatsApp-style inbox)
+  const [chatCliente, setChatCliente] = useState<ClienteConEstado | null>(null);
+  const [chatMessages, setChatMessages] = useState<Mensaje[]>([]);
+  const [chatInput, setChatInput] = useState('');
+  const [chatEnviando, setChatEnviando] = useState(false);
+  const [chatLoading, setChatLoading] = useState(false);
+  const chatEndRef = useRef<HTMLDivElement>(null);
+
+  // Videos admin
+  const [adminVideos, setAdminVideos] = useState<AdminVideo[]>(() => {
+    try { return JSON.parse(localStorage.getItem('tcd_admin_videos') || '[]'); } catch { return []; }
+  });
+  const [showAddVideo, setShowAddVideo] = useState(false);
+  const [videoForm, setVideoForm] = useState<{ grupo: AdminVideo['grupo']; titulo: string; descripcion: string; youtubeUrl: string; duracion: string }>({
+    grupo: 'A', titulo: '', descripcion: '', youtubeUrl: '', duracion: ''
+  });
+
   // Admin settings
   const [showAdminSettings, setShowAdminSettings] = useState(false);
   const [adminDraft, setAdminDraft] = useState({ nombre: adminProfile.nombre, cargo: adminProfile.especialidad || 'Director' });
@@ -337,6 +377,30 @@ export default function Admin({ adminProfile, onSignOut }: AdminProps) {
     );
     return () => { subs.forEach(s => supabase!.removeChannel(s)); };
   }, [mainTab, adminProfile.id]);
+
+  // Realtime chat for mensajes_privados tab
+  useEffect(() => {
+    if (!supabase || !chatCliente || mainTab !== 'mensajes_privados') return;
+    const channel = supabase
+      .channel(`admin-inbox-${chatCliente.id}`)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'mensajes' },
+        async (payload) => {
+          if (!supabase) return;
+          const { data } = await supabase.from('mensajes').select('*, emisor:profiles!emisor_id(nombre, rol)').eq('id', payload.new.id).single();
+          if (data && data.canal === 'privado' && (data.emisor_id === chatCliente.id || data.receptor_id === chatCliente.id)) {
+            setChatMessages(prev => {
+              if (prev.find(m => m.id === data.id)) return prev;
+              return [...prev, data as Mensaje];
+            });
+          }
+        }
+      ).subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [chatCliente, mainTab]);
+
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [chatMessages]);
 
   // Realtime Privado Chat Subscription para Admin
   useEffect(() => {
@@ -608,6 +672,59 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
     }
   }
 
+  async function cargarChatMessages(clienteId: string) {
+    if (!supabase) return;
+    setChatLoading(true);
+    try {
+      const { data } = await supabase
+        .from('mensajes')
+        .select('*, emisor:profiles!emisor_id(nombre, rol)')
+        .or(`emisor_id.eq.${clienteId},receptor_id.eq.${clienteId}`)
+        .eq('canal', 'privado')
+        .order('created_at');
+      setChatMessages((data as Mensaje[]) ?? []);
+    } finally {
+      setChatLoading(false);
+    }
+  }
+
+  async function enviarChatMsg() {
+    if (!supabase || !chatCliente || !chatInput.trim()) return;
+    setChatEnviando(true);
+    const texto = chatInput.trim();
+    const tempId = crypto.randomUUID();
+    const optimistic: Mensaje = {
+      id: tempId, canal: 'privado', emisor_id: adminProfile.id,
+      receptor_id: chatCliente.id, contenido: texto, created_at: new Date().toISOString(),
+    } as Mensaje;
+    setChatMessages(prev => [...prev, optimistic]);
+    setChatInput('');
+    try {
+      const { error } = await supabase.from('mensajes').insert({
+        canal: 'privado', emisor_id: adminProfile.id, receptor_id: chatCliente.id, contenido: texto
+      });
+      if (error) throw error;
+    } catch {
+      setChatMessages(prev => prev.filter(m => m.id !== tempId));
+      setChatInput(texto);
+      toast.error('Error enviando mensaje');
+    } finally {
+      setChatEnviando(false);
+    }
+  }
+
+  function saveAdminVideo(v: AdminVideo) {
+    const updated = [...adminVideos, v];
+    setAdminVideos(updated);
+    localStorage.setItem('tcd_admin_videos', JSON.stringify(updated));
+  }
+
+  function deleteAdminVideo(id: string) {
+    const updated = adminVideos.filter(v => v.id !== id);
+    setAdminVideos(updated);
+    localStorage.setItem('tcd_admin_videos', JSON.stringify(updated));
+  }
+
   async function guardarConfigAdmin() {
     setGuardandoAdmin(true);
     try {
@@ -705,9 +822,11 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
             {[
               { id: 'dashboard', label: 'Clientes', icon: Users },
               { id: 'metricas_globales', label: 'Métricas Globales', icon: BarChart2 },
+              { id: 'mensajes_privados', label: 'Mensajes', icon: MessageSquare },
               { id: 'comunidad', label: 'Comunidad', icon: Users },
               { id: 'victorias', label: 'Victorias', icon: Trophy },
               { id: 'consultas', label: 'Consultas', icon: Hash },
+              { id: 'videos', label: 'Videos', icon: Video },
             ].map(item => {
               const unread = channelUnread[item.id] ?? 0;
               return (
@@ -766,11 +885,15 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
       <main className="flex-1 flex flex-col relative z-10 overflow-hidden bg-[url('https://grainy-gradients.vercel.app/noise.svg')] bg-opacity-50">
         <header className="h-16 border-b border-white/[0.05] flex items-center px-6 shrink-0 bg-black/20 backdrop-blur-md">
           <h2 className="text-sm font-semibold text-gray-200 capitalize tracking-wide">
-            {mainTab === 'dashboard' ? 'Panel de Control - Clientes' : mainTab === 'metricas_globales' ? 'Métricas Globales del Programa' : `Canal: ${mainTab}`}
+            {mainTab === 'dashboard' ? 'Panel de Control - Clientes'
+              : mainTab === 'metricas_globales' ? 'Métricas Globales del Programa'
+              : mainTab === 'mensajes_privados' ? 'Mensajes Privados'
+              : mainTab === 'videos' ? 'Gestión de Videos'
+              : `Canal: ${mainTab}`}
           </h2>
         </header>
 
-        <div className={`flex-1 overflow-hidden scrollbar-hide ${['comunidad','victorias','consultas'].includes(mainTab) ? 'flex flex-col' : 'overflow-auto p-6'}`}>
+        <div className={`flex-1 scrollbar-hide ${['comunidad','victorias','consultas','mensajes_privados'].includes(mainTab) ? 'overflow-hidden flex flex-col' : 'overflow-y-auto p-6'}`}>
           {mainTab === 'metricas_globales' ? (
             <div className="max-w-6xl mx-auto space-y-6">
               {/* ── Filtro de cliente ── */}
@@ -1029,7 +1152,282 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
                 })()
               )}
             </div>
-          ) : mainTab !== 'dashboard' ? (
+          ) : mainTab === 'mensajes_privados' ? (
+            /* ── MENSAJES PRIVADOS (WhatsApp style) ── */
+            <div className="flex flex-1 min-h-0 overflow-hidden">
+              {/* Left: client list */}
+              <div className="w-[300px] shrink-0 border-r border-white/[0.06] flex flex-col bg-black/20">
+                <div className="p-4 border-b border-white/[0.06]">
+                  <p className="text-[11px] font-bold uppercase tracking-widest text-gray-500">Conversaciones ({clientes.length})</p>
+                </div>
+                <div className="flex-1 overflow-y-auto scrollbar-hide">
+                  {loading ? (
+                    <div className="flex justify-center py-10"><Loader2 className="w-5 h-5 text-indigo-400 animate-spin" /></div>
+                  ) : clientes.map(c => (
+                    <button
+                      key={c.id}
+                      onClick={() => { setChatCliente(c); cargarChatMessages(c.id); }}
+                      className={`w-full text-left px-4 py-3.5 border-b border-white/[0.04] transition-all flex items-center gap-3 ${
+                        chatCliente?.id === c.id ? 'bg-indigo-500/10' : 'hover:bg-white/[0.03]'
+                      }`}
+                    >
+                      <div className={`w-10 h-10 rounded-full shrink-0 flex items-center justify-center text-sm font-bold border ${
+                        chatCliente?.id === c.id ? 'bg-indigo-500/20 border-indigo-500/30 text-indigo-300' : 'bg-white/5 border-white/10 text-white'
+                      }`}>
+                        {c.nombre.charAt(0).toUpperCase()}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-white truncate">{c.nombre}</p>
+                        <p className="text-[10px] text-gray-500 truncate">{c.especialidad || 'Sin especialidad'}</p>
+                      </div>
+                      <div className={`w-2 h-2 rounded-full shrink-0 ${SEMAFORO_CONFIG[c.semaforo].class}`} />
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Right: conversation */}
+              {chatCliente ? (
+                <div className="flex-1 flex flex-col min-w-0 bg-[#0a0a10]">
+                  {/* Chat header */}
+                  <div className="h-16 border-b border-white/[0.06] flex items-center gap-3 px-6 shrink-0 bg-black/20">
+                    <div className="w-9 h-9 rounded-full bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center text-sm font-bold text-indigo-300">
+                      {chatCliente.nombre.charAt(0).toUpperCase()}
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-white">{chatCliente.nombre}</p>
+                      <p className="text-[10px] text-gray-500">{chatCliente.especialidad || 'Día ' + chatCliente.dia_programa + '/90'}</p>
+                    </div>
+                  </div>
+                  {/* Messages */}
+                  <div className="flex-1 overflow-y-auto p-5 scrollbar-hide space-y-3">
+                    {chatLoading ? (
+                      <div className="flex justify-center py-10"><Loader2 className="w-6 h-6 text-indigo-400 animate-spin" /></div>
+                    ) : chatMessages.length === 0 ? (
+                      <div className="flex flex-col items-center justify-center h-full text-center">
+                        <MessageSquare className="w-10 h-10 text-gray-800 mb-4" />
+                        <p className="text-gray-500 text-sm">Comenzá la conversación con {chatCliente.nombre}</p>
+                      </div>
+                    ) : chatMessages.map(m => {
+                      const isMe = m.emisor_id === adminProfile.id;
+                      const senderName = isMe ? adminProfile.nombre : chatCliente.nombre;
+                      return (
+                        <div key={m.id} className={`flex gap-2.5 items-end max-w-[85%] ${isMe ? 'ml-auto flex-row-reverse' : ''}`}>
+                          <div className={`w-7 h-7 rounded-full shrink-0 flex items-center justify-center text-xs font-bold border overflow-hidden ${isMe ? 'bg-indigo-500/20 border-indigo-500/30' : 'bg-white/10 border-white/10'}`}>
+                            {isMe
+                              ? (adminAvatar ? <img src={adminAvatar} alt="" className="w-full h-full object-cover" /> : <Shield className="w-3.5 h-3.5 text-indigo-300" />)
+                              : senderName.charAt(0).toUpperCase()
+                            }
+                          </div>
+                          <div className="flex flex-col gap-1">
+                            <span className={`text-[10px] font-semibold text-gray-500 px-1 ${isMe ? 'text-right' : ''}`}>{senderName}</span>
+                            <div className={`px-4 py-3 rounded-2xl text-sm leading-relaxed ${
+                              isMe ? 'bg-indigo-600/25 text-indigo-50 border border-indigo-500/20 rounded-tr-sm'
+                                   : 'bg-white/[0.04] text-gray-200 border border-white/[0.06] rounded-tl-sm'
+                            }`}>
+                              <p>{m.contenido}</p>
+                              <p className={`text-[10px] mt-1.5 opacity-40 ${isMe ? 'text-right' : ''}`}>
+                                {new Date(m.created_at).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                    <div ref={chatEndRef} />
+                  </div>
+                  {/* Input */}
+                  <div className="p-4 border-t border-white/[0.06] shrink-0 bg-white/[0.01]">
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={chatInput}
+                        onChange={e => setChatInput(e.target.value)}
+                        onKeyDown={e => e.key === 'Enter' && !e.shiftKey && enviarChatMsg()}
+                        placeholder={`Mensaje a ${chatCliente.nombre}...`}
+                        disabled={chatEnviando}
+                        className="flex-1 bg-black/40 border border-white/10 rounded-xl py-3 px-5 text-sm text-white focus:outline-none focus:border-indigo-500/50 transition-all"
+                      />
+                      <button
+                        onClick={enviarChatMsg}
+                        disabled={!chatInput.trim() || chatEnviando}
+                        className="w-12 h-12 rounded-xl bg-indigo-500 hover:bg-indigo-400 disabled:opacity-50 flex items-center justify-center transition-colors shadow-lg shadow-indigo-500/20"
+                      >
+                        {chatEnviando ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex-1 flex items-center justify-center text-center">
+                  <div>
+                    <MessageSquare className="w-12 h-12 text-gray-800 mx-auto mb-4" />
+                    <p className="text-gray-500 text-sm">Seleccioná un cliente para chatear</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : mainTab === 'videos' ? (
+            /* ── GESTIÓN DE VIDEOS ── */
+            <div className="max-w-5xl mx-auto space-y-6">
+              {/* Header */}
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-2xl font-light text-white tracking-tight">Videos del Programa</h2>
+                  <p className="text-sm text-gray-500 mt-1">Agregá videos de YouTube por pilar. Se muestran automáticamente en la Biblioteca de tus clientes.</p>
+                </div>
+                <button
+                  onClick={() => { setVideoForm({ grupo: 'A', titulo: '', descripcion: '', youtubeUrl: '', duracion: '' }); setShowAddVideo(true); }}
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-red-600 hover:bg-red-500 text-white text-sm font-semibold transition-all shadow-lg shadow-red-500/20"
+                >
+                  <Plus className="w-4 h-4" /> Agregar Video
+                </button>
+              </div>
+
+              {/* Videos por pilar */}
+              {PILARES.map(p => {
+                const vids = adminVideos.filter(v => v.grupo === p.id);
+                return (
+                  <div key={p.id} className="bg-white/[0.02] border border-white/[0.06] rounded-2xl overflow-hidden">
+                    <div className="px-5 py-3 border-b border-white/[0.06] flex items-center justify-between">
+                      <p className="text-sm font-semibold text-white">{p.label}</p>
+                      <span className="text-[10px] bg-white/5 px-2 py-0.5 rounded-full text-gray-500">{vids.length} videos</span>
+                    </div>
+                    {vids.length === 0 ? (
+                      <div className="px-5 py-4 text-sm text-gray-600">Sin videos en este pilar todavía.</div>
+                    ) : (
+                      <div className="divide-y divide-white/[0.04]">
+                        {vids.map(v => {
+                          const vidId = getYoutubeId(v.youtubeUrl);
+                          return (
+                            <div key={v.id} className="flex items-center gap-4 px-5 py-3">
+                              <div className="w-16 h-10 rounded-lg overflow-hidden bg-black/40 shrink-0">
+                                {vidId ? (
+                                  <img src={`https://img.youtube.com/vi/${vidId}/mqdefault.jpg`} alt={v.titulo} className="w-full h-full object-cover" />
+                                ) : (
+                                  <div className="w-full h-full flex items-center justify-center"><Youtube className="w-4 h-4 text-red-500/40" /></div>
+                                )}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium text-white truncate">{v.titulo}</p>
+                                <p className="text-xs text-gray-500 truncate">{v.descripcion}</p>
+                              </div>
+                              {v.duracion && <span className="text-[10px] text-gray-500 shrink-0">{v.duracion}</span>}
+                              <button
+                                onClick={() => deleteAdminVideo(v.id)}
+                                className="w-7 h-7 rounded-lg bg-red-500/10 hover:bg-red-500/20 flex items-center justify-center text-red-400 transition-colors shrink-0"
+                                title="Eliminar video"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+
+              {/* Modal agregar video */}
+              {showAddVideo && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md">
+                  <div className="w-full max-w-md bg-[#0d0d12] border border-white/10 rounded-3xl p-8 shadow-2xl relative overflow-hidden">
+                    <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-red-500 to-orange-500" />
+                    <div className="flex items-center justify-between mb-6">
+                      <h3 className="text-xl font-semibold text-white">Nuevo Video</h3>
+                      <button onClick={() => setShowAddVideo(false)} className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/10 transition-colors">
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-[11px] font-bold uppercase tracking-wider text-gray-400 mb-2">URL de YouTube *</label>
+                        <input
+                          type="text"
+                          value={videoForm.youtubeUrl}
+                          onChange={e => setVideoForm({ ...videoForm, youtubeUrl: e.target.value })}
+                          placeholder="https://youtu.be/... o https://youtube.com/watch?v=..."
+                          className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-red-500/50 transition-colors"
+                        />
+                        {videoForm.youtubeUrl && getYoutubeId(videoForm.youtubeUrl) && (
+                          <img
+                            src={`https://img.youtube.com/vi/${getYoutubeId(videoForm.youtubeUrl)}/mqdefault.jpg`}
+                            alt="preview"
+                            className="mt-2 w-full rounded-xl object-cover aspect-video"
+                          />
+                        )}
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-bold uppercase tracking-wider text-gray-400 mb-2">Pilar *</label>
+                        <select
+                          value={videoForm.grupo}
+                          onChange={e => setVideoForm({ ...videoForm, grupo: e.target.value as AdminVideo['grupo'] })}
+                          className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-red-500/50 transition-colors"
+                        >
+                          {PILARES.map(p => <option key={p.id} value={p.id}>{p.label}</option>)}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-bold uppercase tracking-wider text-gray-400 mb-2">Título *</label>
+                        <input
+                          type="text"
+                          value={videoForm.titulo}
+                          onChange={e => setVideoForm({ ...videoForm, titulo: e.target.value })}
+                          placeholder="Ej: Módulo 1 — Identidad del Fundador"
+                          className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-red-500/50 transition-colors"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-bold uppercase tracking-wider text-gray-400 mb-2">Descripción</label>
+                        <input
+                          type="text"
+                          value={videoForm.descripcion}
+                          onChange={e => setVideoForm({ ...videoForm, descripcion: e.target.value })}
+                          placeholder="Breve descripción del contenido"
+                          className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-red-500/50 transition-colors"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-bold uppercase tracking-wider text-gray-400 mb-2">Duración (opcional)</label>
+                        <input
+                          type="text"
+                          value={videoForm.duracion}
+                          onChange={e => setVideoForm({ ...videoForm, duracion: e.target.value })}
+                          placeholder="Ej: 15:30"
+                          className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-red-500/50 transition-colors"
+                        />
+                      </div>
+                    </div>
+                    <div className="flex gap-3 mt-6">
+                      <button onClick={() => setShowAddVideo(false)} className="flex-1 py-3 rounded-xl bg-white/5 text-gray-400 hover:text-white text-sm font-semibold transition-colors">
+                        Cancelar
+                      </button>
+                      <button
+                        disabled={!videoForm.youtubeUrl.trim() || !videoForm.titulo.trim()}
+                        onClick={() => {
+                          if (!videoForm.youtubeUrl.trim() || !videoForm.titulo.trim()) return;
+                          saveAdminVideo({
+                            id: crypto.randomUUID(),
+                            grupo: videoForm.grupo,
+                            titulo: videoForm.titulo.trim(),
+                            descripcion: videoForm.descripcion.trim(),
+                            youtubeUrl: videoForm.youtubeUrl.trim(),
+                            duracion: videoForm.duracion.trim() || undefined,
+                          });
+                          setShowAddVideo(false);
+                          toast.success('Video agregado a la Biblioteca');
+                        }}
+                        className="flex-1 py-3 rounded-xl bg-red-600 hover:bg-red-500 disabled:opacity-50 text-white text-sm font-bold transition-all flex items-center justify-center gap-2"
+                      >
+                        <Plus className="w-4 h-4" /> Agregar Video
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : ['comunidad', 'victorias', 'consultas'].includes(mainTab) ? (
             <div className="flex-1 min-h-0 p-4">
               <GlobalChat canal={mainTab} adminProfile={adminProfile} />
             </div>
@@ -1381,8 +1779,10 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
                                 return (
                                   <div key={m.id} className={`flex gap-2.5 items-end max-w-[88%] ${isMe ? 'ml-auto flex-row-reverse' : ''}`}>
                                     {/* Avatar */}
-                                    <div className={`w-7 h-7 rounded-full shrink-0 flex items-center justify-center text-xs font-bold ${isMe ? 'bg-indigo-500/30 text-indigo-300' : 'bg-white/10 text-white'}`}>
-                                      {isMe ? <Shield className="w-3.5 h-3.5" /> : initial}
+                                    <div className={`w-7 h-7 rounded-full shrink-0 flex items-center justify-center text-xs font-bold border overflow-hidden ${isMe ? 'bg-indigo-500/20 border-indigo-500/30 text-indigo-300' : 'bg-white/10 border-white/10 text-white'}`}>
+                                      {isMe
+                                        ? (adminAvatar ? <img src={adminAvatar} alt="" className="w-full h-full object-cover" /> : <Shield className="w-3.5 h-3.5" />)
+                                        : initial}
                                     </div>
                                     <div className="flex flex-col gap-1">
                                       <span className={`text-[10px] font-semibold text-gray-500 px-1 ${isMe ? 'text-right' : ''}`}>{senderName}</span>

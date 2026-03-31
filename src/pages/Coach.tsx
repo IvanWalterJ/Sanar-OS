@@ -123,8 +123,12 @@ export default function Coach({ userId }: { userId?: string }) {
     }
   };
 
+  const avatarUrl = localStorage.getItem('tcd_avatar') || '';
+  const profile = (() => { try { return JSON.parse(localStorage.getItem('tcd_profile') || '{}'); } catch { return {}; } })();
+  const userInitial = (profile.nombre || 'U').charAt(0).toUpperCase();
+
   return (
-    <div className="max-w-4xl mx-auto h-[calc(100vh-8rem)] flex flex-col glass-panel rounded-2xl overflow-hidden animate-in fade-in duration-500 border border-indigo-500/10">
+    <div className="h-[calc(100vh-8rem)] flex flex-col glass-panel rounded-2xl overflow-hidden animate-in fade-in duration-500 border border-indigo-500/10">
       <div className="p-5 border-b border-white/5 bg-indigo-500/[0.02] flex items-center justify-between">
         <div className="flex items-center gap-4">
           <div className="w-10 h-10 rounded-xl bg-indigo-500/20 flex items-center justify-center border border-indigo-500/30">
@@ -149,12 +153,18 @@ export default function Coach({ userId }: { userId?: string }) {
       <div ref={messagesContainerRef} className="flex-1 overflow-y-auto p-6 space-y-6 scrollbar-hide">
         {messages.map((msg, i) => (
           <div key={i} className={`flex gap-4 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 border ${
-              msg.role === 'assistant' 
-                ? 'bg-indigo-500/20 text-indigo-400 border-indigo-500/30' 
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 border overflow-hidden ${
+              msg.role === 'assistant'
+                ? 'bg-indigo-500/20 text-indigo-400 border-indigo-500/30'
                 : 'bg-white/5 text-gray-400 border-white/10'
             }`}>
-              {msg.role === 'assistant' ? <Bot className="w-4 h-4" /> : <User className="w-4 h-4" />}
+              {msg.role === 'assistant'
+                ? <Bot className="w-4 h-4" />
+                : (avatarUrl
+                    ? <img src={avatarUrl} alt="" className="w-full h-full object-cover" />
+                    : <span className="text-xs font-bold text-white">{userInitial}</span>
+                  )
+              }
             </div>
             
             <div className={`max-w-[85%] rounded-2xl p-5 ${

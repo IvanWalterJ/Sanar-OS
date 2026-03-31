@@ -69,6 +69,7 @@ function avatarColor(name: string): string {
 
 export default function Mensajes({ userId, onUnreadChange }: MensajesProps) {
   const myName = (() => { try { return JSON.parse(localStorage.getItem('tcd_profile') || '{}').nombre || 'Yo'; } catch { return 'Yo'; } })();
+  const myAvatarUrl = localStorage.getItem('tcd_avatar') || '';
 
   const [activeChannel, setActiveChannel] = useState('privado');
   const [input, setInput] = useState('');
@@ -365,8 +366,11 @@ export default function Mensajes({ userId, onUnreadChange }: MensajesProps) {
         {/* Current user info */}
         <div className="p-4 border-t border-white/10">
           <div className="flex items-center gap-3">
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold shrink-0 ${avatarColor(userNombre)}`}>
-              {userNombre.charAt(0).toUpperCase()}
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold shrink-0 overflow-hidden ${myAvatarUrl ? '' : avatarColor(userNombre)}`}>
+              {myAvatarUrl
+                ? <img src={myAvatarUrl} alt="" className="w-full h-full object-cover" />
+                : userNombre.charAt(0).toUpperCase()
+              }
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-white truncate">{userNombre}</p>
@@ -409,14 +413,21 @@ export default function Mensajes({ userId, onUnreadChange }: MensajesProps) {
             activeMessages.map((msg) => (
               <div key={msg.id} className={`flex gap-3 items-end max-w-[80%] ${msg.isMe ? 'ml-auto flex-row-reverse' : ''}`}>
                 {/* Avatar */}
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-xs font-bold border ${
-                  msg.rol === 'admin'
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-xs font-bold border overflow-hidden ${
+                  msg.isMe
+                    ? (myAvatarUrl ? 'border-transparent' : `${avatarColor(msg.author)} border-transparent`)
+                    : msg.rol === 'admin'
                     ? 'bg-indigo-500/20 border-indigo-500/30 text-indigo-300'
                     : msg.rol === 'bot'
                     ? 'bg-gradient-to-br from-blue-500/30 to-purple-500/30 border-blue-500/30 text-white'
                     : `${avatarColor(msg.author)} border-transparent`
                 }`}>
-                  {msg.rol === 'admin' ? <Shield className="w-3.5 h-3.5" /> : msg.author.charAt(0).toUpperCase()}
+                  {msg.isMe && myAvatarUrl
+                    ? <img src={myAvatarUrl} alt="" className="w-full h-full object-cover" />
+                    : msg.rol === 'admin'
+                    ? <Shield className="w-3.5 h-3.5" />
+                    : msg.author.charAt(0).toUpperCase()
+                  }
                 </div>
 
                 <div className={`flex flex-col gap-1 ${msg.isMe ? 'items-end' : 'items-start'}`}>
