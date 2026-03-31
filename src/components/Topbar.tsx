@@ -132,16 +132,18 @@ export default function Topbar({ setCurrentPage }: TopbarProps) {
             )}
           </div>
 
-          <div className="flex items-center gap-3 pl-4 border-l border-white/10">
-            <div className="text-right hidden md:block">
-              <p className="text-sm font-medium text-gray-200">{profile.nombre}</p>
-              {profile.especialidad && <p className="text-xs text-blue-400">{profile.especialidad}</p>}
-            </div>
-            <img
-              src="https://i.pravatar.cc/150?img=32"
-              alt="Profile"
-              className="w-10 h-10 rounded-full border border-white/20 object-cover"
-            />
+          <div className="flex items-center gap-2 pl-4 border-l border-white/10">
+            {(() => {
+              const avatarUrl = localStorage.getItem('tcd_avatar');
+              const initial = (profile.nombre || 'P').charAt(0).toUpperCase();
+              return avatarUrl ? (
+                <img src={avatarUrl} alt="Profile" className="w-9 h-9 rounded-full border border-white/20 object-cover" />
+              ) : (
+                <div className="w-9 h-9 rounded-full bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center text-sm font-bold text-indigo-300">
+                  {initial}
+                </div>
+              );
+            })()}
           </div>
         </div>
       </header>

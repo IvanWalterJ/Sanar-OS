@@ -89,7 +89,7 @@ export default function Sidebar({ currentPage, setCurrentPage, onOpenSettings, o
 
   return (
     <aside
-      className={`${collapsed ? 'w-16' : 'w-64'} h-full glass-panel flex flex-col py-6 transition-all duration-300 z-20 shrink-0 overflow-y-auto overflow-x-hidden scrollbar-hide border-r border-white/5 bg-[#0A0A0B]/80 backdrop-blur-xl relative`}
+      className={`${collapsed ? 'w-16' : 'w-64'} h-full glass-panel flex flex-col py-6 transition-all duration-300 z-20 shrink-0 overflow-x-hidden border-r border-white/5 bg-[#0A0A0B]/80 backdrop-blur-xl relative`}
     >
       {/* Logo */}
       <div className={`flex items-center mb-8 ${collapsed ? 'justify-center px-0' : 'px-6'}`}>
@@ -141,7 +141,7 @@ export default function Sidebar({ currentPage, setCurrentPage, onOpenSettings, o
       )}
 
       {/* Nav */}
-      <div className="flex-1 w-full space-y-6">
+      <div className="flex-1 w-full space-y-6 overflow-y-auto scrollbar-hide">
         {sections.map((section, sidx) => (
           <div key={sidx} className="w-full">
             {!collapsed && (

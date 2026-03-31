@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import CustomSelect from './components/CustomSelect';
 import Sidebar from './components/Sidebar';
 import Topbar from './components/Topbar';
@@ -17,7 +17,7 @@ import Biblioteca from './pages/Biblioteca';
 import Agentes from './pages/Agentes';
 import Login from './pages/Login';
 import Admin from './pages/Admin';
-import { X, User, Bell, Shield, CreditCard, LogOut } from 'lucide-react';
+import { X, User, Bell, Shield, CreditCard, LogOut, Camera } from 'lucide-react';
 import { supabase, isSupabaseReady, type Profile as SupabaseProfile } from './lib/supabase';
 import { signOut, syncProfileToLocalStorage } from './lib/auth';
 import { toast } from 'sonner';
@@ -54,6 +54,8 @@ export default function App() {
   const [supabaseProfile, setSupabaseProfile] = useState<SupabaseProfile | null>(null);
   const [unreadMessages, setUnreadMessages] = useState(0);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [avatarUrl, setAvatarUrl] = useState<string>(() => localStorage.getItem('tcd_avatar') || '');
+  const avatarInputRef = useRef<HTMLInputElement>(null);
   const mainRef = useRef<HTMLElement>(null);
 
   // ─── Auth init ──────────────────────────────────────────────────────────────
@@ -144,6 +146,18 @@ export default function App() {
     setProfileDraft(loadProfile());
     setShowSettings(true);
   };
+
+  const handleAvatarUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const dataUrl = ev.target?.result as string;
+      localStorage.setItem('tcd_avatar', dataUrl);
+      setAvatarUrl(dataUrl);
+    };
+    reader.readAsDataURL(file);
+  }, []);
 
   const saveProfile = async () => {
     localStorage.setItem('tcd_profile', JSON.stringify(profileDraft));
@@ -294,6 +308,26 @@ export default function App() {
               <div className="w-2/3 p-6 overflow-y-auto">
                 {settingsTab === 'perfil' && (
                   <div className="space-y-6">
+                    {/* Avatar upload */}
+                    <div className="flex flex-col items-center gap-3">
+                      <input ref={avatarInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} />
+                      <button
+                        onClick={() => avatarInputRef.current?.click()}
+                        className="relative group w-20 h-20 rounded-full border-2 border-dashed border-white/20 hover:border-indigo-500/50 transition-colors overflow-hidden"
+                      >
+                        {avatarUrl ? (
+                          <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full bg-indigo-500/10 flex items-center justify-center text-2xl font-bold text-indigo-300">
+                            {(profileDraft.nombre || 'P').charAt(0).toUpperCase()}
+                          </div>
+                        )}
+                        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                          <Camera className="w-6 h-6 text-white" />
+                        </div>
+                      </button>
+                      <p className="text-xs text-gray-500">Clic para cambiar foto de perfil</p>
+                    </div>
                     <div>
                       <h3 className="text-lg font-medium text-white mb-4">Información Personal</h3>
                       <div className="space-y-4">
@@ -332,17 +366,6 @@ export default function App() {
                             value={profileDraft.fecha_inicio}
                             onChange={e => setProfileDraft({ ...profileDraft, fecha_inicio: e.target.value })}
                             className="w-full bg-black/20 border border-white/10 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-blue-500/50"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-xs text-gray-400 mb-1">Plan</label>
-                          <CustomSelect
-                            value={profileDraft.plan}
-                            onChange={(val) => setProfileDraft({ ...profileDraft, plan: val as 'DWY' | 'DFY' })}
-                            options={[
-                              { value: 'DWY', label: 'DWY — Do it With You' },
-                              { value: 'DFY', label: 'DFY — Done For You' },
-                            ]}
                           />
                         </div>
                       </div>

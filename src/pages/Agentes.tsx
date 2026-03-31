@@ -7,7 +7,7 @@
  *   combinando múltiples herramientas y adaptándose al diálogo
  */
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { Loader2, Send, RotateCcw, Copy, CheckCircle2 } from 'lucide-react';
+import { Loader2, Send, RotateCcw, Copy, CheckCircle2, ArrowLeft } from 'lucide-react';
 import type { ProfileV2 } from '../lib/supabase';
 import { toast } from 'sonner';
 import { getUserKnowledgeBase } from '../lib/userKnowledgeBase';
@@ -357,11 +357,17 @@ export default function Agentes({
 
   // ─── Vista de conversación con agente activo ────────────────────────────────
   return (
-    <div className="max-w-3xl mx-auto flex flex-col h-[calc(100vh-120px)] animate-in fade-in duration-300">
+    <div className="max-w-3xl mx-auto flex flex-col h-[calc(100vh-8rem)] animate-in fade-in duration-300">
       {/* Cabecera */}
       <div className={`glass-panel p-4 rounded-2xl mb-4 border border-${agenteActivo.color}-500/25 bg-${agenteActivo.color}-500/10`}>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
+            <button
+              onClick={() => { setAgenteActivo(null); setMensajes([]); }}
+              className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-white bg-white/5 px-3 py-1.5 rounded-xl transition-colors shrink-0"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" /> Volver
+            </button>
             <span className="text-2xl">{agenteActivo.emoji}</span>
             <div>
               <h2 className={`text-sm font-medium text-${agenteActivo.color}-300`}>{agenteActivo.titulo}</h2>

@@ -6,7 +6,7 @@ import {
   MessageSquare, BookOpen, BarChart2, Calendar,
   TrendingUp, TrendingDown, Sparkles, Bot,
   Hash, Trophy, Lock, Shield,
-  CheckCheck, AlertTriangle, Image, Mic
+  CheckCheck, AlertTriangle, Image, Mic, Settings, Camera
 } from 'lucide-react';
 import { supabase, type Profile, type Mensaje, isSupabaseReady } from '../lib/supabase';
 import { SEED_ROADMAP_V2 } from '../lib/roadmapSeed';
@@ -63,6 +63,7 @@ function GlobalChat({ canal, adminProfile }: { canal: string, adminProfile: Prof
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
   const audioInputRef = useRef<HTMLInputElement>(null);
+  const adminAvatarUrl = localStorage.getItem(`tcd_admin_avatar_${adminProfile.id}`) || '';
 
   useEffect(() => {
     if (!supabase) return;
@@ -137,7 +138,7 @@ function GlobalChat({ canal, adminProfile }: { canal: string, adminProfile: Prof
   const titleInfo = getTitle();
 
   return (
-    <div className="flex flex-col h-full bg-white/[0.02] border border-white/[0.06] rounded-2xl overflow-hidden">
+    <div className="flex flex-col h-full min-h-0 bg-white/[0.02] border border-white/[0.06] rounded-2xl overflow-hidden">
       {/* Hidden file inputs */}
       <input ref={imageInputRef} type="file" accept="image/*" className="hidden"
         onChange={e => { const f = e.target.files?.[0]; if (f) handleUploadFile(f, 'imagen'); e.target.value = ''; }} />
@@ -173,12 +174,18 @@ function GlobalChat({ canal, adminProfile }: { canal: string, adminProfile: Prof
             return (
               <div key={m.id} className={`flex gap-2.5 items-end max-w-[85%] ${isMe ? 'ml-auto flex-row-reverse' : ''}`}>
                 {/* Avatar */}
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 border ${
-                  isAdmin ? 'bg-indigo-500/20 border-indigo-500/30 text-indigo-300'
-                           : 'bg-white/10 border-white/10 text-white'
-                }`}>
-                  {isAdmin ? <Shield className="w-3.5 h-3.5" /> : initial}
-                </div>
+                {isMe && adminAvatarUrl ? (
+                  <div className="w-8 h-8 rounded-full shrink-0 overflow-hidden border border-indigo-500/30">
+                    <img src={adminAvatarUrl} alt={senderName} className="w-full h-full object-cover" />
+                  </div>
+                ) : (
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 border ${
+                    isAdmin ? 'bg-indigo-500/20 border-indigo-500/30 text-indigo-300'
+                             : 'bg-white/10 border-white/10 text-white'
+                  }`}>
+                    {isAdmin ? <Shield className="w-3.5 h-3.5" /> : initial}
+                  </div>
+                )}
                 <div className="flex flex-col gap-1">
                   <span className={`text-[10px] font-semibold px-1 ${isAdmin ? 'text-indigo-400' : 'text-gray-500'} ${isMe ? 'text-right' : ''}`}>
                     {senderName}{isAdmin ? ' · Coach' : ''}
@@ -281,6 +288,13 @@ export default function Admin({ adminProfile, onSignOut }: AdminProps) {
     fecha_inicio: new Date().toISOString().split('T')[0]
   });
   const [creando, setCreando] = useState(false);
+
+  // Admin settings
+  const [showAdminSettings, setShowAdminSettings] = useState(false);
+  const [adminDraft, setAdminDraft] = useState({ nombre: adminProfile.nombre, cargo: adminProfile.especialidad || 'Director' });
+  const [adminAvatar, setAdminAvatar] = useState<string>(() => localStorage.getItem(`tcd_admin_avatar_${adminProfile.id}`) || '');
+  const [guardandoAdmin, setGuardandoAdmin] = useState(false);
+  const adminAvatarInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => { cargarClientes(); }, []);
 
@@ -566,29 +580,65 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
   async function enviarMensajePrivado() {
     if (!supabase || !selectedCliente || !mensajeInput.trim()) return;
     setEnviando(true);
+    const texto = mensajeInput.trim();
+    const tempId = crypto.randomUUID();
+    // Optimistic insert — show immediately before DB confirms
+    const optimisticMsg: Mensaje = {
+      id: tempId,
+      canal: 'privado',
+      emisor_id: adminProfile.id,
+      receptor_id: selectedCliente.id,
+      contenido: texto,
+      created_at: new Date().toISOString(),
+    } as Mensaje;
+    setDetalleMensajes(prev => [...prev, optimisticMsg]);
+    setMensajeInput('');
     try {
-      // Add optimistic insert
-      const newMsg = {
-        id: crypto.randomUUID(),
-        canal: 'privado',
-        emisor_id: adminProfile.id,
-        receptor_id: selectedCliente.id,
-        contenido: mensajeInput.trim(),
-        created_at: new Date().toISOString(),
-      };
-      // No we rely on realtime, just send to DB
       const { error } = await supabase.from('mensajes').insert({
-        canal: 'privado', emisor_id: adminProfile.id, receptor_id: selectedCliente.id, contenido: mensajeInput.trim()
+        canal: 'privado', emisor_id: adminProfile.id, receptor_id: selectedCliente.id, contenido: texto
       });
       if (error) throw error;
-      setMensajeInput('');
-      toast.success('Mensaje enviado ✓');
-      // Realtime takes care of updating UI
     } catch {
+      // Roll back optimistic insert
+      setDetalleMensajes(prev => prev.filter(m => m.id !== tempId));
+      setMensajeInput(texto);
       toast.error('Error enviando mensaje');
     } finally {
       setEnviando(false);
     }
+  }
+
+  async function guardarConfigAdmin() {
+    setGuardandoAdmin(true);
+    try {
+      if (supabase) {
+        await supabase.from('profiles').update({
+          nombre: adminDraft.nombre,
+          especialidad: adminDraft.cargo,
+        }).eq('id', adminProfile.id);
+      }
+      // Persist locally so sidebar reflects change immediately
+      adminProfile.nombre = adminDraft.nombre;
+      adminProfile.especialidad = adminDraft.cargo;
+      toast.success('Perfil actualizado.');
+      setShowAdminSettings(false);
+    } catch {
+      toast.error('Error al guardar. Intentá de nuevo.');
+    } finally {
+      setGuardandoAdmin(false);
+    }
+  }
+
+  function handleAdminAvatarUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const dataUrl = ev.target?.result as string;
+      localStorage.setItem(`tcd_admin_avatar_${adminProfile.id}`, dataUrl);
+      setAdminAvatar(dataUrl);
+    };
+    reader.readAsDataURL(file);
   }
 
   async function crearClienteLocal() {
@@ -688,13 +738,23 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
 
         <div className="mt-auto p-6 border-t border-white/[0.05]">
           <div className="flex items-center gap-3 mb-4">
-            <div className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center text-sm font-bold border border-white/20">
-              {adminProfile.nombre.charAt(0).toUpperCase()}
+            <div className="w-9 h-9 rounded-full overflow-hidden bg-white/10 flex items-center justify-center text-sm font-bold border border-white/20 shrink-0">
+              {adminAvatar
+                ? <img src={adminAvatar} alt="Admin" className="w-full h-full object-cover" />
+                : adminProfile.nombre.charAt(0).toUpperCase()
+              }
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-white truncate">{adminProfile.nombre}</p>
-              <p className="text-[10px] text-gray-500 truncate">Soporte Técnico</p>
+              <p className="text-[10px] text-gray-500 truncate">{adminProfile.especialidad || 'Director'}</p>
             </div>
+            <button
+              onClick={() => { setAdminDraft({ nombre: adminProfile.nombre, cargo: adminProfile.especialidad || 'Director' }); setShowAdminSettings(true); }}
+              className="w-7 h-7 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center text-gray-500 hover:text-white transition-colors shrink-0"
+              title="Ajustes de perfil"
+            >
+              <Settings className="w-3.5 h-3.5" />
+            </button>
           </div>
           <button onClick={onSignOut} className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-semibold text-gray-400 hover:bg-white/[0.05] hover:text-white transition-colors">
             <LogOut className="w-3.5 h-3.5" /> Salir del sistema
@@ -710,7 +770,7 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
           </h2>
         </header>
 
-        <div className="flex-1 overflow-auto p-6 scrollbar-hide">
+        <div className={`flex-1 overflow-hidden scrollbar-hide ${['comunidad','victorias','consultas'].includes(mainTab) ? 'flex flex-col' : 'overflow-auto p-6'}`}>
           {mainTab === 'metricas_globales' ? (
             <div className="max-w-6xl mx-auto space-y-6">
               {/* ── Filtro de cliente ── */}
@@ -970,7 +1030,7 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
               )}
             </div>
           ) : mainTab !== 'dashboard' ? (
-            <div className="max-w-4xl mx-auto h-full">
+            <div className="flex-1 min-h-0 p-4">
               <GlobalChat canal={mainTab} adminProfile={adminProfile} />
             </div>
           ) : (
@@ -1376,6 +1436,77 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
           )}
         </div>
       </main>
+
+      {/* ─── MODAL AJUSTES ADMIN ────────────────────────────────────────────────────── */}
+      {showAdminSettings && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="w-full max-w-md bg-[#0d0d12] border border-white/10 rounded-3xl p-8 shadow-2xl relative overflow-hidden">
+            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-indigo-500 to-purple-500" />
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-semibold text-white">Ajustes de Perfil Admin</h3>
+              <button onClick={() => setShowAdminSettings(false)} className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/10 transition-colors">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Avatar */}
+            <div className="flex flex-col items-center gap-3 mb-6">
+              <input ref={adminAvatarInputRef} type="file" accept="image/*" className="hidden" onChange={handleAdminAvatarUpload} />
+              <button
+                onClick={() => adminAvatarInputRef.current?.click()}
+                className="relative group w-20 h-20 rounded-full border-2 border-dashed border-white/20 hover:border-indigo-500/50 transition-colors overflow-hidden"
+              >
+                {adminAvatar ? (
+                  <img src={adminAvatar} alt="Avatar" className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full bg-indigo-500/10 flex items-center justify-center text-2xl font-bold text-indigo-300">
+                    {(adminDraft.nombre || 'A').charAt(0).toUpperCase()}
+                  </div>
+                )}
+                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                  <Camera className="w-6 h-6 text-white" />
+                </div>
+              </button>
+              <p className="text-xs text-gray-500">Clic para cambiar foto</p>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-[11px] font-bold uppercase tracking-wider text-gray-400 mb-2">Nombre completo</label>
+                <input
+                  type="text"
+                  value={adminDraft.nombre}
+                  onChange={e => setAdminDraft({ ...adminDraft, nombre: e.target.value })}
+                  className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-indigo-500/50 transition-colors"
+                />
+              </div>
+              <div>
+                <label className="block text-[11px] font-bold uppercase tracking-wider text-gray-400 mb-2">Cargo / Título</label>
+                <input
+                  type="text"
+                  value={adminDraft.cargo}
+                  onChange={e => setAdminDraft({ ...adminDraft, cargo: e.target.value })}
+                  placeholder="Ej: Coach Principal, Soporte Técnico..."
+                  className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-indigo-500/50 transition-colors"
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-3 mt-8">
+              <button onClick={() => setShowAdminSettings(false)} className="flex-1 py-3 rounded-xl bg-white/5 text-gray-400 hover:text-white text-sm font-semibold transition-colors">
+                Cancelar
+              </button>
+              <button
+                onClick={guardarConfigAdmin}
+                disabled={guardandoAdmin || !adminDraft.nombre.trim()}
+                className="flex-1 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-sm font-bold transition-all flex items-center justify-center gap-2"
+              >
+                {guardandoAdmin ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Guardar Cambios'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ─── MODAL NUEVO CLIENTE (CON CONTRASEÑA DIRECTA) ────────────────────────── */}
       {showNuevoCliente && (
