@@ -324,7 +324,7 @@ export default function Admin({ adminProfile, onSignOut }: AdminProps) {
   const [adminVideos, setAdminVideos] = useState<AdminVideo[]>([]);
   const [videosLoading, setVideosLoading] = useState(false);
   const [showAddVideo, setShowAddVideo] = useState(false);
-  const [videoForm, setVideoForm] = useState<{ grupo: AdminVideo['grupo']; titulo: string; descripcion: string; youtubeUrl: string; duracion: string }>({
+  const [videoForm, setVideoForm] = useState<{ id?: string; grupo: AdminVideo['grupo']; titulo: string; descripcion: string; youtubeUrl: string; duracion: string }>({
     grupo: 'A', titulo: '', descripcion: '', youtubeUrl: '', duracion: ''
   });
 
@@ -720,7 +720,7 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
       const { data, error } = await supabase
         .from('programa_videos')
         .select('*')
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: true });
       if (error) throw error;
       setAdminVideos(data.map((v: any) => ({
         id: v.id,
@@ -737,30 +737,48 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
     }
   }
 
-  async function saveAdminVideo(v: Omit<AdminVideo, 'id'>) {
+  async function saveAdminVideo(v: Omit<AdminVideo, 'id'> & { id?: string }) {
     if (!supabase) return;
     try {
-      const { data, error } = await supabase
-        .from('programa_videos')
-        .insert({
-          grupo: v.grupo,
-          titulo: v.titulo,
-          descripcion: v.descripcion,
-          youtube_url: v.youtubeUrl,
-          duracion: v.duracion
-        })
-        .select()
-        .single();
-      if (error) throw error;
-      setAdminVideos(prev => [ {
-        id: data.id,
-        grupo: data.grupo,
-        titulo: data.titulo,
-        descripcion: data.descripcion,
-        youtubeUrl: data.youtube_url,
-        duracion: data.duracion
-      }, ...prev ]);
-      toast.success('Video guardado en la nube');
+      if (v.id) {
+        // UPDATE
+        const { error } = await supabase
+          .from('programa_videos')
+          .update({
+            grupo: v.grupo,
+            titulo: v.titulo,
+            descripcion: v.descripcion,
+            youtube_url: v.youtubeUrl,
+            duracion: v.duracion
+          })
+          .eq('id', v.id);
+        if (error) throw error;
+        setAdminVideos(prev => prev.map(old => old.id === v.id ? { ...old, ...v, id: v.id! } : old));
+        toast.success('Video actualizado');
+      } else {
+        // INSERT
+        const { data, error } = await supabase
+          .from('programa_videos')
+          .insert({
+            grupo: v.grupo,
+            titulo: v.titulo,
+            descripcion: v.descripcion,
+            youtube_url: v.youtubeUrl,
+            duracion: v.duracion
+          })
+          .select()
+          .single();
+        if (error) throw error;
+        setAdminVideos(prev => [...prev, {
+          id: data.id,
+          grupo: data.grupo,
+          titulo: data.titulo,
+          descripcion: data.descripcion,
+          youtubeUrl: data.youtube_url,
+          duracion: data.duracion
+        }]);
+        toast.success('Video guardado en la nube');
+      }
     } catch {
       toast.error('Error al guardar video');
     }
@@ -1371,59 +1389,78 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
                                 <p className="text-xs text-gray-500 truncate">{v.descripcion}</p>
                               </div>
                               {v.duracion && <span className="text-[10px] text-gray-500 shrink-0">{v.duracion}</span>}
-                              <button
-                                onClick={() => deleteAdminVideo(v.id)}
-                                className="w-7 h-7 rounded-lg bg-red-500/10 hover:bg-red-500/20 flex items-center justify-center text-red-400 transition-colors shrink-0"
-                                title="Eliminar video"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-
-              {/* Modal agregar video */}
-              {showAddVideo && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md">
-                  <div className="w-full max-w-md bg-[#0d0d12] border border-white/10 rounded-3xl p-8 shadow-2xl relative overflow-hidden">
-                    <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-red-500 to-orange-500" />
-                    <div className="flex items-center justify-between mb-6">
-                      <h3 className="text-xl font-semibold text-white">Nuevo Video</h3>
-                      <button onClick={() => setShowAddVideo(false)} className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/10 transition-colors">
-                        <X className="w-4 h-4" />
-                      </button>
+                                <div className="flex items-center gap-2">
+                                  <button
+                                    onClick={() => {
+                                      setVideoForm({
+                                        id: v.id,
+                                        grupo: v.grupo,
+                                        titulo: v.titulo,
+                                        descripcion: v.descripcion,
+                                        youtubeUrl: v.youtubeUrl,
+                                        duracion: v.duracion || ''
+                                      });
+                                      setShowAddVideo(true);
+                                    }}
+                                    className="w-7 h-7 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center text-gray-400 hover:text-white transition-colors shrink-0"
+                                    title="Editar video"
+                                  >
+                                    <Settings className="w-3.5 h-3.5" />
+                                  </button>
+                                  <button
+                                    onClick={() => deleteAdminVideo(v.id)}
+                                    className="w-7 h-7 rounded-lg bg-red-500/10 hover:bg-red-500/20 flex items-center justify-center text-red-400 transition-colors shrink-0"
+                                    title="Eliminar video"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
                     </div>
-                    <div className="space-y-4">
-                      <div>
-                        <label className="block text-[11px] font-bold uppercase tracking-wider text-gray-400 mb-2">URL de YouTube *</label>
-                        <input
-                          type="text"
-                          value={videoForm.youtubeUrl}
-                          onChange={e => setVideoForm({ ...videoForm, youtubeUrl: e.target.value })}
-                          placeholder="https://youtu.be/... o https://youtube.com/watch?v=..."
-                          className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-red-500/50 transition-colors"
-                        />
-                        {videoForm.youtubeUrl && getYoutubeId(videoForm.youtubeUrl) && (
-                          <img
-                            src={`https://img.youtube.com/vi/${getYoutubeId(videoForm.youtubeUrl)}/mqdefault.jpg`}
-                            alt="preview"
-                            className="mt-2 w-full rounded-xl object-cover aspect-video"
-                          />
-                        )}
+                  );
+                })}
+  
+                {/* Modal agregar/editar video */}
+                {showAddVideo && (
+                  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md">
+                    <div className="w-full max-w-md bg-[#0d0d12] border border-white/10 rounded-3xl p-8 shadow-2xl relative overflow-hidden">
+                      <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-red-500 to-orange-500" />
+                      <div className="flex items-center justify-between mb-6">
+                        <h3 className="text-xl font-semibold text-white">{videoForm.id ? 'Editar Video' : 'Nuevo Video'}</h3>
+                        <button onClick={() => setShowAddVideo(false)} className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/10 transition-colors">
+                          <X className="w-4 h-4" />
+                        </button>
                       </div>
-                      <div>
-                        <label className="block text-[11px] font-bold uppercase tracking-wider text-gray-400 mb-2">Pilar *</label>
-                        <select
-                          value={videoForm.grupo}
-                          onChange={e => setVideoForm({ ...videoForm, grupo: e.target.value as AdminVideo['grupo'] })}
-                          className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-red-500/50 transition-colors"
-                        >
-                          {PILARES.map(p => <option key={p.id} value={p.id}>{p.label}</option>)}
+                      <div className="space-y-4">
+                        <div>
+                          <label className="block text-[11px] font-bold uppercase tracking-wider text-gray-400 mb-2">URL de YouTube *</label>
+                          <input
+                            type="text"
+                            value={videoForm.youtubeUrl}
+                            onChange={e => setVideoForm({ ...videoForm, youtubeUrl: e.target.value })}
+                            placeholder="https://youtu.be/... o https://youtube.com/watch?v=..."
+                            className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-red-500/50 transition-colors"
+                          />
+                          {videoForm.youtubeUrl && getYoutubeId(videoForm.youtubeUrl) && (
+                            <img
+                              src={`https://img.youtube.com/vi/${getYoutubeId(videoForm.youtubeUrl)}/mqdefault.jpg`}
+                              alt="preview"
+                              className="mt-2 w-full rounded-xl object-cover aspect-video"
+                            />
+                          )}
+                        </div>
+                        <div>
+                          <label className="block text-[11px] font-bold uppercase tracking-wider text-gray-400 mb-2">Pilar *</label>
+                          <select
+                            value={videoForm.grupo}
+                            onChange={e => setVideoForm({ ...videoForm, grupo: e.target.value as AdminVideo['grupo'] })}
+                            className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-red-500/50 transition-colors"
+                          >
+                            {PILARES.map(p => <option key={p.id} value={p.id}>{p.label}</option>)}
                         </select>
                       </div>
                       <div>
@@ -1466,6 +1503,7 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
                         onClick={() => {
                           if (!videoForm.youtubeUrl.trim() || !videoForm.titulo.trim()) return;
                           saveAdminVideo({
+                            id: videoForm.id,
                             grupo: videoForm.grupo,
                             titulo: videoForm.titulo.trim(),
                             descripcion: videoForm.descripcion.trim(),
@@ -1476,7 +1514,7 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
                         }}
                         className="flex-1 py-3 rounded-xl bg-red-600 hover:bg-red-500 disabled:opacity-50 text-white text-sm font-bold transition-all flex items-center justify-center gap-2"
                       >
-                        <Plus className="w-4 h-4" /> Agregar Video
+                        {videoForm.id ? 'Guardar Cambios' : <><Plus className="w-4 h-4" /> Agregar Video</>}
                       </button>
                     </div>
                   </div>
