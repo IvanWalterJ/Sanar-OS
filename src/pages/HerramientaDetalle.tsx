@@ -9,6 +9,7 @@ import type { ProfileV2 } from '../lib/supabase';
 import { getHerramienta, type CampoInput } from '../lib/herramientas';
 import { toast } from 'sonner';
 import Markdown from 'react-markdown';
+import CustomSelect from '../components/CustomSelect';
 
 // ─── Componente ───────────────────────────────────────────────────────────────
 
@@ -200,15 +201,11 @@ export default function HerramientaDetalle({ herramientaId, userId, perfil, gemi
                 onChange={(e) => setInput(campo.id, e.target.value)}
               />
             ) : campo.tipo === 'select' ? (
-              <select
-                className="w-full bg-black/20 border border-white/10 rounded-xl p-3 text-white text-sm focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/30 transition-all"
+              <CustomSelect
                 value={inputs[campo.id] ?? ''}
-                onChange={(e) => setInput(campo.id, e.target.value)}
-              >
-                {campo.opciones?.map((op) => (
-                  <option key={op} value={op}>{op}</option>
-                ))}
-              </select>
+                onChange={(val) => setInput(campo.id, val)}
+                options={(campo.opciones ?? []).map((op) => ({ value: op, label: op }))}
+              />
             ) : campo.tipo === 'number' ? (
               <input
                 type="number"

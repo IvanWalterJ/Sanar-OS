@@ -8,6 +8,7 @@ import {
   X, Loader2, RotateCcw, CheckCircle2, Edit3, Download,
   Copy, Star, Clock, ChevronDown, ChevronUp, FileText,
 } from 'lucide-react';
+import CustomSelect from './CustomSelect';
 import { supabase, isSupabaseReady } from '../lib/supabase';
 import type { ProfileV2 } from '../lib/supabase';
 import { getHerramienta, type CampoInput } from '../lib/herramientas';
@@ -362,13 +363,11 @@ export default function TaskWorkModal({
                           onChange={(e) => setInputs((prev) => ({ ...prev, [campo.id]: e.target.value }))}
                         />
                       ) : campo.tipo === 'select' ? (
-                        <select
-                          className="w-full bg-black/20 border border-white/10 rounded-xl p-3 text-white text-sm focus:border-indigo-500/50 transition-all outline-none"
+                        <CustomSelect
                           value={inputs[campo.id] ?? ''}
-                          onChange={(e) => setInputs((prev) => ({ ...prev, [campo.id]: e.target.value }))}
-                        >
-                          {campo.opciones?.map((op) => <option key={op} value={op}>{op}</option>)}
-                        </select>
+                          onChange={(val) => setInputs((prev) => ({ ...prev, [campo.id]: val }))}
+                          options={(campo.opciones ?? []).map((op) => ({ value: op, label: op }))}
+                        />
                       ) : (
                         <input
                           type={campo.tipo === 'number' ? 'number' : 'text'}

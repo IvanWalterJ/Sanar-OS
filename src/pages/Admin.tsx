@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import CustomSelect from '../components/CustomSelect';
 import {
   Users, Send, ChevronRight, X, Plus, Loader2,
   Stethoscope, CheckCircle2, Circle, LogOut,
@@ -1307,10 +1308,11 @@ Respondé solo con las 3 recomendaciones en formato lista, sin introducción. M�
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-[11px] font-bold uppercase tracking-wider text-gray-400 mb-2">Plan</label>
-                  <select value={nuevoForm.plan} onChange={e => setNuevoForm({ ...nuevoForm, plan: e.target.value as 'DWY' | 'DFY' })} className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-indigo-500/50 transition-colors appearance-none">
-                    <option value="DWY">DWY</option>
-                    <option value="DFY">DFY</option>
-                  </select>
+                  <CustomSelect
+                    value={nuevoForm.plan}
+                    onChange={(val) => setNuevoForm({ ...nuevoForm, plan: val as 'DWY' | 'DFY' })}
+                    options={[{ value: 'DWY', label: 'DWY' }, { value: 'DFY', label: 'DFY' }]}
+                  />
                 </div>
                 <div>
                   <label className="block text-[11px] font-bold uppercase tracking-wider text-gray-400 mb-2">Inicio</label>

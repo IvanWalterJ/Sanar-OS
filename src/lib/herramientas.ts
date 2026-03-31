@@ -572,6 +572,44 @@ Extensión: 200-300 palabras. Tono: profesional pero cercano. Sin plantilla visi
   },
 
   {
+    id: 'D4',
+    grupo: 'D',
+    titulo: 'Secuencia de Captación ManyChat',
+    descripcion: 'Genera las 3 keywords disparadoras con sus respuestas automáticas y la secuencia de seguimiento post-interacción para configurar en ManyChat o herramienta equivalente.',
+    emoji: '🤖',
+    inputs: [
+      { id: 'nombre_protocolo', label: 'Nombre del protocolo o lead magnet', tipo: 'text', required: true },
+      { id: 'resultado', label: 'Resultado principal que promete el protocolo', tipo: 'textarea', required: true },
+      { id: 'keyword_1', label: 'Keyword disparadora #1 (palabra que comenta o envía el lead)', tipo: 'text', placeholder: 'ej: INFO, QUIERO, PROTOCOLO', required: true },
+      { id: 'keyword_2', label: 'Keyword disparadora #2', tipo: 'text', placeholder: 'ej: GUÍA, GRATIS, MÁS INFO' },
+      { id: 'keyword_3', label: 'Keyword disparadora #3', tipo: 'text', placeholder: 'ej: SÍ, ME INTERESA, CÓMO' },
+      { id: 'proximo_paso', label: '¿Cuál es el próximo paso que querés que dé el lead?', tipo: 'select', opciones: ['Agendar una llamada', 'Ir a la landing page', 'Ver el VSL', 'Escribirme por WhatsApp'], required: true },
+    ],
+    promptTemplate: (inputs, perfil) => `
+${contextoBase(perfil)}
+
+Generá la secuencia completa de captación para ManyChat (o herramienta equivalente) del protocolo "${inputs.nombre_protocolo}".
+
+RESULTADO PROMETIDO: ${inputs.resultado}
+KEYWORDS: ${[inputs.keyword_1, inputs.keyword_2, inputs.keyword_3].filter(Boolean).join(', ')}
+PRÓXIMO PASO: ${inputs.proximo_paso}
+
+Para CADA keyword generá:
+1. MENSAJE AUTOMÁTICO INMEDIATO (mensaje que se envía en los primeros 5 segundos — máximo 3 oraciones, empezá con el nombre del lead si es posible, incluí el link o CTA)
+2. SEGUIMIENTO DÍA 1 (mensaje de seguimiento 24hs después si no respondió — empático, no insistente, recordar el beneficio)
+3. SEGUIMIENTO DÍA 3 (cierre suave — el último mensaje del flujo, preguntar si tiene dudas, abrir conversación)
+
+Luego generá:
+4. RESPUESTA A "¿CUÁNTO CUESTA?" (mensaje de bot para cuando el lead pregunta el precio antes de conocer el valor)
+5. RESPUESTA A "MANDAME MÁS INFO" (mensaje que da info sin spoilear todo)
+6. GUÍA DE CONFIGURACIÓN: dónde y cómo pegar cada mensaje en ManyChat (paso a paso simple)
+
+Tono: cálido, personal, sin parecer un bot. Usar el nombre del profesional en la firma.
+    `.trim(),
+    outputLabel: 'Secuencia de Captación ManyChat',
+  },
+
+  {
     id: 'D3',
     grupo: 'D',
     titulo: 'Copy de Landing Page',

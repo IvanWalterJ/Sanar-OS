@@ -4,6 +4,7 @@
  */
 
 import React, { useState, useRef, useEffect } from 'react';
+import CustomSelect from './components/CustomSelect';
 import Sidebar from './components/Sidebar';
 import Topbar from './components/Topbar';
 import Dashboard from './pages/Dashboard';
@@ -327,14 +328,14 @@ export default function App() {
                         </div>
                         <div>
                           <label className="block text-xs text-gray-400 mb-1">Plan</label>
-                          <select
+                          <CustomSelect
                             value={profileDraft.plan}
-                            onChange={e => setProfileDraft({ ...profileDraft, plan: e.target.value as 'DWY' | 'DFY' })}
-                            className="w-full bg-black/20 border border-white/10 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-blue-500/50"
-                          >
-                            <option value="DWY">DWY — Do it With You</option>
-                            <option value="DFY">DFY — Done For You</option>
-                          </select>
+                            onChange={(val) => setProfileDraft({ ...profileDraft, plan: val as 'DWY' | 'DFY' })}
+                            options={[
+                              { value: 'DWY', label: 'DWY — Do it With You' },
+                              { value: 'DFY', label: 'DFY — Done For You' },
+                            ]}
+                          />
                         </div>
                       </div>
                     </div>
