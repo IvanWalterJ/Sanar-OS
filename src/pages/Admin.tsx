@@ -167,31 +167,39 @@ function GlobalChat({ canal, adminProfile }: { canal: string, adminProfile: Prof
         ) : (
           messages.map((m) => {
             const isMe = m.emisor_id === adminProfile.id;
-            const isBot = m.emisor?.rol === 'admin';
+            const isAdmin = m.emisor?.rol === 'admin';
+            const senderName = m.emisor?.nombre ?? (isMe ? adminProfile.nombre : '?');
+            const initial = senderName.charAt(0).toUpperCase();
             return (
-              <div key={m.id} className={`flex gap-3 max-w-[85%] ${isMe ? 'ml-auto flex-row-reverse' : ''}`}>
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
-                  isBot ? 'bg-indigo-500/20 text-indigo-400' : 'bg-white/10 text-white'
+              <div key={m.id} className={`flex gap-2.5 items-end max-w-[85%] ${isMe ? 'ml-auto flex-row-reverse' : ''}`}>
+                {/* Avatar */}
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 border ${
+                  isAdmin ? 'bg-indigo-500/20 border-indigo-500/30 text-indigo-300'
+                           : 'bg-white/10 border-white/10 text-white'
                 }`}>
-                  {isBot ? <Shield className="w-4 h-4" /> : (m.emisor?.nombre ?? '?').charAt(0).toUpperCase()}
+                  {isAdmin ? <Shield className="w-3.5 h-3.5" /> : initial}
                 </div>
-                <div className={`p-4 rounded-2xl text-sm leading-relaxed ${
-                  isMe ? 'bg-purple-600/30 text-purple-100 border border-purple-500/20 rounded-tr-sm'
-                       : isBot ? 'bg-indigo-600/20 text-indigo-100 border border-indigo-500/20 rounded-tl-sm'
-                       : 'bg-white/[0.04] text-gray-200 border border-white/[0.05] rounded-tl-sm'
-                }`}>
-                  {!isMe && <p className="text-[10px] font-bold uppercase tracking-wider mb-1 opacity-60 text-indigo-300">{m.emisor?.nombre}</p>}
-                  {m.tipo_archivo === 'imagen' && m.archivo_url && (
-                    <img src={m.archivo_url} alt="imagen" className="max-w-xs rounded-xl mb-2 cursor-pointer hover:opacity-90"
-                         onClick={() => window.open(m.archivo_url)} />
-                  )}
-                  {m.tipo_archivo === 'audio' && m.archivo_url && (
-                    <audio controls src={m.archivo_url} className="w-full mb-2 rounded-lg" />
-                  )}
-                  {m.contenido && <p>{m.contenido}</p>}
-                  <p className="text-[10px] mt-2 opacity-40 text-right">
-                    {new Date(m.created_at).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}
-                  </p>
+                <div className="flex flex-col gap-1">
+                  <span className={`text-[10px] font-semibold px-1 ${isAdmin ? 'text-indigo-400' : 'text-gray-500'} ${isMe ? 'text-right' : ''}`}>
+                    {senderName}{isAdmin ? ' · Coach' : ''}
+                  </span>
+                  <div className={`px-4 py-3 rounded-2xl text-sm leading-relaxed ${
+                    isMe ? 'bg-indigo-600/25 text-indigo-50 border border-indigo-500/20 rounded-tr-sm'
+                         : isAdmin ? 'bg-purple-600/20 text-purple-100 border border-purple-500/20 rounded-tl-sm'
+                         : 'bg-white/[0.04] text-gray-200 border border-white/[0.06] rounded-tl-sm'
+                  }`}>
+                    {m.tipo_archivo === 'imagen' && m.archivo_url && (
+                      <img src={m.archivo_url} alt="imagen" className="max-w-xs rounded-xl mb-2 cursor-pointer hover:opacity-90"
+                           onClick={() => window.open(m.archivo_url)} />
+                    )}
+                    {m.tipo_archivo === 'audio' && m.archivo_url && (
+                      <audio controls src={m.archivo_url} className="w-full mb-2 rounded-lg" />
+                    )}
+                    {m.contenido && <p>{m.contenido}</p>}
+                    <p className={`text-[10px] mt-1.5 opacity-40 ${isMe ? 'text-right' : ''}`}>
+                      {new Date(m.created_at).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}
+                    </p>
+                  </div>
                 </div>
               </div>
             );
@@ -524,15 +532,26 @@ export default function Admin({ adminProfile, onSignOut }: AdminProps) {
       const pendingTasks = detalleTareas.filter((t: any) => t.status !== 'completada').slice(0, 3);
       const lastMetric = detalleMetricas[detalleMetricas.length - 1];
 
-      const prompt = `Sos un coach de alto rendimiento para profesionales de la salud del programa "Los Sanadores Libres". Analizá brevemente la situación de ${selectedCliente.nombre} y dá 3 recomendaciones de próximos pasos concretas. Sé directo y ultra específico.
-CONTEXTO:
-- Semana ${selectedCliente.semana_programa} de 12 del programa
-- Tareas completadas: ${selectedCliente.tareas_completadas} de ${selectedCliente.tareas_total}
-- Último check-in: estado="${lastDiary?.estado || 'sin datos'}", foco="${lastDiary?.foco || 'sin datos'}", cuello de botella="${lastDiary?.cuello || 'sin datos'}"
-- Tareas pendientes: ${pendingTasks.map((t: any) => t.tarea_id).join(', ') || 'ninguna'}
-- Última métrica: ${lastMetric ? `${lastMetric.leads} leads, ${lastMetric.ventas} ventas` : 'sin métricas aún'}
+      const diarioResumen = lastDiary
+        ? `Cómo se sintió: "${lastDiary.q1 || '—'}". Lo que lo frenó: "${lastDiary.q2 || '—'}". Energía: ${lastDiary.q3 || '—'}/10. Acción tomada: "${lastDiary.q4 || '—'}". Plan para mañana: "${lastDiary.q7 || '—'}".`
+        : 'Sin entradas de diario recientes.';
 
-Respondé solo con las 3 recomendaciones en formato lista, sin introducción. Máximo 5 líneas total. En español.`;
+      const prompt = `Sos el sistema de inteligencia de coaching del programa "Sanar OS" para profesionales de la salud. Tu rol es asistir al DIRECTOR/COACH humano dándole un briefing claro sobre el estado de un cliente específico y recomendaciones accionables para su próxima intervención.
+
+CLIENTE: ${selectedCliente.nombre} (${selectedCliente.especialidad || 'especialidad no indicada'})
+PLAN: ${selectedCliente.plan} · Día ${selectedCliente.dia_programa} de 90 · Semana ${selectedCliente.semana_programa} de 12
+PROGRESO: ${selectedCliente.tareas_completadas} de ${selectedCliente.tareas_total} tareas completadas (${selectedCliente.tareas_total > 0 ? Math.round((selectedCliente.tareas_completadas / selectedCliente.tareas_total) * 100) : 0}%)
+RACHA DIARIO: ${selectedCliente.racha_diario} días consecutivos
+VENTAS REALES: ${selectedCliente.ventas_count}
+ÚLTIMO DIARIO: ${diarioResumen}
+MÉTRICAS NEGOCIO: ${lastMetric ? `${lastMetric.leads} leads, ${lastMetric.conversaciones ?? 0} llamadas, ${lastMetric.ventas} ventas en la última semana` : 'sin datos de métricas aún'}
+
+Generá un briefing para el coach en 3 partes:
+1. ESTADO ACTUAL (1-2 oraciones sobre dónde está el cliente y su ritmo real)
+2. RIESGO O PUNTO CRÍTICO (qué puede frenar el avance si no se interviene)
+3. ACCIÓN SUGERIDA PARA EL COACH (qué decirle o hacer en la próxima interacción — específico y directo)
+
+Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
 
       const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY || '' });
       const result = await ai.models.generateContent({ model: 'gemini-2.5-flash', contents: [{ role: 'user', parts: [{ text: prompt }] }] });
@@ -1143,14 +1162,29 @@ Respondé solo con las 3 recomendaciones en formato lista, sin introducción. M�
                                   </div>
                                 </div>
                                 <div className="bg-white/[0.02] border border-white/[0.05] rounded-2xl p-5">
-                                  <p className="text-[10px] text-gray-500 uppercase tracking-widest mb-2 font-bold">Último Check-in</p>
+                                  <p className="text-[10px] text-gray-500 uppercase tracking-widest mb-2 font-bold">Último Diario</p>
                                   {detalleDiario[0] ? (
                                     <>
-                                      <p className="text-sm text-white font-medium mb-1">{detalleDiario[0].fecha}</p>
-                                      <p className="text-xs text-gray-400 mb-1">Estado: <span className="text-indigo-300 font-medium">{detalleDiario[0].respuestas?.estado || '—'}</span></p>
-                                      <p className="text-xs text-gray-400 truncate">Foco: <span className="text-white">{detalleDiario[0].respuestas?.foco || '—'}</span></p>
+                                      <p className="text-xs text-gray-500 mb-2">{new Date(detalleDiario[0].fecha + 'T12:00:00').toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
+                                      {detalleDiario[0].respuestas?.q3 && (
+                                        <div className="flex items-center gap-1.5 mb-2">
+                                          <span className="text-[10px] text-gray-500 uppercase font-bold">Energía</span>
+                                          <div className="flex gap-0.5">
+                                            {Array.from({ length: 10 }).map((_, i) => (
+                                              <div key={i} className={`w-2 h-2 rounded-sm ${i < Number(detalleDiario[0].respuestas.q3) ? 'bg-amber-400' : 'bg-white/10'}`} />
+                                            ))}
+                                          </div>
+                                          <span className="text-[10px] text-amber-400 font-bold">{detalleDiario[0].respuestas.q3}/10</span>
+                                        </div>
+                                      )}
+                                      {detalleDiario[0].respuestas?.q4 && (
+                                        <p className="text-xs text-gray-300 line-clamp-2"><span className="text-emerald-400 font-bold">Acción: </span>{detalleDiario[0].respuestas.q4}</p>
+                                      )}
+                                      {detalleDiario[0].respuestas?.q2 && (
+                                        <p className="text-xs text-gray-400 mt-1 line-clamp-1"><span className="text-amber-400 font-bold">Freno: </span>{detalleDiario[0].respuestas.q2}</p>
+                                      )}
                                     </>
-                                  ) : <p className="text-xs text-gray-600">Sin entradas</p>}
+                                  ) : <p className="text-xs text-gray-600">Sin entradas de diario aún</p>}
                                 </div>
                               </div>
 
@@ -1189,63 +1223,118 @@ Respondé solo con las 3 recomendaciones en formato lista, sin introducción. M�
                             <div className="space-y-4">
                               {detalleDiario.length === 0 ? (
                                 <p className="text-gray-500 text-sm text-center py-12">Sin entradas de diario</p>
-                              ) : detalleDiario.map((entrada: any, i: number) => (
-                                <div key={i} className="p-6 rounded-2xl bg-white/[0.02] border border-white/[0.05]">
-                                  <div className="flex items-center justify-between mb-4">
-                                    <p className="text-sm font-semibold text-white tracking-wide">{entrada.fecha}</p>
-                                    {entrada.respuestas?.estado && (
-                                      <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-md bg-white/5 text-gray-300 border border-white/10">{entrada.respuestas.estado}</span>
-                                    )}
+                              ) : detalleDiario.map((entrada: any, i: number) => {
+                                const r = entrada.respuestas ?? {};
+                                return (
+                                  <div key={i} className="p-6 rounded-2xl bg-white/[0.02] border border-white/[0.05]">
+                                    <div className="flex items-center justify-between mb-4">
+                                      <p className="text-sm font-semibold text-white tracking-wide">
+                                        {new Date(entrada.fecha + 'T12:00:00').toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+                                      </p>
+                                      {r.q3 && (
+                                        <div className="flex items-center gap-1.5">
+                                          <span className="text-[10px] text-gray-500 uppercase font-bold">Energía</span>
+                                          <div className="flex gap-0.5">
+                                            {Array.from({ length: 10 }).map((_, idx) => (
+                                              <div key={idx} className={`w-2 h-2 rounded-sm ${idx < Number(r.q3) ? 'bg-amber-400' : 'bg-white/10'}`} />
+                                            ))}
+                                          </div>
+                                          <span className="text-[10px] text-amber-400 font-bold">{r.q3}/10</span>
+                                        </div>
+                                      )}
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-4">
+                                      {r.q1 && <div className="col-span-2"><p className="text-[10px] uppercase font-bold text-blue-400/70 mb-1">Cómo se sintió</p><p className="text-xs text-gray-300">{r.q1}</p></div>}
+                                      {r.q4 && <div><p className="text-[10px] uppercase font-bold text-emerald-500/70 mb-1">Acción tomada</p><p className="text-xs text-gray-300">{r.q4}</p></div>}
+                                      {r.q5 && <div><p className="text-[10px] uppercase font-bold text-purple-500/70 mb-1">Pensamiento dominante</p><p className="text-xs text-gray-300">{r.q5}</p></div>}
+                                      {r.q2 && <div className="col-span-2"><p className="text-[10px] uppercase font-bold text-amber-500/70 mb-1">Lo que lo frenó</p><p className="text-xs text-gray-300">{r.q2}</p></div>}
+                                      {r.q6 && <div><p className="text-[10px] uppercase font-bold text-pink-500/70 mb-1">Emoción predominante</p><p className="text-xs text-gray-300">{r.q6}</p></div>}
+                                      {r.q7 && <div><p className="text-[10px] uppercase font-bold text-indigo-400/70 mb-1">Plan para mañana</p><p className="text-xs text-gray-300">{r.q7}</p></div>}
+                                    </div>
                                   </div>
-                                  <div className="grid grid-cols-2 gap-4">
-                                    {entrada.respuestas?.victoria && <div><p className="text-[10px] uppercase font-bold text-emerald-500/70 mb-1">Victoria</p><p className="text-xs text-gray-300">{entrada.respuestas.victoria}</p></div>}
-                                    {entrada.respuestas?.foco && <div><p className="text-[10px] uppercase font-bold text-blue-500/70 mb-1">Foco</p><p className="text-xs text-gray-300">{entrada.respuestas.foco}</p></div>}
-                                    {entrada.respuestas?.cuello && <div className="col-span-2"><p className="text-[10px] uppercase font-bold text-amber-500/70 mb-1">Cuello de Botella</p><p className="text-xs text-gray-300">{entrada.respuestas.cuello}</p></div>}
-                                    {entrada.respuestas?.aprendizaje && <div className="col-span-2"><p className="text-[10px] uppercase font-bold text-purple-500/70 mb-1">Aprendizaje</p><p className="text-xs text-gray-300">{entrada.respuestas.aprendizaje}</p></div>}
-                                  </div>
-                                </div>
-                              ))}
+                                );
+                              })}
                             </div>
                           )}
 
                           {/* ── MÉTRICAS ── */}
                           {detalleTab === 'metricas' && (
-                            <div className="space-y-3">
-                              {detalleMetricas.length === 0 ? (
-                                <p className="text-gray-500 text-sm text-center py-12">Sin métricas aún</p>
-                              ) : detalleMetricas.slice().reverse().map((m: any, i: number) => (
-                                <div key={i} className="p-5 rounded-2xl bg-white/[0.02] border border-white/[0.05] flex items-center justify-between">
-                                  <span className="text-xs font-semibold text-gray-400 bg-white/5 px-2.5 py-1 rounded-lg">{m.semana}</span>
-                                  <div className="flex gap-8">
-                                    <div className="text-center"><p className="text-white text-lg font-light">{m.leads}</p><p className="text-[10px] text-gray-500 font-bold uppercase">leads</p></div>
-                                    <div className="text-center"><p className="text-white text-lg font-light">{m.conversaciones ?? 0}</p><p className="text-[10px] text-gray-500 font-bold uppercase">llamadas</p></div>
-                                    <div className="text-center"><p className="text-emerald-400 text-lg font-bold">{m.ventas}</p><p className="text-[10px] text-emerald-500/50 font-bold uppercase">ventas</p></div>
-                                  </div>
+                            <div className="space-y-5">
+                              {/* Progreso por pilar — siempre visible */}
+                              <div className="bg-white/[0.02] border border-white/[0.05] rounded-2xl p-5">
+                                <h3 className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-4">Progreso por Pilar</h3>
+                                <div className="space-y-3">
+                                  {SEED_ROADMAP_V2.map(pilar => {
+                                    const metasPilar = pilar.metas.length;
+                                    const completadas = selectedCliente.tareas_por_pilar?.[pilar.numero] ?? 0;
+                                    const pct = metasPilar > 0 ? Math.round((completadas / metasPilar) * 100) : 0;
+                                    const colors = ['indigo','violet','blue','cyan','emerald','amber','orange','rose','pink'];
+                                    const col = colors[pilar.numero % colors.length];
+                                    return (
+                                      <div key={pilar.numero} className="flex items-center gap-3">
+                                        <span className="text-base w-7 text-center shrink-0">{pilar.emoji}</span>
+                                        <span className="text-xs text-gray-400 w-36 truncate shrink-0">{pilar.titulo}</span>
+                                        <div className="flex-1 h-2 bg-white/5 rounded-full overflow-hidden">
+                                          <div className={`h-full bg-${col}-500 rounded-full transition-all`} style={{ width: `${pct}%` }} />
+                                        </div>
+                                        <span className="text-xs text-gray-400 w-10 text-right shrink-0">{completadas}/{metasPilar}</span>
+                                      </div>
+                                    );
+                                  })}
                                 </div>
-                              ))}
+                              </div>
+
+                              {/* Métricas de negocio semanales */}
+                              <div>
+                                <h3 className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-3">Métricas de Negocio Semanales</h3>
+                                {detalleMetricas.length === 0 ? (
+                                  <div className="bg-white/[0.02] border border-white/[0.05] rounded-2xl p-6 text-center">
+                                    <p className="text-sm text-gray-500">El cliente aún no cargó métricas semanales.</p>
+                                    <p className="text-xs text-gray-600 mt-1">Se completan desde la sección Métricas del cliente.</p>
+                                  </div>
+                                ) : detalleMetricas.slice().reverse().map((m: any, i: number) => (
+                                  <div key={i} className="p-5 rounded-2xl bg-white/[0.02] border border-white/[0.05] flex items-center justify-between mb-3">
+                                    <span className="text-xs font-semibold text-gray-400 bg-white/5 px-2.5 py-1 rounded-lg">{m.semana}</span>
+                                    <div className="flex gap-8">
+                                      <div className="text-center"><p className="text-white text-lg font-light">{m.leads}</p><p className="text-[10px] text-gray-500 font-bold uppercase">leads</p></div>
+                                      <div className="text-center"><p className="text-white text-lg font-light">{m.conversaciones ?? 0}</p><p className="text-[10px] text-gray-500 font-bold uppercase">llamadas</p></div>
+                                      <div className="text-center"><p className="text-emerald-400 text-lg font-bold">{m.ventas}</p><p className="text-[10px] text-emerald-500/50 font-bold uppercase">ventas</p></div>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
                             </div>
                           )}
 
                           {/* ── MENSAJES ── */}
                           {detalleTab === 'mensajes' && (
-                            <div className="space-y-4">
+                            <div className="space-y-3">
                               {detalleMensajes.length === 0 ? (
                                 <div className="flex flex-col items-center justify-center py-16 text-center">
                                   <MessageSquare className="w-10 h-10 text-gray-800 mb-4" />
-                                  <p className="text-gray-500 text-sm">Comienza la conversación con {selectedCliente.nombre}</p>
+                                  <p className="text-gray-500 text-sm">Comenzá la conversación con {selectedCliente.nombre}</p>
                                 </div>
                               ) : detalleMensajes.map(m => {
                                 const isMe = m.emisor_id === adminProfile.id;
+                                const senderName = isMe ? adminProfile.nombre : selectedCliente.nombre;
+                                const initial = senderName.charAt(0).toUpperCase();
                                 return (
-                                  <div key={m.id} className={`flex max-w-[85%] ${isMe ? 'ml-auto' : ''}`}>
-                                    <div className={`p-4 rounded-2xl text-sm leading-relaxed ${
-                                      isMe ? 'bg-indigo-600/30 text-indigo-50 border border-indigo-500/20 rounded-tr-sm' 
-                                           : 'bg-white/[0.03] text-gray-300 border border-white/[0.05] rounded-tl-sm'
-                                    }`}>
-                                      <p>{m.contenido}</p>
-                                      <p className={`text-[10px] mt-2 font-medium ${isMe ? 'text-indigo-400/50 text-right' : 'text-gray-500'}`}>
-                                        {new Date(m.created_at).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}
-                                      </p>
+                                  <div key={m.id} className={`flex gap-2.5 items-end max-w-[88%] ${isMe ? 'ml-auto flex-row-reverse' : ''}`}>
+                                    {/* Avatar */}
+                                    <div className={`w-7 h-7 rounded-full shrink-0 flex items-center justify-center text-xs font-bold ${isMe ? 'bg-indigo-500/30 text-indigo-300' : 'bg-white/10 text-white'}`}>
+                                      {isMe ? <Shield className="w-3.5 h-3.5" /> : initial}
+                                    </div>
+                                    <div className="flex flex-col gap-1">
+                                      <span className={`text-[10px] font-semibold text-gray-500 px-1 ${isMe ? 'text-right' : ''}`}>{senderName}</span>
+                                      <div className={`px-4 py-3 rounded-2xl text-sm leading-relaxed ${
+                                        isMe ? 'bg-indigo-600/25 text-indigo-50 border border-indigo-500/20 rounded-tr-sm'
+                                             : 'bg-white/[0.04] text-gray-200 border border-white/[0.06] rounded-tl-sm'
+                                      }`}>
+                                        {m.contenido && <p>{m.contenido}</p>}
+                                        <p className={`text-[10px] mt-1.5 opacity-40 ${isMe ? 'text-right' : ''}`}>
+                                          {new Date(m.created_at).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}
+                                        </p>
+                                      </div>
                                     </div>
                                   </div>
                                 );
