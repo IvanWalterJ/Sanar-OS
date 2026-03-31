@@ -27,6 +27,7 @@ interface ClienteConEstado extends Profile {
   semaforo: 'verde' | 'amarillo' | 'rojo' | 'gris';
   tareas_completadas: number;
   tareas_total: number;
+  tareas_por_pilar: Record<number, number>; // pilar_numero -> completadas reales
   ultima_entrada_diario?: string;
   // v2.0
   racha_diario: number;
@@ -431,6 +432,17 @@ export default function Admin({ adminProfile, onSignOut }: AdminProps) {
           ? Math.round((progPct / 100) * totalFromSeed)
           : tareasCompletadas;
 
+        // Calcular progreso real por pilar desde hoja_de_ruta
+        const tareasPorPilar: Record<number, number> = {};
+        for (const t of tareas) {
+          if (t.completada || t.status === 'completada') {
+            const pilarNum = t.pilar_numero ?? t.pilarNumero;
+            if (pilarNum !== undefined) {
+              tareasPorPilar[pilarNum] = (tareasPorPilar[pilarNum] ?? 0) + 1;
+            }
+          }
+        }
+
         return {
           ...p,
           dia_programa: dia,
@@ -438,6 +450,7 @@ export default function Admin({ adminProfile, onSignOut }: AdminProps) {
           semaforo,
           tareas_completadas: tareasCompletadasFallback,
           tareas_total: tareas.length > 0 ? tareas.length : totalFromSeed,
+          tareas_por_pilar: tareasPorPilar,
           ultima_entrada_diario: ultimaDiario,
           racha_diario: rachaActual,
           ventas_count,
@@ -899,11 +912,14 @@ Respondé solo con las 3 recomendaciones en formato lista, sin introducción. M�
                         <div className="space-y-3">
                           {SEED_ROADMAP_V2.map(pilar => {
                             const metasPilar = pilar.metas.length;
-                            const completadasEstimadas = Math.min(
-                              metasPilar,
-                              Math.max(0, c.tareas_completadas - SEED_ROADMAP_V2.slice(0, pilar.numero).reduce((a, p) => a + p.metas.length, 0))
-                            );
-                            const pctPilar = metasPilar > 0 ? Math.round((completadasEstimadas / metasPilar) * 100) : 0;
+                            // Contar tareas completadas reales por pilar desde hoja_de_ruta
+                            const completadasReales = (c as any).tareas_por_pilar
+                              ? ((c as any).tareas_por_pilar[pilar.numero] ?? 0)
+                              : Math.min(
+                                  metasPilar,
+                                  Math.max(0, c.tareas_completadas - SEED_ROADMAP_V2.slice(0, pilar.numero).reduce((a, p) => a + p.metas.length, 0))
+                                );
+                            const pctPilar = metasPilar > 0 ? Math.round((completadasReales / metasPilar) * 100) : 0;
                             const colors = ['indigo','violet','blue','cyan','emerald','amber','orange','rose','pink'];
                             const col = colors[pilar.numero % colors.length];
                             return (
@@ -916,12 +932,11 @@ Respondé solo con las 3 recomendaciones en formato lista, sin introducción. M�
                                     style={{ width: `${pctPilar}%` }}
                                   />
                                 </div>
-                                <span className="text-xs text-gray-400 w-10 text-right shrink-0">{completadasEstimadas}/{metasPilar}</span>
+                                <span className="text-xs text-gray-400 w-10 text-right shrink-0">{completadasReales}/{metasPilar}</span>
                               </div>
                             );
                           })}
                         </div>
-                        <p className="text-[10px] text-gray-600 mt-3">* Estimación basada en completitud secuencial. Para datos exactos por pilar, activá el RLS de admin en Supabase.</p>
                       </div>
 
                       <button
