@@ -1,23 +1,9 @@
 import { useState, useRef, useEffect } from 'react';
-import { ArrowLeft, Sparkles, Lock, ChevronLeft, ChevronRight, Play, Youtube, X, Clock } from 'lucide-react';
+import { supabase } from '../lib/supabase';
+import { ArrowLeft, Sparkles, Lock, ChevronLeft, ChevronRight, Play, Youtube, X, Clock, Loader2 } from 'lucide-react';
 import { HERRAMIENTAS_POR_GRUPO, GRUPOS_INFO } from '../lib/herramientas';
 import { VIDEOS, getYoutubeEmbedUrl, getYoutubeVideoId, type VideoModulo } from '../lib/videos';
 import HerramientaDetalle from './HerramientaDetalle';
-
-function loadAdminVideos(): VideoModulo[] {
-  try {
-    const raw: Array<{ id: string; grupo: string; titulo: string; descripcion: string; youtubeUrl: string; duracion?: string }> =
-      JSON.parse(localStorage.getItem('tcd_admin_videos') || '[]');
-    return raw.map(v => ({
-      id: v.id,
-      grupo: v.grupo as VideoModulo['grupo'],
-      titulo: v.titulo,
-      descripcion: v.descripcion,
-      youtubeUrl: v.youtubeUrl,
-      duracion: v.duracion,
-    }));
-  } catch { return []; }
-}
 
 type GrupoId = 'A' | 'B' | 'C' | 'D' | 'E';
 type Modo = 'herramientas' | 'videos';
@@ -33,10 +19,44 @@ export default function Biblioteca({ userId }: BibliotecaProps) {
   const [videoActivo, setVideoActivo] = useState<VideoModulo | null>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
+  const [extraVideos, setExtraVideos] = useState<VideoModulo[]>([]);
+  const [videosLoading, setVideosLoading] = useState(false);
   const tabsRef = useRef<HTMLDivElement>(null);
 
   const geminiKey = import.meta.env.VITE_GEMINI_API_KEY || '';
-  const allVideos = [...VIDEOS, ...loadAdminVideos()];
+  const allVideos = [...VIDEOS, ...extraVideos];
+
+  useEffect(() => {
+    cargarVideosExtra();
+  }, []);
+
+  async function cargarVideosExtra() {
+    if (!supabase) return;
+    setVideosLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('programa_videos')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      
+      if (data) {
+        setExtraVideos(data.map((v: any) => ({
+          id: v.id,
+          grupo: v.grupo,
+          titulo: v.titulo,
+          descripcion: v.descripcion,
+          youtubeUrl: v.youtube_url,
+          duracion: v.duracion
+        })));
+      }
+    } catch (err) {
+      console.error('Error cargando videos de la biblioteca:', err);
+    } finally {
+      setVideosLoading(false);
+    }
+  }
 
   // Check scroll state for the tabs row
   function updateScrollState() {
@@ -220,7 +240,12 @@ export default function Biblioteca({ userId }: BibliotecaProps) {
       {/* ── VIDEOS MODE ── */}
       {modo === 'videos' && (
         <>
-          {videosDelGrupo.length === 0 ? (
+          {videosLoading ? (
+            <div className="flex flex-col items-center justify-center py-20 text-center">
+              <Loader2 className="w-10 h-10 text-red-500 animate-spin mb-4" />
+              <p className="text-gray-400 text-sm">Cargando biblioteca de videos...</p>
+            </div>
+          ) : videosDelGrupo.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-center bg-white/[0.02] border border-white/[0.05] border-dashed rounded-2xl">
               <Youtube className="w-12 h-12 text-red-500/30 mb-4" />
               <p className="text-gray-400 text-sm font-medium mb-2">No hay videos en este grupo todavía</p>

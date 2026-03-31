@@ -192,6 +192,16 @@ export interface DiarioEntradaV2 extends DiarioEntrada {
   };
 }
 
+export interface ProgramaVideo {
+  id: string;
+  grupo: 'A' | 'B' | 'C' | 'D' | 'E';
+  titulo: string;
+  descripcion: string;
+  youtube_url: string;
+  duracion?: string;
+  created_at: string;
+}
+
 export type SemaforoColor = 'verde' | 'amarillo' | 'rojo' | 'gris';
 
 export type NivelNombre =

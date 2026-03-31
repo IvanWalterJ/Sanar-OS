@@ -321,9 +321,8 @@ export default function Admin({ adminProfile, onSignOut }: AdminProps) {
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   // Videos admin
-  const [adminVideos, setAdminVideos] = useState<AdminVideo[]>(() => {
-    try { return JSON.parse(localStorage.getItem('tcd_admin_videos') || '[]'); } catch { return []; }
-  });
+  const [adminVideos, setAdminVideos] = useState<AdminVideo[]>([]);
+  const [videosLoading, setVideosLoading] = useState(false);
   const [showAddVideo, setShowAddVideo] = useState(false);
   const [videoForm, setVideoForm] = useState<{ grupo: AdminVideo['grupo']; titulo: string; descripcion: string; youtubeUrl: string; duracion: string }>({
     grupo: 'A', titulo: '', descripcion: '', youtubeUrl: '', duracion: ''
@@ -340,6 +339,7 @@ export default function Admin({ adminProfile, onSignOut }: AdminProps) {
 
   useEffect(() => {
     if (mainTab === 'metricas_globales' && !metricasGlobales) cargarMetricasGlobales();
+    if (mainTab === 'videos') cargarAdminVideos();
     if (mainTab !== 'metricas_globales') setFiltroMetricasId(null);
   }, [mainTab]);
 
@@ -713,16 +713,72 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
     }
   }
 
-  function saveAdminVideo(v: AdminVideo) {
-    const updated = [...adminVideos, v];
-    setAdminVideos(updated);
-    localStorage.setItem('tcd_admin_videos', JSON.stringify(updated));
+  async function cargarAdminVideos() {
+    if (!supabase) return;
+    setVideosLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('programa_videos')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      setAdminVideos(data.map((v: any) => ({
+        id: v.id,
+        grupo: v.grupo,
+        titulo: v.titulo,
+        descripcion: v.descripcion,
+        youtubeUrl: v.youtube_url,
+        duracion: v.duracion
+      })));
+    } catch {
+      toast.error('Error cargando videos');
+    } finally {
+      setVideosLoading(false);
+    }
   }
 
-  function deleteAdminVideo(id: string) {
-    const updated = adminVideos.filter(v => v.id !== id);
-    setAdminVideos(updated);
-    localStorage.setItem('tcd_admin_videos', JSON.stringify(updated));
+  async function saveAdminVideo(v: Omit<AdminVideo, 'id'>) {
+    if (!supabase) return;
+    try {
+      const { data, error } = await supabase
+        .from('programa_videos')
+        .insert({
+          grupo: v.grupo,
+          titulo: v.titulo,
+          descripcion: v.descripcion,
+          youtube_url: v.youtubeUrl,
+          duracion: v.duracion
+        })
+        .select()
+        .single();
+      if (error) throw error;
+      setAdminVideos(prev => [ {
+        id: data.id,
+        grupo: data.grupo,
+        titulo: data.titulo,
+        descripcion: data.descripcion,
+        youtubeUrl: data.youtube_url,
+        duracion: data.duracion
+      }, ...prev ]);
+      toast.success('Video guardado en la nube');
+    } catch {
+      toast.error('Error al guardar video');
+    }
+  }
+
+  async function deleteAdminVideo(id: string) {
+    if (!supabase) return;
+    try {
+      const { error } = await supabase
+        .from('programa_videos')
+        .delete()
+        .eq('id', id);
+      if (error) throw error;
+      setAdminVideos(prev => prev.filter(v => v.id !== id));
+      toast.success('Video eliminado');
+    } catch {
+      toast.error('Error al eliminar video');
+    }
   }
 
   async function guardarConfigAdmin() {
@@ -1293,7 +1349,9 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
                       <p className="text-sm font-semibold text-white">{p.label}</p>
                       <span className="text-[10px] bg-white/5 px-2 py-0.5 rounded-full text-gray-500">{vids.length} videos</span>
                     </div>
-                    {vids.length === 0 ? (
+                    {videosLoading ? (
+                      <div className="flex justify-center py-10"><Loader2 className="w-6 h-6 text-red-400 animate-spin" /></div>
+                    ) : vids.length === 0 ? (
                       <div className="px-5 py-4 text-sm text-gray-600">Sin videos en este pilar todavía.</div>
                     ) : (
                       <div className="divide-y divide-white/[0.04]">
@@ -1408,7 +1466,6 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
                         onClick={() => {
                           if (!videoForm.youtubeUrl.trim() || !videoForm.titulo.trim()) return;
                           saveAdminVideo({
-                            id: crypto.randomUUID(),
                             grupo: videoForm.grupo,
                             titulo: videoForm.titulo.trim(),
                             descripcion: videoForm.descripcion.trim(),
@@ -1416,7 +1473,6 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
                             duracion: videoForm.duracion.trim() || undefined,
                           });
                           setShowAddVideo(false);
-                          toast.success('Video agregado a la Biblioteca');
                         }}
                         className="flex-1 py-3 rounded-xl bg-red-600 hover:bg-red-500 disabled:opacity-50 text-white text-sm font-bold transition-all flex items-center justify-center gap-2"
                       >
