@@ -825,11 +825,15 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
     if (!supabase) return;
     setNotaLoading(true);
     try {
-      const { data, error } = await supabase.rpc('get_client_notes', { target_client_id: clientId });
+      const { data, error } = await supabase
+        .from('admin_notes')
+        .select('*')
+        .eq('client_id', clientId)
+        .order('created_at', { ascending: false });
       if (error) throw error;
       setDetalleNotas((data ?? []) as AdminNote[]);
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : 'Error cargando notas. ¿Corriste la migración SQL?');
+      toast.error(err instanceof Error ? err.message : 'Error cargando notas');
     } finally {
       setNotaLoading(false);
     }
@@ -840,9 +844,10 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
     const texto = notaInput.trim();
     setNotaInput('');
     try {
-      const { error } = await supabase.rpc('insert_client_note', {
-        target_client_id: selectedCliente.id,
-        note_content: texto,
+      const { error } = await supabase.from('admin_notes').insert({
+        client_id: selectedCliente.id,
+        author_id: adminProfile.id,
+        content: texto,
       });
       if (error) throw error;
       await cargarNotas(selectedCliente.id);
