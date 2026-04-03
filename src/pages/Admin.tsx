@@ -825,10 +825,11 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
     if (!supabase) return;
     setNotaLoading(true);
     try {
-      const { data } = await supabase.rpc('get_client_notes', { target_client_id: clientId });
+      const { data, error } = await supabase.rpc('get_client_notes', { target_client_id: clientId });
+      if (error) throw error;
       setDetalleNotas((data ?? []) as AdminNote[]);
-    } catch {
-      // RPC puede no existir todavía — silencioso
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Error cargando notas. ¿Corriste la migración SQL?');
     } finally {
       setNotaLoading(false);
     }
@@ -839,16 +840,15 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
     const texto = notaInput.trim();
     setNotaInput('');
     try {
-      const { error } = await supabase.from('admin_notes').insert({
-        client_id: selectedCliente.id,
-        author_id: adminProfile.id,
-        content: texto,
+      const { error } = await supabase.rpc('insert_client_note', {
+        target_client_id: selectedCliente.id,
+        note_content: texto,
       });
       if (error) throw error;
       await cargarNotas(selectedCliente.id);
-    } catch {
+    } catch (err: unknown) {
       setNotaInput(texto);
-      toast.error('Error guardando nota');
+      toast.error(err instanceof Error ? err.message : 'Error guardando nota');
     }
   }
 
@@ -974,7 +974,7 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
               <Stethoscope className="w-5 h-5 text-white" />
             </div>
             <div>
-              <h1 className="text-sm font-semibold text-white tracking-wide">Sanar OS</h1>
+              <h1 className="text-sm font-semibold text-white tracking-wide">Tu Clínica Digital</h1>
               <p className="text-[10px] text-indigo-400 uppercase tracking-widest font-bold">Director</p>
             </div>
           </div>

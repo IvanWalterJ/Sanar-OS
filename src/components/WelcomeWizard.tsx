@@ -39,6 +39,7 @@ export default function WelcomeWizard({ profile, onComplete }: WelcomeWizardProp
   const [ingresosMensuales, setIngresosMensuales] = useState('');
   const [horasSemana, setHorasSemana] = useState('');
   const [frustracion, setFrustracion] = useState('');
+  const [energia, setEnergia] = useState(5);
   const [savingProfile, setSavingProfile] = useState(false);
 
   async function handlePasswordSubmit() {
@@ -77,21 +78,19 @@ export default function WelcomeWizard({ profile, onComplete }: WelcomeWizardProp
           await supabase.from('profiles').update({ especialidad: espFinal }).eq('id', profile.id);
         }
 
-        // Guardar frustración como primera entrada del diario
-        if (frustracion.trim()) {
-          const hoy = new Date().toISOString().split('T')[0];
-          await supabase.from('diario_entradas').insert({
-            user_id: profile.id,
-            fecha: hoy,
-            respuestas: {
-              q1: `[Onboarding] ${frustracion.trim()}`,
-              q2: '',
-              q3: 5,
-              q4: '',
-              q5: '',
-            },
-          });
-        }
+        // Guardar energía y frustración como primera entrada del diario
+        const hoy = new Date().toISOString().split('T')[0];
+        await supabase.from('diario_entradas').insert({
+          user_id: profile.id,
+          fecha: hoy,
+          respuestas: {
+            q1: frustracion.trim() ? `[Onboarding] ${frustracion.trim()}` : '',
+            q2: '',
+            q3: energia,
+            q4: '',
+            q5: '',
+          },
+        });
       }
       setStep('welcome');
     } catch {
@@ -250,6 +249,28 @@ export default function WelcomeWizard({ profile, onComplete }: WelcomeWizardProp
                     className="mt-3 w-full bg-black/40 border border-indigo-500/30 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-indigo-500/60 transition-colors"
                   />
                 )}
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
+                  ¿Cómo está tu energía hoy? <span className="text-gray-600 normal-case font-normal">(1 = agotado/a · 10 = con todo)</span>
+                </label>
+                <div className="flex items-center gap-1.5">
+                  {[1,2,3,4,5,6,7,8,9,10].map(n => (
+                    <button
+                      key={n}
+                      type="button"
+                      onClick={() => setEnergia(n)}
+                      className={`w-7 h-7 rounded-lg text-xs font-bold transition-all ${
+                        n <= energia
+                          ? 'bg-amber-500 text-white shadow-sm shadow-amber-500/30'
+                          : 'bg-white/[0.04] text-gray-600 border border-white/10 hover:border-white/20'
+                      }`}
+                    >
+                      {n}
+                    </button>
+                  ))}
+                </div>
               </div>
 
               <div>

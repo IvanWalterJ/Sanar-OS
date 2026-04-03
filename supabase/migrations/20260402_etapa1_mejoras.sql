@@ -84,3 +84,19 @@ BEGIN
     WHERE id = target_user_id;
 END;
 $$;
+
+-- 8. RPC para insertar notas internas (solo admins)
+CREATE OR REPLACE FUNCTION insert_client_note(target_client_id UUID, note_content TEXT)
+RETURNS VOID
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND rol = 'admin') THEN
+    RAISE EXCEPTION 'Access denied';
+  END IF;
+
+  INSERT INTO admin_notes (client_id, author_id, content)
+  VALUES (target_client_id, auth.uid(), note_content);
+END;
+$$;
