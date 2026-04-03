@@ -100,3 +100,8 @@ BEGIN
   VALUES (target_client_id, auth.uid(), note_content);
 END;
 $$;
+
+-- 9. Permisos explícitos para rol authenticated (requerido en Supabase para SECURITY DEFINER)
+GRANT EXECUTE ON FUNCTION get_client_notes(UUID) TO authenticated;
+GRANT EXECUTE ON FUNCTION insert_client_note(UUID, TEXT) TO authenticated;
+GRANT EXECUTE ON FUNCTION update_client_status(UUID, TEXT) TO authenticated;
