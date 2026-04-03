@@ -17,6 +17,7 @@ import Biblioteca from './pages/Biblioteca';
 import Agentes from './pages/Agentes';
 import Login from './pages/Login';
 import Admin from './pages/Admin';
+import WelcomeWizard from './components/WelcomeWizard';
 import { X, User, Bell, Shield, CreditCard, LogOut, Camera } from 'lucide-react';
 import { supabase, isSupabaseReady, type Profile as SupabaseProfile } from './lib/supabase';
 import { signOut, syncProfileToLocalStorage } from './lib/auth';
@@ -207,6 +208,19 @@ export default function App() {
   // ─── Admin view ─────────────────────────────────────────────────────────────
   if (supabaseProfile?.rol === 'admin') {
     return <Admin adminProfile={supabaseProfile} onSignOut={handleSignOut} />;
+  }
+
+  // ─── Onboarding wizard (primer login) ──────────────────────────────────────
+  if (supabaseProfile && supabaseProfile.onboarding_completed === false) {
+    return (
+      <WelcomeWizard
+        profile={supabaseProfile}
+        onComplete={() => {
+          // Refresh profile to pick up onboarding_completed: true
+          loadSupabaseProfile(supabaseProfile.id);
+        }}
+      />
+    );
   }
 
   // ─── Main app ────────────────────────────────────────────────────────────────

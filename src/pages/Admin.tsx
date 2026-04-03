@@ -9,7 +9,7 @@ import {
   CheckCheck, AlertTriangle, Image, Mic, Settings, Camera,
   Video, Trash2, Youtube, Play
 } from 'lucide-react';
-import { supabase, type Profile, type Mensaje, isSupabaseReady } from '../lib/supabase';
+import { supabase, type Profile, type Mensaje, type AdminNote, type UserStatus, isSupabaseReady } from '../lib/supabase';
 import { SEED_ROADMAP_V2 } from '../lib/roadmapSeed';
 import { GoogleGenAI } from '@google/genai';
 import { toast } from 'sonner';
@@ -38,7 +38,15 @@ interface ClienteConEstado extends Profile {
 }
 
 type MainTab = 'dashboard' | 'comunidad' | 'victorias' | 'consultas' | 'metricas_globales' | 'mensajes_privados' | 'videos';
-type DetalleTab = 'resumen' | 'diario' | 'metricas' | 'mensajes';
+type DetalleTab = 'resumen' | 'diario' | 'metricas' | 'mensajes' | 'notas';
+
+const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; border: string }> = {
+  ONBOARDING: { label: 'Onboarding', color: 'text-blue-400', bg: 'bg-blue-500/10', border: 'border-blue-500/20' },
+  ACTIVE:     { label: 'Activo',     color: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20' },
+  PAUSED:     { label: 'Pausado',    color: 'text-amber-400', bg: 'bg-amber-500/10', border: 'border-amber-500/20' },
+  COMPLETED:  { label: 'Completado', color: 'text-purple-400', bg: 'bg-purple-500/10', border: 'border-purple-500/20' },
+  CHURNED:    { label: 'Inactivo',   color: 'text-red-400', bg: 'bg-red-500/10', border: 'border-red-500/20' },
+};
 
 interface AdminVideo {
   id: string;
@@ -307,10 +315,22 @@ export default function Admin({ adminProfile, onSignOut }: AdminProps) {
 
   // Formulario nuevo cliente con contraseña local
   const [nuevoForm, setNuevoForm] = useState({
-    nombre: '', email: '', password: '', especialidad: '', plan: 'DWY' as 'DWY' | 'DFY',
-    fecha_inicio: new Date().toISOString().split('T')[0]
+    nombre: '', email: '', password: '', especialidad: '', plan: 'DWY' as 'DWY' | 'DFY' | 'IMPLEMENTACION',
+    fecha_inicio: new Date().toISOString().split('T')[0],
+    status: 'ONBOARDING' as UserStatus,
   });
   const [creando, setCreando] = useState(false);
+
+  // Notas internas
+  const [detalleNotas, setDetalleNotas] = useState<AdminNote[]>([]);
+  const [notaInput, setNotaInput] = useState('');
+  const [notaLoading, setNotaLoading] = useState(false);
+
+  // Filtro por status en lista de clientes
+  const [filtroStatus, setFiltroStatus] = useState<UserStatus | 'ALL'>('ALL');
+
+  // Cambio de status de cliente
+  const [statusCambiando, setStatusCambiando] = useState(false);
 
   // Mensajes privados (WhatsApp-style inbox)
   const [chatCliente, setChatCliente] = useState<ClienteConEstado | null>(null);
@@ -593,6 +613,8 @@ export default function Admin({ adminProfile, onSignOut }: AdminProps) {
           .eq('canal', 'privado')
           .order('created_at');
         setDetalleMensajes((data as Mensaje[]) ?? []);
+      } else if (detalleTab === 'notas') {
+        await cargarNotas(userId);
       }
     } catch {
       // ignore
@@ -799,6 +821,57 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
     }
   }
 
+  async function cargarNotas(clientId: string) {
+    if (!supabase) return;
+    setNotaLoading(true);
+    try {
+      const { data } = await supabase.rpc('get_client_notes', { target_client_id: clientId });
+      setDetalleNotas((data ?? []) as AdminNote[]);
+    } catch {
+      // RPC puede no existir todavía — silencioso
+    } finally {
+      setNotaLoading(false);
+    }
+  }
+
+  async function agregarNota() {
+    if (!supabase || !selectedCliente || !notaInput.trim()) return;
+    const texto = notaInput.trim();
+    setNotaInput('');
+    try {
+      const { error } = await supabase.from('admin_notes').insert({
+        client_id: selectedCliente.id,
+        author_id: adminProfile.id,
+        content: texto,
+      });
+      if (error) throw error;
+      await cargarNotas(selectedCliente.id);
+    } catch {
+      setNotaInput(texto);
+      toast.error('Error guardando nota');
+    }
+  }
+
+  async function cambiarStatusCliente(nuevoStatus: UserStatus) {
+    if (!supabase || !selectedCliente) return;
+    setStatusCambiando(true);
+    try {
+      await supabase.rpc('update_client_status', {
+        target_user_id: selectedCliente.id,
+        new_status: nuevoStatus,
+      });
+      setClientes(prev => prev.map(c =>
+        c.id === selectedCliente.id ? { ...c, status: nuevoStatus } : c
+      ));
+      setSelectedCliente(prev => prev ? { ...prev, status: nuevoStatus } : prev);
+      toast.success(`Estado actualizado a ${STATUS_CONFIG[nuevoStatus]?.label ?? nuevoStatus}`);
+    } catch {
+      toast.error('Error cambiando estado');
+    } finally {
+      setStatusCambiando(false);
+    }
+  }
+
   async function guardarConfigAdmin() {
     setGuardandoAdmin(true);
     try {
@@ -848,7 +921,7 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
         }
       });
 
-      const { data, error } = await tempClient.auth.signUp({
+      const { data: signUpData, error } = await tempClient.auth.signUp({
         email: nuevoForm.email.trim(),
         password: nuevoForm.password.trim(),
         options: {
@@ -856,10 +929,23 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
         }
       });
       if (error) throw error;
-      
+
+      // Actualizar perfil con datos extra (el trigger de Supabase crea el perfil base)
+      if (signUpData.user && supabase) {
+        // Pequeño delay para que el trigger termine
+        await new Promise(r => setTimeout(r, 1500));
+        await supabase.from('profiles').update({
+          especialidad: nuevoForm.especialidad.trim() || null,
+          plan: nuevoForm.plan,
+          fecha_inicio: nuevoForm.fecha_inicio,
+          status: nuevoForm.status,
+          onboarding_completed: nuevoForm.status !== 'ONBOARDING',
+        }).eq('id', signUpData.user.id);
+      }
+
       toast.success(`Cuenta creada para ${nuevoForm.nombre}. Ya puede iniciar sesión.`);
       setShowNuevoCliente(false);
-      setNuevoForm({ nombre: '', email: '', password: '', especialidad: '', plan: 'DWY', fecha_inicio: new Date().toISOString().split('T')[0] });
+      setNuevoForm({ nombre: '', email: '', password: '', especialidad: '', plan: 'DWY', fecha_inicio: new Date().toISOString().split('T')[0], status: 'ONBOARDING' });
       await cargarClientes();
     } catch (e: any) {
       toast.error(`Error creando cuenta: ${e.message}`);
@@ -873,6 +959,7 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
     { id: 'diario', label: 'Diario', icon: Calendar },
     { id: 'metricas', label: 'Métricas', icon: BarChart2 },
     { id: 'mensajes', label: 'Chat', icon: MessageSquare },
+    { id: 'notas', label: 'Notas', icon: BookOpen },
   ];
 
   return (
@@ -1547,14 +1634,32 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
               <div className="flex gap-6" style={{ height: 'calc(100vh - 220px)', minHeight: 540 }}>
                 {/* Lista de clientes */}
                 <div className={`shrink-0 flex flex-col transition-all duration-300 ${selectedCliente ? 'w-[280px]' : 'w-full max-w-2xl mx-auto'}`}>
-                  <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-[11px] font-bold uppercase tracking-widest text-gray-500">Directorio ({clientes.length})</h2>
+                  <div className="flex items-center justify-between mb-3">
+                    <h2 className="text-[11px] font-bold uppercase tracking-widest text-gray-500">
+                      Directorio ({filtroStatus === 'ALL' ? clientes.length : clientes.filter(c => c.status === filtroStatus || (!c.status && filtroStatus === 'ACTIVE')).length})
+                    </h2>
                     <button
                       onClick={() => setShowNuevoCliente(true)}
                       className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-500 hover:bg-indigo-400 text-white text-xs font-semibold shadow-lg shadow-indigo-500/20 transition-all"
                     >
                       <Plus className="w-3.5 h-3.5" /> Nuevo
                     </button>
+                  </div>
+                  {/* Filtro por estado */}
+                  <div className="flex gap-1 flex-wrap mb-3">
+                    {(['ALL', 'ACTIVE', 'ONBOARDING', 'PAUSED', 'CHURNED'] as const).map(s => (
+                      <button
+                        key={s}
+                        onClick={() => setFiltroStatus(s)}
+                        className={`px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-colors ${
+                          filtroStatus === s
+                            ? s === 'ALL' ? 'bg-white/10 text-white' : `${STATUS_CONFIG[s]?.bg} ${STATUS_CONFIG[s]?.color} border ${STATUS_CONFIG[s]?.border}`
+                            : 'bg-white/5 text-gray-500 hover:text-gray-300'
+                        }`}
+                      >
+                        {s === 'ALL' ? 'Todos' : STATUS_CONFIG[s]?.label}
+                      </button>
+                    ))}
                   </div>
 
                   {loading ? (
@@ -1566,7 +1671,7 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
                     </div>
                   ) : (
                     <div className="space-y-2 overflow-y-auto scrollbar-hide pr-2">
-                      {clientes.map(cliente => (
+                      {clientes.filter(c => filtroStatus === 'ALL' || c.status === filtroStatus || (!c.status && filtroStatus === 'ACTIVE')).map(cliente => (
                         <button
                           key={cliente.id}
                           onClick={() => { setSelectedCliente(cliente); setDetalleTab('resumen'); setIaRecomendacion(''); }}
@@ -1629,11 +1734,35 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
                         {selectedCliente.nombre.charAt(0).toUpperCase()}
                       </div>
                       <div>
-                        <div className="flex items-center gap-3 mb-1.5">
+                        <div className="flex items-center gap-3 mb-1.5 flex-wrap">
                           <h3 className="text-2xl font-light text-white tracking-tight">{selectedCliente.nombre}</h3>
-                          <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider ${selectedCliente.plan === 'DFY' ? 'bg-purple-500/20 text-purple-400 border border-purple-500/30' : 'bg-indigo-500/20 text-indigo-400 border border-indigo-500/30'}`}>
+                          <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider ${selectedCliente.plan === 'DFY' ? 'bg-purple-500/20 text-purple-400 border border-purple-500/30' : selectedCliente.plan === 'IMPLEMENTACION' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-indigo-500/20 text-indigo-400 border border-indigo-500/30'}`}>
                             {selectedCliente.plan}
                           </span>
+                          {/* Status badge + quick change */}
+                          <div className="flex items-center gap-1.5 relative group">
+                            {(() => {
+                              const st = selectedCliente.status ?? 'ACTIVE';
+                              const cfg = STATUS_CONFIG[st];
+                              return (
+                                <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider ${cfg?.bg} ${cfg?.color} border ${cfg?.border}`}>
+                                  {cfg?.label ?? st}
+                                </span>
+                              );
+                            })()}
+                            <select
+                              disabled={statusCambiando}
+                              value={selectedCliente.status ?? 'ACTIVE'}
+                              onChange={e => cambiarStatusCliente(e.target.value as UserStatus)}
+                              className="opacity-0 absolute inset-0 w-full cursor-pointer"
+                              title="Cambiar estado"
+                            >
+                              {Object.entries(STATUS_CONFIG).map(([val, cfg]) => (
+                                <option key={val} value={val}>{cfg.label}</option>
+                              ))}
+                            </select>
+                            <span className="text-[9px] text-gray-600 group-hover:text-gray-400 transition-colors" title="Click en el badge para cambiar">✎</span>
+                          </div>
                         </div>
                         <p className="text-xs text-gray-400 flex items-center gap-2">
                           <Lock className="w-3 h-3 text-gray-600" /> {selectedCliente.email}
@@ -1858,6 +1987,47 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
                             </div>
                           )}
 
+                          {/* ── NOTAS INTERNAS ── */}
+                          {detalleTab === 'notas' && (
+                            <div className="space-y-4">
+                              <p className="text-[10px] text-gray-600 uppercase tracking-wider font-bold">Solo visible para admins · No la ve el cliente</p>
+                              {/* Input nueva nota */}
+                              <div className="flex gap-2">
+                                <textarea
+                                  value={notaInput}
+                                  onChange={e => setNotaInput(e.target.value)}
+                                  onKeyDown={e => { if (e.key === 'Enter' && e.ctrlKey) agregarNota(); }}
+                                  placeholder="Escribí una nota interna... (Ctrl+Enter para guardar)"
+                                  rows={3}
+                                  className="flex-1 bg-black/40 border border-white/10 rounded-xl py-3 px-4 text-sm text-white focus:outline-none focus:border-indigo-500/50 transition-all resize-none"
+                                />
+                                <button
+                                  onClick={agregarNota}
+                                  disabled={!notaInput.trim()}
+                                  className="w-12 rounded-xl bg-indigo-500 hover:bg-indigo-400 disabled:opacity-50 flex items-center justify-center transition-colors shadow-lg shadow-indigo-500/20 shrink-0"
+                                >
+                                  <Send className="w-4 h-4" />
+                                </button>
+                              </div>
+                              {/* Lista de notas */}
+                              {notaLoading ? (
+                                <div className="flex justify-center py-8"><Loader2 className="w-5 h-5 text-indigo-400 animate-spin" /></div>
+                              ) : detalleNotas.length === 0 ? (
+                                <div className="text-center py-12">
+                                  <BookOpen className="w-8 h-8 text-gray-800 mx-auto mb-3" />
+                                  <p className="text-gray-500 text-sm">Sin notas aún. Usá esto para documentar contexto importante del cliente.</p>
+                                </div>
+                              ) : detalleNotas.map(nota => (
+                                <div key={nota.id} className="bg-white/[0.02] border border-white/[0.06] rounded-xl p-4">
+                                  <p className="text-sm text-gray-200 leading-relaxed whitespace-pre-wrap">{nota.content}</p>
+                                  <p className="text-[10px] text-gray-600 mt-2">
+                                    {new Date(nota.created_at).toLocaleDateString('es-AR', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                  </p>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+
                           {/* ── MENSAJES ── */}
                           {detalleTab === 'mensajes' && (
                             <div className="space-y-3">
@@ -2039,14 +2209,29 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
                   <label className="block text-[11px] font-bold uppercase tracking-wider text-gray-400 mb-2">Plan</label>
                   <CustomSelect
                     value={nuevoForm.plan}
-                    onChange={(val) => setNuevoForm({ ...nuevoForm, plan: val as 'DWY' | 'DFY' })}
-                    options={[{ value: 'DWY', label: 'DWY' }, { value: 'DFY', label: 'DFY' }]}
+                    onChange={(val) => setNuevoForm({ ...nuevoForm, plan: val as 'DWY' | 'DFY' | 'IMPLEMENTACION' })}
+                    options={[
+                      { value: 'DWY', label: 'DWY — Solo App' },
+                      { value: 'DFY', label: 'DFY — Con Paolis' },
+                      { value: 'IMPLEMENTACION', label: 'Implementación' },
+                    ]}
                   />
                 </div>
                 <div>
                   <label className="block text-[11px] font-bold uppercase tracking-wider text-gray-400 mb-2">Inicio</label>
                   <input type="date" value={nuevoForm.fecha_inicio} onChange={e => setNuevoForm({ ...nuevoForm, fecha_inicio: e.target.value })} className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-indigo-500/50 transition-colors" />
                 </div>
+              </div>
+              <div>
+                <label className="block text-[11px] font-bold uppercase tracking-wider text-gray-400 mb-2">Estado inicial</label>
+                <CustomSelect
+                  value={nuevoForm.status}
+                  onChange={(val) => setNuevoForm({ ...nuevoForm, status: val as UserStatus })}
+                  options={[
+                    { value: 'ONBOARDING', label: 'Onboarding (cliente nuevo)' },
+                    { value: 'ACTIVE', label: 'Activo (ya conoce la app)' },
+                  ]}
+                />
               </div>
             </div>
 

@@ -15,14 +15,26 @@ export const isSupabaseReady = () => supabase !== null;
 
 // ─── Tipos de base de datos ──────────────────────────────────────────────────
 
+export type UserStatus = 'ONBOARDING' | 'ACTIVE' | 'PAUSED' | 'COMPLETED' | 'CHURNED';
+
 export interface Profile {
   id: string;
   nombre: string;
   email: string;
   especialidad?: string;
   fecha_inicio: string; // date as string YYYY-MM-DD
-  plan: 'DWY' | 'DFY';
+  plan: 'DWY' | 'DFY' | 'IMPLEMENTACION';
   rol: 'cliente' | 'admin';
+  created_at: string;
+  status?: UserStatus;
+  onboarding_completed?: boolean;
+}
+
+export interface AdminNote {
+  id: string;
+  client_id: string;
+  author_id: string;
+  content: string;
   created_at: string;
 }
 
