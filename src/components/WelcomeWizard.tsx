@@ -119,9 +119,9 @@ export default function WelcomeWizard({ profile, onComplete }: WelcomeWizardProp
       <div className="absolute top-0 left-[-10%] w-[500px] h-[500px] bg-indigo-600/10 rounded-full blur-[150px] pointer-events-none" />
       <div className="absolute bottom-0 right-[-10%] w-[500px] h-[500px] bg-purple-600/10 rounded-full blur-[150px] pointer-events-none" />
 
-      <div className="relative z-10 w-full max-w-md">
+      <div className="relative z-10 w-full max-w-md max-h-[90vh] overflow-y-auto scrollbar-hide">
         {/* Progress dots */}
-        <div className="flex justify-center gap-2 mb-8">
+        <div className="flex justify-center gap-2 mb-8 sticky top-0 pt-2 pb-2 z-10">
           {STEPS.map((s, idx) => (
             <div
               key={s}
@@ -358,13 +358,20 @@ export default function WelcomeWizard({ profile, onComplete }: WelcomeWizardProp
             </div>
 
             <div className="space-y-3 mb-8">
-              {[
+              {([
                 {
                   num: '1',
                   icon: Map,
                   title: 'Abrí tu Hoja de Ruta',
                   desc: 'Ahí están todos los pilares del programa. Mirá en qué pilar empezás y completá la primera tarea.',
-                  color: 'indigo',
+                  styles: {
+                    card: 'bg-indigo-500/5 border-indigo-500/20 hover:bg-indigo-500/10',
+                    icon: 'bg-indigo-500/20',
+                    iconColor: 'text-indigo-400',
+                    step: 'text-indigo-400/60',
+                    title: 'text-indigo-200',
+                    arrow: 'text-indigo-500/40 group-hover:text-indigo-400',
+                  },
                   page: 'roadmap',
                 },
                 {
@@ -372,7 +379,14 @@ export default function WelcomeWizard({ profile, onComplete }: WelcomeWizardProp
                   icon: MessageSquare,
                   title: 'Presentate con Paolis',
                   desc: 'Mandále un mensaje presentándote. Ella ya tiene tu información y te va a responder lo antes posible.',
-                  color: 'purple',
+                  styles: {
+                    card: 'bg-purple-500/5 border-purple-500/20 hover:bg-purple-500/10',
+                    icon: 'bg-purple-500/20',
+                    iconColor: 'text-purple-400',
+                    step: 'text-purple-400/60',
+                    title: 'text-purple-200',
+                    arrow: 'text-purple-500/40 group-hover:text-purple-400',
+                  },
                   page: 'mensajes',
                 },
                 {
@@ -380,27 +394,32 @@ export default function WelcomeWizard({ profile, onComplete }: WelcomeWizardProp
                   icon: Bot,
                   title: 'Probá el Coach IA',
                   desc: 'Hacele cualquier pregunta sobre tu negocio. Está entrenado para el contexto de profesionales de la salud.',
-                  color: 'blue',
+                  styles: {
+                    card: 'bg-blue-500/5 border-blue-500/20 hover:bg-blue-500/10',
+                    icon: 'bg-blue-500/20',
+                    iconColor: 'text-blue-400',
+                    step: 'text-blue-400/60',
+                    title: 'text-blue-200',
+                    arrow: 'text-blue-500/40 group-hover:text-blue-400',
+                  },
                   page: 'coach',
                 },
-              ].map(item => (
+              ] as const).map(item => (
                 <button
                   key={item.num}
                   onClick={() => handleComplete(item.page)}
-                  className={`w-full text-left p-4 rounded-2xl bg-${item.color}-500/5 border border-${item.color}-500/20 hover:bg-${item.color}-500/10 transition-all group`}
+                  className={`w-full text-left p-4 rounded-2xl border transition-all group ${item.styles.card}`}
                 >
                   <div className="flex items-start gap-3">
-                    <div className={`w-8 h-8 rounded-xl bg-${item.color}-500/20 flex items-center justify-center shrink-0 mt-0.5`}>
-                      <item.icon className={`w-4 h-4 text-${item.color}-400`} />
+                    <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 mt-0.5 ${item.styles.icon}`}>
+                      <item.icon className={`w-4 h-4 ${item.styles.iconColor}`} />
                     </div>
                     <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className={`text-[10px] font-bold text-${item.color}-500/60 uppercase tracking-wider`}>Paso {item.num}</span>
-                      </div>
-                      <p className={`text-sm font-semibold text-${item.color}-200 mb-1`}>{item.title}</p>
+                      <span className={`text-[10px] font-bold uppercase tracking-wider ${item.styles.step}`}>Paso {item.num}</span>
+                      <p className={`text-sm font-semibold mb-0.5 mt-0.5 ${item.styles.title}`}>{item.title}</p>
                       <p className="text-xs text-gray-500 leading-relaxed">{item.desc}</p>
                     </div>
-                    <ArrowRight className={`w-4 h-4 text-${item.color}-500/40 group-hover:text-${item.color}-400 transition-colors shrink-0 mt-2`} />
+                    <ArrowRight className={`w-4 h-4 transition-colors shrink-0 mt-2 ${item.styles.arrow}`} />
                   </div>
                 </button>
               ))}

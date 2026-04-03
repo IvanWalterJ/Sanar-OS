@@ -45,7 +45,7 @@ export const SEED_ROADMAP_V2: RoadmapPilar[] = [
         codigo: 'O.A',
         titulo: 'El Coach te conoce',
         descripcion:
-          'Completa tu perfil completo: especialidad, nicho, historia de origen, por qué oficial, visión financiera y carta del día 91. Esta información precarga todas las herramientas IA de la Biblioteca.',
+          'Usa la herramienta "Perfil del Fundador" para definir tu especialidad, a quién querés ayudar, qué resultado concreto lográs, tu diferencial único y tu visión a 3 años. Esta información se precarga automáticamente en todas las herramientas de la Biblioteca para que la IA siempre tenga tu contexto.',
         es_estrella: true,
         tiempo_estimado: '20–30 min',
         herramienta_id: 'A1',
