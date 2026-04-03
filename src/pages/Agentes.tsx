@@ -8,6 +8,7 @@
  */
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { Loader2, Send, RotateCcw, Copy, CheckCircle2, ArrowLeft } from 'lucide-react';
+import Markdown from 'react-markdown';
 import type { ProfileV2 } from '../lib/supabase';
 import { toast } from 'sonner';
 import { getUserKnowledgeBase } from '../lib/userKnowledgeBase';
@@ -398,13 +399,19 @@ export default function Agentes({
         {mensajes.map((msg, i) => (
           <div key={i} className={`flex ${msg.rol === 'usuario' ? 'justify-end' : 'justify-start'}`}>
             <div
-              className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap ${
+              className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-relaxed ${
                 msg.rol === 'usuario'
-                  ? 'bg-indigo-600 text-white'
+                  ? 'bg-indigo-600 text-white whitespace-pre-wrap'
                   : 'glass-panel text-gray-200'
               }`}
             >
-              {msg.contenido}
+              {msg.rol === 'agente' ? (
+                <div className="prose prose-invert prose-sm max-w-none prose-p:my-1.5 prose-p:leading-relaxed prose-headings:text-gray-100 prose-headings:font-semibold prose-headings:mt-3 prose-headings:mb-1.5 prose-li:my-0.5 prose-li:text-gray-300 prose-strong:text-white prose-strong:font-semibold prose-code:text-indigo-300 prose-code:bg-indigo-500/10 prose-code:px-1 prose-code:rounded prose-hr:border-white/10">
+                  <Markdown>{msg.contenido}</Markdown>
+                </div>
+              ) : (
+                msg.contenido
+              )}
             </div>
           </div>
         ))}

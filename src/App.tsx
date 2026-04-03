@@ -215,8 +215,8 @@ export default function App() {
     return (
       <WelcomeWizard
         profile={supabaseProfile}
-        onComplete={() => {
-          // Refresh profile to pick up onboarding_completed: true
+        onComplete={(firstPage) => {
+          if (firstPage) setCurrentPage(firstPage);
           loadSupabaseProfile(supabaseProfile.id);
         }}
       />

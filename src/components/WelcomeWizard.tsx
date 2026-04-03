@@ -1,15 +1,15 @@
 import React, { useState } from 'react';
-import { ArrowRight, Eye, EyeOff, Loader2, CheckCircle2, Sparkles } from 'lucide-react';
+import { ArrowRight, Eye, EyeOff, Loader2, CheckCircle2, Sparkles, Map, Bot, MessageSquare, BookOpen } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import type { Profile } from '../lib/supabase';
 import { toast } from 'sonner';
 
 interface WelcomeWizardProps {
   profile: Profile;
-  onComplete: () => void;
+  onComplete: (firstPage?: string) => void;
 }
 
-type Step = 'password' | 'profile' | 'welcome';
+type Step = 'password' | 'profile' | 'welcome' | 'guide';
 
 const ESPECIALIDADES = [
   'Psicólogo/a',
@@ -22,6 +22,8 @@ const ESPECIALIDADES = [
   'Otro',
 ];
 
+const STEPS: Step[] = ['password', 'profile', 'welcome', 'guide'];
+
 export default function WelcomeWizard({ profile, onComplete }: WelcomeWizardProps) {
   const [step, setStep] = useState<Step>('password');
 
@@ -33,6 +35,7 @@ export default function WelcomeWizard({ profile, onComplete }: WelcomeWizardProp
 
   // Step 2 — profile
   const [especialidad, setEspecialidad] = useState(profile.especialidad ?? '');
+  const [especialidadOtro, setEspecialidadOtro] = useState('');
   const [ingresosMensuales, setIngresosMensuales] = useState('');
   const [horasSemana, setHorasSemana] = useState('');
   const [frustracion, setFrustracion] = useState('');
@@ -62,61 +65,69 @@ export default function WelcomeWizard({ profile, onComplete }: WelcomeWizardProp
   }
 
   async function handleProfileSubmit() {
-    if (!supabase) { setStep('welcome'); return; }
-
     setSavingProfile(true);
     try {
-      const updates: Record<string, unknown> = {};
-      if (especialidad) updates.especialidad = especialidad;
+      const espFinal = especialidad === 'Otro' && especialidadOtro.trim()
+        ? especialidadOtro.trim()
+        : especialidad;
 
-      await supabase.from('profiles').update(updates).eq('id', profile.id);
+      if (supabase) {
+        // Guardar especialidad en perfil
+        if (espFinal) {
+          await supabase.from('profiles').update({ especialidad: espFinal }).eq('id', profile.id);
+        }
 
-      // Guardar métricas iniciales en user_metrics si aplica
-      if (ingresosMensuales || horasSemana) {
-        const semanaKey = new Date().toISOString().split('T')[0];
-        await supabase.from('metricas_semana').upsert({
-          user_id: profile.id,
-          semana: semanaKey,
-          ingreso_mensual: parseFloat(ingresosMensuales) || 0,
-          horas_semana: parseFloat(horasSemana) || 0,
-          frustracion_principal: frustracion || null,
-        }, { onConflict: 'user_id,semana', ignoreDuplicates: false }).select();
+        // Guardar frustración como primera entrada del diario
+        if (frustracion.trim()) {
+          const hoy = new Date().toISOString().split('T')[0];
+          await supabase.from('diario_entradas').insert({
+            user_id: profile.id,
+            fecha: hoy,
+            respuestas: {
+              q1: `[Onboarding] ${frustracion.trim()}`,
+              q2: '',
+              q3: 5,
+              q4: '',
+              q5: '',
+            },
+          });
+        }
       }
-
       setStep('welcome');
     } catch {
-      // No bloqueamos el flujo si falla
+      // No bloqueamos el flujo si algo falla
       setStep('welcome');
     } finally {
       setSavingProfile(false);
     }
   }
 
-  async function handleComplete() {
-    if (!supabase) { onComplete(); return; }
-    await supabase.from('profiles').update({ onboarding_completed: true, status: 'ACTIVE' }).eq('id', profile.id);
-    onComplete();
+  async function handleComplete(firstPage?: string) {
+    if (supabase) {
+      await supabase.from('profiles')
+        .update({ onboarding_completed: true, status: 'ACTIVE' })
+        .eq('id', profile.id);
+    }
+    onComplete(firstPage);
   }
 
   const nombreCorto = profile.nombre.split(' ')[0];
+  const currentStepIndex = STEPS.indexOf(step);
 
   return (
     <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center p-4 selection:bg-blue-500/30">
-      {/* Background glows */}
       <div className="absolute top-0 left-[-10%] w-[500px] h-[500px] bg-indigo-600/10 rounded-full blur-[150px] pointer-events-none" />
       <div className="absolute bottom-0 right-[-10%] w-[500px] h-[500px] bg-purple-600/10 rounded-full blur-[150px] pointer-events-none" />
 
       <div className="relative z-10 w-full max-w-md">
         {/* Progress dots */}
         <div className="flex justify-center gap-2 mb-8">
-          {(['password', 'profile', 'welcome'] as Step[]).map((s) => (
+          {STEPS.map((s, idx) => (
             <div
               key={s}
               className={`h-1.5 rounded-full transition-all duration-300 ${
                 s === step ? 'w-8 bg-indigo-500' :
-                (s === 'password' && step !== 'password') || (s === 'profile' && step === 'welcome')
-                  ? 'w-4 bg-indigo-500/40'
-                  : 'w-4 bg-white/10'
+                idx < currentStepIndex ? 'w-4 bg-indigo-500/40' : 'w-4 bg-white/10'
               }`}
             />
           ))}
@@ -130,7 +141,9 @@ export default function WelcomeWizard({ profile, onComplete }: WelcomeWizardProp
                 <span className="text-xl">🔐</span>
               </div>
               <h1 className="text-2xl font-semibold text-white mb-2">Hola, {nombreCorto}</h1>
-              <p className="text-sm text-gray-400">Para empezar, elegí una contraseña personal. La contraseña temporal que te enviamos ya no va a funcionar.</p>
+              <p className="text-sm text-gray-400 leading-relaxed">
+                Para empezar, elegí una contraseña personal. La contraseña temporal que te enviamos ya no va a funcionar después de esto.
+              </p>
             </div>
 
             <div className="space-y-4">
@@ -172,18 +185,15 @@ export default function WelcomeWizard({ profile, onComplete }: WelcomeWizardProp
               </div>
             </div>
 
-            {/* Password strength hint */}
             {newPassword.length > 0 && (
               <div className="mt-3 flex items-center gap-2">
                 <div className="flex gap-1">
-                  {[1,2,3].map(i => (
-                    <div key={i} className={`h-1 w-8 rounded-full transition-colors ${
-                      newPassword.length >= i * 4 ? 'bg-emerald-500' : 'bg-white/10'
-                    }`} />
+                  {[1, 2, 3].map(i => (
+                    <div key={i} className={`h-1 w-8 rounded-full transition-colors ${newPassword.length >= i * 4 ? 'bg-emerald-500' : 'bg-white/10'}`} />
                   ))}
                 </div>
                 <span className="text-[10px] text-gray-500">
-                  {newPassword.length < 4 ? 'Muy corta' : newPassword.length < 8 ? 'Casi...' : 'OK'}
+                  {newPassword.length < 4 ? 'Muy corta' : newPassword.length < 8 ? 'Casi...' : 'Lista ✓'}
                 </span>
               </div>
             )}
@@ -201,15 +211,17 @@ export default function WelcomeWizard({ profile, onComplete }: WelcomeWizardProp
         {/* ── STEP 2: PROFILE ── */}
         {step === 'profile' && (
           <div className="bg-white/[0.03] border border-white/10 rounded-3xl p-8 shadow-2xl animate-in fade-in slide-in-from-bottom-4 duration-400">
-            <div className="mb-8">
+            <div className="mb-6">
               <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center mb-5 shadow-[0_0_20px_rgba(59,130,246,0.3)]">
                 <span className="text-xl">👤</span>
               </div>
               <h1 className="text-2xl font-semibold text-white mb-2">Contanos sobre vos</h1>
-              <p className="text-sm text-gray-400">Esta info nos ayuda a personalizar tu hoja de ruta y el Coach IA.</p>
+              <p className="text-sm text-gray-400 leading-relaxed">
+                Esta info le sirve a tu acompañante para conocerte mejor desde el día 1 y que el Coach IA te dé respuestas más precisas.
+              </p>
             </div>
 
-            <div className="space-y-4">
+            <div className="space-y-5">
               <div>
                 <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">¿Cuál es tu profesión?</label>
                 <div className="flex flex-wrap gap-2">
@@ -228,6 +240,30 @@ export default function WelcomeWizard({ profile, onComplete }: WelcomeWizardProp
                     </button>
                   ))}
                 </div>
+                {especialidad === 'Otro' && (
+                  <input
+                    type="text"
+                    autoFocus
+                    value={especialidadOtro}
+                    onChange={e => setEspecialidadOtro(e.target.value)}
+                    placeholder="¿Cuál es tu profesión?"
+                    className="mt-3 w-full bg-black/40 border border-indigo-500/30 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-indigo-500/60 transition-colors"
+                  />
+                )}
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
+                  ¿Cuál es tu mayor frustración hoy en tu práctica? <span className="text-gray-600 normal-case font-normal">(opcional)</span>
+                </label>
+                <textarea
+                  value={frustracion}
+                  onChange={e => setFrustracion(e.target.value)}
+                  placeholder="Ej: No sé cómo conseguir pacientes nuevos sin depender de referidos, siento que trabajo mucho y gano poco..."
+                  rows={3}
+                  className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-indigo-500/50 transition-colors resize-none"
+                />
+                <p className="text-[10px] text-gray-600 mt-1.5">Tu coach va a leer esto para entenderte desde el inicio.</p>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
@@ -242,7 +278,7 @@ export default function WelcomeWizard({ profile, onComplete }: WelcomeWizardProp
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Horas/semana trabajadas</label>
+                  <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Horas/semana</label>
                   <input
                     type="number"
                     value={horasSemana}
@@ -252,23 +288,12 @@ export default function WelcomeWizard({ profile, onComplete }: WelcomeWizardProp
                   />
                 </div>
               </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">¿Cuál es tu mayor frustración hoy?</label>
-                <textarea
-                  value={frustracion}
-                  onChange={e => setFrustracion(e.target.value)}
-                  placeholder="Ej: No sé cómo conseguir pacientes, no tengo tiempo para redes..."
-                  rows={3}
-                  className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-indigo-500/50 transition-colors resize-none"
-                />
-              </div>
             </div>
 
             <div className="flex gap-3 mt-6">
               <button
                 onClick={() => setStep('welcome')}
-                className="px-5 py-3 rounded-xl text-sm text-gray-400 hover:text-white transition-colors"
+                className="px-5 py-3 rounded-xl text-sm text-gray-500 hover:text-gray-300 transition-colors"
               >
                 Saltar
               </button>
@@ -291,16 +316,18 @@ export default function WelcomeWizard({ profile, onComplete }: WelcomeWizardProp
             </div>
 
             <h1 className="text-2xl font-semibold text-white mb-3">¡Bienvenido/a, {nombreCorto}!</h1>
-            <p className="text-sm text-gray-400 leading-relaxed mb-6">
-              Ya estás dentro. Tu Driver Lead es <span className="text-indigo-400 font-semibold">Paolis</span> — podés escribirle en cualquier momento desde el Chat.
+            <p className="text-sm text-gray-400 leading-relaxed mb-2">
+              Ya estás dentro del programa.
+            </p>
+            <p className="text-sm text-gray-300 leading-relaxed mb-6">
+              <span className="text-indigo-400 font-semibold">Paolis</span> es tu acompañante personal — ella sigue tu progreso, responde tus dudas y te guía durante todo el proceso. Podés escribirle en cualquier momento desde el Chat.
             </p>
 
-            {/* Quick overview */}
             <div className="grid grid-cols-3 gap-3 mb-8">
               {[
                 { icon: '🗺️', label: 'Hoja de Ruta', desc: 'Tu camino paso a paso' },
                 { icon: '🤖', label: 'Coach IA', desc: 'Disponible 24/7' },
-                { icon: '💬', label: 'Chat con Paolis', desc: 'Acompañamiento real' },
+                { icon: '💬', label: 'Chat directo', desc: 'Con Paolis, siempre' },
               ].map(item => (
                 <div key={item.label} className="bg-white/[0.03] border border-white/[0.07] rounded-2xl p-4">
                   <div className="text-2xl mb-2">{item.icon}</div>
@@ -311,10 +338,79 @@ export default function WelcomeWizard({ profile, onComplete }: WelcomeWizardProp
             </div>
 
             <button
-              onClick={handleComplete}
+              onClick={() => setStep('guide')}
               className="w-full py-4 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white text-sm font-bold transition-all flex items-center justify-center gap-2 shadow-lg shadow-indigo-500/20"
             >
-              <Sparkles className="w-4 h-4" /> Empezar mi programa
+              <ArrowRight className="w-4 h-4" /> Ver cómo empezar
+            </button>
+          </div>
+        )}
+
+        {/* ── STEP 4: GUIDE ── */}
+        {step === 'guide' && (
+          <div className="bg-white/[0.03] border border-white/10 rounded-3xl p-8 shadow-2xl animate-in fade-in slide-in-from-bottom-4 duration-400">
+            <div className="mb-6 text-center">
+              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center mx-auto mb-4 shadow-[0_0_20px_rgba(245,158,11,0.3)]">
+                <span className="text-xl">🚀</span>
+              </div>
+              <h1 className="text-xl font-semibold text-white mb-2">¿Por dónde empezar?</h1>
+              <p className="text-sm text-gray-400">Estos son tus primeros 3 pasos concretos:</p>
+            </div>
+
+            <div className="space-y-3 mb-8">
+              {[
+                {
+                  num: '1',
+                  icon: Map,
+                  title: 'Abrí tu Hoja de Ruta',
+                  desc: 'Ahí están todos los pilares del programa. Mirá en qué pilar empezás y completá la primera tarea.',
+                  color: 'indigo',
+                  page: 'roadmap',
+                },
+                {
+                  num: '2',
+                  icon: MessageSquare,
+                  title: 'Presentate con Paolis',
+                  desc: 'Mandále un mensaje presentándote. Ella ya tiene tu información y te va a responder lo antes posible.',
+                  color: 'purple',
+                  page: 'mensajes',
+                },
+                {
+                  num: '3',
+                  icon: Bot,
+                  title: 'Probá el Coach IA',
+                  desc: 'Hacele cualquier pregunta sobre tu negocio. Está entrenado para el contexto de profesionales de la salud.',
+                  color: 'blue',
+                  page: 'coach',
+                },
+              ].map(item => (
+                <button
+                  key={item.num}
+                  onClick={() => handleComplete(item.page)}
+                  className={`w-full text-left p-4 rounded-2xl bg-${item.color}-500/5 border border-${item.color}-500/20 hover:bg-${item.color}-500/10 transition-all group`}
+                >
+                  <div className="flex items-start gap-3">
+                    <div className={`w-8 h-8 rounded-xl bg-${item.color}-500/20 flex items-center justify-center shrink-0 mt-0.5`}>
+                      <item.icon className={`w-4 h-4 text-${item.color}-400`} />
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className={`text-[10px] font-bold text-${item.color}-500/60 uppercase tracking-wider`}>Paso {item.num}</span>
+                      </div>
+                      <p className={`text-sm font-semibold text-${item.color}-200 mb-1`}>{item.title}</p>
+                      <p className="text-xs text-gray-500 leading-relaxed">{item.desc}</p>
+                    </div>
+                    <ArrowRight className={`w-4 h-4 text-${item.color}-500/40 group-hover:text-${item.color}-400 transition-colors shrink-0 mt-2`} />
+                  </div>
+                </button>
+              ))}
+            </div>
+
+            <button
+              onClick={() => handleComplete('dashboard')}
+              className="w-full py-3 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 text-gray-400 hover:text-white text-sm font-medium transition-all flex items-center justify-center gap-2"
+            >
+              <Sparkles className="w-4 h-4" /> Ir al dashboard primero
             </button>
           </div>
         )}
