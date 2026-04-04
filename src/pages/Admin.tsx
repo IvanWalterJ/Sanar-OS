@@ -14,6 +14,7 @@ import { SEED_ROADMAP_V2 } from '../lib/roadmapSeed';
 import { GoogleGenAI } from '@google/genai';
 import { toast } from 'sonner';
 import { createClient } from '@supabase/supabase-js';
+import Markdown from 'react-markdown';
 
 // ─── TIPOS Y CONSTANTES ─────────────────────────────────────────────────────────
 
@@ -317,6 +318,10 @@ export default function Admin({ adminProfile, onSignOut }: AdminProps) {
   const [metricasOutputs, setMetricasOutputs] = useState<any[]>([]);
   const [metricasTareasLoading, setMetricasTareasLoading] = useState(false);
   const [pilarExpandido, setPilarExpandido] = useState<Record<number, boolean>>({});
+  // Modal de detalle de tarea
+  const [tareaModal, setTareaModal] = useState<{ meta: any; tareaData: any; output: string; clienteNombre: string } | null>(null);
+  const [tareaResumen, setTareaResumen] = useState('');
+  const [tareaResumenLoading, setTareaResumenLoading] = useState(false);
 
   // Formulario nuevo cliente con contraseña local
   const [nuevoForm, setNuevoForm] = useState({
@@ -465,6 +470,71 @@ export default function Admin({ adminProfile, onSignOut }: AdminProps) {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [detalleMensajes]);
+
+  function extractOutputText(output: unknown): string {
+    if (!output) return '';
+    if (typeof output === 'string') {
+      // Si es JSON string, parsear
+      try {
+        const parsed = JSON.parse(output);
+        return extractOutputText(parsed);
+      } catch { return output; }
+    }
+    if (typeof output === 'object') {
+      const obj = output as Record<string, unknown>;
+      // Buscar campos comunes de texto
+      for (const key of ['texto', 'resultado', 'output', 'content', 'respuesta', 'text']) {
+        if (typeof obj[key] === 'string' && (obj[key] as string).length > 10) {
+          return (obj[key] as string).replace(/\\n/g, '\n').replace(/\\t/g, '  ');
+        }
+      }
+      // Concatenar todos los strings no triviales
+      const parts = Object.entries(obj)
+        .filter(([, v]) => typeof v === 'string' && (v as string).length > 5)
+        .map(([k, v]) => `**${k}:** ${(v as string).replace(/\\n/g, '\n')}`);
+      return parts.join('\n\n');
+    }
+    return String(output);
+  }
+
+  async function abrirTareaModal(
+    meta: any,
+    tareaData: any,
+    rawOutput: unknown,
+    clienteNombre: string
+  ) {
+    const outputText = extractOutputText(rawOutput);
+    setTareaModal({ meta, tareaData, output: outputText, clienteNombre });
+    setTareaResumen('');
+    if (!outputText || outputText.length < 20) return;
+    // Generar resumen IA para Paolis
+    setTareaResumenLoading(true);
+    try {
+      const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY || '' });
+      const prompt = `Sos asistente de Paolis, una coach que acompaña a profesionales de la salud.
+El cliente "${clienteNombre}" completó la tarea "${meta.titulo}" del programa Tu Clínica Digital.
+
+Este es el output que generó con la IA:
+---
+${outputText.slice(0, 2000)}
+---
+
+Escribí un resumen de 2-3 oraciones en español para Paolis que explique:
+1. Qué definió o produjo el cliente en esta tarea
+2. Una observación relevante para que Paolis lo guíe mejor en la próxima sesión
+
+Sé directa, empática y concisa. Sin bullet points, solo texto corrido. Sin emojis.`;
+      const result = await ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: [{ role: 'user', parts: [{ text: prompt }] }],
+      });
+      setTareaResumen(result.text ?? '');
+    } catch {
+      // silencioso — resumen es opcional
+    } finally {
+      setTareaResumenLoading(false);
+    }
+  }
 
   async function cargarTareasClienteMetricas(clientId: string) {
     if (!supabase) return;
@@ -1365,61 +1435,46 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
 
                                 {/* ── Acordeón con tareas completadas ── */}
                                 {expandido && (
-                                  <div className={`px-5 pb-4 space-y-3 ${col.bg}`}>
+                                  <div className={`px-5 pb-4 space-y-2 ${col.bg}`}>
                                     {pilar.metas.map(meta => {
                                       const tareaData = tareasCompletadasPilar.find(
                                         (t: any) => t.meta_codigo === meta.codigo
                                       );
                                       if (!tareaData) return null;
-                                      // Buscar output de herramienta si existe
                                       const herramientaOutput = meta.herramienta_id
                                         ? metricasOutputs.find((o: any) => o.herramienta_id === meta.herramienta_id)
                                         : null;
-                                      const outputContent = tareaData.output_generado ?? herramientaOutput?.output ?? null;
+                                      const rawOutput = tareaData.output_generado ?? herramientaOutput?.output ?? null;
+                                      const hasOutput = !!rawOutput;
                                       return (
-                                        <div key={meta.codigo} className="bg-black/20 border border-white/[0.06] rounded-xl overflow-hidden">
-                                          {/* Header tarea */}
-                                          <div className="flex items-start gap-3 p-4">
-                                            <CheckCircle2 className={`w-4 h-4 shrink-0 mt-0.5 ${col.text}`} />
+                                        <button
+                                          key={meta.codigo}
+                                          type="button"
+                                          onClick={() => abrirTareaModal(meta, tareaData, rawOutput, c.nombre)}
+                                          className="w-full text-left bg-black/20 border border-white/[0.06] rounded-xl overflow-hidden hover:border-white/20 hover:bg-black/30 transition-all group"
+                                        >
+                                          <div className="flex items-center gap-3 p-3.5">
+                                            <CheckCircle2 className={`w-4 h-4 shrink-0 ${col.text}`} />
                                             <div className="flex-1 min-w-0">
                                               <div className="flex items-center gap-2 flex-wrap">
                                                 <span className={`text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded ${col.badge}`}>{meta.codigo}</span>
-                                                {meta.es_estrella && <span className="text-[10px] text-amber-400">★ Estrella</span>}
+                                                {meta.es_estrella && <span className="text-[10px] text-amber-400">★</span>}
                                                 {tareaData.fecha_completada && (
                                                   <span className="text-[10px] text-gray-600">
                                                     {new Date(tareaData.fecha_completada).toLocaleDateString('es-AR', { day: 'numeric', month: 'short' })}
                                                   </span>
                                                 )}
                                               </div>
-                                              <p className="text-sm font-semibold text-white mt-1">{meta.titulo}</p>
-                                              <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">{meta.descripcion}</p>
+                                              <p className="text-sm font-semibold text-white mt-0.5 truncate">{meta.titulo}</p>
+                                            </div>
+                                            <div className="flex items-center gap-2 shrink-0">
+                                              {hasOutput && (
+                                                <span className="text-[10px] text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded-full">Con output</span>
+                                              )}
+                                              <ChevronRight className="w-3.5 h-3.5 text-gray-600 group-hover:text-gray-400 transition-colors" />
                                             </div>
                                           </div>
-                                          {/* Output generado */}
-                                          {outputContent && (
-                                            <div className="border-t border-white/[0.05] px-4 py-3">
-                                              <div className="flex items-center gap-1.5 mb-2">
-                                                <FileText className="w-3 h-3 text-gray-500" />
-                                                <span className="text-[10px] font-bold uppercase tracking-wider text-gray-500">Output generado por IA</span>
-                                              </div>
-                                              <div className="text-xs text-gray-300 leading-relaxed whitespace-pre-wrap max-h-48 overflow-y-auto scrollbar-hide bg-black/20 rounded-lg p-3 font-mono">
-                                                {typeof outputContent === 'string'
-                                                  ? outputContent
-                                                  : typeof outputContent === 'object' && outputContent !== null && 'resultado' in outputContent
-                                                    ? String((outputContent as Record<string, unknown>).resultado)
-                                                    : typeof outputContent === 'object' && outputContent !== null && 'output' in outputContent
-                                                      ? String((outputContent as Record<string, unknown>).output)
-                                                      : JSON.stringify(outputContent, null, 2)
-                                                }
-                                              </div>
-                                            </div>
-                                          )}
-                                          {!outputContent && (
-                                            <div className="border-t border-white/[0.05] px-4 py-2.5">
-                                              <span className="text-[10px] text-gray-600">Tarea completada · sin output guardado</span>
-                                            </div>
-                                          )}
-                                        </div>
+                                        </button>
                                       );
                                     })}
                                     {tareasCompletadasPilar.length === 0 && (
@@ -2370,6 +2425,87 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
               <button onClick={crearClienteLocal} disabled={creando || !nuevoForm.email || !nuevoForm.nombre || !nuevoForm.password} className="flex-1 py-3.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-sm font-bold shadow-xl shadow-indigo-500/20 transition-all flex items-center justify-center gap-2">
                 {creando ? <><Loader2 className="w-4 h-4 animate-spin" /> Creando cuenta...</> : 'Crear Cuenta Activa'}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── MODAL DETALLE TAREA ──────────────────────────────────────────────────── */}
+      {tareaModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4"
+          onClick={() => setTareaModal(null)}
+        >
+          <div
+            className="w-full max-w-2xl max-h-[90vh] bg-[#0d0d12] border border-white/10 rounded-3xl shadow-2xl flex flex-col overflow-hidden"
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="flex items-start gap-4 p-6 border-b border-white/[0.06]">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap mb-1">
+                  <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-indigo-500/15 text-indigo-400 border border-indigo-500/20">
+                    {tareaModal.meta.codigo}
+                  </span>
+                  {tareaModal.meta.es_estrella && <span className="text-amber-400 text-sm">★ Tarea estrella</span>}
+                  {tareaModal.tareaData?.fecha_completada && (
+                    <span className="text-[11px] text-gray-500">
+                      Completada el {new Date(tareaModal.tareaData.fecha_completada).toLocaleDateString('es-AR', { day: 'numeric', month: 'long', year: 'numeric' })}
+                    </span>
+                  )}
+                </div>
+                <h2 className="text-lg font-semibold text-white">{tareaModal.meta.titulo}</h2>
+                <p className="text-xs text-gray-500 mt-1 leading-relaxed">{tareaModal.meta.descripcion}</p>
+              </div>
+              <button
+                onClick={() => setTareaModal(null)}
+                className="p-2 rounded-xl hover:bg-white/10 text-gray-500 hover:text-white transition-colors shrink-0"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto scrollbar-hide p-6 space-y-4">
+              {/* Resumen Paolis */}
+              <div className="bg-indigo-500/5 border border-indigo-500/20 rounded-2xl p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <Bot className="w-4 h-4 text-indigo-400" />
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-indigo-400">Resumen para Paolis</span>
+                </div>
+                {tareaResumenLoading ? (
+                  <div className="flex items-center gap-2 py-2">
+                    <Loader2 className="w-4 h-4 text-indigo-400 animate-spin" />
+                    <span className="text-sm text-gray-400">Analizando el output de {tareaModal.clienteNombre}...</span>
+                  </div>
+                ) : tareaResumen ? (
+                  <p className="text-sm text-gray-200 leading-relaxed">{tareaResumen}</p>
+                ) : (
+                  <p className="text-sm text-gray-500 italic">
+                    {tareaModal.output ? 'No se pudo generar el resumen automático.' : 'Esta tarea no tiene output guardado — fue marcada como completada manualmente.'}
+                  </p>
+                )}
+              </div>
+
+              {/* Output completo */}
+              {tareaModal.output ? (
+                <div>
+                  <div className="flex items-center gap-2 mb-3">
+                    <FileText className="w-3.5 h-3.5 text-gray-500" />
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-gray-500">Output generado por el cliente</span>
+                  </div>
+                  <div className="bg-black/30 border border-white/[0.06] rounded-2xl p-5">
+                    <div className="prose prose-invert prose-sm max-w-none prose-p:my-2 prose-headings:text-white prose-headings:font-semibold prose-strong:text-indigo-300 prose-li:text-gray-300">
+                      <Markdown>{tareaModal.output}</Markdown>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center py-8 text-center">
+                  <Circle className="w-8 h-8 text-gray-700 mb-3" />
+                  <p className="text-sm text-gray-500">Sin output guardado</p>
+                  <p className="text-xs text-gray-700 mt-1">El cliente completó esta tarea pero no hay contenido generado por IA asociado.</p>
+                </div>
+              )}
             </div>
           </div>
         </div>
