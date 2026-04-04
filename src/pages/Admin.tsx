@@ -7,7 +7,7 @@ import {
   TrendingUp, TrendingDown, Sparkles, Bot,
   Hash, Trophy, Lock, Shield,
   CheckCheck, AlertTriangle, Image, Mic, Settings, Camera,
-  Video, Trash2, Youtube, Play
+  Video, Trash2, Youtube, Play, ChevronDown, FileText
 } from 'lucide-react';
 import { supabase, type Profile, type Mensaje, type AdminNote, type UserStatus, isSupabaseReady } from '../lib/supabase';
 import { SEED_ROADMAP_V2 } from '../lib/roadmapSeed';
@@ -312,6 +312,11 @@ export default function Admin({ adminProfile, onSignOut }: AdminProps) {
   const [metricasGlobales, setMetricasGlobales] = useState<any>(null);
   const [metricasLoading, setMetricasLoading] = useState(false);
   const [filtroMetricasId, setFiltroMetricasId] = useState<string | null>(null); // null = global
+  // Tareas + outputs del cliente seleccionado en métricas
+  const [metricasTareas, setMetricasTareas] = useState<any[]>([]);
+  const [metricasOutputs, setMetricasOutputs] = useState<any[]>([]);
+  const [metricasTareasLoading, setMetricasTareasLoading] = useState(false);
+  const [pilarExpandido, setPilarExpandido] = useState<Record<number, boolean>>({});
 
   // Formulario nuevo cliente con contraseña local
   const [nuevoForm, setNuevoForm] = useState({
@@ -362,6 +367,16 @@ export default function Admin({ adminProfile, onSignOut }: AdminProps) {
     if (mainTab === 'videos') cargarAdminVideos();
     if (mainTab !== 'metricas_globales') setFiltroMetricasId(null);
   }, [mainTab]);
+
+  useEffect(() => {
+    if (filtroMetricasId) {
+      setPilarExpandido({});
+      cargarTareasClienteMetricas(filtroMetricasId);
+    } else {
+      setMetricasTareas([]);
+      setMetricasOutputs([]);
+    }
+  }, [filtroMetricasId]);
 
   // ─── Notificaciones de canales de chat (admin) ────────────────────────────
   useEffect(() => {
@@ -450,6 +465,23 @@ export default function Admin({ adminProfile, onSignOut }: AdminProps) {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [detalleMensajes]);
+
+  async function cargarTareasClienteMetricas(clientId: string) {
+    if (!supabase) return;
+    setMetricasTareasLoading(true);
+    try {
+      const [tareasRes, outputsRes] = await Promise.all([
+        supabase.from('hoja_de_ruta').select('*').eq('usuario_id', clientId).eq('completada', true),
+        supabase.from('herramienta_outputs').select('*').eq('usuario_id', clientId),
+      ]);
+      setMetricasTareas(tareasRes.data ?? []);
+      setMetricasOutputs(outputsRes.data ?? []);
+    } catch {
+      // silencioso — tablas pueden no existir aún
+    } finally {
+      setMetricasTareasLoading(false);
+    }
+  }
 
   async function cargarMetricasGlobales() {
     if (!supabase) return;
@@ -1272,15 +1304,17 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
                         </div>
                       </div>
 
-                      {/* Progreso por pilar */}
-                      <div className="bg-white/[0.02] border border-white/[0.06] rounded-2xl p-5">
-                        <h3 className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-5 flex items-center gap-2">
-                          <BarChart2 className="w-3.5 h-3.5 text-indigo-400" /> Estimación por pilar
-                        </h3>
-                        <div className="space-y-3">
+                      {/* Progreso por pilar — acordeón expandible */}
+                      <div className="bg-white/[0.02] border border-white/[0.06] rounded-2xl overflow-hidden">
+                        <div className="px-5 pt-5 pb-3 flex items-center justify-between">
+                          <h3 className="text-xs font-bold uppercase tracking-widest text-gray-400 flex items-center gap-2">
+                            <BarChart2 className="w-3.5 h-3.5 text-indigo-400" /> Estimación por pilar
+                          </h3>
+                          {metricasTareasLoading && <Loader2 className="w-3.5 h-3.5 text-indigo-400 animate-spin" />}
+                        </div>
+                        <div className="divide-y divide-white/[0.04]">
                           {SEED_ROADMAP_V2.map(pilar => {
                             const metasPilar = pilar.metas.length;
-                            // Contar tareas completadas reales por pilar desde hoja_de_ruta
                             const completadasReales = (c as any).tareas_por_pilar
                               ? ((c as any).tareas_por_pilar[pilar.numero] ?? 0)
                               : Math.min(
@@ -1288,19 +1322,111 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
                                   Math.max(0, c.tareas_completadas - SEED_ROADMAP_V2.slice(0, pilar.numero).reduce((a, p) => a + p.metas.length, 0))
                                 );
                             const pctPilar = metasPilar > 0 ? Math.round((completadasReales / metasPilar) * 100) : 0;
-                            const colors = ['indigo','violet','blue','cyan','emerald','amber','orange','rose','pink'];
-                            const col = colors[pilar.numero % colors.length];
+                            const colores: Record<number, { bar: string; badge: string; text: string; bg: string }> = {
+                              0: { bar: '#6366f1', badge: 'bg-indigo-500/10 text-indigo-400', text: 'text-indigo-400', bg: 'bg-indigo-500/5' },
+                              1: { bar: '#8b5cf6', badge: 'bg-violet-500/10 text-violet-400', text: 'text-violet-400', bg: 'bg-violet-500/5' },
+                              2: { bar: '#3b82f6', badge: 'bg-blue-500/10 text-blue-400', text: 'text-blue-400', bg: 'bg-blue-500/5' },
+                              3: { bar: '#06b6d4', badge: 'bg-cyan-500/10 text-cyan-400', text: 'text-cyan-400', bg: 'bg-cyan-500/5' },
+                              4: { bar: '#10b981', badge: 'bg-emerald-500/10 text-emerald-400', text: 'text-emerald-400', bg: 'bg-emerald-500/5' },
+                              5: { bar: '#f59e0b', badge: 'bg-amber-500/10 text-amber-400', text: 'text-amber-400', bg: 'bg-amber-500/5' },
+                              6: { bar: '#f97316', badge: 'bg-orange-500/10 text-orange-400', text: 'text-orange-400', bg: 'bg-orange-500/5' },
+                              7: { bar: '#f43f5e', badge: 'bg-rose-500/10 text-rose-400', text: 'text-rose-400', bg: 'bg-rose-500/5' },
+                              8: { bar: '#ec4899', badge: 'bg-pink-500/10 text-pink-400', text: 'text-pink-400', bg: 'bg-pink-500/5' },
+                            };
+                            const col = colores[pilar.numero] ?? colores[0];
+                            const expandido = pilarExpandido[pilar.numero] ?? false;
+                            // Tareas completadas de este pilar con sus datos
+                            const tareasCompletadasPilar = metricasTareas.filter(
+                              (t: any) => (t.pilar_numero ?? t.pilarNumero) === pilar.numero
+                            );
                             return (
-                              <div key={pilar.numero} className="flex items-center gap-3">
-                                <span className="text-base w-7 text-center shrink-0">{pilar.emoji}</span>
-                                <span className="text-xs text-gray-400 w-32 truncate shrink-0">{pilar.titulo}</span>
-                                <div className="flex-1 h-2 bg-white/5 rounded-full overflow-hidden">
-                                  <div
-                                    className={`h-full bg-${col}-500 rounded-full transition-all`}
-                                    style={{ width: `${pctPilar}%` }}
-                                  />
-                                </div>
-                                <span className="text-xs text-gray-400 w-10 text-right shrink-0">{completadasReales}/{metasPilar}</span>
+                              <div key={pilar.numero}>
+                                {/* ── Fila del pilar (clickeable si hay completadas) ── */}
+                                <button
+                                  type="button"
+                                  onClick={() => completadasReales > 0 && setPilarExpandido(prev => ({ ...prev, [pilar.numero]: !expandido }))}
+                                  className={`w-full flex items-center gap-3 px-5 py-3.5 transition-colors text-left ${
+                                    completadasReales > 0 ? 'hover:bg-white/[0.02] cursor-pointer' : 'cursor-default'
+                                  }`}
+                                >
+                                  <span className="text-base w-7 text-center shrink-0">{pilar.emoji}</span>
+                                  <span className="text-xs text-gray-300 w-36 truncate shrink-0 font-medium">{pilar.titulo}</span>
+                                  <div className="flex-1 h-1.5 bg-white/5 rounded-full overflow-hidden">
+                                    <div
+                                      className="h-full rounded-full transition-all duration-500"
+                                      style={{ width: `${pctPilar}%`, backgroundColor: col.bar }}
+                                    />
+                                  </div>
+                                  <span className="text-xs text-gray-500 w-10 text-right shrink-0">{completadasReales}/{metasPilar}</span>
+                                  {completadasReales > 0 && (
+                                    <ChevronDown className={`w-3.5 h-3.5 shrink-0 transition-transform ${col.text} ${expandido ? 'rotate-180' : ''}`} />
+                                  )}
+                                </button>
+
+                                {/* ── Acordeón con tareas completadas ── */}
+                                {expandido && (
+                                  <div className={`px-5 pb-4 space-y-3 ${col.bg}`}>
+                                    {pilar.metas.map(meta => {
+                                      const tareaData = tareasCompletadasPilar.find(
+                                        (t: any) => t.meta_codigo === meta.codigo
+                                      );
+                                      if (!tareaData) return null;
+                                      // Buscar output de herramienta si existe
+                                      const herramientaOutput = meta.herramienta_id
+                                        ? metricasOutputs.find((o: any) => o.herramienta_id === meta.herramienta_id)
+                                        : null;
+                                      const outputContent = tareaData.output_generado ?? herramientaOutput?.output ?? null;
+                                      return (
+                                        <div key={meta.codigo} className="bg-black/20 border border-white/[0.06] rounded-xl overflow-hidden">
+                                          {/* Header tarea */}
+                                          <div className="flex items-start gap-3 p-4">
+                                            <CheckCircle2 className={`w-4 h-4 shrink-0 mt-0.5 ${col.text}`} />
+                                            <div className="flex-1 min-w-0">
+                                              <div className="flex items-center gap-2 flex-wrap">
+                                                <span className={`text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded ${col.badge}`}>{meta.codigo}</span>
+                                                {meta.es_estrella && <span className="text-[10px] text-amber-400">★ Estrella</span>}
+                                                {tareaData.fecha_completada && (
+                                                  <span className="text-[10px] text-gray-600">
+                                                    {new Date(tareaData.fecha_completada).toLocaleDateString('es-AR', { day: 'numeric', month: 'short' })}
+                                                  </span>
+                                                )}
+                                              </div>
+                                              <p className="text-sm font-semibold text-white mt-1">{meta.titulo}</p>
+                                              <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">{meta.descripcion}</p>
+                                            </div>
+                                          </div>
+                                          {/* Output generado */}
+                                          {outputContent && (
+                                            <div className="border-t border-white/[0.05] px-4 py-3">
+                                              <div className="flex items-center gap-1.5 mb-2">
+                                                <FileText className="w-3 h-3 text-gray-500" />
+                                                <span className="text-[10px] font-bold uppercase tracking-wider text-gray-500">Output generado por IA</span>
+                                              </div>
+                                              <div className="text-xs text-gray-300 leading-relaxed whitespace-pre-wrap max-h-48 overflow-y-auto scrollbar-hide bg-black/20 rounded-lg p-3 font-mono">
+                                                {typeof outputContent === 'string'
+                                                  ? outputContent
+                                                  : typeof outputContent === 'object' && outputContent !== null && 'resultado' in outputContent
+                                                    ? String((outputContent as Record<string, unknown>).resultado)
+                                                    : typeof outputContent === 'object' && outputContent !== null && 'output' in outputContent
+                                                      ? String((outputContent as Record<string, unknown>).output)
+                                                      : JSON.stringify(outputContent, null, 2)
+                                                }
+                                              </div>
+                                            </div>
+                                          )}
+                                          {!outputContent && (
+                                            <div className="border-t border-white/[0.05] px-4 py-2.5">
+                                              <span className="text-[10px] text-gray-600">Tarea completada · sin output guardado</span>
+                                            </div>
+                                          )}
+                                        </div>
+                                      );
+                                    })}
+                                    {tareasCompletadasPilar.length === 0 && (
+                                      <p className="text-xs text-gray-600 py-2">Sin datos detallados disponibles aún.</p>
+                                    )}
+                                  </div>
+                                )}
                               </div>
                             );
                           })}
