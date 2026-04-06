@@ -15,6 +15,7 @@ import Mensajes from './pages/Mensajes';
 import DiarioDirector from './pages/DiarioDirector';
 import Biblioteca from './pages/Biblioteca';
 import Agentes from './pages/Agentes';
+import ManualNegocio from './pages/ManualNegocio';
 import Login from './pages/Login';
 import Admin from './pages/Admin';
 import WelcomeWizard from './components/WelcomeWizard';
@@ -251,6 +252,13 @@ export default function App() {
             <div className="p-6">
               {currentPage === 'dashboard' && <Dashboard setCurrentPage={setCurrentPage} userId={supabaseProfile?.id} />}
               {currentPage === 'roadmap' && <Roadmap userId={supabaseProfile?.id} perfil={supabaseProfile ?? undefined} geminiKey={import.meta.env.VITE_GEMINI_API_KEY} onNavigate={setCurrentPage} />}
+              {currentPage === 'manual' && (
+                <ManualNegocio
+                  userId={supabaseProfile?.id}
+                  perfil={supabaseProfile ?? undefined}
+                  onNavigate={setCurrentPage}
+                />
+              )}
               {currentPage === 'coach' && <Coach userId={supabaseProfile?.id} />}
               {currentPage === 'metrics' && <Metrics userId={supabaseProfile?.id} />}
               {currentPage === 'diario' && (
