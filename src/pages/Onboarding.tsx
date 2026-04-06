@@ -4,15 +4,78 @@ import { GoogleGenAI } from '@google/genai';
 import Markdown from 'react-markdown';
 import { toast } from 'sonner';
 
-const QUESTIONS = [
-  { id: 1, question: '¿Cuál es tu especialidad profesional?', placeholder: 'Ej: Nutricionista, Psicóloga, Dermatóloga...' },
-  { id: 2, question: '¿Cuántos años de experiencia tenés en tu especialidad?', placeholder: 'Ej: 5 años' },
-  { id: 3, question: '¿Cómo te perciben actualmente tus pacientes en redes sociales?', placeholder: 'Describe cómo te ven, qué tipo de contenido publicás...' },
-  { id: 4, question: '¿Cuál es tu paciente ideal? Describí su perfil.', placeholder: 'Edad, género, problemas que busca resolver, poder adquisitivo...' },
-  { id: 5, question: '¿Cuánto cobrás actualmente por consulta y cuántas hacés por semana?', placeholder: 'Ej: $50 por consulta, 20 consultas por semana' },
-  { id: 6, question: '¿Tenés presencia digital? (Landing page, redes, Google My Business)', placeholder: 'Listá tus canales digitales actuales...' },
-  { id: 7, question: '¿Cuál es tu meta de facturación mensual a 90 días?', placeholder: 'Ej: $10,000 USD mensuales' },
-  { id: 8, question: '¿Cuál considerás que es tu mayor obstáculo para escalar tu práctica?', placeholder: 'Ej: No sé vender, no tengo tiempo, no sé de marketing digital...' },
+// ─── Bloques del onboarding (Método CLÍNICA — Fase 0) ────────────────────────
+
+interface Pregunta {
+  id: number;
+  bloque: number;
+  tituloBloque: string;
+  question: string;
+  placeholder: string;
+}
+
+const QUESTIONS: Pregunta[] = [
+  // BLOQUE 1 — Tus referentes
+  {
+    id: 1,
+    bloque: 1,
+    tituloBloque: 'Tus Referentes',
+    question: '¿A qué 3-5 profesionales del sector salud o del coaching admiras? ¿Qué tienen que vos quisieras tener?',
+    placeholder: 'Ej: Admiro a X porque tiene autoridad en redes sin sonar arrogante, a Y porque cobra bien y tiene lista de espera...',
+  },
+  {
+    id: 2,
+    bloque: 1,
+    tituloBloque: 'Tus Referentes',
+    question: '¿Hay algún referente que no quisieras parecerte? ¿Por qué?',
+    placeholder: 'Ej: No quiero parecerme a X porque su comunicación es muy agresiva y parece que solo le importa vender...',
+  },
+
+  // BLOQUE 2 — Miedos y deseos
+  {
+    id: 3,
+    bloque: 2,
+    tituloBloque: 'Tus Miedos y Deseos',
+    question: '¿Cuál es tu mayor miedo respecto al crecimiento económico de tu práctica?',
+    placeholder: 'Ej: Que si cobro más pierda pacientes, que parezca que solo me importa el dinero, que no esté a la altura...',
+  },
+  {
+    id: 4,
+    bloque: 2,
+    tituloBloque: 'Tus Miedos y Deseos',
+    question: '¿Qué te ha impedido hasta ahora cobrar lo que realmente vale tu trabajo?',
+    placeholder: 'Ej: Me da vergüenza hablar de plata, creo que mis pacientes no pueden pagar más, no sé cómo justificarlo...',
+  },
+  {
+    id: 5,
+    bloque: 2,
+    tituloBloque: 'Tus Miedos y Deseos',
+    question: '¿Cómo imaginás tu vida con $10,000 USD extra por mes? ¿Qué sería diferente? ¿Qué sería lo primero que harías?',
+    placeholder: 'Ej: Dejaría de ver 30 pacientes por semana y tendría 10 con acompañamiento real, me mudaría, contrataría a alguien...',
+  },
+
+  // BLOQUE 3 — Contexto del negocio
+  {
+    id: 6,
+    bloque: 3,
+    tituloBloque: 'Tu Negocio Hoy',
+    question: '¿Cuántos años llevás en tu profesión? ¿Cómo trabajás actualmente? (presencial / online / mixto)',
+    placeholder: 'Ej: 8 años como nutricionista, trabajo de forma mixta: 60% presencial en consultorio y 40% online con pacientes del interior...',
+  },
+  {
+    id: 7,
+    bloque: 3,
+    tituloBloque: 'Tu Negocio Hoy',
+    question: '¿Cuántos pacientes pagantes tenés hoy? ¿Cuál es el principal problema que les resolvés?',
+    placeholder: 'Ej: Tengo 25 pacientes activos. Principalmente resuelvo el problema de la relación con la comida en mujeres que llevaron toda la vida haciendo dieta sin resultados sostenibles...',
+  },
+  {
+    id: 8,
+    bloque: 3,
+    tituloBloque: 'Tu Negocio Hoy',
+    question: '¿Cuál considerás que es tu mayor obstáculo actual para escalar tu práctica?',
+    placeholder: 'Ej: No sé vender sin sentirme incómoda, no tengo un sistema — todo depende de mí, no sé cómo conseguir pacientes online...',
+  },
 ];
 
 function loadOnboarding() {
@@ -60,16 +123,38 @@ export default function Onboarding() {
         model: 'gemini-2.5-flash',
         contents: [{ role: 'user', parts: [{ text: answersText }] }],
         config: {
-          systemInstruction: `Eres un consultor estratégico de Sanare OS, una plataforma para profesionales de la salud. Analiza las respuestas del diagnóstico de identidad digital y genera un perfil profesional completo en español. Incluye:
+          systemInstruction: `Eres el Coach IA de "tu.clínica.digital", experto en el Método CLÍNICA para profesionales de la salud. Tu objetivo es generar el ADN prototipo beta del profesional a partir de las respuestas del onboarding de Fase 0.
 
-1. **Resumen del Perfil** — quién es este profesional y su posicionamiento actual
-2. **Fortalezas Detectadas** — qué tiene a favor
-3. **Áreas de Oportunidad** — dónde puede mejorar
-4. **Diagnóstico de Identidad Digital** — cómo se percibe online vs cómo debería percibirse
-5. **Plan de Acción Inmediato** — 3 acciones concretas para las próximas 2 semanas
-6. **Potencial de Facturación** — estimación basada en los datos proporcionados
+Este prototipo es el punto de partida — NO es el ADN definitivo. Es una primera versión que los 10 pilares del programa irán refinando con trabajo real y datos reales.
 
-Sé directo, estratégico y motivador. Usa formato markdown con headers y bullets.`,
+Analizá las respuestas y generá el ADN prototipo beta con este formato en markdown:
+
+## 🧬 Tu ADN Prototipo Beta
+
+> *"Este es tu prototipo de ADN. Construido desde lo que nos contaste hoy. Ahora comienza el trabajo real: completar cada pilar lo afinará y lo hará verdadero."*
+
+---
+
+### 👤 Quién Sos (borrador inicial)
+Párrafo breve sobre su identidad como profesional basado en sus referentes y lo que admira en ellos. Qué dice sobre sus valores el hecho de que admire a esas personas.
+
+### 🎯 A Quién Servís (hipótesis)
+Primer perfil de paciente ideal basado en el contexto del negocio. Hipótesis de dolores y deseos — se refinará en los Pilares 4 y 5.
+
+### 💡 Por Qué Hacés Lo Que Hacés (pista)
+Basado en sus miedos, deseos y obstáculos: ¿qué sugieren sobre su motivación profunda? Una hipótesis del propósito que el Pilar 2 profundizará.
+
+### 💰 Objetivo Económico
+- **Meta:** $10,000 USD/mes extra
+- **Camino más probable:** 5 pacientes × $2,000 (Oferta Mid) — o la combinación que más se ajuste a su contexto
+- **Primer bloqueo a trabajar:** [identificá el mayor obstáculo mencionado]
+
+### 🚀 Próximo Paso
+Desbloqueaste el **Pilar 1: Historia**. Ahora vas a construir tu narrativa real — no tu currículum, sino la historia que conecta tu origen con lo que hacés hoy. Eso es lo que crea conexión antes del primer contacto.
+
+---
+
+Sé directo, honesto y estratégico. Usá segunda persona informal (vos/tu). No seas genérico — conectá con lo específico que dijeron. Máximo 400 palabras en total.`,
         }
       });
 
@@ -100,8 +185,8 @@ Sé directo, estratégico y motivador. Usa formato markdown con headers y bullet
       <div className="max-w-4xl mx-auto space-y-6 pb-6 animate-in fade-in duration-500">
         <div className="flex items-end justify-between">
           <div>
-            <h1 className="text-3xl font-light tracking-tight text-white mb-2">Tu Perfil Digital</h1>
-            <p className="text-gray-400">Diagnóstico de Identidad Digital completado</p>
+            <h1 className="text-3xl font-light tracking-tight text-white mb-2">Tu ADN Prototipo Beta</h1>
+            <p className="text-gray-400">Fase 0 completada — ahora comienza el trabajo real con los 10 pilares</p>
           </div>
           <button onClick={resetOnboarding} className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-sm text-gray-300 transition-colors">
             Reiniciar Diagnóstico
@@ -129,8 +214,8 @@ Sé directo, estratégico y motivador. Usa formato markdown con headers y bullet
   return (
     <div className="max-w-2xl mx-auto space-y-6 pb-6 animate-in fade-in duration-500">
       <div>
-        <h1 className="text-3xl font-light tracking-tight text-white mb-2">Diagnóstico de Identidad Digital</h1>
-        <p className="text-gray-400">Respondé estas {QUESTIONS.length} preguntas para que la IA analice tu perfil profesional</p>
+        <h1 className="text-3xl font-light tracking-tight text-white mb-2">Onboarding — Fase 0</h1>
+        <p className="text-gray-400">3 bloques · {QUESTIONS.length} preguntas · La IA genera tu ADN prototipo beta para arrancar el programa</p>
       </div>
 
       {/* Progress bar */}
@@ -146,12 +231,13 @@ Sé directo, estratégico y motivador. Usa formato markdown con headers y bullet
 
       {/* Question card */}
       <div className="glass-panel p-8 rounded-2xl">
-        <div className="flex items-center gap-2 mb-6">
+        <div className="flex items-center gap-2 mb-2">
           <span className="w-8 h-8 rounded-full bg-blue-500/20 text-blue-400 text-sm font-bold flex items-center justify-center">
             {currentStep + 1}
           </span>
-          <span className="text-xs text-gray-500 uppercase tracking-wider">Pregunta {currentStep + 1} de {QUESTIONS.length}</span>
+          <span className="text-xs text-gray-500 uppercase tracking-wider">Bloque {QUESTIONS[currentStep].bloque} — {QUESTIONS[currentStep].tituloBloque}</span>
         </div>
+        <p className="text-[10px] text-gray-600 uppercase tracking-wider mb-6">Pregunta {currentStep + 1} de {QUESTIONS.length}</p>
 
         <h2 className="text-xl font-medium text-white mb-6">{QUESTIONS[currentStep].question}</h2>
 

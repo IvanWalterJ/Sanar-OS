@@ -44,149 +44,186 @@ interface SeccionHidratada extends Omit<SeccionDef, 'subsecciones'> {
   total: number;
 }
 
-// ─── Definición de secciones ─────────────────────────────────────────────────
+// ─── Definición de secciones — ADN del Negocio ───────────────────────────────
 
 const SECCIONES_DEF: SeccionDef[] = [
+  // ── 1. QUIÉN SOY ────────────────────────────────────────────────────────────
   {
-    id: 'perfil',
-    titulo: 'TU PERFIL',
-    subtitulo: 'El punto de partida: quién sos como profesional',
-    color: 'emerald',
+    id: 'quien-soy',
+    titulo: 'QUIÉN SOY',
+    subtitulo: 'Tu identidad como profesional y emprendedor/a',
+    color: 'violet',
     subsecciones: [
       {
-        id: 'A1',
-        titulo: 'Perfil del Fundador',
-        descripcion: 'Tu especialidad, a quién ayudás, qué resultado lográs y tu diferencial único',
+        id: 'HISTORIA-300',
+        titulo: 'Historia — versión larga (300 palabras)',
+        descripcion: 'Tu narrativa personal que conecta origen con trabajo actual — para tu sitio web',
+        targetPage: 'roadmap',
+        perfilKey: 'historia_300',
+      },
+      {
+        id: 'HISTORIA-150',
+        titulo: 'Historia — versión media (150 palabras)',
+        descripcion: 'Versión condensada para tu bio en redes sociales',
+        targetPage: 'roadmap',
+        perfilKey: 'historia_150',
+      },
+      {
+        id: 'HISTORIA-50',
+        titulo: 'Historia — versión corta (50 palabras)',
+        descripcion: 'Tu esencia en pocas palabras — para presentaciones y contenido',
+        targetPage: 'roadmap',
+        perfilKey: 'historia_50',
+      },
+      {
+        id: 'PROPOSITO',
+        titulo: 'Propósito',
+        descripcion: '"¿Por qué existís en este mercado?" — 1 oración específica, verificable y personal',
+        targetPage: 'roadmap',
+        perfilKey: 'proposito',
+      },
+      {
+        id: 'LEGADO',
+        titulo: 'Legado',
+        descripcion: 'Tu horizonte de 10 años — el impacto que querés haber dejado cuando mirés atrás',
+        targetPage: 'roadmap',
+        perfilKey: 'legado',
+      },
+    ],
+  },
+
+  // ── 2. A QUIÉN SIRVO ────────────────────────────────────────────────────────
+  {
+    id: 'a-quien-sirvo',
+    titulo: 'A QUIÉN SIRVO',
+    subtitulo: 'Tu paciente ideal y lo que te hace único/a',
+    color: 'indigo',
+    subsecciones: [
+      {
+        id: 'B2',
+        titulo: 'Avatar del Paciente Ideal',
+        descripcion: 'Perfil completo con dolores (mín. 5), sueños (mín. 3), objeciones frecuentes y lenguaje exacto',
+        targetPage: 'roadmap',
+        perfilKey: 'avatar_cliente',
+      },
+      {
+        id: 'B1',
+        titulo: 'Nicho',
+        descripcion: 'La intersección de lo que hacés mejor, quién más lo necesita y dónde hay menos competencia directa',
+        targetPage: 'roadmap',
+        perfilKey: 'nicho',
+      },
+      {
+        id: 'B3',
+        titulo: 'USP — Propuesta Única de Venta',
+        descripcion: '"Ayudo a [avatar] a lograr [resultado] sin [obstáculo que temen]" — validado con el test de diferenciación',
         targetPage: 'roadmap',
         perfilKey: 'posicionamiento',
       },
     ],
   },
+
+  // ── 3. QUÉ OFREZCO ──────────────────────────────────────────────────────────
   {
-    id: 'identidad',
-    titulo: 'IDENTIDAD',
-    subtitulo: 'Tu fundamento como emprendedor/a de la salud',
-    color: 'violet',
+    id: 'que-ofrezco',
+    titulo: 'QUÉ OFREZCO',
+    subtitulo: 'Tu transformación, tu método y tus niveles de oferta',
+    color: 'blue',
     subsecciones: [
       {
-        id: 'A2',
-        titulo: 'Carta del Día 91',
-        descripcion: 'La carta que te escribís hoy y leés al terminar el programa',
+        id: 'MATRIZ-A',
+        titulo: 'Matriz A — El Infierno (dolores)',
+        descripcion: 'Estado actual del paciente: qué le duele, qué lo desvela, qué situaciones concretas lo afectan a diario',
         targetPage: 'roadmap',
-        perfilKey: 'carta_dia91',
+        perfilKey: 'matriz_a',
       },
       {
-        id: 'A3',
-        titulo: 'Historia de Origen',
-        descripcion: 'Las 3 versiones de tu historia (300/150/50 palabras)',
+        id: 'MATRIZ-B',
+        titulo: 'Matriz B — Los Obstáculos (por qué no avanzan solos)',
+        descripcion: 'Lo que impide al paciente ir de A a C sin tu programa — el corazón de por qué tu método existe y cuesta lo que cuesta',
         targetPage: 'roadmap',
-        perfilKey: 'historia_origen',
+        perfilKey: 'matriz_b',
       },
       {
-        id: 'A4',
-        titulo: 'Creencias Reformuladas',
-        descripcion: 'Tus creencias limitantes convertidas en potenciadoras',
+        id: 'MATRIZ-C',
+        titulo: 'Matriz C — El Cielo (deseos)',
+        descripcion: 'La visión positiva de vida cuando el problema está resuelto — lo que el paciente realmente compra',
         targetPage: 'roadmap',
+        perfilKey: 'matriz_c',
       },
-      {
-        id: 'A5',
-        titulo: 'Visión Financiera Clara',
-        descripcion: 'Tu meta de ingresos a 90 días y cuántos protocolos necesitás vender',
-        targetPage: 'roadmap',
-      },
-    ],
-  },
-  {
-    id: 'nicho',
-    titulo: 'NICHO Y CLIENTE IDEAL',
-    subtitulo: 'A quién ayudás y qué te hace único',
-    color: 'indigo',
-    subsecciones: [
-      {
-        id: 'B1',
-        titulo: 'Definición de Nicho',
-        descripcion: 'Tu especialización concreta y diferenciada',
-        targetPage: 'roadmap',
-        perfilKey: 'nicho',
-      },
-      {
-        id: 'B2',
-        titulo: 'Avatar de Cliente Ideal',
-        descripcion: 'Perfil completo de tu cliente soñado',
-        targetPage: 'roadmap',
-        perfilKey: 'avatar_cliente',
-      },
-      {
-        id: 'B3',
-        titulo: 'Propuesta de Valor Única',
-        descripcion: 'Lo que solo vos podés ofrecer y cómo comunicarlo',
-        targetPage: 'roadmap',
-      },
-    ],
-  },
-  {
-    id: 'programa',
-    titulo: 'PROGRAMA Y PRECIO',
-    subtitulo: 'Tu oferta y su justificación de valor',
-    color: 'emerald',
-    subsecciones: [
       {
         id: 'B4',
-        titulo: 'Estructura del Protocolo',
-        descripcion: 'El diseño paso a paso de tu programa premium',
+        titulo: 'Método Propio',
+        descripcion: 'Tu proceso específico para llevar al paciente de A a C — con nombre propio y 3-7 etapas documentadas',
         targetPage: 'roadmap',
+        perfilKey: 'metodo_nombre',
       },
       {
-        id: 'B5',
-        titulo: 'Justificación de Precio',
-        descripcion: 'Por qué tu precio es una inversión, no un gasto',
+        id: 'OFERTA-MID',
+        titulo: 'Escalera de Ofertas',
+        descripcion: 'Tus 4 niveles: Lead Magnet (gratuito) · Oferta Low ($500-$1,000) · Oferta Mid ($1,500-$2,500 · producto principal) · Oferta High ($4,000-$6,000)',
         targetPage: 'roadmap',
+        perfilKey: 'oferta_mid',
       },
     ],
   },
+
+  // ── 4. CÓMO LLEGO ───────────────────────────────────────────────────────────
   {
-    id: 'digital',
-    titulo: 'PRESENCIA DIGITAL',
-    subtitulo: 'Cómo te mostrás y qué decís en cada canal',
-    color: 'cyan',
+    id: 'como-llego',
+    titulo: 'CÓMO LLEGO',
+    subtitulo: 'Tu sistema de marketing, ventas y entrega',
+    color: 'amber',
     subsecciones: [
       {
-        id: 'D1',
-        titulo: 'Bio de Instagram Optimizada',
-        descripcion: 'Tu bio que convierte visitantes en seguidores y leads',
-        targetPage: 'roadmap',
-      },
-      {
         id: 'D3',
-        titulo: 'Copy de Landing Page',
-        descripcion: 'Todos los textos de tu página de ventas',
+        titulo: 'Sistema de Marketing',
+        descripcion: 'Tu embudo activo: copy de landing page, anuncios Meta (versión A, B y C) y contenido orgánico que posiciona',
         targetPage: 'roadmap',
       },
       {
-        id: 'C3',
-        titulo: 'Plan de Contenido Semanal',
-        descripcion: 'Tu calendario editorial para las próximas semanas',
+        id: 'E1',
+        titulo: 'Sistema de Ventas',
+        descripcion: 'Tu guión de llamada de diagnóstico (45 min) personalizado con el lenguaje exacto de tu avatar — practicado con roleplay del Coach IA',
+        targetPage: 'roadmap',
+        perfilKey: 'script_venta',
+      },
+      {
+        id: 'SERVICIO',
+        titulo: 'Sistema de Servicio',
+        descripcion: 'Protocolo de entrega automatizado: desde el email de bienvenida hasta el seguimiento post-protocolo — el servicio corre solo mientras vos tomás otras llamadas',
         targetPage: 'roadmap',
       },
     ],
   },
+
+  // ── 5. CÓMO ME RECONOCEN ────────────────────────────────────────────────────
   {
-    id: 'ventas',
-    titulo: 'CAPTACIÓN Y VENTAS',
-    subtitulo: 'Tu sistema para conseguir y cerrar clientes',
+    id: 'como-me-reconocen',
+    titulo: 'CÓMO ME RECONOCEN',
+    subtitulo: 'Tu sistema de identidad visual y tono de comunicación',
     color: 'rose',
     subsecciones: [
       {
-        id: 'E1',
-        titulo: 'Guión de Llamada de Venta',
-        descripcion: 'El flujo completo de tu llamada de cierre',
+        id: 'COLORES',
+        titulo: 'Paleta de Colores',
+        descripcion: 'Tu sistema cromático (primario, secundario, acento, neutros) construido desde tu Historia, Propósito y Avatar',
         targetPage: 'roadmap',
+        perfilKey: 'identidad_colores',
       },
       {
-        id: 'E2',
-        titulo: 'Manejo de Objeciones',
-        descripcion: 'Respuestas preparadas a las dudas más comunes',
+        id: 'TIPOGRAFIA',
+        titulo: 'Guía de Tipografía',
+        descripcion: 'Tipografías para títulos, cuerpo y subtítulos — optimizadas para legibilidad digital y coherencia de nicho',
         targetPage: 'roadmap',
+        perfilKey: 'identidad_tipografia',
+      },
+      {
+        id: 'TONO',
+        titulo: 'Manual de Tono de Voz',
+        descripcion: 'Tu voz escrita definida: formal/cercano, técnico/simple, distante/empático — con ejemplos de cómo decís lo mismo de dos maneras',
+        targetPage: 'roadmap',
+        perfilKey: 'identidad_tono',
       },
     ],
   },
@@ -197,6 +234,8 @@ const SECCIONES_DEF: SeccionDef[] = [
 const BORDER_COLOR: Record<string, string> = {
   violet:  'border-l-violet-500',
   indigo:  'border-l-indigo-500',
+  blue:    'border-l-blue-500',
+  amber:   'border-l-amber-500',
   emerald: 'border-l-emerald-500',
   cyan:    'border-l-cyan-500',
   rose:    'border-l-rose-500',
@@ -205,6 +244,8 @@ const BORDER_COLOR: Record<string, string> = {
 const BADGE_COLOR: Record<string, string> = {
   violet:  'bg-violet-500/10 text-violet-400 border-violet-500/20',
   indigo:  'bg-indigo-500/10 text-indigo-400 border-indigo-500/20',
+  blue:    'bg-blue-500/10 text-blue-400 border-blue-500/20',
+  amber:   'bg-amber-500/10 text-amber-400 border-amber-500/20',
   emerald: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
   cyan:    'bg-cyan-500/10 text-cyan-400 border-cyan-500/20',
   rose:    'bg-rose-500/10 text-rose-400 border-rose-500/20',
@@ -213,6 +254,8 @@ const BADGE_COLOR: Record<string, string> = {
 const PROGRESS_COLOR: Record<string, string> = {
   violet:  'bg-violet-500',
   indigo:  'bg-indigo-500',
+  blue:    'bg-blue-500',
+  amber:   'bg-amber-500',
   emerald: 'bg-emerald-500',
   cyan:    'bg-cyan-500',
   rose:    'bg-rose-500',

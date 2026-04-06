@@ -14,6 +14,7 @@ import { supabase, isSupabaseReady } from '../lib/supabase';
 import type { HojaDeRutaItem, VentaRegistrada, ProfileV2 } from '../lib/supabase';
 import {
   SEED_ROADMAP_V2,
+  FASES_ROADMAP,
   calcularNivel,
   TOTAL_METAS,
   type RoadmapPilar,
@@ -283,7 +284,7 @@ export default function Roadmap({ userId, perfil, geminiKey, onNavigate }: Props
               🗺️ Hoja de Ruta
             </h1>
             <p className="text-sm text-gray-400 mt-1">
-              Método CLÍNICA · 90 días · 9 pilares
+              Método CLÍNICA · 90 días · 10 pilares · Objetivo: $10,000 USD/mes
             </p>
           </div>
           <div className="shrink-0 text-right">
@@ -326,66 +327,106 @@ export default function Roadmap({ userId, perfil, geminiKey, onNavigate }: Props
         </div>
       </div>
 
-      {/* ── Mapa visual de 9 pilares ── */}
-      <div className="grid grid-cols-3 gap-3">
-        {pilaresConEstado.map((pilar) => {
-          const isSelected = pilarAbierto === pilar.numero;
+      {/* ── Mapa visual por fases ── */}
+      <div className="space-y-6">
+        {FASES_ROADMAP.map((fase) => {
+          const pilaresEnFase = pilaresConEstado.filter((p) => p.fase === fase.fase);
+          if (pilaresEnFase.length === 0) return null;
+
           return (
-          <button
-            key={pilar.numero}
-            onClick={() => {
-              const siguiente = pilarAbierto === pilar.numero ? null : pilar.numero;
-              setPilarAbierto(siguiente);
-              if (siguiente !== null) {
-                setTimeout(() => detalleRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 80);
-              }
-            }}
-            disabled={pilar.estado === 'bloqueado'}
-            className={`relative text-left p-4 rounded-2xl border transition-all duration-300 ${
-              pilar.estado === 'bloqueado'
-                ? 'bg-white/[0.03] border-white/[0.08] cursor-not-allowed opacity-50'
-                : isSelected
-                ? `bg-${pilar.color}-500/25 border-${pilar.color}-500/60 shadow-lg shadow-${pilar.color}-500/20 scale-[1.02]`
-                : pilar.estado === 'completado'
-                ? `bg-${pilar.color}-500/15 border-${pilar.color}-500/35 hover:bg-${pilar.color}-500/20`
-                : `bg-${pilar.color}-500/8 border-${pilar.color}-500/20 hover:bg-${pilar.color}-500/12`
-            }`}
-          >
-            <div className="flex items-start justify-between mb-2">
-              <span className="text-2xl">{pilar.emoji}</span>
-              {pilar.estado === 'bloqueado' ? (
-                <Lock className="w-3.5 h-3.5 text-gray-600" />
-              ) : pilar.estado === 'completado' ? (
-                <Trophy className="w-3.5 h-3.5 text-yellow-400" />
-              ) : (
-                <Zap className="w-3.5 h-3.5 text-yellow-400" />
-              )}
-            </div>
-            <p className="text-[10px] text-gray-500 font-medium uppercase tracking-wider">
-              Pilar {pilar.numero}
-            </p>
-            <p className={`text-xs font-medium mt-0.5 ${pilar.estado === 'bloqueado' ? 'text-gray-600' : 'text-white'}`}>
-              {pilar.titulo}
-            </p>
-
-            {/* Mini barra de progreso */}
-            {pilar.estado !== 'bloqueado' && (
-              <div className="mt-2 h-1 bg-white/10 rounded-full overflow-hidden">
-                <div
-                  className={`h-full bg-${pilar.color}-500 rounded-full transition-all duration-500`}
-                  style={{ width: `${pilar.totalMetas === 0 ? 0 : Math.round((pilar.metasCompletadas / pilar.totalMetas) * 100)}%` }}
-                />
+            <div key={fase.fase} className="space-y-2">
+              {/* Encabezado de fase */}
+              <div className="flex items-center gap-3 px-1">
+                <div className="flex-1">
+                  <p className="text-[10px] text-gray-500 uppercase tracking-widest font-semibold">
+                    {fase.titulo}
+                    {fase.metodo_letra && (
+                      <span className="ml-2 text-indigo-400">· Método {fase.metodo_letra}</span>
+                    )}
+                  </p>
+                  <p className="text-xs text-gray-600">{fase.subtitulo} · {fase.dias}</p>
+                </div>
               </div>
-            )}
 
-            {/* Condición de desbloqueo especial */}
-            {pilar.estado === 'bloqueado' && (
-              <p className="text-[9px] text-gray-600 mt-1.5 leading-tight">
-                {pilar.desbloqueo === 'venta_real' && 'Requiere 1 venta real'}
-                {pilar.desbloqueo === 'qa_verde' && 'Requiere QA 24/24 ✓'}
-              </p>
-            )}
-          </button>
+              {/* Banner de hito Día 45 (antes de Fase 4) */}
+              {fase.fase === 4 && (
+                <div className="flex items-center gap-3 p-3 rounded-xl bg-amber-500/10 border border-amber-500/25">
+                  <Trophy className="w-4 h-4 text-amber-400 shrink-0" />
+                  <p className="text-xs text-amber-300 font-medium">
+                    🏆 Punto de no retorno — Día 45 máx. Sin el ADN base completo, los $10,000 USD/mes no son un objetivo realista.
+                  </p>
+                </div>
+              )}
+
+              {/* Grid de pilares de la fase */}
+              <div className={`grid gap-3 ${pilaresEnFase.length === 1 ? 'grid-cols-1' : pilaresEnFase.length === 2 ? 'grid-cols-2' : 'grid-cols-3'}`}>
+                {pilaresEnFase.map((pilar) => {
+                  const isSelected = pilarAbierto === pilar.numero;
+                  return (
+                    <button
+                      key={pilar.numero}
+                      onClick={() => {
+                        const siguiente = pilarAbierto === pilar.numero ? null : pilar.numero;
+                        setPilarAbierto(siguiente);
+                        if (siguiente !== null) {
+                          setTimeout(() => detalleRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 80);
+                        }
+                      }}
+                      disabled={pilar.estado === 'bloqueado'}
+                      className={`relative text-left p-4 rounded-2xl border transition-all duration-300 ${
+                        pilar.estado === 'bloqueado'
+                          ? 'bg-white/[0.03] border-white/[0.08] cursor-not-allowed opacity-50'
+                          : isSelected
+                          ? `bg-${pilar.color}-500/25 border-${pilar.color}-500/60 shadow-lg shadow-${pilar.color}-500/20 scale-[1.02]`
+                          : pilar.estado === 'completado'
+                          ? `bg-${pilar.color}-500/15 border-${pilar.color}-500/35 hover:bg-${pilar.color}-500/20`
+                          : `bg-${pilar.color}-500/8 border-${pilar.color}-500/20 hover:bg-${pilar.color}-500/12`
+                      }`}
+                    >
+                      <div className="flex items-start justify-between mb-2">
+                        <span className="text-2xl">{pilar.emoji}</span>
+                        <div className="flex items-center gap-1">
+                          {pilar.es_hito && (
+                            <Trophy className="w-3 h-3 text-amber-400" />
+                          )}
+                          {pilar.estado === 'bloqueado' ? (
+                            <Lock className="w-3.5 h-3.5 text-gray-600" />
+                          ) : pilar.estado === 'completado' ? (
+                            <Trophy className="w-3.5 h-3.5 text-yellow-400" />
+                          ) : (
+                            <Zap className="w-3.5 h-3.5 text-yellow-400" />
+                          )}
+                        </div>
+                      </div>
+                      <p className="text-[10px] text-gray-500 font-medium uppercase tracking-wider">
+                        Pilar {pilar.numero}
+                      </p>
+                      <p className={`text-xs font-medium mt-0.5 ${pilar.estado === 'bloqueado' ? 'text-gray-600' : 'text-white'}`}>
+                        {pilar.titulo}
+                      </p>
+
+                      {/* Mini barra de progreso */}
+                      {pilar.estado !== 'bloqueado' && (
+                        <div className="mt-2 h-1 bg-white/10 rounded-full overflow-hidden">
+                          <div
+                            className={`h-full bg-${pilar.color}-500 rounded-full transition-all duration-500`}
+                            style={{ width: `${pilar.totalMetas === 0 ? 0 : Math.round((pilar.metasCompletadas / pilar.totalMetas) * 100)}%` }}
+                          />
+                        </div>
+                      )}
+
+                      {/* Condición de desbloqueo especial */}
+                      {pilar.estado === 'bloqueado' && (
+                        <p className="text-[9px] text-gray-600 mt-1.5 leading-tight">
+                          {pilar.desbloqueo === 'venta_real' && 'Requiere 1 venta real'}
+                          {pilar.desbloqueo === 'qa_verde' && 'Requiere QA 24/24 ✓'}
+                        </p>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
           );
         })}
       </div>
@@ -495,7 +536,7 @@ export default function Roadmap({ userId, perfil, geminiKey, onNavigate }: Props
                           <Star className="w-3 h-3 text-yellow-400 fill-yellow-400" />
                         )}
                         {tieneOutput && (
-                          <FileText className="w-3 h-3 text-emerald-400" title="Documento guardado" />
+                          <FileText className="w-3 h-3 text-emerald-400" />
                         )}
                         {meta.herramienta_id && (
                           <span className="text-[9px] text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 px-1.5 py-0.5 rounded-full font-medium">
@@ -531,7 +572,7 @@ export default function Roadmap({ userId, perfil, geminiKey, onNavigate }: Props
             </div>
 
             {/* Indicador de estrellas requeridas */}
-            {pilar.estrellas_requeridas && pilar.numero < 8 && (
+            {pilar.estrellas_requeridas && pilar.numero < 10 && (
               <div className="px-4 pb-4">
                 <div className={`text-xs rounded-xl px-4 py-3 border ${
                   pilar.estrellas_completadas >= pilar.metas.filter((m) => m.es_estrella).length
