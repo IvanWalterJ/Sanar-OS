@@ -48,17 +48,32 @@ interface SeccionHidratada extends Omit<SeccionDef, 'subsecciones'> {
 
 const SECCIONES_DEF: SeccionDef[] = [
   {
-    id: 'identidad',
-    titulo: 'IDENTIDAD',
-    subtitulo: 'Quién sos y por qué hacés lo que hacés',
-    color: 'violet',
+    id: 'perfil',
+    titulo: 'TU PERFIL',
+    subtitulo: 'El punto de partida: quién sos como profesional',
+    color: 'emerald',
     subsecciones: [
       {
         id: 'A1',
         titulo: 'Perfil del Fundador',
-        descripcion: 'Tu propósito, valores, nicho y diferencial único',
+        descripcion: 'Tu especialidad, a quién ayudás, qué resultado lográs y tu diferencial único',
         targetPage: 'roadmap',
         perfilKey: 'posicionamiento',
+      },
+    ],
+  },
+  {
+    id: 'identidad',
+    titulo: 'IDENTIDAD',
+    subtitulo: 'Tu fundamento como emprendedor/a de la salud',
+    color: 'violet',
+    subsecciones: [
+      {
+        id: 'A2',
+        titulo: 'Carta del Día 91',
+        descripcion: 'La carta que te escribís hoy y leés al terminar el programa',
+        targetPage: 'roadmap',
+        perfilKey: 'carta_dia91',
       },
       {
         id: 'A3',
@@ -68,9 +83,15 @@ const SECCIONES_DEF: SeccionDef[] = [
         perfilKey: 'historia_origen',
       },
       {
+        id: 'A4',
+        titulo: 'Creencias Reformuladas',
+        descripcion: 'Tus creencias limitantes convertidas en potenciadoras',
+        targetPage: 'roadmap',
+      },
+      {
         id: 'A5',
         titulo: 'Visión Financiera Clara',
-        descripcion: 'Tu mapa de ingresos y libertad financiera a 90 días',
+        descripcion: 'Tu meta de ingresos a 90 días y cuántos protocolos necesitás vender',
         targetPage: 'roadmap',
       },
     ],
