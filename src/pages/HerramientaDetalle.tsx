@@ -46,7 +46,7 @@ export default function HerramientaDetalle({ herramientaId, userId, perfil, gemi
 
   if (!herramienta) {
     return (
-      <div className="text-gray-400 text-sm p-6">
+      <div className="text-[#F0EAD8]/60 text-sm p-6">
         Herramienta no encontrada: {herramientaId}
       </div>
     );
@@ -145,31 +145,31 @@ export default function HerramientaDetalle({ herramientaId, userId, perfil, gemi
       {/* Breadcrumb */}
       <button
         onClick={onVolver}
-        className="flex items-center gap-2 text-sm text-gray-400 hover:text-white transition-colors"
+        className="flex items-center gap-2 text-sm text-[#F0EAD8]/60 hover:text-[#F0EAD8] transition-colors"
       >
         <ArrowLeft className="w-4 h-4" />
         Volver a la Biblioteca
       </button>
 
       {/* Cabecera */}
-      <div className="glass-panel p-5 rounded-2xl">
+      <div className="card-panel p-5 rounded-2xl">
         <div className="flex items-start gap-3">
           <span className="text-3xl">{herramienta.emoji}</span>
           <div>
             <div className="flex items-center gap-2">
-              <span className="text-[10px] bg-white/10 text-gray-400 px-2 py-0.5 rounded font-mono">
+              <span className="text-[10px] bg-[#C8893A]/10 text-[#F0EAD8]/60 px-2 py-0.5 rounded font-mono">
                 {herramienta.id}
               </span>
-              <span className="text-[10px] text-gray-500">Grupo {herramienta.grupo}</span>
+              <span className="text-[10px] text-[#F0EAD8]/40">Grupo {herramienta.grupo}</span>
             </div>
-            <h1 className="text-lg font-light text-white mt-0.5">{herramienta.titulo}</h1>
-            <p className="text-sm text-gray-400">{herramienta.descripcion}</p>
+            <h1 className="text-lg font-light text-[#F0EAD8] mt-0.5">{herramienta.titulo}</h1>
+            <p className="text-sm text-[#F0EAD8]/60">{herramienta.descripcion}</p>
           </div>
         </div>
 
         {/* Indicador de datos precargados */}
         {herramienta.inputs.some((c) => c.precargar && perfil?.[c.precargar as keyof ProfileV2]) && (
-          <div className="mt-3 flex items-center gap-2 text-xs text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 rounded-xl px-3 py-2">
+          <div className="mt-3 flex items-center gap-2 text-xs text-[#2DD4A0] bg-[#2DD4A0]/10 border border-[#2DD4A0]/20 rounded-xl px-3 py-2">
             <CheckCircle2 className="w-3.5 h-3.5" />
             Campos pre-completados con tu perfil — revisá y ajustá si es necesario
           </div>
@@ -177,16 +177,16 @@ export default function HerramientaDetalle({ herramientaId, userId, perfil, gemi
       </div>
 
       {/* Formulario de inputs */}
-      <div className="glass-panel p-5 rounded-2xl space-y-5">
-        <h2 className="text-sm font-medium text-gray-300">Inputs</h2>
+      <div className="card-panel p-5 rounded-2xl space-y-5">
+        <h2 className="text-sm font-medium text-[#F0EAD8]/80">Inputs</h2>
 
         {herramienta.inputs.map((campo: CampoInput) => (
           <div key={campo.id}>
-            <label className="block text-xs font-medium text-gray-400 mb-1.5 uppercase tracking-wider">
+            <label className="block text-xs font-medium text-[#F0EAD8]/60 mb-1.5 uppercase tracking-wider">
               {campo.label}
               {campo.required && <span className="text-red-400 ml-1">*</span>}
               {campo.precargar && inputs[campo.id] && (
-                <span className="ml-2 text-[10px] text-emerald-500 normal-case tracking-normal">
+                <span className="ml-2 text-[10px] text-[#2DD4A0] normal-case tracking-normal">
                   (precargado de tu perfil)
                 </span>
               )}
@@ -195,7 +195,7 @@ export default function HerramientaDetalle({ herramientaId, userId, perfil, gemi
             {campo.tipo === 'textarea' ? (
               <textarea
                 rows={3}
-                className="w-full bg-black/20 border border-white/10 rounded-xl p-3 text-white text-sm focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/30 resize-none transition-all placeholder-gray-600"
+                className="w-full bg-black/20 border border-[rgba(200,137,58,0.2)] rounded-xl p-3 text-[#F0EAD8] text-sm focus:border-[#C8893A]/50 focus:ring-1 focus:ring-[#C8893A]/30 resize-none transition-all placeholder-[#F0EAD8]/30"
                 placeholder={campo.placeholder}
                 value={inputs[campo.id] ?? ''}
                 onChange={(e) => setInput(campo.id, e.target.value)}
@@ -209,7 +209,7 @@ export default function HerramientaDetalle({ herramientaId, userId, perfil, gemi
             ) : campo.tipo === 'number' ? (
               <input
                 type="number"
-                className="w-full bg-black/20 border border-white/10 rounded-xl p-3 text-white text-sm focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/30 transition-all"
+                className="w-full bg-black/20 border border-[rgba(200,137,58,0.2)] rounded-xl p-3 text-[#F0EAD8] text-sm focus:border-[#C8893A]/50 focus:ring-1 focus:ring-[#C8893A]/30 transition-all"
                 placeholder={campo.placeholder}
                 value={inputs[campo.id] ?? ''}
                 onChange={(e) => setInput(campo.id, e.target.value)}
@@ -217,7 +217,7 @@ export default function HerramientaDetalle({ herramientaId, userId, perfil, gemi
             ) : (
               <input
                 type="text"
-                className="w-full bg-black/20 border border-white/10 rounded-xl p-3 text-white text-sm focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/30 transition-all"
+                className="w-full bg-black/20 border border-[rgba(200,137,58,0.2)] rounded-xl p-3 text-[#F0EAD8] text-sm focus:border-[#C8893A]/50 focus:ring-1 focus:ring-[#C8893A]/30 transition-all"
                 placeholder={campo.placeholder}
                 value={inputs[campo.id] ?? ''}
                 onChange={(e) => setInput(campo.id, e.target.value)}
@@ -229,7 +229,7 @@ export default function HerramientaDetalle({ herramientaId, userId, perfil, gemi
         <button
           onClick={handleGenerar}
           disabled={generando || !camposCompletos}
-          className="w-full py-3.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-medium transition-all flex justify-center items-center gap-2"
+          className="w-full py-3.5 rounded-xl bg-[#C8893A] hover:bg-[#D9A04E] disabled:opacity-50 text-[#0E0B07] font-medium transition-all flex justify-center items-center gap-2"
         >
           {generando ? (
             <><Loader2 className="w-4 h-4 animate-spin" /> Generando...</>
@@ -241,17 +241,17 @@ export default function HerramientaDetalle({ herramientaId, userId, perfil, gemi
 
       {/* Output */}
       {(output || generando) && (
-        <div className="glass-panel p-5 rounded-2xl space-y-4">
+        <div className="card-panel p-5 rounded-2xl space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-sm font-medium text-gray-300">{herramienta.outputLabel}</h2>
+            <h2 className="text-sm font-medium text-[#F0EAD8]/80">{herramienta.outputLabel}</h2>
             <div className="flex items-center gap-2">
               {output && (
                 <>
                   <button
                     onClick={handleCopiar}
-                    className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-white bg-white/5 px-3 py-1.5 rounded-xl transition-colors"
+                    className="flex items-center gap-1.5 text-xs text-[#F0EAD8]/60 hover:text-[#F0EAD8] bg-[#C8893A]/5 px-3 py-1.5 rounded-xl transition-colors"
                   >
-                    {copiado ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                    {copiado ? <CheckCircle2 className="w-3.5 h-3.5 text-[#2DD4A0]" /> : <Copy className="w-3.5 h-3.5" />}
                     {copiado ? 'Copiado' : 'Copiar'}
                   </button>
                   <button
@@ -259,8 +259,8 @@ export default function HerramientaDetalle({ herramientaId, userId, perfil, gemi
                     disabled={guardando || outputGuardado}
                     className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-xl transition-colors ${
                       outputGuardado
-                        ? 'text-emerald-400 bg-emerald-500/10 border border-emerald-500/20'
-                        : 'text-gray-400 hover:text-white bg-white/5'
+                        ? 'text-[#2DD4A0] bg-[#2DD4A0]/10 border border-[#2DD4A0]/20'
+                        : 'text-[#F0EAD8]/60 hover:text-[#F0EAD8] bg-[#C8893A]/5'
                     }`}
                   >
                     {guardando ? (
@@ -274,7 +274,7 @@ export default function HerramientaDetalle({ herramientaId, userId, perfil, gemi
                   </button>
                   <button
                     onClick={() => { setOutput(''); setOutputGuardado(false); }}
-                    className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-white bg-white/3 px-3 py-1.5 rounded-xl transition-colors"
+                    className="flex items-center gap-1.5 text-xs text-[#F0EAD8]/40 hover:text-[#F0EAD8] bg-[#C8893A]/3 px-3 py-1.5 rounded-xl transition-colors"
                   >
                     <RotateCcw className="w-3.5 h-3.5" />
                     Regenerar
@@ -286,11 +286,11 @@ export default function HerramientaDetalle({ herramientaId, userId, perfil, gemi
 
           <div className="bg-black/20 rounded-xl p-4 min-h-24">
             {output ? (
-              <div className="prose prose-invert prose-sm max-w-none text-gray-200 [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 [&_h1]:text-base [&_h2]:text-sm [&_h3]:text-sm [&_strong]:text-white [&_ul]:pl-4 [&_ol]:pl-4 [&_li]:my-1 [&_p]:my-2 [&_hr]:border-white/10">
+              <div className="prose prose-invert prose-sm max-w-none text-[#F0EAD8]/90 [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 [&_h1]:text-base [&_h2]:text-sm [&_h3]:text-sm [&_strong]:text-[#F0EAD8] [&_ul]:pl-4 [&_ol]:pl-4 [&_li]:my-1 [&_p]:my-2 [&_hr]:border-[rgba(200,137,58,0.2)]">
                 <Markdown>{output}</Markdown>
               </div>
             ) : (
-              <span className="text-gray-500 flex items-center gap-2 text-sm">
+              <span className="text-[#F0EAD8]/40 flex items-center gap-2 text-sm">
                 <Loader2 className="w-4 h-4 animate-spin" /> Generando...
               </span>
             )}

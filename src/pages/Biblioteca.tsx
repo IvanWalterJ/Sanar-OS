@@ -1,21 +1,157 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { supabase } from '../lib/supabase';
-import { ArrowLeft, Sparkles, Lock, ChevronLeft, ChevronRight, Play, Youtube, X, Clock, Loader2 } from 'lucide-react';
-import { HERRAMIENTAS_POR_GRUPO, GRUPOS_INFO } from '../lib/herramientas';
-import { VIDEOS, getYoutubeEmbedUrl, getYoutubeVideoId, type VideoModulo } from '../lib/videos';
+import {
+  ArrowLeft,
+  Sparkles,
+  Lock,
+  ChevronLeft,
+  ChevronRight,
+  Play,
+  Youtube,
+  X,
+  Clock,
+  Loader2,
+} from 'lucide-react';
+import { SEED_ROADMAP_V3 } from '../lib/roadmapSeed';
+import type { PilarId } from '../lib/supabase';
+import { getHerramienta, HERRAMIENTAS_V3 } from '../lib/herramientas';
+import type { HerramientaV3 } from '../lib/herramientas';
+import {
+  getYoutubeEmbedUrl,
+  getYoutubeVideoId,
+  type VideoModulo,
+} from '../lib/videos';
 import HerramientaDetalle from './HerramientaDetalle';
 
-type GrupoId = 'A' | 'B' | 'C' | 'D' | 'E';
-type Modo = 'herramientas' | 'videos';
+// ─── CLINICA Tab definitions ────────────────────────────────────────────────
+
+type ClinicaTabId = 'C1' | 'L' | 'I1' | 'N' | 'I2' | 'C2' | 'A';
+
+interface ClinicaTab {
+  id: ClinicaTabId;
+  letter: string;
+  label: string;
+  pilarIds: PilarId[];
+  color: string;
+}
+
+const CLINICA_TABS: readonly ClinicaTab[] = [
+  {
+    id: 'C1',
+    letter: 'C',
+    label: 'Claridad',
+    pilarIds: ['P1', 'P2', 'P3'],
+    color: '#C8893A',
+  },
+  {
+    id: 'L',
+    letter: 'L',
+    label: 'Liberación',
+    pilarIds: ['P0'],
+    color: '#D9A04E',
+  },
+  {
+    id: 'I1',
+    letter: 'Í',
+    label: 'Irresistible',
+    pilarIds: ['P4', 'P5', 'P6', 'P7', 'P8'],
+    color: '#C8893A',
+  },
+  {
+    id: 'N',
+    letter: 'N',
+    label: 'Notoriedad',
+    pilarIds: ['P9A'],
+    color: '#D9A04E',
+  },
+  {
+    id: 'I2',
+    letter: 'I',
+    label: 'Infraestructura',
+    pilarIds: ['P9C'],
+    color: '#C8893A',
+  },
+  {
+    id: 'C2',
+    letter: 'C',
+    label: 'Captación',
+    pilarIds: ['P9B'],
+    color: '#D9A04E',
+  },
+  {
+    id: 'A',
+    letter: 'A',
+    label: 'Autonomía',
+    pilarIds: ['P11', 'P10'],
+    color: '#C8893A',
+  },
+] as const;
+
+// ─── Helpers ────────────────────────────────────────────────────────────────
+
+function getCompletadas(): Set<string> {
+  try {
+    const saved = localStorage.getItem('tcd_hoja_ruta_v2');
+    return saved ? new Set(JSON.parse(saved) as string[]) : new Set();
+  } catch {
+    return new Set();
+  }
+}
+
+/** A tab is unlocked if ANY of its pilares has at least one completed meta or is active */
+function isTabUnlocked(tab: ClinicaTab, completadas: Set<string>): boolean {
+  // First tab is always unlocked
+  if (tab.id === 'C1') return true;
+
+  for (const pilarId of tab.pilarIds) {
+    const pilar = SEED_ROADMAP_V3.find((p) => p.id === pilarId);
+    if (!pilar) continue;
+    for (const meta of pilar.metas) {
+      if (completadas.has(meta.codigo)) return true;
+    }
+  }
+  return false;
+}
+
+/** Get herramientas V3 for a set of pilarIds */
+function getHerramientasForPilars(pilarIds: readonly PilarId[]): HerramientaV3[] {
+  const prefixes = pilarIds.map((pid) => `H-${pid}.`);
+  return HERRAMIENTAS_V3.filter((h) =>
+    prefixes.some((prefix) => h.id.startsWith(prefix))
+  );
+}
+
+/** Build video-like entries from roadmap metas that have video_youtube_id */
+function getVideosFromPilars(pilarIds: readonly PilarId[]): VideoModulo[] {
+  const videos: VideoModulo[] = [];
+  for (const pilarId of pilarIds) {
+    const pilar = SEED_ROADMAP_V3.find((p) => p.id === pilarId);
+    if (!pilar) continue;
+    for (const meta of pilar.metas) {
+      if (meta.tipo === 'VIDEO' && meta.video_youtube_id) {
+        videos.push({
+          id: meta.codigo,
+          grupo: 'A', // placeholder — not used for display
+          titulo: meta.titulo,
+          descripcion: meta.descripcion,
+          youtubeUrl: `https://youtu.be/${meta.video_youtube_id}`,
+          duracion: meta.tiempo_estimado,
+        });
+      }
+    }
+  }
+  return videos;
+}
+
+// ─── Component ──────────────────────────────────────────────────────────────
 
 interface BibliotecaProps {
   userId?: string;
 }
 
 export default function Biblioteca({ userId }: BibliotecaProps) {
-  const [grupoActivo, setGrupoActivo] = useState<GrupoId>('A');
+  const [activeTabId, setActiveTabId] = useState<ClinicaTabId>('C1');
   const [herramientaActivaId, setHerramientaActivaId] = useState<string | null>(null);
-  const [modo, setModo] = useState<Modo>('herramientas');
   const [videoActivo, setVideoActivo] = useState<VideoModulo | null>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
@@ -24,7 +160,26 @@ export default function Biblioteca({ userId }: BibliotecaProps) {
   const tabsRef = useRef<HTMLDivElement>(null);
 
   const geminiKey = import.meta.env.VITE_GEMINI_API_KEY || '';
-  const allVideos = [...VIDEOS, ...extraVideos];
+  const completadas = useMemo(() => getCompletadas(), []);
+
+  const activeTab = CLINICA_TABS.find((t) => t.id === activeTabId) ?? CLINICA_TABS[0];
+
+  // Derive content for active tab
+  const herramientas = useMemo(
+    () => getHerramientasForPilars(activeTab.pilarIds),
+    [activeTab.pilarIds]
+  );
+  const seedVideos = useMemo(
+    () => getVideosFromPilars(activeTab.pilarIds),
+    [activeTab.pilarIds]
+  );
+
+  // Merge seed videos with Supabase extra videos for the active tab's pilarIds
+  const tabVideos = useMemo(() => {
+    // Extra videos from Supabase use grupo A-E which doesn't map cleanly.
+    // Include them all for now, merged with seed videos.
+    return [...seedVideos, ...extraVideos];
+  }, [seedVideos, extraVideos]);
 
   useEffect(() => {
     cargarVideosExtra();
@@ -38,18 +193,20 @@ export default function Biblioteca({ userId }: BibliotecaProps) {
         .from('programa_videos')
         .select('*')
         .order('created_at', { ascending: false });
-      
+
       if (error) throw error;
-      
+
       if (data) {
-        setExtraVideos(data.map((v: any) => ({
-          id: v.id,
-          grupo: v.grupo,
-          titulo: v.titulo,
-          descripcion: v.descripcion,
-          youtubeUrl: v.youtube_url,
-          duracion: v.duracion
-        })));
+        setExtraVideos(
+          data.map((v: Record<string, unknown>) => ({
+            id: v.id as string,
+            grupo: (v.grupo as string) as VideoModulo['grupo'],
+            titulo: v.titulo as string,
+            descripcion: v.descripcion as string,
+            youtubeUrl: v.youtube_url as string,
+            duracion: v.duracion as string | undefined,
+          }))
+        );
       }
     } catch (err) {
       console.error('Error cargando videos de la biblioteca:', err);
@@ -58,7 +215,8 @@ export default function Biblioteca({ userId }: BibliotecaProps) {
     }
   }
 
-  // Check scroll state for the tabs row
+  // ─── Tab scroll ───────────────────────────────────────────────────────────
+
   function updateScrollState() {
     const el = tabsRef.current;
     if (!el) return;
@@ -78,15 +236,20 @@ export default function Biblioteca({ userId }: BibliotecaProps) {
   }, []);
 
   const scrollTabs = (dir: 'left' | 'right') => {
-    tabsRef.current?.scrollBy({ left: dir === 'right' ? 160 : -160, behavior: 'smooth' });
+    tabsRef.current?.scrollBy({
+      left: dir === 'right' ? 160 : -160,
+      behavior: 'smooth',
+    });
   };
+
+  // ─── Herramienta detail view ──────────────────────────────────────────────
 
   if (herramientaActivaId) {
     return (
       <div className="max-w-4xl mx-auto space-y-4 animate-in fade-in duration-300 pb-12">
         <button
           onClick={() => setHerramientaActivaId(null)}
-          className="flex items-center gap-2 text-sm text-gray-400 hover:text-white transition-colors uppercase tracking-wider font-bold mb-4 bg-white/5 hover:bg-white/10 px-4 py-2 rounded-xl w-max"
+          className="flex items-center gap-2 text-sm text-[#F0EAD8]/60 hover:text-[#F0EAD8] transition-colors uppercase tracking-wider font-bold mb-4 bg-[#C8893A]/5 hover:bg-[#C8893A]/10 px-4 py-2 rounded-xl w-max"
         >
           <ArrowLeft className="w-4 h-4" /> Volver a Biblioteca
         </button>
@@ -100,44 +263,26 @@ export default function Biblioteca({ userId }: BibliotecaProps) {
     );
   }
 
-  const grupoInfo = GRUPOS_INFO[grupoActivo];
-  const herramientas = HERRAMIENTAS_POR_GRUPO[grupoActivo] ?? [];
-  const videosDelGrupo = allVideos.filter(v => v.grupo === grupoActivo);
+  // ─── Main view ────────────────────────────────────────────────────────────
 
   return (
     <div className="max-w-5xl mx-auto space-y-8 pb-12 animate-in fade-in duration-500">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-light tracking-tight text-white mb-2">Biblioteca</h1>
-          <p className="text-gray-400 text-sm">Herramientas IA y módulos de video del Método CLÍNICA v2.0.</p>
-        </div>
-        {/* Mode toggle */}
-        <div className="flex items-center gap-1 bg-white/[0.04] border border-white/[0.08] p-1 rounded-xl shrink-0">
-          <button
-            onClick={() => setModo('herramientas')}
-            className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
-              modo === 'herramientas' ? 'bg-indigo-500/20 text-indigo-300' : 'text-gray-500 hover:text-gray-300'
-            }`}
-          >
-            <Sparkles className="w-3.5 h-3.5" /> Herramientas IA
-          </button>
-          <button
-            onClick={() => setModo('videos')}
-            className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
-              modo === 'videos' ? 'bg-red-500/20 text-red-300' : 'text-gray-500 hover:text-gray-300'
-            }`}
-          >
-            <Youtube className="w-3.5 h-3.5" /> Videos
-          </button>
-        </div>
+      {/* Header */}
+      <div>
+        <h1 className="text-3xl font-light tracking-tight text-[#F0EAD8] mb-2">
+          Biblioteca
+        </h1>
+        <p className="text-[#F0EAD8]/60 text-sm">
+          Videos y herramientas IA del Método C·L·I·N·I·C·A.
+        </p>
       </div>
 
-      {/* Grupos A–E tabs with scroll arrows */}
+      {/* CLINICA tabs */}
       <div className="relative flex items-center gap-1">
         {canScrollLeft && (
           <button
             onClick={() => scrollTabs('left')}
-            className="shrink-0 w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-center text-gray-400 hover:text-white transition-colors"
+            className="shrink-0 w-8 h-8 rounded-lg bg-[#C8893A]/5 hover:bg-[#C8893A]/10 border border-[rgba(200,137,58,0.2)] flex items-center justify-center text-[#F0EAD8]/60 hover:text-[#F0EAD8] transition-colors"
           >
             <ChevronLeft className="w-4 h-4" />
           </button>
@@ -146,26 +291,34 @@ export default function Biblioteca({ userId }: BibliotecaProps) {
           ref={tabsRef}
           className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide flex-1"
         >
-          {(Object.keys(GRUPOS_INFO) as GrupoId[]).map(gId => {
-            const g = GRUPOS_INFO[gId];
-            const isActive = grupoActivo === gId;
-            const count = modo === 'herramientas'
-              ? (HERRAMIENTAS_POR_GRUPO[gId] ?? []).length
-              : allVideos.filter(v => v.grupo === gId).length;
+          {CLINICA_TABS.map((tab) => {
+            const isActive = activeTabId === tab.id;
+            const unlocked = isTabUnlocked(tab, completadas);
             return (
               <button
-                key={gId}
-                onClick={() => setGrupoActivo(gId)}
-                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold whitespace-nowrap transition-all border ${
-                  isActive
-                    ? `bg-${g.color}-500/15 border-${g.color}-500/40 text-${g.color}-300`
-                    : 'bg-white/[0.02] border-white/[0.06] text-gray-400 hover:text-white hover:bg-white/[0.05]'
+                key={tab.id}
+                onClick={() => unlocked && setActiveTabId(tab.id)}
+                disabled={!unlocked}
+                className={`flex flex-col items-center px-5 py-3 rounded-xl transition-all border min-w-[80px] ${
+                  !unlocked
+                    ? 'bg-[#1A1410]/40 border-[rgba(200,137,58,0.05)] text-[#F0EAD8]/20 cursor-not-allowed'
+                    : isActive
+                    ? 'bg-[#C8893A]/15 border-[#C8893A]/50 text-[#C8893A]'
+                    : 'bg-[#241A0C]/30 border-[rgba(200,137,58,0.1)] text-[#F0EAD8]/60 hover:text-[#F0EAD8] hover:bg-[#241A0C]/50'
                 }`}
               >
-                <span>{g.emoji}</span>
-                <span>{g.titulo}</span>
-                <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${isActive ? `bg-${g.color}-500/20` : 'bg-white/5'}`}>
-                  {count}
+                {!unlocked ? (
+                  <Lock className="w-5 h-5 mb-1 text-[#F0EAD8]/15" />
+                ) : (
+                  <span
+                    className="text-xl font-bold leading-none mb-1"
+                    style={{ color: isActive ? tab.color : undefined }}
+                  >
+                    {tab.letter}
+                  </span>
+                )}
+                <span className="text-[10px] font-semibold uppercase tracking-wider whitespace-nowrap">
+                  {tab.label}
                 </span>
               </button>
             );
@@ -174,58 +327,173 @@ export default function Biblioteca({ userId }: BibliotecaProps) {
         {canScrollRight && (
           <button
             onClick={() => scrollTabs('right')}
-            className="shrink-0 w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-center text-gray-400 hover:text-white transition-colors"
+            className="shrink-0 w-8 h-8 rounded-lg bg-[#C8893A]/5 hover:bg-[#C8893A]/10 border border-[rgba(200,137,58,0.2)] flex items-center justify-center text-[#F0EAD8]/60 hover:text-[#F0EAD8] transition-colors"
           >
             <ChevronRight className="w-4 h-4" />
           </button>
         )}
       </div>
 
-      {/* Descripción del grupo */}
-      <div className={`bg-${grupoInfo.color}-500/5 border border-${grupoInfo.color}-500/20 rounded-2xl px-5 py-4`}>
-        <p className="text-sm text-gray-300">
-          <span className="font-semibold text-white">{grupoInfo.emoji} {grupoInfo.titulo}:</span>{' '}
-          {grupoInfo.descripcion}
+      {/* Tab description */}
+      <div className="bg-[#C8893A]/5 border border-[#C8893A]/20 rounded-2xl px-5 py-4">
+        <p className="text-sm text-[#F0EAD8]/80">
+          <span
+            className="font-bold text-lg mr-2"
+            style={{ color: activeTab.color }}
+          >
+            {activeTab.letter}
+          </span>
+          <span className="font-semibold text-[#F0EAD8]">
+            {activeTab.label}
+          </span>
+          {' — '}
+          {activeTab.pilarIds
+            .map((pid) => {
+              const p = SEED_ROADMAP_V3.find((s) => s.id === pid);
+              return p ? p.titulo : pid;
+            })
+            .join(', ')}
         </p>
       </div>
 
-      {/* ── HERRAMIENTAS MODE ── */}
-      {modo === 'herramientas' && (
-        <>
+      {/* Videos section */}
+      {tabVideos.length > 0 && (
+        <div className="space-y-4">
+          <h2 className="text-sm font-bold uppercase tracking-widest text-[#F0EAD8]/40 flex items-center gap-2">
+            <Youtube className="w-4 h-4 text-[#E85555]" /> Videos
+          </h2>
+          {videosLoading ? (
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <Loader2 className="w-8 h-8 text-[#C8893A] animate-spin mb-3" />
+              <p className="text-[#F0EAD8]/60 text-sm">Cargando videos...</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              {tabVideos.map((v) => {
+                const videoId = getYoutubeVideoId(v.youtubeUrl);
+                const isPlaceholder =
+                  !videoId || v.youtubeUrl.includes('PLACEHOLDER');
+                const thumbUrl =
+                  videoId && !isPlaceholder
+                    ? `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`
+                    : null;
+                return (
+                  <div
+                    key={v.id}
+                    className="card-panel rounded-2xl border border-[rgba(200,137,58,0.1)] hover:border-[rgba(200,137,58,0.2)] transition-all overflow-hidden group flex flex-col"
+                  >
+                    <div
+                      className={`relative aspect-video overflow-hidden bg-black/40 ${
+                        isPlaceholder ? '' : 'cursor-pointer'
+                      }`}
+                      onClick={() => !isPlaceholder && setVideoActivo(v)}
+                    >
+                      {thumbUrl ? (
+                        <img
+                          src={thumbUrl}
+                          alt={v.titulo}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center bg-[#241A0C]/30">
+                          <Youtube className="w-10 h-10 text-[#C8893A]/30" />
+                        </div>
+                      )}
+                      {!isPlaceholder && (
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <div className="w-14 h-14 rounded-full bg-[#C8893A] flex items-center justify-center shadow-2xl">
+                            <Play className="w-6 h-6 text-[#F0EAD8] fill-white ml-0.5" />
+                          </div>
+                        </div>
+                      )}
+                      {v.duracion && (
+                        <div className="absolute bottom-2 right-2 bg-black/80 text-[#F0EAD8] text-[10px] font-mono px-1.5 py-0.5 rounded flex items-center gap-1">
+                          <Clock className="w-2.5 h-2.5" />
+                          {v.duracion}
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="p-4 flex-1 flex flex-col">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-[9px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded bg-[#C8893A]/15 text-[#C8893A] border border-[#C8893A]/20">
+                          {v.id}
+                        </span>
+                      </div>
+                      <h3 className="text-sm font-semibold text-[#F0EAD8] mb-1">
+                        {v.titulo}
+                      </h3>
+                      <p className="text-xs text-[#F0EAD8]/60 leading-relaxed flex-1">
+                        {v.descripcion}
+                      </p>
+                      {!isPlaceholder && (
+                        <button
+                          onClick={() => setVideoActivo(v)}
+                          className="mt-3 w-full py-2.5 rounded-xl text-[11px] font-bold uppercase tracking-widest bg-[#C8893A]/80 hover:bg-[#C8893A] text-[#F0EAD8] transition-all flex items-center justify-center gap-2"
+                        >
+                          <Play className="w-3.5 h-3.5 fill-white" /> Ver Video
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Herramientas section */}
+      {herramientas.length > 0 && (
+        <div className="space-y-4">
+          <h2 className="text-sm font-bold uppercase tracking-widest text-[#F0EAD8]/40 flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-[#C8893A]" /> Herramientas IA
+          </h2>
+
           {!geminiKey && (
             <div className="flex items-center gap-3 bg-amber-500/10 border border-amber-500/30 rounded-2xl px-5 py-4">
-              <Lock className="w-4 h-4 text-amber-400 shrink-0" />
-              <p className="text-sm text-amber-300">Configurá la variable <code className="bg-amber-500/20 px-1.5 py-0.5 rounded text-amber-200 font-mono text-xs">VITE_GEMINI_API_KEY</code> para activar las herramientas IA.</p>
+              <Lock className="w-4 h-4 text-[#C8893A] shrink-0" />
+              <p className="text-sm text-amber-300">
+                Configura la variable{' '}
+                <code className="bg-amber-500/20 px-1.5 py-0.5 rounded text-amber-200 font-mono text-xs">
+                  VITE_GEMINI_API_KEY
+                </code>{' '}
+                para activar las herramientas IA.
+              </p>
             </div>
           )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-            {herramientas.map(h => (
+            {herramientas.map((h) => (
               <div
                 key={h.id}
-                className="glass-panel rounded-2xl p-5 border border-white/[0.06] hover:border-white/10 hover:bg-white/[0.03] transition-all group flex flex-col"
+                className="card-panel rounded-2xl p-5 border border-[rgba(200,137,58,0.1)] hover:border-[rgba(200,137,58,0.2)] hover:bg-[#241A0C]/50 transition-all group flex flex-col"
               >
                 <div className="flex items-start gap-3 mb-3">
                   <span className="text-2xl shrink-0">{h.emoji}</span>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
-                      <span className={`text-[9px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded bg-${grupoInfo.color}-500/15 text-${grupoInfo.color}-400 border border-${grupoInfo.color}-500/20`}>
+                      <span className="text-[9px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded bg-[#C8893A]/15 text-[#C8893A] border border-[#C8893A]/20">
                         {h.id}
                       </span>
                     </div>
-                    <h3 className="text-sm font-semibold text-white leading-snug">{h.titulo}</h3>
+                    <h3 className="text-sm font-semibold text-[#F0EAD8] leading-snug">
+                      {h.titulo}
+                    </h3>
                   </div>
                 </div>
 
-                <p className="text-xs text-gray-400 leading-relaxed mb-4 flex-1">{h.descripcion}</p>
+                <p className="text-xs text-[#F0EAD8]/60 leading-relaxed mb-4 flex-1">
+                  {h.descripcion}
+                </p>
 
                 <button
                   onClick={() => setHerramientaActivaId(h.id)}
                   disabled={!geminiKey}
                   className={`w-full py-2.5 rounded-xl text-[11px] font-bold uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${
                     geminiKey
-                      ? 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-500/20'
-                      : 'bg-white/5 text-gray-600 cursor-not-allowed border border-white/5'
+                      ? 'bg-[#C8893A] hover:bg-[#D9A04E] text-[#F0EAD8] shadow-lg shadow-[#C8893A]/20'
+                      : 'bg-[#C8893A]/5 text-[#F0EAD8]/30 cursor-not-allowed border border-[rgba(200,137,58,0.1)]'
                   }`}
                 >
                   <Sparkles className="w-3.5 h-3.5" />
@@ -234,80 +502,21 @@ export default function Biblioteca({ userId }: BibliotecaProps) {
               </div>
             ))}
           </div>
-        </>
+        </div>
       )}
 
-      {/* ── VIDEOS MODE ── */}
-      {modo === 'videos' && (
-        <>
-          {videosLoading ? (
-            <div className="flex flex-col items-center justify-center py-20 text-center">
-              <Loader2 className="w-10 h-10 text-red-500 animate-spin mb-4" />
-              <p className="text-gray-400 text-sm">Cargando biblioteca de videos...</p>
-            </div>
-          ) : videosDelGrupo.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 text-center bg-white/[0.02] border border-white/[0.05] border-dashed rounded-2xl">
-              <Youtube className="w-12 h-12 text-red-500/30 mb-4" />
-              <p className="text-gray-400 text-sm font-medium mb-2">No hay videos en este grupo todavía</p>
-              <p className="text-gray-600 text-xs max-w-sm leading-relaxed">
-                El coach puede agregar videos desde el panel de administración en la sección <strong className="text-gray-400">Videos</strong>.
-              </p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              {videosDelGrupo.map(v => {
-                const videoId = getYoutubeVideoId(v.youtubeUrl);
-                const thumbUrl = videoId ? `https://img.youtube.com/vi/${videoId}/mqdefault.jpg` : null;
-                return (
-                  <div
-                    key={v.id}
-                    className="glass-panel rounded-2xl border border-white/[0.06] hover:border-white/10 transition-all overflow-hidden group flex flex-col"
-                  >
-                    {/* Thumbnail */}
-                    <div
-                      className="relative cursor-pointer aspect-video overflow-hidden bg-black/40"
-                      onClick={() => setVideoActivo(v)}
-                    >
-                      {thumbUrl ? (
-                        <img src={thumbUrl} alt={v.titulo} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center bg-white/[0.02]">
-                          <Youtube className="w-10 h-10 text-red-500/40" />
-                        </div>
-                      )}
-                      <div className="absolute inset-0 flex items-center justify-center bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <div className="w-14 h-14 rounded-full bg-red-600 flex items-center justify-center shadow-2xl">
-                          <Play className="w-6 h-6 text-white fill-white ml-0.5" />
-                        </div>
-                      </div>
-                      {v.duracion && (
-                        <div className="absolute bottom-2 right-2 bg-black/80 text-white text-[10px] font-mono px-1.5 py-0.5 rounded flex items-center gap-1">
-                          <Clock className="w-2.5 h-2.5" />{v.duracion}
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="p-4 flex-1 flex flex-col">
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className={`text-[9px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded bg-${grupoInfo.color}-500/15 text-${grupoInfo.color}-400 border border-${grupoInfo.color}-500/20`}>
-                          {v.grupo} · {v.id}
-                        </span>
-                      </div>
-                      <h3 className="text-sm font-semibold text-white mb-1">{v.titulo}</h3>
-                      <p className="text-xs text-gray-400 leading-relaxed flex-1">{v.descripcion}</p>
-                      <button
-                        onClick={() => setVideoActivo(v)}
-                        className="mt-3 w-full py-2.5 rounded-xl text-[11px] font-bold uppercase tracking-widest bg-red-600/80 hover:bg-red-600 text-white transition-all flex items-center justify-center gap-2"
-                      >
-                        <Play className="w-3.5 h-3.5 fill-white" /> Ver Video
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </>
+      {/* Empty state when both lists are empty */}
+      {herramientas.length === 0 && tabVideos.length === 0 && (
+        <div className="flex flex-col items-center justify-center py-16 text-center bg-[#241A0C]/30 border border-[rgba(200,137,58,0.1)] border-dashed rounded-2xl">
+          <Sparkles className="w-12 h-12 text-[#C8893A]/30 mb-4" />
+          <p className="text-[#F0EAD8]/60 text-sm font-medium mb-2">
+            Este modulo esta en desarrollo
+          </p>
+          <p className="text-[#F0EAD8]/30 text-xs max-w-sm leading-relaxed">
+            Pronto se habilitaran videos y herramientas para{' '}
+            <strong className="text-[#F0EAD8]/60">{activeTab.label}</strong>.
+          </p>
+        </div>
       )}
 
       {/* Video lightbox modal */}
@@ -318,18 +527,20 @@ export default function Biblioteca({ userId }: BibliotecaProps) {
         >
           <div
             className="w-full max-w-4xl mx-4 relative"
-            onClick={e => e.stopPropagation()}
+            onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-3 px-1">
-              <h3 className="text-white font-medium text-sm truncate flex-1">{videoActivo.titulo}</h3>
+              <h3 className="text-[#F0EAD8] font-medium text-sm truncate flex-1">
+                {videoActivo.titulo}
+              </h3>
               <button
                 onClick={() => setVideoActivo(null)}
-                className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-gray-400 hover:text-white transition-colors shrink-0 ml-3"
+                className="w-8 h-8 rounded-full bg-[#C8893A]/10 hover:bg-[#C8893A]/20 flex items-center justify-center text-[#F0EAD8]/60 hover:text-[#F0EAD8] transition-colors shrink-0 ml-3"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
-            <div className="aspect-video w-full rounded-2xl overflow-hidden bg-black shadow-2xl">
+            <div className="aspect-video w-full rounded-2xl overflow-hidden bg-black shadow-2xl ring-1 ring-[rgba(200,137,58,0.2)]">
               <iframe
                 src={getYoutubeEmbedUrl(videoActivo.youtubeUrl)}
                 title={videoActivo.titulo}

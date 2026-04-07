@@ -185,25 +185,25 @@ Sé directo, honesto y estratégico. Usá segunda persona informal (vos/tu). No 
       <div className="max-w-4xl mx-auto space-y-6 pb-6 animate-in fade-in duration-500">
         <div className="flex items-end justify-between">
           <div>
-            <h1 className="text-3xl font-light tracking-tight text-white mb-2">Tu ADN Prototipo Beta</h1>
-            <p className="text-gray-400">Fase 0 completada — ahora comienza el trabajo real con los 10 pilares</p>
+            <h1 className="text-3xl font-light tracking-tight text-[#F0EAD8] mb-2">Tu ADN Prototipo Beta</h1>
+            <p className="text-[#F0EAD8]/60">Fase 0 completada — ahora comienza el trabajo real con los 10 pilares</p>
           </div>
-          <button onClick={resetOnboarding} className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-sm text-gray-300 transition-colors">
+          <button onClick={resetOnboarding} className="px-4 py-2 rounded-xl bg-[#C8893A]/10 hover:bg-[#C8893A]/20 text-sm text-[#F0EAD8]/80 transition-colors">
             Reiniciar Diagnóstico
           </button>
         </div>
 
-        <div className="glass-panel p-8 rounded-2xl border-l-4 border-l-purple-500">
+        <div className="card-panel p-8 rounded-2xl border-l-4 border-l-purple-500">
           <div className="flex items-center gap-3 mb-6">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-blue-600 flex items-center justify-center">
-              <Sparkles className="w-5 h-5 text-white" />
+            <div className="w-10 h-10 rounded-xl bg-[#C8893A] flex items-center justify-center">
+              <Sparkles className="w-5 h-5 text-[#F0EAD8]" />
             </div>
             <div>
-              <h2 className="text-lg font-medium text-white">Análisis IA de tu Perfil</h2>
-              <p className="text-xs text-purple-400">Generado por Sanare Coach</p>
+              <h2 className="text-lg font-medium text-[#F0EAD8]">Análisis IA de tu Perfil</h2>
+              <p className="text-xs text-[#C8893A]">Generado por Sanare Coach</p>
             </div>
           </div>
-          <div className="prose prose-invert max-w-none prose-p:leading-relaxed prose-headings:text-gray-100 prose-li:text-gray-300 text-sm">
+          <div className="prose prose-invert max-w-none prose-p:leading-relaxed prose-headings:text-gray-100 prose-li:text-[#F0EAD8]/80 text-sm">
             <Markdown>{profile}</Markdown>
           </div>
         </div>
@@ -214,38 +214,38 @@ Sé directo, honesto y estratégico. Usá segunda persona informal (vos/tu). No 
   return (
     <div className="max-w-2xl mx-auto space-y-6 pb-6 animate-in fade-in duration-500">
       <div>
-        <h1 className="text-3xl font-light tracking-tight text-white mb-2">Onboarding — Fase 0</h1>
-        <p className="text-gray-400">3 bloques · {QUESTIONS.length} preguntas · La IA genera tu ADN prototipo beta para arrancar el programa</p>
+        <h1 className="text-3xl font-light tracking-tight text-[#F0EAD8] mb-2">Onboarding — Fase 0</h1>
+        <p className="text-[#F0EAD8]/60">3 bloques · {QUESTIONS.length} preguntas · La IA genera tu ADN prototipo beta para arrancar el programa</p>
       </div>
 
       {/* Progress bar */}
       <div className="flex items-center gap-3">
-        <div className="flex-1 h-1 bg-white/10 rounded-full overflow-hidden">
+        <div className="flex-1 h-1 bg-[#C8893A]/10 rounded-full overflow-hidden">
           <div
-            className="h-full bg-gradient-to-r from-blue-500 to-purple-500 transition-all duration-500"
+            className="h-full bg-[#C8893A] transition-all duration-500"
             style={{ width: `${(Object.keys(answers).filter(k => answers[parseInt(k)]?.trim()).length / QUESTIONS.length) * 100}%` }}
           />
         </div>
-        <span className="text-xs text-gray-500">{Object.keys(answers).filter(k => answers[parseInt(k)]?.trim()).length}/{QUESTIONS.length}</span>
+        <span className="text-xs text-[#F0EAD8]/40">{Object.keys(answers).filter(k => answers[parseInt(k)]?.trim()).length}/{QUESTIONS.length}</span>
       </div>
 
       {/* Question card */}
-      <div className="glass-panel p-8 rounded-2xl">
+      <div className="card-panel p-8 rounded-2xl">
         <div className="flex items-center gap-2 mb-2">
-          <span className="w-8 h-8 rounded-full bg-blue-500/20 text-blue-400 text-sm font-bold flex items-center justify-center">
+          <span className="w-8 h-8 rounded-full bg-[#C8893A]/20 text-[#C8893A] text-sm font-bold flex items-center justify-center">
             {currentStep + 1}
           </span>
-          <span className="text-xs text-gray-500 uppercase tracking-wider">Bloque {QUESTIONS[currentStep].bloque} — {QUESTIONS[currentStep].tituloBloque}</span>
+          <span className="text-xs text-[#F0EAD8]/40 uppercase tracking-wider">Bloque {QUESTIONS[currentStep].bloque} — {QUESTIONS[currentStep].tituloBloque}</span>
         </div>
-        <p className="text-[10px] text-gray-600 uppercase tracking-wider mb-6">Pregunta {currentStep + 1} de {QUESTIONS.length}</p>
+        <p className="text-[10px] text-[#F0EAD8]/30 uppercase tracking-wider mb-6">Pregunta {currentStep + 1} de {QUESTIONS.length}</p>
 
-        <h2 className="text-xl font-medium text-white mb-6">{QUESTIONS[currentStep].question}</h2>
+        <h2 className="text-xl font-medium text-[#F0EAD8] mb-6">{QUESTIONS[currentStep].question}</h2>
 
         <textarea
           value={answers[QUESTIONS[currentStep].id] || ''}
           onChange={(e) => handleAnswer(e.target.value)}
           placeholder={QUESTIONS[currentStep].placeholder}
-          className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white text-sm placeholder-gray-500 focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/50 transition-all resize-none min-h-[120px]"
+          className="w-full bg-black/20 border border-[rgba(200,137,58,0.2)] rounded-xl px-4 py-3 text-[#F0EAD8] text-sm placeholder-[#F0EAD8]/30 focus:outline-none focus:border-[#C8893A]/50 focus:ring-1 focus:ring-[#C8893A]/50 transition-all resize-none min-h-[120px]"
           rows={4}
         />
 
@@ -253,7 +253,7 @@ Sé directo, honesto y estratégico. Usá segunda persona informal (vos/tu). No 
           <button
             onClick={() => setCurrentStep(Math.max(0, currentStep - 1))}
             disabled={currentStep === 0}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm text-gray-400 hover:text-white disabled:opacity-30 transition-colors"
+            className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm text-[#F0EAD8]/60 hover:text-[#F0EAD8] disabled:opacity-30 transition-colors"
           >
             <ArrowLeft className="w-4 h-4" /> Anterior
           </button>
@@ -262,7 +262,7 @@ Sé directo, honesto y estratégico. Usá segunda persona informal (vos/tu). No 
             <button
               onClick={() => setCurrentStep(currentStep + 1)}
               disabled={!canAdvance}
-              className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-blue-500 hover:bg-blue-600 disabled:opacity-50 text-white text-sm font-medium transition-colors shadow-lg shadow-blue-500/20"
+              className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-[#C8893A] hover:bg-[#C8893A] disabled:opacity-50 text-[#F0EAD8] text-sm font-medium transition-colors shadow-lg shadow-[#C8893A]/20"
             >
               Siguiente <ArrowRight className="w-4 h-4" />
             </button>
@@ -270,7 +270,7 @@ Sé directo, honesto y estratégico. Usá segunda persona informal (vos/tu). No 
             <button
               onClick={generateProfile}
               disabled={!allAnswered || generating}
-              className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 disabled:opacity-50 text-white text-sm font-medium transition-all shadow-lg shadow-purple-500/20"
+              className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-[#C8893A] hover:bg-[#D9A04E] disabled:opacity-50 text-[#F0EAD8] text-sm font-medium transition-all shadow-lg shadow-[#C8893A]/20"
             >
               {generating ? (
                 <><Loader2 className="w-4 h-4 animate-spin" /> Analizando...</>
@@ -289,8 +289,8 @@ Sé directo, honesto y estratégico. Usá segunda persona informal (vos/tu). No 
             key={q.id}
             onClick={() => setCurrentStep(i)}
             className={`w-2.5 h-2.5 rounded-full transition-all ${
-              i === currentStep ? 'bg-blue-500 scale-125' :
-              answers[q.id]?.trim() ? 'bg-emerald-500/60' : 'bg-white/10'
+              i === currentStep ? 'bg-[#C8893A] scale-125' :
+              answers[q.id]?.trim() ? 'bg-[#2DD4A0]/60' : 'bg-[#C8893A]/10'
             }`}
           />
         ))}

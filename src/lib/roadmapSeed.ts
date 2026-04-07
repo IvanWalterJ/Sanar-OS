@@ -1,580 +1,982 @@
-import type { MetaCodigo } from './supabase';
+import type { MetaCodigo, PilarId, TipoTarea } from './supabase';
 
-// ─── Tipos base ───────────────────────────────────────────────────────────────
+// ─── Tipos base V3 ──────────────────────────────────────────────────────────
 
 export type TipoDesbloqueo =
-  | 'auto'             // siempre disponible al crear cuenta
-  | 'completar_anterior' // tareas ★ del pilar anterior
-  | 'venta_real'       // al menos 1 venta registrada
-  | 'qa_verde';        // QA 24/24 puntos verdes
+  | 'auto'
+  | 'completar_anterior'
+  | 'venta_real'
+  | 'qa_verde';
 
 export interface RoadmapMeta {
   codigo: MetaCodigo;
   titulo: string;
   descripcion: string;
-  es_estrella: boolean;  // tareas ★ que desbloquean el siguiente pilar
+  tipo: TipoTarea;
+  es_estrella: boolean;
   tiempo_estimado: string;
-  herramienta_id?: string; // herramienta de Biblioteca asignada (ej: 'A1')
-  agente_id?: string;      // agente IA asignado
+  orden: number;                       // secuencia dentro del pilar (1,2,3...)
+  herramienta_id?: string;             // para tipo HERRAMIENTA
+  agente_id?: string;                  // para tipo AGENTE
+  usa_ia: boolean;                     // false para P1.2 y P3.2 (escritura pura)
+  adn_field?: string;                  // campo de ProfileV2 donde guarda
+  requiere_datos_de?: MetaCodigo[];    // dependencia explícita de datos
+  es_recurrente?: boolean;             // P9A.4: se puede usar repetidamente
+  video_youtube_id?: string;           // para tipo VIDEO (placeholder hasta que Javo suba)
+  coach_instruccion?: string;          // para tipo COACH (texto exacto)
 }
 
 export interface RoadmapPilar {
-  numero: 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
+  id: PilarId;
+  numero_orden: number;                // 0-13 para display secuencial
   titulo: string;
-  subtitulo: string;          // descripción corta del pilar
-  emoji: string;
-  color: string;              // color Tailwind para el mapa visual
+  subtitulo: string;
+  color: string;                       // hex color
   desbloqueo: TipoDesbloqueo;
-  estrellas_requeridas?: number; // cuántas ★ del pilar anterior se necesitan
+  pilar_prerequisito?: PilarId;
   metas: RoadmapMeta[];
-  // ── Metadata del Método CLÍNICA ──────────────────────────────────────────
-  fase: number;               // 0-6 (fase del programa)
-  dias_inicio: number;        // día de inicio estimado
-  dias_fin: number;           // día de fin estimado
-  metodo_letra?: string;      // letra del acrónimo C-L-Í-N-I-C-A
-  es_hito?: boolean;          // pilar hito especial (ej: Día 45)
+  fase: number;
+  dias_inicio: number;
+  dias_fin: number;
+  metodo_letra?: string;
+  hito_mensaje?: string;
+  hito_tipo?: 'milestone' | 'urgent' | 'checkpoint';
+  // Backward compat aliases (para transición gradual)
+  /** @deprecated Usar id */
+  numero: number;
+  /** @deprecated Usar numero_orden */
+  emoji: string;
+  /** @deprecated Usar pilar_prerequisito + completar_anterior */
+  estrellas_requeridas?: number;
+  /** @deprecated */
+  es_hito?: boolean;
 }
 
-// ─── Los 10 Pilares del ADN del Negocio — Método CLÍNICA ────────────────────
+// ─── Los 14 Pilares — 49 Pasos — Versión Final Definitiva ──────────────────
 
-export const SEED_ROADMAP_V2: RoadmapPilar[] = [
+export const SEED_ROADMAP_V3: RoadmapPilar[] = [
 
-  // ── FASE 0: ONBOARDING (Días 1-3) ─────────────────────────────────────────
+  // ══════════════════════════════════════════════════════════════════════════
+  // FASE 0: ONBOARDING · Días 1–3
+  // ══════════════════════════════════════════════════════════════════════════
   {
-    numero: 0,
+    id: 'P0',
+    numero_orden: 0,
     titulo: 'Onboarding',
-    subtitulo: 'El Coach te conoce — ADN prototipo beta',
+    subtitulo: 'Bienvenida y ADN prototipo beta',
+    color: '#C8893A',
+    numero: 0,
     emoji: '🌱',
-    color: 'emerald',
     desbloqueo: 'auto',
     fase: 0,
     dias_inicio: 1,
     dias_fin: 3,
     metas: [
       {
-        codigo: 'O.A',
-        titulo: 'Diagnóstico de Identidad Digital',
-        descripcion:
-          'Respondé las preguntas de los 3 bloques del onboarding: tus referentes, tus miedos y deseos, y el contexto de tu negocio. La IA genera tu ADN prototipo beta — el punto de partida que cada pilar irá refinando.',
+        codigo: 'P0.1',
+        titulo: 'Bienvenida: qué vas a construir en 90 días',
+        descripcion: 'Javo explica qué es el ADN del Negocio, por qué existe la app y qué va a pasar en los próximos 90 días.',
+        tipo: 'VIDEO',
+        es_estrella: false,
+        tiempo_estimado: '15 min',
+        orden: 1,
+        usa_ia: false,
+        video_youtube_id: 'PLACEHOLDER_P0_1',
+      },
+      {
+        codigo: 'P0.2',
+        titulo: 'Formulario de bienvenida',
+        descripcion: 'Respondé las preguntas iniciales: ¿A qué profesionales del mundo admirás? ¿Qué tienen ellos que vos querés tener? ¿Qué te impidió hasta ahora cobrar lo que vale tu trabajo? ¿Cómo te imaginás tu vida con $10K/mes extra? ¿Cuántos años ejercés tu profesión? ¿Presencial, online o mixto? ¿Cuántos pacientes pagando por mes? ¿Qué problema principal resolvés? La IA genera tu ADN prototipo beta.',
+        tipo: 'HERRAMIENTA',
         es_estrella: true,
-        tiempo_estimado: '20–30 min',
-        herramienta_id: 'A1',
+        tiempo_estimado: '20 min',
+        orden: 2,
+        herramienta_id: 'H-P0.2',
+        usa_ia: true,
+        adn_field: 'adn_formulario_bienvenida',
       },
     ],
   },
 
-  // ── FASE 1: SPRINT DE IDENTIDAD (Días 3-20) — Letra C ─────────────────────
+  // ══════════════════════════════════════════════════════════════════════════
+  // FASE 1: SPRINT DE IDENTIDAD · Días 3–20 · Letra C (Claridad)
+  // ══════════════════════════════════════════════════════════════════════════
 
-  // ─── PILAR 1: Historia ──────────────────────────────────────────────────────
+  // ─── PILAR 1: Historia · Días 3–8 ─────────────────────────────────────────
   {
-    numero: 1,
+    id: 'P1',
+    numero_orden: 1,
     titulo: 'Historia',
     subtitulo: 'Tu narrativa personal en 3 formatos',
+    color: '#C8893A',
+    numero: 1,
     emoji: '📖',
-    color: 'violet',
-    desbloqueo: 'completar_anterior',
     estrellas_requeridas: 1,
+    desbloqueo: 'completar_anterior',
+    pilar_prerequisito: 'P0',
     fase: 1,
     dias_inicio: 3,
     dias_fin: 8,
     metodo_letra: 'C',
     metas: [
       {
-        codigo: '1.A',
-        titulo: 'Video + Línea de Tiempo Vital',
-        descripcion:
-          'Mirá el video "Por qué tu historia importa más que tu título". Luego completá el ejercicio de línea de tiempo vital: 5-8 momentos que te marcaron (incluyendo fracasos y descubrimientos). Este material interno alimentará al agente IA.',
-        es_estrella: true,
-        tiempo_estimado: '40 min',
-        agente_id: 'agente-historia',
+        codigo: 'P1.1',
+        titulo: 'Por qué tu historia importa más que tu título',
+        descripcion: 'Video de Javo sobre la importancia de tu historia personal como herramienta de conexión y diferenciación.',
+        tipo: 'VIDEO',
+        es_estrella: false,
+        tiempo_estimado: '15 min',
+        orden: 1,
+        usa_ia: false,
+        video_youtube_id: 'PLACEHOLDER_P1_1',
       },
       {
-        codigo: '1.B',
-        titulo: 'Agente IA — Historia en 3 versiones',
-        descripcion:
-          'Usá el Agente Historia para generar tus 3 versiones: 300 palabras (sitio web), 150 palabras (bio en redes), 50 palabras (presentaciones y contenido). El agente lee tu línea de tiempo y extrae tu historia real.',
+        codigo: 'P1.2',
+        titulo: 'Línea de tiempo vital',
+        descripcion: 'Anotá los 5 a 8 momentos que más te marcaron en la vida. Fracasos, enfermedades, cambios de rumbo, descubrimientos. No los ve nadie más — es el insumo para construir tu historia.',
+        tipo: 'HERRAMIENTA',
         es_estrella: true,
         tiempo_estimado: '30 min',
-        herramienta_id: 'A3',
-        agente_id: 'agente-historia',
+        orden: 2,
+        herramienta_id: 'H-P1.2',
+        usa_ia: false,
+        adn_field: 'adn_linea_tiempo',
       },
       {
-        codigo: '1.C',
-        titulo: 'Historia aprobada y guardada',
-        descripcion:
-          'Revisá las 3 versiones con el Coach IA: ¿suena a vos o genérico? ¿Hay algo que suene forzado? Aprobá las versiones y guardalas en el Manual de Negocio. Las 3 versiones aparecerán automáticamente en la sección "Quién Soy".',
+        codigo: 'P1.3',
+        titulo: 'Generador de Historia en 3 versiones',
+        descripcion: 'Usa tu línea de tiempo para generar: Historia 300 palabras (para la web), Historia 150 palabras (para redes), Historia 50 palabras (para presentaciones). Tres textareas editables.',
+        tipo: 'HERRAMIENTA',
         es_estrella: true,
-        tiempo_estimado: '20 min',
-        agente_id: 'agente-coach',
+        tiempo_estimado: '25 min',
+        orden: 3,
+        herramienta_id: 'H-P1.3',
+        usa_ia: true,
+        adn_field: 'historia_300',
+        requiere_datos_de: ['P1.2'],
+      },
+      {
+        codigo: 'P1.4',
+        titulo: 'Revisión de la historia',
+        descripcion: 'Abrí el Coach y leele tu historia de 50 palabras. Preguntale: "¿Suena auténtica o suena a bio de LinkedIn?" Si hay algo forzado, el Coach te ayuda a ajustarlo.',
+        tipo: 'COACH',
+        es_estrella: true,
+        tiempo_estimado: '15 min',
+        orden: 4,
+        usa_ia: false,
+        coach_instruccion: 'Abrí el Coach y leele tu historia de 50 palabras. Preguntale: "¿Suena auténtica o suena a bio de LinkedIn?" Si hay algo forzado, el Coach te ayuda a ajustarlo.',
       },
     ],
   },
 
-  // ─── PILAR 2: Propósito ─────────────────────────────────────────────────────
+  // ─── PILAR 2: Propósito · Días 8–13 ───────────────────────────────────────
   {
-    numero: 2,
+    id: 'P2',
+    numero_orden: 2,
     titulo: 'Propósito',
-    subtitulo: '¿Por qué existís en este mercado? — 1 oración',
+    subtitulo: 'El propósito como filtro de decisiones',
+    color: '#C8893A',
+    numero: 2,
     emoji: '🎯',
-    color: 'blue',
-    desbloqueo: 'completar_anterior',
     estrellas_requeridas: 3,
+    desbloqueo: 'completar_anterior',
+    pilar_prerequisito: 'P1',
     fase: 1,
     dias_inicio: 8,
     dias_fin: 13,
     metodo_letra: 'C',
     metas: [
       {
-        codigo: '2.A',
-        titulo: 'Video + Ejercicio Los 5 Por Qués',
-        descripcion:
-          'Mirá el video "El propósito como filtro de decisiones". Luego respondé: ¿Por qué hacés lo que hacés? ¿Por qué eso importa? Repetí 5 veces. Al quinto nivel suele aparecer algo que te sorprende — ese es tu propósito real.',
-        es_estrella: true,
-        tiempo_estimado: '35 min',
-        agente_id: 'agente-proposito',
+        codigo: 'P2.1',
+        titulo: 'El propósito como filtro de decisiones',
+        descripcion: 'Video de Javo sobre cómo el propósito funciona como filtro para todas las decisiones del negocio.',
+        tipo: 'VIDEO',
+        es_estrella: false,
+        tiempo_estimado: '15 min',
+        orden: 1,
+        usa_ia: false,
+        video_youtube_id: 'PLACEHOLDER_P2_1',
       },
       {
-        codigo: '2.B',
-        titulo: 'Agente IA — Destilador de Propósito',
-        descripcion:
-          'Usá el Agente Propósito para sintetizar en 1 oración específica, verificable y personal. No "ayudar a la gente a sentirse mejor" — sino "mis pacientes X logran Y en Z tiempo". Una oración que solo vos podés decir.',
+        codigo: 'P2.2',
+        titulo: 'Los 5 por qué',
+        descripcion: 'Formulario encadenado de 5 preguntas. La primera aparece sola. Cuando respondés, aparece la segunda, y así. 1: "¿Por qué hacés lo que hacés?" 2: "¿Y eso por qué importa?" 3: "¿Y por qué eso importa para vos específicamente?" 4: "¿Qué cambiaría si más personas tuvieran esto?" 5: "¿Para qué estás realmente acá?"',
+        tipo: 'HERRAMIENTA',
         es_estrella: true,
-        tiempo_estimado: '25 min',
-        herramienta_id: 'A2',
-        agente_id: 'agente-proposito',
+        tiempo_estimado: '20 min',
+        orden: 2,
+        herramienta_id: 'H-P2.2',
+        usa_ia: false,
+        adn_field: 'adn_cinco_por_que',
       },
       {
-        codigo: '2.C',
-        titulo: 'Propósito validado y diferenciado',
-        descripcion:
-          'Validá con el Coach IA: si tu propósito es este, ¿qué tipo de pacientes rechazarías? Si no podés responder, el propósito todavía no está listo. Un propósito real filtra, no incluye a todos.',
+        codigo: 'P2.3',
+        titulo: 'Destilador de Propósito',
+        descripcion: 'Usa las 5 respuestas ya guardadas. Genera 3 versiones de la oración de propósito con la estructura: "Ayudo a [quién específico] a [resultado concreto] para que [para qué más profundo]." Elegí una y editala.',
+        tipo: 'HERRAMIENTA',
+        es_estrella: true,
+        tiempo_estimado: '20 min',
+        orden: 3,
+        herramienta_id: 'H-P2.3',
+        usa_ia: true,
+        adn_field: 'proposito',
+        requiere_datos_de: ['P2.2'],
+      },
+      {
+        codigo: 'P2.4',
+        titulo: 'Test del propósito',
+        descripcion: 'Decile al Coach cuál es tu propósito. Preguntale: "Con este propósito, ¿qué tipo de pacientes rechazaría?" Si no podés responder fácilmente, el propósito todavía no está listo.',
+        tipo: 'COACH',
         es_estrella: true,
         tiempo_estimado: '15 min',
-        agente_id: 'agente-coach',
+        orden: 4,
+        usa_ia: false,
+        coach_instruccion: 'Decile al Coach cuál es tu propósito. Preguntale: "Con este propósito, ¿qué tipo de pacientes rechazaría?" Si no podés responder fácilmente, el propósito todavía no está listo.',
       },
     ],
   },
 
-  // ─── PILAR 3: Legado ────────────────────────────────────────────────────────
+  // ─── PILAR 3: Legado · Días 13–20 ─────────────────────────────────────────
   {
-    numero: 3,
+    id: 'P3',
+    numero_orden: 3,
     titulo: 'Legado',
-    subtitulo: 'Tu horizonte de 10 años — el norte estratégico',
+    subtitulo: 'Legado vs. éxito financiero',
+    color: '#C8893A',
+    numero: 3,
     emoji: '🌅',
-    color: 'indigo',
-    desbloqueo: 'completar_anterior',
     estrellas_requeridas: 3,
+    desbloqueo: 'completar_anterior',
+    pilar_prerequisito: 'P2',
     fase: 1,
     dias_inicio: 13,
     dias_fin: 20,
     metodo_letra: 'C',
+    hito_mensaje: 'Sabés quién sos, para qué estás y qué querés dejar. El siguiente paso es saber a quién servís.',
+    hito_tipo: 'milestone',
     metas: [
       {
-        codigo: '3.A',
-        titulo: 'Video + Carta a tu yo de 10 años',
-        descripcion:
-          'Mirá el video "Legado vs. éxito financiero". Luego escribí una carta como si ya lograste todo lo que querías: describí tu vida, tus pacientes, el impacto que dejaste, cómo se siente. Este material es el más valioso del ADN.',
-        es_estrella: true,
-        tiempo_estimado: '40 min',
-        agente_id: 'agente-legado',
+        codigo: 'P3.1',
+        titulo: 'Legado vs. éxito financiero',
+        descripcion: 'Video de Javo sobre la diferencia entre legado real y metas financieras.',
+        tipo: 'VIDEO',
+        es_estrella: false,
+        tiempo_estimado: '15 min',
+        orden: 1,
+        usa_ia: false,
+        video_youtube_id: 'PLACEHOLDER_P3_1',
       },
       {
-        codigo: '3.B',
-        titulo: 'Agente IA — Sintetizador de Legado',
-        descripcion:
-          'Usá el Agente Legado para extraer tu legado en 2-3 oraciones que distingan entre legado real (impacto en otros), metas financieras y reconocimiento personal. El legado trasciende lo económico.',
+        codigo: 'P3.2',
+        titulo: 'Carta al yo de dentro de 10 años',
+        descripcion: 'Es el año 2035. Lograste todo lo que querías lograr. ¿Cómo es tu vida? ¿A quiénes ayudaste? ¿Qué dejaste? ¿Cómo te sentís? Mínimo 200 palabras.',
+        tipo: 'HERRAMIENTA',
         es_estrella: true,
-        tiempo_estimado: '20 min',
-        agente_id: 'agente-legado',
+        tiempo_estimado: '30 min',
+        orden: 2,
+        herramienta_id: 'H-P3.2',
+        usa_ia: false,
+        adn_field: 'adn_carta_futuro',
       },
       {
-        codigo: '3.C',
-        titulo: 'Legado documentado — "Quién Soy" al 100%',
-        descripcion:
-          'Con Historia + Propósito + Legado completos, la sección "Quién Soy" de tu ADN está al 100%. El Coach IA ahora tiene tu base filosófica real. Guardá el legado en el Manual de Negocio.',
+        codigo: 'P3.3',
+        titulo: 'Sintetizador de Legado',
+        descripcion: 'Usa la carta ya guardada. Genera el legado en 2 a 3 oraciones. Distingue legado de meta financiera. Textarea editable.',
+        tipo: 'HERRAMIENTA',
         es_estrella: true,
         tiempo_estimado: '15 min',
-        agente_id: 'agente-coach',
+        orden: 3,
+        herramienta_id: 'H-P3.3',
+        usa_ia: true,
+        adn_field: 'legado',
+        requiere_datos_de: ['P3.2'],
+      },
+      {
+        codigo: 'P3.4',
+        titulo: 'Clarificación del legado',
+        descripcion: 'Decile al Coach tu legado. Preguntale: "Si en 10 años logré este legado pero no gané mucho dinero, ¿valió la pena?" Esa respuesta separa el legado real del ego.',
+        tipo: 'COACH',
+        es_estrella: true,
+        tiempo_estimado: '15 min',
+        orden: 4,
+        usa_ia: false,
+        coach_instruccion: 'Decile al Coach tu legado. Preguntale: "Si en 10 años logré este legado pero no gané mucho dinero, ¿valió la pena?" Esa respuesta separa el legado real del ego.',
       },
     ],
   },
 
-  // ── FASE 2: SPRINT DE MERCADO (Días 20-35) — Letras L + Í ─────────────────
+  // ══════════════════════════════════════════════════════════════════════════
+  // FASE 2: SPRINT DE MERCADO · Días 20–38 · Letras L + Í
+  // ══════════════════════════════════════════════════════════════════════════
 
-  // ─── PILAR 4: Avatar del Paciente Ideal ────────────────────────────────────
+  // ─── PILAR 4: Avatar · Días 20–26 ─────────────────────────────────────────
   {
-    numero: 4,
+    id: 'P4',
+    numero_orden: 4,
     titulo: 'Avatar',
-    subtitulo: 'Tu paciente ideal — persona real, no demografía',
+    subtitulo: 'Tu paciente ideal desde datos reales',
+    color: '#C8893A',
+    numero: 4,
     emoji: '👤',
-    color: 'cyan',
-    desbloqueo: 'completar_anterior',
     estrellas_requeridas: 3,
+    desbloqueo: 'completar_anterior',
+    pilar_prerequisito: 'P3',
     fase: 2,
     dias_inicio: 20,
-    dias_fin: 27,
+    dias_fin: 26,
     metodo_letra: 'L',
     metas: [
       {
-        codigo: '4.A',
-        titulo: 'Video + Análisis de 3 pacientes reales',
-        descripcion:
-          'Mirá el video "Cómo construir el avatar desde datos reales". Luego elegí 3 pacientes actuales o pasados con muy buenos resultados. Para cada uno: el problema cuando llegaron, cómo lo describían, qué intentaron sin éxito, qué obtuvieron, cómo lo describen ahora.',
-        es_estrella: true,
-        tiempo_estimado: '45 min',
-        agente_id: 'agente-avatar',
+        codigo: 'P4.1',
+        titulo: 'Cómo construir el avatar desde datos reales',
+        descripcion: 'Video de Javo sobre cómo construir un avatar basado en pacientes reales, no en demografía inventada.',
+        tipo: 'VIDEO',
+        es_estrella: false,
+        tiempo_estimado: '15 min',
+        orden: 1,
+        usa_ia: false,
+        video_youtube_id: 'PLACEHOLDER_P4_1',
       },
       {
-        codigo: '4.B',
-        titulo: 'Agente IA — Constructor de Avatar',
-        descripcion:
-          'El Agente Avatar detecta patrones comunes de tus 3 pacientes y construye el perfil: nombre ficticio, edad, profesión, situación de vida, mínimo 5 dolores, 3 sueños, objeciones frecuentes, comportamientos de búsqueda, lenguaje exacto que usa.',
+        codigo: 'P4.2',
+        titulo: 'Análisis de 3 pacientes reales',
+        descripcion: '3 bloques iguales (Paciente 1, 2, 3). Para cada uno: "¿Qué problema tenía cuando llegó?" · "¿Cómo lo describía con sus propias palabras?" · "¿Qué intentó antes sin éxito?" · "¿Qué obtuvo después de trabajar juntos?" · "¿Cómo describe su vida ahora?"',
+        tipo: 'HERRAMIENTA',
         es_estrella: true,
-        tiempo_estimado: '30 min',
-        herramienta_id: 'B2',
-        agente_id: 'agente-avatar',
+        tiempo_estimado: '40 min',
+        orden: 2,
+        herramienta_id: 'H-P4.2',
+        usa_ia: false,
+        adn_field: 'adn_pacientes_reales',
       },
       {
-        codigo: '4.C',
-        titulo: 'Avatar validado — 5 dolores + 3 sueños mínimo',
-        descripcion:
-          'Testá con el Coach IA si el avatar es suficientemente específico. Vago: "profesional 30-50 años con estrés". Preciso: "médica de 42 años con consultorio propio, trabaja 60h/semana, dos hijos adolescentes, siente que estudió toda la vida para esto y el dinero no alcanza". Si podría ser cualquiera, no está listo.',
-        es_estrella: true,
-        tiempo_estimado: '20 min',
-        herramienta_id: 'B2',
-        agente_id: 'agente-coach',
-      },
-    ],
-  },
-
-  // ─── PILAR 5: Nicho y USP ───────────────────────────────────────────────────
-  {
-    numero: 5,
-    titulo: 'Nicho y USP',
-    subtitulo: 'Por qué te eligen a vos y no a otro',
-    emoji: '💡',
-    color: 'sky',
-    desbloqueo: 'completar_anterior',
-    estrellas_requeridas: 3,
-    fase: 2,
-    dias_inicio: 27,
-    dias_fin: 35,
-    metodo_letra: 'Í',
-    metas: [
-      {
-        codigo: '5.A',
-        titulo: 'Video + Agente IA Definidor de Nicho',
-        descripcion:
-          'Mirá el video "El nicho no es restricción — es amplificación". El Agente Nicho cruza tu Historia, Propósito y Avatar y te pregunta: ¿a quién específicamente NO querés atender? ¿En qué problema sos claramente mejor que el promedio? ¿Qué grupo te busca específicamente?',
-        es_estrella: true,
-        tiempo_estimado: '35 min',
-        herramienta_id: 'B1',
-        agente_id: 'agente-nicho',
-      },
-      {
-        codigo: '5.B',
-        titulo: 'Agente IA — Constructor de USP',
-        descripcion:
-          'Construí tu USP con el formato: "Ayudo a [avatar específico] a lograr [resultado concreto] sin [obstáculo o sacrificio que temen]". El agente genera 3 versiones, vos elegís y ajustás. Si cualquier colega con tu mismo título pudiera decirla, la USP no está lista.',
+        codigo: 'P4.3',
+        titulo: 'Constructor de Avatar',
+        descripcion: 'Usa los 3 análisis ya guardados. Genera: nombre ficticio, edad, profesión, situación de vida, dolores ×5 mínimo, sueños ×3 mínimo, objeciones ×3, lenguaje exacto que usa (3 a 5 frases textuales). Textarea editable.',
+        tipo: 'HERRAMIENTA',
         es_estrella: true,
         tiempo_estimado: '25 min',
-        herramienta_id: 'B3',
-        agente_id: 'agente-nicho',
+        orden: 3,
+        herramienta_id: 'H-P4.3',
+        usa_ia: true,
+        adn_field: 'adn_avatar',
+        requiere_datos_de: ['P4.2'],
       },
       {
-        codigo: '5.C',
-        titulo: 'Test de Diferenciación — USP aprobada',
-        descripcion:
-          'Pasá el test con el Coach IA: "Si borro tu nombre y pongo el de otro especialista, ¿la USP sigue aplicando?" Si la respuesta es sí, la USP todavía no está lista. La sección "A Quién Sirvo" se completa al 100% cuando Avatar + Nicho + USP están aprobados.',
+        codigo: 'P4.4',
+        titulo: 'Validación del avatar',
+        descripcion: 'Contale al Coach quién es tu avatar. Preguntale: "¿Es suficientemente específico o sigue siendo vago?" Un avatar vago es "profesional de 35 a 50 años con estrés". Un avatar preciso es una persona real con una vida real.',
+        tipo: 'COACH',
         es_estrella: true,
         tiempo_estimado: '15 min',
-        herramienta_id: 'B3',
-        agente_id: 'agente-coach',
+        orden: 4,
+        usa_ia: false,
+        coach_instruccion: 'Contale al Coach quién es tu avatar. Preguntale: "¿Es suficientemente específico o sigue siendo vago?" Un avatar vago es "profesional de 35 a 50 años con estrés". Un avatar preciso es una persona real con una vida real.',
       },
     ],
   },
 
-  // ── FASE 3: SPRINT DE OFERTA (Días 35-45) — Letra Í ───────────────────────
-
-  // ─── PILAR 6: Matriz A → B → C ─────────────────────────────────────────────
+  // ─── PILAR 5: Nicho + USP · Días 26–31 ────────────────────────────────────
   {
-    numero: 6,
-    titulo: 'Matriz A→B→C',
-    subtitulo: 'El infierno, los obstáculos y el cielo de tu paciente',
-    emoji: '🔺',
-    color: 'amber',
-    desbloqueo: 'completar_anterior',
+    id: 'P5',
+    numero_orden: 5,
+    titulo: 'Nicho + USP',
+    subtitulo: 'Nicho no es restricción, es amplificación',
+    color: '#C8893A',
+    numero: 5,
+    emoji: '💡',
     estrellas_requeridas: 3,
-    fase: 3,
-    dias_inicio: 35,
-    dias_fin: 39,
+    desbloqueo: 'completar_anterior',
+    pilar_prerequisito: 'P4',
+    fase: 2,
+    dias_inicio: 26,
+    dias_fin: 31,
     metodo_letra: 'Í',
     metas: [
       {
-        codigo: '6.A',
-        titulo: 'Video + Ejercicio 10 transformaciones reales',
-        descripcion:
-          'Mirá el video "La Matriz A→B→C: por qué el obstáculo importa más que el dolor". Documentá 10 transformaciones de pacientes pasados: para cada uno, el estado A (qué le dolía), los obstáculos B (qué le impedía avanzar solo) y el estado C (qué obtuvo y cómo lo describe). Este es el material más valioso del ADN.',
-        es_estrella: true,
-        tiempo_estimado: '60 min',
-        agente_id: 'agente-matriz',
+        codigo: 'P5.1',
+        titulo: 'Nicho no es restricción, es amplificación',
+        descripcion: 'Video de Javo sobre cómo un nicho bien definido amplifica tu alcance en vez de limitarlo.',
+        tipo: 'VIDEO',
+        es_estrella: false,
+        tiempo_estimado: '15 min',
+        orden: 1,
+        usa_ia: false,
+        video_youtube_id: 'PLACEHOLDER_P5_1',
       },
       {
-        codigo: '6.B',
-        titulo: 'Agente IA — Matriz A→B→C',
-        descripcion:
-          'El Agente Matriz lee las 10 transformaciones, detecta patrones y construye la matriz definitiva. Profundiza especialmente en B (obstáculos): si son vagos, hace más preguntas hasta que sean concretos. A se usa en marketing, B justifica el programa, C es lo que compra el paciente.',
+        codigo: 'P5.2',
+        titulo: 'Definidor de Nicho y USP',
+        descripcion: 'Campos: "¿A quién específicamente NO querés atender?" · "¿En qué problema sos claramente mejor que el promedio de tu especialidad?" · "¿Qué tenés vos que ningún colega tiene?" · "¿Qué grupo de personas te busca a vos y no a otro?" Genera: descripción del nicho (2-3 oraciones) + 3 versiones de USP: "Ayudo a [avatar] a [resultado] sin [obstáculo que temen]."',
+        tipo: 'HERRAMIENTA',
         es_estrella: true,
         tiempo_estimado: '30 min',
-        herramienta_id: 'B4',
-        agente_id: 'agente-matriz',
+        orden: 2,
+        herramienta_id: 'H-P5.2',
+        usa_ia: true,
+        adn_field: 'adn_nicho',
       },
       {
-        codigo: '6.C',
-        titulo: 'Matriz validada — B concreto y específico',
-        descripcion:
-          'Validá con el Coach IA: "Si tu paciente leyera esta lista de obstáculos B, ¿diría exactamente, eso soy yo?" Si tenés dudas, el B todavía no está listo. Un B vago significa un programa que parece prescindible.',
+        codigo: 'P5.3',
+        titulo: 'Test de diferenciación',
+        descripcion: 'Decile al Coach tu USP. Preguntale: "Si borro mi nombre y pongo el de otro colega de mi especialidad, ¿todavía aplica?" Si la respuesta es sí, la USP necesita más trabajo.',
+        tipo: 'COACH',
         es_estrella: true,
         tiempo_estimado: '15 min',
-        agente_id: 'agente-coach',
+        orden: 3,
+        usa_ia: false,
+        coach_instruccion: 'Decile al Coach tu USP. Preguntale: "Si borro mi nombre y pongo el de otro colega de mi especialidad, ¿todavía aplica?" Si la respuesta es sí, la USP necesita más trabajo.',
       },
     ],
   },
 
-  // ─── PILAR 7: Método Propio ─────────────────────────────────────────────────
+  // ─── PILAR 6: Matriz A→B→C · Días 31–38 ───────────────────────────────────
   {
-    numero: 7,
-    titulo: 'Método Propio',
-    subtitulo: 'Tu proceso único con nombre propio',
-    emoji: '⚙️',
-    color: 'orange',
+    id: 'P6',
+    numero_orden: 6,
+    titulo: 'Matriz A→B→C',
+    subtitulo: 'Por qué el obstáculo es más importante que el dolor',
+    color: '#C8893A',
+    numero: 6,
+    emoji: '🔺',
+    estrellas_requeridas: 2,
     desbloqueo: 'completar_anterior',
+    pilar_prerequisito: 'P5',
+    fase: 2,
+    dias_inicio: 31,
+    dias_fin: 38,
+    metodo_letra: 'Í',
+    hito_mensaje: 'Sabés a quién servís y qué lo tiene preso. El siguiente paso es convertir eso en un producto con precio.',
+    hito_tipo: 'milestone',
+    metas: [
+      {
+        codigo: 'P6.1',
+        titulo: 'La Matriz A→B→C: por qué el obstáculo es más importante que el dolor',
+        descripcion: 'Video de Javo explicando los 3 estados de la transformación del paciente.',
+        tipo: 'VIDEO',
+        es_estrella: false,
+        tiempo_estimado: '15 min',
+        orden: 1,
+        usa_ia: false,
+        video_youtube_id: 'PLACEHOLDER_P6_1',
+      },
+      {
+        codigo: 'P6.2',
+        titulo: 'Transformaciones reales de pacientes',
+        descripcion: '10 bloques colapsables. Mínimo 5 completados para poder avanzar. Para cada paciente: "Estado A — ¿Cómo llegó? ¿Qué le dolía? ¿Cómo lo describía?" · "Estado B — ¿Qué le impedía resolverlo solo? ¿Qué intentó antes?" · "Estado C — ¿Dónde terminó? ¿Qué cambió en su vida?"',
+        tipo: 'HERRAMIENTA',
+        es_estrella: true,
+        tiempo_estimado: '60 min',
+        orden: 2,
+        herramienta_id: 'H-P6.2',
+        usa_ia: false,
+        adn_field: 'adn_transformaciones',
+      },
+      {
+        codigo: 'P6.3',
+        titulo: 'Constructor de Matriz A→B→C',
+        descripcion: 'Usa los casos ya guardados. Genera: Estado A (2-3 párrafos, experiencia emocional en lenguaje del paciente), Estado B (lista de 5-8 obstáculos — la razón por la que existe el programa), Estado C (2-3 párrafos, la vida sin el problema). Tres secciones editables.',
+        tipo: 'HERRAMIENTA',
+        es_estrella: true,
+        tiempo_estimado: '25 min',
+        orden: 3,
+        herramienta_id: 'H-P6.3',
+        usa_ia: true,
+        adn_field: 'matriz_a',
+        requiere_datos_de: ['P6.2'],
+      },
+      {
+        codigo: 'P6.4',
+        titulo: 'Validación de la Matriz',
+        descripcion: 'Mostrále al Coach la lista de obstáculos del B. Preguntale: "¿Si mi paciente leyera esto, diría que le estoy hablando a él?" Si la respuesta no es un sí claro, el B necesita más trabajo.',
+        tipo: 'COACH',
+        es_estrella: true,
+        tiempo_estimado: '15 min',
+        orden: 4,
+        usa_ia: false,
+        coach_instruccion: 'Mostrále al Coach la lista de obstáculos del B. Preguntale: "¿Si mi paciente leyera esto, diría que le estoy hablando a él?" Si la respuesta no es un sí claro, el B necesita más trabajo.',
+      },
+    ],
+  },
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // FASE 3: SPRINT DE OFERTA · Días 36–45 · Letras N + I
+  // ══════════════════════════════════════════════════════════════════════════
+
+  // ─── PILAR 7: Método · Días 36–42 ─────────────────────────────────────────
+  {
+    id: 'P7',
+    numero_orden: 7,
+    titulo: 'Método',
+    subtitulo: 'Tu método propio como activo diferenciador',
+    color: '#C8893A',
+    numero: 7,
+    emoji: '⚙️',
     estrellas_requeridas: 3,
+    desbloqueo: 'completar_anterior',
+    pilar_prerequisito: 'P6',
     fase: 3,
-    dias_inicio: 39,
+    dias_inicio: 36,
     dias_fin: 42,
     metodo_letra: 'N',
     metas: [
       {
-        codigo: '7.A',
-        titulo: 'Video + Ejercicio Pasos actuales del protocolo',
-        descripcion:
-          'Mirá el video "Tu método propio: convirtiendo lo que hacés en activo diferenciador". Describí honestamente cómo trabajás con pacientes de principio a fin: ¿qué pasa en la primera sesión? ¿Y en las siguientes? ¿Cómo sabés que el proceso terminó? ¿Cómo medís el resultado? Documentá lo que ya hacés, no lo que idealizás.',
-        es_estrella: true,
-        tiempo_estimado: '40 min',
-        agente_id: 'agente-metodo',
+        codigo: 'P7.1',
+        titulo: 'Tu método propio: cómo convertir lo que hacés en un activo diferenciador',
+        descripcion: 'Video de Javo sobre cómo transformar tu proceso en un método con nombre propio.',
+        tipo: 'VIDEO',
+        es_estrella: false,
+        tiempo_estimado: '15 min',
+        orden: 1,
+        usa_ia: false,
+        video_youtube_id: 'PLACEHOLDER_P7_1',
       },
       {
-        codigo: '7.B',
-        titulo: 'Agente IA — Documentador de Método',
-        descripcion:
-          'El Agente Método organiza tus pasos en 3-7 etapas nombradas. Cada etapa tiene: qué es, por qué existe en el recorrido A→C, cómo sabe el paciente que está completa. El nombre del método ideal evoca el resultado, no el mecanismo.',
+        codigo: 'P7.2',
+        titulo: 'Documentador del proceso actual',
+        descripcion: 'Campos: "¿Qué pasa en el primer contacto con el paciente?" · "¿Cómo es la primera sesión?" · "¿Qué hacés en las sesiones siguientes, paso a paso?" · "¿Cómo sabés que el proceso terminó?" · "¿Cómo medís el resultado?" · "¿Cuánto tiempo dura el proceso completo?"',
+        tipo: 'HERRAMIENTA',
         es_estrella: true,
         tiempo_estimado: '30 min',
-        herramienta_id: 'B4',
-        agente_id: 'agente-metodo',
+        orden: 2,
+        herramienta_id: 'H-P7.2',
+        usa_ia: false,
+        adn_field: 'adn_proceso_actual',
       },
       {
-        codigo: '7.C',
-        titulo: 'Método con nombre y pasos documentados',
-        descripcion:
-          'Aprobá el nombre del método y sus etapas. El Coach IA sugiere opciones de naming. "Sesiones de fisioterapia" es genérico. "Protocolo de Reintegración Funcional en 8 semanas" es un activo diferenciador que el paciente compra.',
+        codigo: 'P7.3',
+        titulo: 'Generador de Método',
+        descripcion: 'Usa el proceso ya guardado + la Matriz A→B→C. Genera: 5 opciones de nombre para el método (el usuario elige una) + 3 a 7 pasos con nombre y descripción breve.',
+        tipo: 'HERRAMIENTA',
         es_estrella: true,
-        tiempo_estimado: '20 min',
-        agente_id: 'agente-coach',
+        tiempo_estimado: '25 min',
+        orden: 3,
+        herramienta_id: 'H-P7.3',
+        usa_ia: true,
+        adn_field: 'metodo_nombre',
+        requiere_datos_de: ['P7.2'],
+      },
+      {
+        codigo: 'P7.4',
+        titulo: 'Naming del método',
+        descripcion: 'Contale al Coach el nombre que elegiste para tu método. Preguntale: "¿El nombre evoca el resultado que logra el paciente, o describe el proceso técnico que uso?" El nombre tiene que evocar el resultado.',
+        tipo: 'COACH',
+        es_estrella: true,
+        tiempo_estimado: '15 min',
+        orden: 4,
+        usa_ia: false,
+        coach_instruccion: 'Contale al Coach el nombre que elegiste para tu método. Preguntale: "¿El nombre evoca el resultado que logra el paciente, o describe el proceso técnico que uso?" El nombre tiene que evocar el resultado.',
       },
     ],
   },
 
-  // ─── PILAR 8: Escalera de Ofertas ──────────────────────────────────────────
+  // ─── PILAR 8: Escalera de Ofertas · Días 42–45 ────────────────────────────
   {
-    numero: 8,
+    id: 'P8',
+    numero_orden: 8,
     titulo: 'Escalera de Ofertas',
-    subtitulo: '4 niveles de acceso a tu trabajo — Hito Día 45',
+    subtitulo: 'Los cuatro niveles de acceso a tu trabajo',
+    color: '#C8893A',
+    numero: 8,
     emoji: '🏗️',
-    color: 'rose',
-    desbloqueo: 'completar_anterior',
     estrellas_requeridas: 3,
+    es_hito: true,
+    desbloqueo: 'completar_anterior',
+    pilar_prerequisito: 'P7',
     fase: 3,
     dias_inicio: 42,
     dias_fin: 45,
     metodo_letra: 'I',
-    es_hito: true,
+    hito_mensaje: 'ADN base completo. Es el momento de activar tu campaña. Para llegar a $10K en los próximos 45 días necesitás tomar al menos 30 llamadas. Eso empieza ahora.',
+    hito_tipo: 'urgent',
     metas: [
       {
-        codigo: '8.A',
-        titulo: 'Video + Agente IA — Oferta Mid (producto principal)',
-        descripcion:
-          'Mirá el video "La escalera de valor". Diseñá primero la Oferta Mid ($1,500-$2,500): el protocolo completo que lleva al paciente de A a C. Todo lo demás se construye desde acá. Sin Oferta Mid clara, el resto no tiene sentido.',
-        es_estrella: true,
-        tiempo_estimado: '45 min',
-        herramienta_id: 'B5',
-        agente_id: 'agente-oferta',
+        codigo: 'P8.1',
+        titulo: 'La escalera de valor: por qué necesitás los cuatro niveles',
+        descripcion: 'Video de Javo sobre la lógica de tener Lead Magnet + Low + Mid + High.',
+        tipo: 'VIDEO',
+        es_estrella: false,
+        tiempo_estimado: '15 min',
+        orden: 1,
+        usa_ia: false,
+        video_youtube_id: 'PLACEHOLDER_P8_1',
       },
       {
-        codigo: '8.B',
-        titulo: 'Agente IA — Oferta High + Oferta Low diseñadas',
-        descripcion:
-          'Diseñá la Oferta High ($4,000-$6,000): la Mid con acceso directo, soporte intensivo y máxima personalización. Y la Oferta Low ($500-$1,000): las primeras 2-3 sesiones del método para quien quiere probar antes de comprometerse.',
+        codigo: 'P8.2',
+        titulo: 'Diseñador de Oferta Mid',
+        descripcion: 'La Oferta Mid se construye primero porque es el producto principal. Campos: "¿Cuánto tiempo dura el protocolo completo?" · "¿Cuántas sesiones incluye?" · "¿Qué resultado concreto y medible garantizás?" · "¿Qué soporte adicional incluye?" · "¿Qué precio tenés en mente?" Usa el Método y la Matriz A→B→C del ADN.',
+        tipo: 'HERRAMIENTA',
         es_estrella: true,
         tiempo_estimado: '30 min',
-        agente_id: 'agente-oferta',
+        orden: 2,
+        herramienta_id: 'H-P8.2',
+        usa_ia: true,
+        adn_field: 'oferta_mid',
       },
       {
-        codigo: '8.C',
-        titulo: 'Agente IA — Lead Magnet creado',
-        descripcion:
-          'Creá el Lead Magnet gratuito o casi gratuito: resuelve el primer dolor urgente de A, pero no es una muestra del programa — es un recurso completo que da un resultado inmediato en un problema pequeño. Captura el contacto del prospecto.',
+        codigo: 'P8.3',
+        titulo: 'Generador de Oferta High + Low + Lead Magnet',
+        descripcion: 'Usa la Oferta Mid ya guardada. Genera las otras 3: Oferta High ($4.000-$6.000, Mid amplificado con acceso directo), Oferta Low ($500-$1.000, primeras 2-3 sesiones), Lead Magnet (gratis o hasta $27, recurso que resuelve el primer dolor). Tres secciones editables.',
+        tipo: 'HERRAMIENTA',
         es_estrella: true,
         tiempo_estimado: '25 min',
-        agente_id: 'agente-oferta',
+        orden: 3,
+        herramienta_id: 'H-P8.3',
+        usa_ia: true,
+        adn_field: 'oferta_high',
+        requiere_datos_de: ['P8.2'],
       },
       {
-        codigo: '8.D',
-        titulo: '🏆 Hito Día 45 — ADN base completo',
-        descripcion:
-          'Con Historia + Propósito + Legado + Avatar + Nicho + Matriz + Método + Escalera de Ofertas completos, llegaste al punto de no retorno. Las campañas DEBEN activarse hoy. Sin ADN base completo en el día 45, los $10,000 USD/mes en 90 días no son un objetivo realista.',
+        codigo: 'P8.4',
+        titulo: 'Validación de precios',
+        descripcion: 'Mostrále al Coach tus 4 ofertas con precios. Preguntale: "¿Son coherentes con lo que cobra alguien de mi especialidad en mi mercado?" El objetivo es ni demasiado bajo (quema el posicionamiento) ni demasiado alto (genera fricción innecesaria).',
+        tipo: 'COACH',
         es_estrella: true,
-        tiempo_estimado: '20 min (validación con Coach IA)',
-        agente_id: 'agente-coach',
+        tiempo_estimado: '15 min',
+        orden: 4,
+        usa_ia: false,
+        coach_instruccion: 'Mostrále al Coach tus 4 ofertas con precios. Preguntale: "¿Son coherentes con lo que cobra alguien de mi especialidad en mi mercado?" El objetivo es ni demasiado bajo (quema el posicionamiento) ni demasiado alto (genera fricción innecesaria).',
       },
     ],
   },
 
-  // ── FASE 4: ACTIVACIÓN Y VENTAS (Días 45-80) — Letras N + I + C ───────────
+  // ══════════════════════════════════════════════════════════════════════════
+  // FASE 4: ACTIVACIÓN Y VENTAS · Días 45–80 · Letras N + I + C
+  // ══════════════════════════════════════════════════════════════════════════
 
-  // ─── PILAR 9: Sistemas ──────────────────────────────────────────────────────
+  // ─── PILAR 9A: Marketing · Días 45–52 ─────────────────────────────────────
   {
+    id: 'P9A',
+    numero_orden: 9,
+    titulo: 'Marketing',
+    subtitulo: 'El embudo mínimo viable',
+    color: '#C8893A',
     numero: 9,
-    titulo: 'Sistemas',
-    subtitulo: 'Marketing · Ventas · Servicio — en paralelo',
-    emoji: '🚀',
-    color: 'fuchsia',
+    emoji: '📣',
+    estrellas_requeridas: 3,
     desbloqueo: 'completar_anterior',
-    estrellas_requeridas: 4,
+    pilar_prerequisito: 'P8',
     fase: 4,
     dias_inicio: 45,
-    dias_fin: 80,
+    dias_fin: 52,
+    metodo_letra: 'N',
+    metas: [
+      {
+        codigo: 'P9A.1',
+        titulo: 'El embudo mínimo viable para profesionales de salud',
+        descripcion: 'Video de Javo explicando el embudo: campaña → DM con palabra clave → respuesta automática → formulario de filtro → calendario → llamada → venta.',
+        tipo: 'VIDEO',
+        es_estrella: false,
+        tiempo_estimado: '15 min',
+        orden: 1,
+        usa_ia: false,
+        video_youtube_id: 'PLACEHOLDER_P9A_1',
+      },
+      {
+        codigo: 'P9A.2',
+        titulo: 'Generador de Copy de Landing Page',
+        descripcion: 'Sin campos nuevos. Usa Avatar + Matriz A→B→C + Oferta Mid del ADN. Genera el copy completo: headline, subheadline, sección del problema, obstáculos, solución, qué incluye, para quién es, para quién no es, preguntas frecuentes, llamado a la acción.',
+        tipo: 'HERRAMIENTA',
+        es_estrella: true,
+        tiempo_estimado: '25 min',
+        orden: 2,
+        herramienta_id: 'H-P9A.2',
+        usa_ia: true,
+        adn_field: 'adn_landing_copy',
+      },
+      {
+        codigo: 'P9A.3',
+        titulo: 'Generador de 3 Anuncios para Meta',
+        descripcion: 'Sin campos nuevos. Usa el ADN. Genera 3 versiones: Anuncio desde el A (el dolor), Anuncio desde el B (el obstáculo), Anuncio desde el C (el sueño). Para cada versión: copy para imagen estática + guión de 30 segundos para video/reel.',
+        tipo: 'HERRAMIENTA',
+        es_estrella: true,
+        tiempo_estimado: '25 min',
+        orden: 3,
+        herramienta_id: 'H-P9A.3',
+        usa_ia: true,
+        adn_field: 'adn_anuncios',
+      },
+      {
+        codigo: 'P9A.4',
+        titulo: 'Genius Contenido — Plan semanal orgánico',
+        descripcion: 'Campo: "¿Qué objeción o miedo de tu avatar apareció más esta semana?" Genera 5 ideas de contenido: 2 reels, 2 posts, 1 carrusel. Cada idea: formato, hook de apertura, idea central, CTA. Este paso es recurrente — podés volver todas las semanas.',
+        tipo: 'HERRAMIENTA',
+        es_estrella: true,
+        tiempo_estimado: '15 min',
+        orden: 4,
+        herramienta_id: 'H-P9A.4',
+        usa_ia: true,
+        es_recurrente: true,
+      },
+      {
+        codigo: 'P9A.5',
+        titulo: 'Revisión del embudo antes de activar',
+        descripcion: 'Decile al Coach que ya tenés el copy de la landing y los anuncios listos. Preguntale: "¿El mensaje de los anuncios habla exactamente al mismo avatar que la landing? ¿El formulario de filtro en GHL está configurado? ¿El calendario tiene al menos 3 horarios disponibles esta semana?" Si todo está, activá.',
+        tipo: 'COACH',
+        es_estrella: true,
+        tiempo_estimado: '15 min',
+        orden: 5,
+        usa_ia: false,
+        coach_instruccion: 'Decile al Coach que ya tenés el copy de la landing y los anuncios listos. Preguntale: "¿El mensaje de los anuncios habla exactamente al mismo avatar que la landing? ¿El formulario de filtro en GHL está configurado? ¿El calendario tiene al menos 3 horarios disponibles esta semana?" Si todo está, activá.',
+      },
+    ],
+  },
+
+  // ─── PILAR 9B: Ventas · Días 52–72 ────────────────────────────────────────
+  {
+    id: 'P9B',
+    numero_orden: 10,
+    titulo: 'Ventas',
+    subtitulo: 'No estás vendiendo, estás evaluando',
+    color: '#C8893A',
+    numero: 9,
+    emoji: '📞',
+    estrellas_requeridas: 4,
+    desbloqueo: 'completar_anterior',
+    pilar_prerequisito: 'P9A',
+    fase: 4,
+    dias_inicio: 52,
+    dias_fin: 72,
     metodo_letra: 'C',
     metas: [
       {
-        codigo: '9.A',
-        titulo: 'Sistema de Marketing — Landing + Ads activos',
-        descripcion:
-          'Agente IA genera el copy completo de la landing page usando Avatar, Matriz A→B→C y Oferta Mid. Publicá en GHL. Agente IA genera 3 versiones de anuncio (una desde A, una desde B, una desde C). Activá la primera campaña Meta. Sin tráfico no hay llamadas.',
-        es_estrella: true,
-        tiempo_estimado: '120 min',
-        herramienta_id: 'D3',
-        agente_id: 'agente-embudo',
+        codigo: 'P9B.1',
+        titulo: 'La llamada de diagnóstico: no estás vendiendo, estás evaluando',
+        descripcion: 'Video de Javo sobre cómo encarar la llamada de diagnóstico sin vender.',
+        tipo: 'VIDEO',
+        es_estrella: false,
+        tiempo_estimado: '15 min',
+        orden: 1,
+        usa_ia: false,
+        video_youtube_id: 'PLACEHOLDER_P9B_1',
       },
       {
-        codigo: '9.B',
-        titulo: 'Sistema de Ventas — Script + Roleplay + 1ª llamada real',
-        descripcion:
-          'Agente IA construye el script de llamada de diagnóstico personalizado (45 min): apertura, diagnóstico, presentación, manejo de objeciones, cierre. Coach IA simula ser el avatar para practicar. Tomá tu primera llamada real y hacé un debrief completo con el Coach.',
+        codigo: 'P9B.2',
+        titulo: 'Constructor de Script de Ventas',
+        descripcion: 'Sin campos nuevos. Usa Avatar + Matriz A→B→C del ADN. Genera el script completo de 45 minutos: apertura y encuadre, preguntas de diagnóstico, profundización del dolor, presentación de la solución, manejo de las 5 objeciones más comunes del avatar, cierre con precio.',
+        tipo: 'HERRAMIENTA',
         es_estrella: true,
-        tiempo_estimado: '90 min',
-        herramienta_id: 'E1',
-        agente_id: 'agente-venta',
+        tiempo_estimado: '25 min',
+        orden: 2,
+        herramienta_id: 'H-P9B.2',
+        usa_ia: true,
+        adn_field: 'script_venta',
       },
       {
-        codigo: '9.C',
-        titulo: '🎉 Primera venta cerrada',
-        descripcion:
-          'Cerrá la primera venta del protocolo. Registrala en la app (monto, canal, fecha). Este hito activa la notificación especial del Coach y actualiza el Avatar con lo aprendido en la llamada: nuevas objeciones, lenguaje real del paciente, patrones de quién cierra y quién no.',
+        codigo: 'P9B.3',
+        titulo: 'Simulador de llamada de ventas',
+        descripcion: 'Antes de tu primera llamada real, practicá con el Agente. Él va a simular ser tu avatar, va a hacer objeciones reales y al final te va a dar feedback y un puntaje. Se puede usar todas las veces que quieras. No guarda nada en el ADN.',
+        tipo: 'AGENTE',
         es_estrella: true,
-        tiempo_estimado: '0 min (acción real)',
+        tiempo_estimado: '30 min',
+        orden: 3,
+        usa_ia: false,
+        agente_id: 'agente-simulador-ventas',
       },
       {
-        codigo: '9.D',
-        titulo: 'Sistema de Servicio — Protocolo automatizado',
-        descripcion:
-          'Documentá el protocolo de entrega completo: desde el email de bienvenida hasta el seguimiento post-protocolo. El Agente Servicio identifica qué pasos se pueden automatizar en GHL. Si te vas 5 días sin internet, ¿tu servicio sigue corriendo? Si no, el sistema todavía no está listo.',
+        codigo: 'P9B.4',
+        titulo: 'Debrief de la primera llamada real',
+        descripcion: 'Después de tu primera llamada real, vení al Coach y contale exactamente qué pasó: ¿llegó al precio? ¿qué objeción apareció que no esperabas? ¿cómo respondiste? ¿cerró o no? El Coach te ayuda a ajustar el script para la próxima.',
+        tipo: 'COACH',
         es_estrella: true,
-        tiempo_estimado: '60 min',
-        agente_id: 'agente-servicio',
+        tiempo_estimado: '15 min',
+        orden: 4,
+        usa_ia: false,
+        coach_instruccion: 'Después de tu primera llamada real, vení al Coach y contale exactamente qué pasó: ¿llegó al precio? ¿qué objeción apareció que no esperabas? ¿cómo respondiste? ¿cerró o no? El Coach te ayuda a ajustar el script para la próxima.',
       },
     ],
   },
 
-  // ── FASE 5: IDENTIDAD VISUAL (Días 70-80) ─────────────────────────────────
-
-  // ─── PILAR 10: Identidad Visual ────────────────────────────────────────────
+  // ─── PILAR 9C: Servicio · Días 65–75 ──────────────────────────────────────
   {
-    numero: 10,
+    id: 'P9C',
+    numero_orden: 11,
+    titulo: 'Servicio',
+    subtitulo: 'Automatizar la entrega sin perder el toque personal',
+    color: '#C8893A',
+    numero: 9,
+    emoji: '🤝',
+    estrellas_requeridas: 3,
+    desbloqueo: 'completar_anterior',
+    pilar_prerequisito: 'P9B',
+    fase: 4,
+    dias_inicio: 65,
+    dias_fin: 75,
+    metodo_letra: 'I',
+    metas: [
+      {
+        codigo: 'P9C.1',
+        titulo: 'Automatizar la entrega sin perder el toque personal',
+        descripcion: 'Video de Javo sobre cómo automatizar procesos manteniendo la calidad del servicio.',
+        tipo: 'VIDEO',
+        es_estrella: false,
+        tiempo_estimado: '15 min',
+        orden: 1,
+        usa_ia: false,
+        video_youtube_id: 'PLACEHOLDER_P9C_1',
+      },
+      {
+        codigo: 'P9C.2',
+        titulo: 'Documentador de Protocolo de Entrega',
+        descripcion: 'Campos: "¿Qué recibe el paciente en las primeras 24 horas después de pagar?" · "¿Cómo se configura la primera sesión?" · "¿Qué recordatorios automáticos necesita durante el protocolo?" · "¿Cómo se hace el seguimiento entre sesiones?" · "¿Qué pasa al terminar el protocolo?" Genera: email de bienvenida automático, lista de 5 automatizaciones prioritarias para GHL, protocolo de cierre.',
+        tipo: 'HERRAMIENTA',
+        es_estrella: true,
+        tiempo_estimado: '30 min',
+        orden: 2,
+        herramienta_id: 'H-P9C.2',
+        usa_ia: true,
+        adn_field: 'adn_protocolo_servicio',
+      },
+      {
+        codigo: 'P9C.3',
+        titulo: 'Auditoría del sistema de entrega',
+        descripcion: 'Preguntale al Coach: "¿Si me voy 5 días sin internet, mi servicio sigue funcionando?" Describile el estado actual de tus automatizaciones. El Coach te dice qué falta.',
+        tipo: 'COACH',
+        es_estrella: true,
+        tiempo_estimado: '15 min',
+        orden: 3,
+        usa_ia: false,
+        coach_instruccion: 'Preguntale al Coach: "¿Si me voy 5 días sin internet, mi servicio sigue funcionando?" Describile el estado actual de tus automatizaciones. El Coach te dice qué falta.',
+      },
+    ],
+  },
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // FASE 5: IDENTIDAD VISUAL · Días 70–80
+  // ══════════════════════════════════════════════════════════════════════════
+
+  // ─── PILAR 10: Identidad Visual · Días 70–80 ──────────────────────────────
+  {
+    id: 'P10',
+    numero_orden: 12,
     titulo: 'Identidad Visual',
     subtitulo: 'El sistema visual que expresa quién sos',
+    color: '#C8893A',
+    numero: 10,
     emoji: '🎨',
-    color: 'teal',
+    estrellas_requeridas: 2,
     desbloqueo: 'completar_anterior',
-    estrellas_requeridas: 4,
+    pilar_prerequisito: 'P9C',
     fase: 5,
     dias_inicio: 70,
     dias_fin: 80,
     metas: [
       {
-        codigo: '10.A',
-        titulo: 'Video + Agente IA — Paleta de Colores',
-        descripcion:
-          'Mirá el video "Identidad visual para profesionales de salud". El Agente Colores construye tu paleta desde tu Historia, Propósito y Avatar: primario, secundario, acento y neutros. Con justificación de por qué cada color. Una fisioterapeuta para mujeres con dolor crónico no puede tener paleta corporativa azul tech.',
-        es_estrella: true,
-        tiempo_estimado: '35 min',
-        agente_id: 'agente-visual',
+        codigo: 'P10.1',
+        titulo: 'Identidad visual para profesionales de salud',
+        descripcion: 'Video de Javo sobre identidad visual alineada con tu nicho y posicionamiento.',
+        tipo: 'VIDEO',
+        es_estrella: false,
+        tiempo_estimado: '15 min',
+        orden: 1,
+        usa_ia: false,
+        video_youtube_id: 'PLACEHOLDER_P10_1',
       },
       {
-        codigo: '10.B',
-        titulo: 'Agente IA — Tipografía + Tono de Voz',
-        descripcion:
-          'Agente Tipografía: fuentes para título, cuerpo y subtítulos optimizadas para legibilidad digital y coherencia de nicho. Agente Tono: define tu voz escrita (formal/cercano, técnico/simple, distante/empático) con ejemplos de cómo decís lo mismo de las dos maneras.',
-        es_estrella: true,
-        tiempo_estimado: '30 min',
-        agente_id: 'agente-visual',
-      },
-      {
-        codigo: '10.C',
-        titulo: 'Brief para diseñador completado',
-        descripcion:
-          'Completá el brief con todo lo generado: paleta, tipografías, tono de voz, referencias visuales, qué querés y qué no querés. Listo para trabajar con diseñador o para implementar solo en Canva/Figma.',
+        codigo: 'P10.2',
+        titulo: 'Generador de Sistema de Identidad',
+        descripcion: 'Sin campos nuevos. Usa Historia + Propósito + Avatar + Nicho del ADN. Genera: paleta de colores (primario, secundario, acento, neutros con justificación), tipografías de Google Fonts, tono de voz (5 palabras que SÍ y 5 que NO, con ejemplo), brief completo para diseñador o Canva.',
+        tipo: 'HERRAMIENTA',
         es_estrella: true,
         tiempo_estimado: '25 min',
-        agente_id: 'agente-visual',
+        orden: 2,
+        herramienta_id: 'H-P10.2',
+        usa_ia: true,
+        adn_field: 'adn_identidad_sistema',
       },
       {
-        codigo: '10.D',
-        titulo: 'Coherencia visual validada con Coach IA',
-        descripcion:
-          'El Coach verifica que la identidad visual sea coherente con tu Propósito y Avatar. Identidad visual completa + Pilares 1-9 completados = ADN del Negocio al 100%. Estás listo para escalar.',
+        codigo: 'P10.3',
+        titulo: 'Coherencia de la identidad',
+        descripcion: 'Mostrále al Coach tu paleta de colores y el tono de voz. Preguntale: "¿Es coherente con el tipo de paciente que quiero atraer y con lo que prometí en mi propósito?" Una fisioterapeuta para mujeres con dolor crónico no puede tener una identidad de startup tecnológica.',
+        tipo: 'COACH',
         es_estrella: true,
-        tiempo_estimado: '20 min',
-        agente_id: 'agente-coach',
+        tiempo_estimado: '15 min',
+        orden: 3,
+        usa_ia: false,
+        coach_instruccion: 'Mostrále al Coach tu paleta de colores y el tono de voz que generaste. Preguntale: "¿Es coherente con el tipo de paciente que quiero atraer y con lo que prometí en mi propósito?" Una fisioterapeuta para mujeres con dolor crónico no puede tener una identidad de startup tecnológica.',
+      },
+    ],
+  },
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // FASE 6: ANÁLISIS Y OPTIMIZACIÓN · Días 85–90
+  // ══════════════════════════════════════════════════════════════════════════
+
+  // ─── PILAR 11: Análisis · Días 85–90 ──────────────────────────────────────
+  {
+    id: 'P11',
+    numero_orden: 13,
+    titulo: 'Análisis y Optimización',
+    subtitulo: 'Retrospectiva y plan de ajuste',
+    color: '#C8893A',
+    numero: 11,
+    emoji: '📊',
+    estrellas_requeridas: 2,
+    desbloqueo: 'completar_anterior',
+    pilar_prerequisito: 'P10',
+    fase: 6,
+    dias_inicio: 85,
+    dias_fin: 90,
+    hito_mensaje: '¿ADN al 100%? ¿Ingresos del mes ≥ $10.000 USD? Si sí: celebración + certificado + opción de renovar. Si no: se activa la garantía.',
+    hito_tipo: 'checkpoint',
+    metas: [
+      {
+        codigo: 'P11.1',
+        titulo: 'Retrospectiva mensual',
+        descripcion: 'Abrí el Agente de Retrospectiva. El Agente ya tiene los datos del Dashboard de métricas como contexto. La conversación analiza: qué funcionó este mes, qué no funcionó, cuál es el cuello de botella según los números, cuáles son las 3 acciones prioritarias del mes siguiente.',
+        tipo: 'AGENTE',
+        es_estrella: true,
+        tiempo_estimado: '30 min',
+        orden: 1,
+        usa_ia: false,
+        agente_id: 'agente-retrospectiva',
+      },
+      {
+        codigo: 'P11.2',
+        titulo: 'Plan de ajuste',
+        descripcion: 'Mostrále al Coach el diagnóstico que te dio el Agente de Retrospectiva. Preguntale: "¿Qué cambio concreto en el embudo o en el script me daría más impacto esta semana?" El Coach responde desde tu ADN y tus métricas reales.',
+        tipo: 'COACH',
+        es_estrella: true,
+        tiempo_estimado: '15 min',
+        orden: 2,
+        usa_ia: false,
+        coach_instruccion: 'Mostrále al Coach el diagnóstico que te dio el Agente de Retrospectiva. Preguntale: "¿Qué cambio concreto en el embudo o en el script me daría más impacto esta semana?" El Coach responde desde tu ADN y tus métricas reales.',
       },
     ],
   },
 ];
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
+// ─── Helpers V3 ─────────────────────────────────────────────────────────────
 
-/** Total de metas en todo el programa */
-export const TOTAL_METAS = SEED_ROADMAP_V2.reduce(
+/** Total de metas en todo el programa (49) */
+export const TOTAL_METAS = SEED_ROADMAP_V3.reduce(
   (acc, pilar) => acc + pilar.metas.length,
   0,
 );
 
 /** Total de tareas ★ por pilar */
-export const ESTRELLAS_POR_PILAR: Record<number, number> = SEED_ROADMAP_V2.reduce(
+export const ESTRELLAS_POR_PILAR: Record<string, number> = SEED_ROADMAP_V3.reduce(
   (acc, pilar) => ({
     ...acc,
-    [pilar.numero]: pilar.metas.filter((m) => m.es_estrella).length,
+    [pilar.id]: pilar.metas.filter((m) => m.es_estrella).length,
   }),
-  {} as Record<number, number>,
+  {} as Record<string, number>,
 );
 
 /** Determina el nivel de avatar (1-5) basado en el pilar completado más alto */
-export function calcularNivel(pilarCompletadoMasAlto: number): 1 | 2 | 3 | 4 | 5 {
-  if (pilarCompletadoMasAlto >= 10) return 5;
-  if (pilarCompletadoMasAlto >= 8)  return 4;
-  if (pilarCompletadoMasAlto >= 5)  return 3;
-  if (pilarCompletadoMasAlto >= 2)  return 2;
+export function calcularNivel(pilarCompletado: PilarId | number): 1 | 2 | 3 | 4 | 5 {
+  let orden: number;
+  if (typeof pilarCompletado === 'number') {
+    orden = pilarCompletado;
+  } else {
+    const pilar = SEED_ROADMAP_V3.find((p) => p.id === pilarCompletado);
+    if (!pilar) return 1;
+    orden = pilar.numero_orden;
+  }
+  if (orden >= 12) return 5;
+  if (orden >= 8)  return 4;
+  if (orden >= 5)  return 3;
+  if (orden >= 2)  return 2;
   return 1;
 }
 
@@ -586,18 +988,17 @@ export function calcularDiaPrograma(fechaInicio: string): number {
   return Math.min(90, Math.max(1, diff + 1));
 }
 
-/** Retorna el color CSS para el estado del pilar en el mapa visual */
+/** Retorna clases de estilo para el estado del pilar */
 export function colorEstadoPilar(
   estado: 'completado' | 'en_progreso' | 'bloqueado',
-  color: string,
 ): string {
   switch (estado) {
     case 'completado':
-      return `bg-${color}-500 border-${color}-400 text-white`;
+      return 'border-l-[3px] border-l-[#2DD4A0] bg-[#1A1410] border border-[rgba(200,137,58,0.2)]';
     case 'en_progreso':
-      return `bg-${color}-500/30 border-${color}-500/60 text-${color}-200`;
+      return 'border-l-[3px] border-l-[#C8893A] bg-[#1A1410] border border-[rgba(200,137,58,0.2)]';
     case 'bloqueado':
-      return 'bg-white/5 border-white/10 text-white/30';
+      return 'opacity-40 cursor-not-allowed bg-[#1A1410] border border-[rgba(200,137,58,0.1)]';
   }
 }
 
@@ -612,10 +1013,16 @@ export interface GrupoFase {
 }
 
 export const FASES_ROADMAP: Omit<GrupoFase, 'pilares'>[] = [
-  { fase: 0, titulo: 'Fase 0 — Onboarding',              subtitulo: 'El Coach te conoce',                        dias: 'Días 1-3' },
-  { fase: 1, titulo: 'Fase 1 — Sprint de Identidad',     subtitulo: 'Quién sos',                                 dias: 'Días 3-20',  metodo_letra: 'C' },
-  { fase: 2, titulo: 'Fase 2 — Sprint de Mercado',       subtitulo: 'A quién servís',                            dias: 'Días 20-35', metodo_letra: 'LÍ' },
-  { fase: 3, titulo: 'Fase 3 — Sprint de Oferta',        subtitulo: 'Qué ofrecés',                               dias: 'Días 35-45', metodo_letra: 'NI' },
-  { fase: 4, titulo: 'Fase 4 — Activación y Ventas',     subtitulo: 'Cómo llegás y vendés',                      dias: 'Días 45-80', metodo_letra: 'C' },
-  { fase: 5, titulo: 'Fase 5 — Identidad Visual',        subtitulo: 'Cómo te reconocen',                         dias: 'Días 70-80' },
+  { fase: 0, titulo: 'Fase 0 — Onboarding',              subtitulo: 'El Coach te conoce',              dias: 'Días 1–3' },
+  { fase: 1, titulo: 'Fase 1 — Sprint de Identidad',     subtitulo: 'Quién sos',                       dias: 'Días 3–20',  metodo_letra: 'C' },
+  { fase: 2, titulo: 'Fase 2 — Sprint de Mercado',       subtitulo: 'A quién servís',                  dias: 'Días 20–38', metodo_letra: 'LÍ' },
+  { fase: 3, titulo: 'Fase 3 — Sprint de Oferta',        subtitulo: 'Qué ofrecés',                     dias: 'Días 36–45', metodo_letra: 'NI' },
+  { fase: 4, titulo: 'Fase 4 — Activación y Ventas',     subtitulo: 'Cómo llegás y vendés',             dias: 'Días 45–80', metodo_letra: 'NIC' },
+  { fase: 5, titulo: 'Fase 5 — Identidad Visual',        subtitulo: 'Cómo te reconocen',                dias: 'Días 70–80' },
+  { fase: 6, titulo: 'Fase 6 — Análisis y Optimización', subtitulo: 'Retrospectiva y cierre',           dias: 'Días 85–90' },
 ];
+
+// ─── Backward compatibility alias ───────────────────────────────────────────
+
+/** @deprecated Usar SEED_ROADMAP_V3 */
+export const SEED_ROADMAP_V2 = SEED_ROADMAP_V3;

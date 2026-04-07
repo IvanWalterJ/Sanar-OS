@@ -3,7 +3,7 @@ import { Send, Bot, User, Sparkles, RefreshCw, Zap } from 'lucide-react';
 import { GoogleGenAI } from '@google/genai';
 import Markdown from 'react-markdown';
 import { toast } from 'sonner';
-import { buildCoachSystemPrompt, detectarContextoConversacion } from '../lib/coachPrompt';
+import { buildCoachSystemPrompt, detectarContextoConversacion, loadCoachExtraContext } from '../lib/coachPrompt';
 import { getUserKnowledgeBase, getUserKnowledgeBaseSync } from '../lib/userKnowledgeBase';
 
 interface Message {
@@ -12,7 +12,7 @@ interface Message {
 }
 
 const SUGGESTIONS = [
-  "¿Nro. 1 en qué me enfoco hoy?",
+  "¿En qué me enfoco hoy?",
   "Estoy trabado con mi próxima tarea",
   "Revisemos mi oferta/promesa",
   "¿Cómo acelero mis citas?"
@@ -23,14 +23,14 @@ function buildInitialMessage(): Message {
   const profile = JSON.parse(localStorage.getItem('tcd_profile') || '{}');
   const dInicio = profile.fecha_inicio ? new Date(profile.fecha_inicio) : new Date();
   const diff = Math.floor((new Date().getTime() - dInicio.getTime()) / (1000 * 60 * 60 * 24));
-  const semanaActual = Math.max(1, Math.min(12, Math.floor(diff / 7) + 1));
+  const semanaActual = Math.max(1, Math.min(13, Math.floor(diff / 7) + 1));
   const nombre = profile.nombre || 'Fundadora';
 
   const diary = JSON.parse(localStorage.getItem('tcd_diary_weekly') || '[]');
   const last = diary.length > 0 ? diary[0].respuestas : null;
 
   let msg = `Hola ${nombre}. Empezamos la **Semana ${semanaActual}**.\n\n`;
-  
+
   if (last && last.cuello) {
     msg += `Noté en tu último check-in que tu foco es _"${last.foco}"_, pero estás frenada por: _"${last.cuello}"_.\n\n`;
   }
@@ -65,7 +65,6 @@ export default function Coach({ userId }: { userId?: string }) {
     }
   }, [messages]);
 
-  // Cargar base de conocimiento al montar (se cachea en ref para no recalcular)
   useEffect(() => {
     getUserKnowledgeBase(userId).then(kb => { knowledgeBaseRef.current = kb; });
   }, [userId]);
@@ -93,8 +92,9 @@ export default function Coach({ userId }: { userId?: string }) {
       }));
 
       const extraCtx = detectarContextoConversacion(text);
+      const coachExtra = loadCoachExtraContext();
       const perfil = JSON.parse(localStorage.getItem('tcd_profile') || '{}');
-      const systemPrompt = buildCoachSystemPrompt({ perfil, ...extraCtx, baseDeConocimiento: knowledgeBaseRef.current || undefined });
+      const systemPrompt = buildCoachSystemPrompt({ perfil, ...extraCtx, ...coachExtra, baseDeConocimiento: knowledgeBaseRef.current || undefined });
 
       const streamResponse = await ai.models.generateContentStream({
         model: 'gemini-2.5-flash',
@@ -128,23 +128,23 @@ export default function Coach({ userId }: { userId?: string }) {
   const userInitial = (profile.nombre || 'U').charAt(0).toUpperCase();
 
   return (
-    <div className="h-[calc(100vh-8rem)] flex flex-col glass-panel rounded-2xl overflow-hidden animate-in fade-in duration-500 border border-indigo-500/10">
-      <div className="p-5 border-b border-white/5 bg-indigo-500/[0.02] flex items-center justify-between">
+    <div className="h-[calc(100vh-8rem)] flex flex-col card-panel rounded-2xl overflow-hidden animate-in fade-in duration-500 border border-[#C8893A]/10">
+      <div className="p-5 border-b border-[rgba(200,137,58,0.15)] bg-[#C8893A]/[0.03] flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <div className="w-10 h-10 rounded-xl bg-indigo-500/20 flex items-center justify-center border border-indigo-500/30">
-            <Bot className="w-5 h-5 text-indigo-400" />
+          <div className="w-10 h-10 rounded-xl bg-[#C8893A]/20 flex items-center justify-center border border-[#C8893A]/30">
+            <Bot className="w-5 h-5 text-[#C8893A]" />
           </div>
           <div>
-            <h2 className="text-sm font-semibold text-white tracking-widest uppercase mb-0.5">Mentoría IA</h2>
-            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider flex items-center gap-1.5">
-              <Sparkles className="w-3 h-3 text-emerald-400" /> Memoria del programa activa
+            <h2 className="text-sm font-semibold text-[#F0EAD8] tracking-widest uppercase mb-0.5">Coach IA</h2>
+            <p className="text-[10px] text-[#F0EAD8]/50 font-bold uppercase tracking-wider flex items-center gap-1.5">
+              <Sparkles className="w-3 h-3 text-[#2DD4A0]" /> Conoce tu ADN completo
             </p>
           </div>
         </div>
         <button
           onClick={resetConversation}
           title="Reiniciar conversación"
-          className="w-8 h-8 rounded-lg hover:bg-white/10 flex items-center justify-center text-gray-500 hover:text-white transition-colors"
+          className="w-8 h-8 rounded-lg hover:bg-[#C8893A]/10 flex items-center justify-center text-[#F0EAD8]/40 hover:text-[#F0EAD8] transition-colors"
         >
           <RefreshCw className="w-4 h-4" />
         </button>
@@ -155,32 +155,32 @@ export default function Coach({ userId }: { userId?: string }) {
           <div key={i} className={`flex gap-4 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
             <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 border overflow-hidden ${
               msg.role === 'assistant'
-                ? 'bg-indigo-500/20 text-indigo-400 border-indigo-500/30'
-                : 'bg-white/5 text-gray-400 border-white/10'
+                ? 'bg-[#C8893A]/20 text-[#C8893A] border-[#C8893A]/30'
+                : 'bg-[#F0EAD8]/5 text-[#F0EAD8]/60 border-[#F0EAD8]/10'
             }`}>
               {msg.role === 'assistant'
                 ? <Bot className="w-4 h-4" />
                 : (avatarUrl
                     ? <img src={avatarUrl} alt="" className="w-full h-full object-cover" />
-                    : <span className="text-xs font-bold text-white">{userInitial}</span>
+                    : <span className="text-xs font-bold text-[#F0EAD8]">{userInitial}</span>
                   )
               }
             </div>
-            
+
             <div className={`max-w-[85%] rounded-2xl p-5 ${
               msg.role === 'user'
-                ? 'bg-indigo-600 text-white rounded-tr-sm shadow-lg'
-                : 'glass-panel bg-white/[0.02] text-gray-200 rounded-tl-sm border border-white/5'
+                ? 'bg-[#C8893A] text-[#0E0B07] rounded-tr-sm shadow-lg'
+                : 'card-panel bg-[#1A1410] text-[#F0EAD8]/90 rounded-tl-sm border border-[rgba(200,137,58,0.15)]'
             }`}>
               {msg.role === 'user' ? (
                 <p className="text-[13px] leading-relaxed whitespace-pre-wrap">{msg.content}</p>
               ) : (
-                <div className="text-[13px] leading-relaxed prose prose-invert max-w-none prose-p:leading-relaxed prose-pre:bg-black/50 prose-li:my-1 prose-a:text-indigo-400">
+                <div className="text-[13px] leading-relaxed prose prose-invert max-w-none prose-p:leading-relaxed prose-pre:bg-black/50 prose-li:my-1 prose-a:text-[#C8893A]">
                   {msg.content ? <Markdown>{msg.content}</Markdown> : (
                     <span className="flex gap-1.5 items-center py-1">
-                      <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-bounce" style={{ animationDelay: '0ms' }} />
-                      <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-bounce" style={{ animationDelay: '150ms' }} />
-                      <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-bounce" style={{ animationDelay: '300ms' }} />
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#C8893A] animate-bounce" style={{ animationDelay: '0ms' }} />
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#C8893A] animate-bounce" style={{ animationDelay: '150ms' }} />
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#C8893A] animate-bounce" style={{ animationDelay: '300ms' }} />
                     </span>
                   )}
                 </div>
@@ -190,17 +190,17 @@ export default function Coach({ userId }: { userId?: string }) {
         ))}
       </div>
 
-      <div className="p-4 border-t border-white/5 bg-black/20">
+      <div className="p-4 border-t border-[rgba(200,137,58,0.15)] bg-black/20">
         {messages.length < 5 && (
           <div className="flex flex-wrap gap-2 mb-4">
             {SUGGESTIONS.map((s, i) => (
-              <button 
-                key={i} 
+              <button
+                key={i}
                 onClick={() => handleSend(s)}
                 disabled={isTyping}
-                className="px-3 py-1.5 rounded-full border border-white/10 bg-white/5 hover:bg-white/10 text-xs text-gray-300 font-medium transition-colors disabled:opacity-50 flex items-center gap-1.5"
+                className="px-3 py-1.5 rounded-full border border-[rgba(200,137,58,0.2)] bg-[#C8893A]/5 hover:bg-[#C8893A]/10 text-xs text-[#F0EAD8]/70 font-medium transition-colors disabled:opacity-50 flex items-center gap-1.5"
               >
-                <Zap className="w-3 h-3 text-amber-400" /> {s}
+                <Zap className="w-3 h-3 text-[#C8893A]" /> {s}
               </button>
             ))}
           </div>
@@ -213,12 +213,12 @@ export default function Coach({ userId }: { userId?: string }) {
             onChange={(e) => setInput(e.target.value)}
             disabled={isTyping}
             placeholder={isTyping ? "Tu coach está conectando ideas..." : "Mencioná tu duda técnica o bloqueo..."}
-            className="w-full bg-white/5 border border-white/10 rounded-xl py-3.5 pl-4 pr-12 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/50 transition-all disabled:opacity-50 shadow-inner"
+            className="w-full bg-[#F0EAD8]/5 border border-[rgba(200,137,58,0.2)] rounded-xl py-3.5 pl-4 pr-12 text-sm text-[#F0EAD8] placeholder-[#F0EAD8]/30 focus:outline-none focus:border-[#C8893A]/50 focus:ring-1 focus:ring-[#C8893A]/50 transition-all disabled:opacity-50 shadow-inner"
           />
           <button
             type="submit"
             disabled={!input.trim() || isTyping}
-            className="absolute right-2 w-9 h-9 rounded-lg bg-indigo-500 hover:bg-indigo-400 disabled:opacity-50 flex items-center justify-center text-white transition-colors"
+            className="absolute right-2 w-9 h-9 rounded-lg bg-[#C8893A] hover:bg-[#D9A04E] disabled:opacity-50 flex items-center justify-center text-[#0E0B07] transition-colors"
           >
             <Send className="w-4 h-4 ml-1" />
           </button>

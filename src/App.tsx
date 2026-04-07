@@ -15,7 +15,7 @@ import Mensajes from './pages/Mensajes';
 import DiarioDirector from './pages/DiarioDirector';
 import Biblioteca from './pages/Biblioteca';
 import Agentes from './pages/Agentes';
-import ManualNegocio from './pages/ManualNegocio';
+// ManualNegocio removed in V3
 import Login from './pages/Login';
 import Admin from './pages/Admin';
 import WelcomeWizard from './components/WelcomeWizard';
@@ -195,8 +195,8 @@ export default function App() {
   // ─── Loading state ──────────────────────────────────────────────────────────
   if (authState === 'loading') {
     return (
-      <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-blue-500/30 border-t-blue-500 rounded-full animate-spin" />
+      <div className="min-h-screen bg-[#080808] flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-[#C8893A]/30 border-t-[#C8893A] rounded-full animate-spin" />
       </div>
     );
   }
@@ -226,10 +226,10 @@ export default function App() {
 
   // ─── Main app ────────────────────────────────────────────────────────────────
   return (
-    <div className="flex h-screen bg-[#0B0F19] text-white overflow-hidden font-sans selection:bg-blue-500/30">
+    <div className="flex h-screen bg-[#080808] text-[#F0EAD8] overflow-hidden font-sans selection:bg-[#C8893A]/30">
       {/* Background Glow */}
-      <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] rounded-full bg-blue-600/20 blur-[120px] pointer-events-none" />
-      <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] rounded-full bg-purple-600/20 blur-[120px] pointer-events-none" />
+      <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] rounded-full bg-[#C8893A]/10 blur-[120px] pointer-events-none" />
+      <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] rounded-full bg-[#C8893A]/5 blur-[120px] pointer-events-none" />
 
       <Sidebar
         currentPage={currentPage}
@@ -252,14 +252,7 @@ export default function App() {
             <div className="p-6">
               {currentPage === 'dashboard' && <Dashboard setCurrentPage={setCurrentPage} userId={supabaseProfile?.id} />}
               {currentPage === 'roadmap' && <Roadmap userId={supabaseProfile?.id} perfil={supabaseProfile ?? undefined} geminiKey={import.meta.env.VITE_GEMINI_API_KEY} onNavigate={setCurrentPage} />}
-              {currentPage === 'manual' && (
-                <ManualNegocio
-                  userId={supabaseProfile?.id}
-                  perfil={supabaseProfile ?? undefined}
-                  onNavigate={setCurrentPage}
-                />
-              )}
-              {currentPage === 'coach' && <Coach userId={supabaseProfile?.id} />}
+{currentPage === 'coach' && <Coach userId={supabaseProfile?.id} />}
               {currentPage === 'metrics' && <Metrics userId={supabaseProfile?.id} />}
               {currentPage === 'diario' && (
                 <DiarioDirector
@@ -283,12 +276,12 @@ export default function App() {
       {/* Settings Modal */}
       {showSettings && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="w-full max-w-2xl bg-[#111827] border border-white/10 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
-            <div className="flex items-center justify-between p-6 border-b border-white/10">
-              <h2 className="text-xl font-medium text-white">Ajustes de la Cuenta</h2>
+          <div className="w-full max-w-2xl bg-[#1A1410] border border-[rgba(200,137,58,0.2)] rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            <div className="flex items-center justify-between p-6 border-b border-[rgba(200,137,58,0.2)]">
+              <h2 className="text-xl font-medium text-[#F0EAD8]">Ajustes de la Cuenta</h2>
               <button
                 onClick={() => setShowSettings(false)}
-                className="text-gray-400 hover:text-white transition-colors"
+                className="text-[#F0EAD8]/60 hover:text-[#F0EAD8] transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -296,7 +289,7 @@ export default function App() {
 
             <div className="flex flex-1 overflow-hidden">
               {/* Settings Sidebar */}
-              <div className="w-1/3 border-r border-white/10 p-4 space-y-2 bg-white/[0.02] flex flex-col">
+              <div className="w-1/3 border-r border-[rgba(200,137,58,0.2)] p-4 space-y-2 bg-[#241A0C]/50 flex flex-col">
                 <div className="flex-1 space-y-2">
                   {([
                     { id: 'perfil' as SettingsTab, label: 'Perfil', icon: User },
@@ -309,8 +302,8 @@ export default function App() {
                       onClick={() => setSettingsTab(tab.id)}
                       className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-colors ${
                         settingsTab === tab.id
-                          ? 'bg-blue-500/10 text-blue-400 font-medium'
-                          : 'text-gray-400 hover:bg-white/5 hover:text-gray-200'
+                          ? 'bg-[#C8893A]/10 text-[#C8893A] font-medium'
+                          : 'text-[#F0EAD8]/60 hover:bg-[#C8893A]/5 hover:text-[#F0EAD8]'
                       }`}
                     >
                       <tab.icon className="w-4 h-4" /> {tab.label}
@@ -320,7 +313,7 @@ export default function App() {
                 {/* Sign out */}
                 <button
                   onClick={handleSignOut}
-                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm text-red-400 hover:bg-red-500/10 transition-colors mt-auto"
+                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm text-[#E85555] hover:bg-[#E85555]/10 transition-colors mt-auto"
                 >
                   <LogOut className="w-4 h-4" /> Cerrar sesión
                 </button>
@@ -335,12 +328,12 @@ export default function App() {
                       <input ref={avatarInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} />
                       <button
                         onClick={() => avatarInputRef.current?.click()}
-                        className="relative group w-20 h-20 rounded-full border-2 border-dashed border-white/20 hover:border-indigo-500/50 transition-colors overflow-hidden"
+                        className="relative group w-20 h-20 rounded-full border-2 border-dashed border-[rgba(200,137,58,0.3)] hover:border-[#C8893A]/50 transition-colors overflow-hidden"
                       >
                         {avatarUrl ? (
                           <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
                         ) : (
-                          <div className="w-full h-full bg-indigo-500/10 flex items-center justify-center text-2xl font-bold text-indigo-300">
+                          <div className="w-full h-full bg-[#C8893A]/10 flex items-center justify-center text-2xl font-bold text-[#C8893A]">
                             {(profileDraft.nombre || 'P').charAt(0).toUpperCase()}
                           </div>
                         )}
@@ -348,55 +341,55 @@ export default function App() {
                           <Camera className="w-6 h-6 text-white" />
                         </div>
                       </button>
-                      <p className="text-xs text-gray-500">Clic para cambiar foto de perfil</p>
+                      <p className="text-xs text-[#F0EAD8]/40">Clic para cambiar foto de perfil</p>
                     </div>
                     <div>
-                      <h3 className="text-lg font-medium text-white mb-4">Información Personal</h3>
+                      <h3 className="text-lg font-medium text-[#F0EAD8] mb-4">Información Personal</h3>
                       <div className="space-y-4">
                         <div>
-                          <label className="block text-xs text-gray-400 mb-1">Nombre Completo</label>
+                          <label className="block text-xs text-[#F0EAD8]/60 mb-1">Nombre Completo</label>
                           <input
                             type="text"
                             value={profileDraft.nombre}
                             onChange={e => setProfileDraft({ ...profileDraft, nombre: e.target.value })}
-                            className="w-full bg-black/20 border border-white/10 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-blue-500/50"
+                            className="w-full bg-black/20 border border-[rgba(200,137,58,0.2)] rounded-lg px-4 py-2.5 text-[#F0EAD8] focus:outline-none focus:border-[#C8893A]/50"
                           />
                         </div>
                         <div>
-                          <label className="block text-xs text-gray-400 mb-1">Correo Electrónico</label>
+                          <label className="block text-xs text-[#F0EAD8]/60 mb-1">Correo Electrónico</label>
                           <input
                             type="email"
                             value={profileDraft.email}
                             disabled
-                            className="w-full bg-black/20 border border-white/10 rounded-lg px-4 py-2.5 text-gray-500 cursor-not-allowed"
+                            className="w-full bg-black/20 border border-[rgba(200,137,58,0.2)] rounded-lg px-4 py-2.5 text-[#F0EAD8]/40 cursor-not-allowed"
                           />
-                          <p className="text-xs text-gray-600 mt-1">El email no se puede cambiar desde aquí</p>
+                          <p className="text-xs text-[#F0EAD8]/30 mt-1">El email no se puede cambiar desde aquí</p>
                         </div>
                         <div>
-                          <label className="block text-xs text-gray-400 mb-1">Especialidad</label>
+                          <label className="block text-xs text-[#F0EAD8]/60 mb-1">Especialidad</label>
                           <input
                             type="text"
                             value={profileDraft.especialidad}
                             onChange={e => setProfileDraft({ ...profileDraft, especialidad: e.target.value })}
-                            className="w-full bg-black/20 border border-white/10 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-blue-500/50"
+                            className="w-full bg-black/20 border border-[rgba(200,137,58,0.2)] rounded-lg px-4 py-2.5 text-[#F0EAD8] focus:outline-none focus:border-[#C8893A]/50"
                           />
                         </div>
                         <div>
-                          <label className="block text-xs text-gray-400 mb-1">Fecha de inicio del programa</label>
+                          <label className="block text-xs text-[#F0EAD8]/60 mb-1">Fecha de inicio del programa</label>
                           <input
                             type="date"
                             value={profileDraft.fecha_inicio}
                             onChange={e => setProfileDraft({ ...profileDraft, fecha_inicio: e.target.value })}
-                            className="w-full bg-black/20 border border-white/10 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-blue-500/50"
+                            className="w-full bg-black/20 border border-[rgba(200,137,58,0.2)] rounded-lg px-4 py-2.5 text-[#F0EAD8] focus:outline-none focus:border-[#C8893A]/50"
                           />
                         </div>
                       </div>
                     </div>
-                    <div className="pt-6 border-t border-white/10 flex justify-end gap-3">
-                      <button onClick={() => setShowSettings(false)} className="px-5 py-2.5 rounded-xl text-sm font-medium text-gray-300 hover:text-white transition-colors">
+                    <div className="pt-6 border-t border-[rgba(200,137,58,0.2)] flex justify-end gap-3">
+                      <button onClick={() => setShowSettings(false)} className="px-5 py-2.5 rounded-xl text-sm font-medium text-[#F0EAD8]/60 hover:text-[#F0EAD8] transition-colors">
                         Cancelar
                       </button>
-                      <button onClick={saveProfile} className="px-5 py-2.5 rounded-xl bg-blue-500 hover:bg-blue-600 text-white text-sm font-medium transition-colors shadow-lg shadow-blue-500/20">
+                      <button onClick={saveProfile} className="btn-primary">
                         Guardar Cambios
                       </button>
                     </div>
@@ -405,11 +398,11 @@ export default function App() {
 
                 {settingsTab === 'notificaciones' && (
                   <div className="space-y-6">
-                    <h3 className="text-lg font-medium text-white mb-4">Preferencias de Notificaciones</h3>
+                    <h3 className="text-lg font-medium text-[#F0EAD8] mb-4">Preferencias de Notificaciones</h3>
                     {['Recordatorios del diario', 'Mensajes del equipo', 'Recordatorios de tareas', 'Resumen semanal'].map((item, i) => (
-                      <label key={i} className="flex items-center justify-between py-3 border-b border-white/5">
-                        <span className="text-sm text-gray-300">{item}</span>
-                        <input type="checkbox" defaultChecked className="w-4 h-4 rounded accent-blue-500" />
+                      <label key={i} className="flex items-center justify-between py-3 border-b border-[rgba(200,137,58,0.1)]">
+                        <span className="text-sm text-[#F0EAD8]/80">{item}</span>
+                        <input type="checkbox" defaultChecked className="w-4 h-4 rounded accent-[#C8893A]" />
                       </label>
                     ))}
                   </div>
@@ -417,22 +410,22 @@ export default function App() {
 
                 {settingsTab === 'seguridad' && (
                   <div className="space-y-6">
-                    <h3 className="text-lg font-medium text-white mb-4">Seguridad</h3>
-                    <p className="text-sm text-gray-400">Para cambiar tu contraseña, pedile a tu coach que te envíe un email de restablecimiento.</p>
+                    <h3 className="text-lg font-medium text-[#F0EAD8] mb-4">Seguridad</h3>
+                    <p className="text-sm text-[#F0EAD8]/60">Para cambiar tu contraseña, pedile a tu coach que te envíe un email de restablecimiento.</p>
                   </div>
                 )}
 
                 {settingsTab === 'facturacion' && (
                   <div className="space-y-6">
-                    <h3 className="text-lg font-medium text-white mb-4">Facturación</h3>
-                    <div className="bg-white/[0.04] border border-white/10 p-4 rounded-xl">
+                    <h3 className="text-lg font-medium text-[#F0EAD8] mb-4">Facturación</h3>
+                    <div className="bg-[#241A0C]/50 border border-[rgba(200,137,58,0.2)] p-4 rounded-xl">
                       <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm text-gray-300">Plan Actual</span>
-                        <span className="px-3 py-1 rounded-full bg-blue-500/20 text-blue-400 text-xs font-medium">
+                        <span className="text-sm text-[#F0EAD8]/80">Plan Actual</span>
+                        <span className="px-3 py-1 rounded-full bg-[#C8893A]/20 text-[#C8893A] text-xs font-medium">
                           Tu Clínica Digital — {profile.plan}
                         </span>
                       </div>
-                      <p className="text-xs text-gray-500">Programa de 90 días</p>
+                      <p className="text-xs text-[#F0EAD8]/40">Programa de 90 días</p>
                     </div>
                   </div>
                 )}

@@ -8,16 +8,43 @@
 @source inline("border-{emerald,violet,blue,indigo,cyan,sky,amber,orange,rose}-500/{15,20,25,30,35,60}");
 @source inline("shadow-{emerald,violet,blue,indigo,cyan,sky,amber,orange,rose}-500/{10,15,20}");
 
+/* ─── Design Tokens V3 ──────────────────────────────────────────── */
+:root {
+  --bg-root: #080808;
+  --bg-card: #1A1410;
+  --bg-surface2: #241A0C;
+  --accent-gold: #C8893A;
+  --accent-gold-hover: #D9A04E;
+  --green-success: #2DD4A0;
+  --red-alert: #E85555;
+  --text-cream: #F0EAD8;
+  --text-muted: rgba(240, 234, 216, 0.6);
+  --border-gold: rgba(200, 137, 58, 0.2);
+  --border-gold-strong: rgba(200, 137, 58, 0.4);
+  --font-body: 'DM Sans', system-ui, sans-serif;
+  --font-display: 'DM Serif Display', Georgia, serif;
+}
+
 html,
 body,
 #root {
-  background-color: #0B0F19;
+  background-color: var(--bg-root);
   height: 100%;
   overflow: hidden;
   margin: 0;
   padding: 0;
+  font-family: var(--font-body);
+  font-size: 16px;
+  color: var(--text-cream);
 }
 
+/* ─── Typography ─────────────────────────────────────────────────── */
+h1, h2, h3 {
+  font-family: var(--font-display);
+  font-style: italic;
+}
+
+/* ─── Utility classes ────────────────────────────────────────────── */
 @layer utilities {
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
@@ -26,7 +53,75 @@ body,
     -ms-overflow-style: none;
     scrollbar-width: none;
   }
+
+  /* Legacy alias — keep for backward compat during migration */
   .glass-panel {
-    @apply bg-white/[0.03] backdrop-blur-xl border border-white/[0.08] shadow-2xl;
+    @apply bg-[#1A1410]/80 backdrop-blur-xl border border-[rgba(200,137,58,0.2)] shadow-2xl;
+  }
+
+  /* New card panel */
+  .card-panel {
+    background: var(--bg-card);
+    border: 1px solid var(--border-gold);
+    border-radius: 12px;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+  }
+
+  /* Primary button */
+  .btn-primary {
+    background: var(--accent-gold);
+    color: #0E0B07;
+    font-weight: 600;
+    font-size: 0.875rem;
+    padding: 0.625rem 1.25rem;
+    border-radius: 0.75rem;
+    transition: background 0.2s, box-shadow 0.2s;
+    box-shadow: 0 4px 12px rgba(200, 137, 58, 0.3);
+  }
+  .btn-primary:hover {
+    background: var(--accent-gold-hover);
+    box-shadow: 0 6px 20px rgba(200, 137, 58, 0.4);
+  }
+
+  /* Secondary button */
+  .btn-secondary {
+    background: transparent;
+    color: var(--accent-gold);
+    border: 1px solid var(--border-gold);
+    font-weight: 500;
+    font-size: 0.875rem;
+    padding: 0.625rem 1.25rem;
+    border-radius: 0.75rem;
+    transition: background 0.2s, border-color 0.2s;
+  }
+  .btn-secondary:hover {
+    background: rgba(200, 137, 58, 0.1);
+    border-color: var(--border-gold-strong);
+  }
+
+  /* Input field */
+  .input-field {
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid var(--border-gold);
+    border-radius: 0.5rem;
+    padding: 0.625rem 1rem;
+    color: var(--text-cream);
+    font-size: 0.875rem;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .input-field:focus {
+    border-color: var(--accent-gold);
+  }
+  .input-field::placeholder {
+    color: var(--text-muted);
+  }
+
+  /* Section title */
+  .section-title {
+    font-family: var(--font-display);
+    font-style: italic;
+    font-size: 1.5rem;
+    color: var(--text-cream);
   }
 }

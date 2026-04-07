@@ -5,9 +5,10 @@
  * El Coach no es un chatbot genérico. Antes de cada interacción, el sistema
  * construye dinámicamente el system prompt con todos los datos del usuario.
  */
-import type { ProfileV2, DiarioEntradaV2, MetricaSemana, HojaDeRutaItem } from './supabase';
+import type { ProfileV2, DiarioEntradaV2, MetricaSemana, MetricaSemanaV2, HojaDeRutaItem } from './supabase';
 import { NIVEL_NOMBRES } from './supabase';
 import { SEED_ROADMAP_V2 } from './roadmapSeed';
+import { calcularFunnelKPIs, diagnosticarEmbudo, type FunnelKPIs } from './funnelCalcs';
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 
@@ -16,9 +17,12 @@ export interface ContextoCoach {
   ultimaEntradaDiario?: Partial<DiarioEntradaV2>;
   entradasSemana?: Partial<DiarioEntradaV2>[];
   metricasSemana?: Partial<MetricaSemana>;
+  metricasEmbudoV2?: MetricaSemanaV2;
+  energiaPromedio7d?: number;
   tareasHojaDeRuta?: HojaDeRutaItem[];
   ventasRegistradas?: number;
   esResumenViernes?: boolean;
+  esResumenDomingo?: boolean;
   esRetrospectivaMensual?: boolean;
   esCallDeVenta?: boolean;
   hayBloqueoPersistente?: boolean;
@@ -96,25 +100,74 @@ Sos el Coach IA del Método CLÍNICA — programa de 90 días para profesionales
 Tu personalidad: directo, cálido, exigente cuando hace falta, nunca condescendiente. No usás frases de autoayuda vacías. No felicitás por todo. Cuando algo no está bien, lo decís. Cuando algo está muy bien, lo celebrás con especificidad (nombrás exactamente qué hizo bien y por qué importa).
 
 Tu objetivo en cada conversación: que el profesional salga con 1 acción concreta para ejecutar en las próximas 24 horas. No 5 acciones. Una.
+
+REGLA CLAVE: Si el usuario pregunta "¿qué hago?" o "¿cuál es mi próximo paso?", respondé con el próximo paso exacto de la Hoja de Ruta (ver TAREA PRIORITARIA ACTUAL). No inventes tareas que no existan en el programa.
+
+Conocés su ADN completo (campos completados con herramientas IA), sus métricas del embudo de ventas, y su energía de los últimos 7 días. Usá toda esta información para personalizar cada respuesta.
   `.trim();
+
+  // ADN V3 sections
+  const adnSections: string[] = [];
+  if (perfil.adn_formulario_bienvenida) adnSections.push(`Formulario bienvenida: completado`);
+  if (perfil.adn_linea_tiempo) adnSections.push(`Línea de tiempo: ${perfil.adn_linea_tiempo.substring(0, 150)}...`);
+  if (perfil.historia_300) adnSections.push(`Historia (300): ${perfil.historia_300.substring(0, 150)}...`);
+  if (perfil.proposito) adnSections.push(`Propósito: ${perfil.proposito}`);
+  if (perfil.legado) adnSections.push(`Legado: ${perfil.legado}`);
+  if (perfil.adn_avatar) adnSections.push(`Avatar: ${perfil.adn_avatar.nombre_ficticio}, ${perfil.adn_avatar.edad} años, ${perfil.adn_avatar.profesion}. Dolores: ${perfil.adn_avatar.dolores?.join(', ')}`);
+  if (perfil.adn_nicho) adnSections.push(`Nicho: ${perfil.adn_nicho}`);
+  if (perfil.adn_usp) adnSections.push(`USP: ${perfil.adn_usp}`);
+  if (perfil.matriz_a) adnSections.push(`Matriz A (dolores): ${perfil.matriz_a.substring(0, 100)}...`);
+  if (perfil.matriz_b) adnSections.push(`Matriz B (obstáculos): ${perfil.matriz_b.substring(0, 100)}...`);
+  if (perfil.matriz_c) adnSections.push(`Matriz C (cielo): ${perfil.matriz_c.substring(0, 100)}...`);
+  if (perfil.metodo_nombre) adnSections.push(`Método: ${perfil.metodo_nombre}`);
+  if (perfil.oferta_mid) adnSections.push(`Oferta Mid: ${perfil.oferta_mid.substring(0, 100)}...`);
+  if (perfil.script_venta) adnSections.push(`Script de Ventas: completado`);
+
+  const ADN_SECTION = adnSections.length > 0
+    ? `\n=== ADN DEL NEGOCIO (${adnSections.length} campos completados) ===\n${adnSections.join('\n')}`
+    : '';
+
+  // Funnel metrics
+  let EMBUDO_SECTION = '';
+  if (ctx.metricasEmbudoV2) {
+    const kpis = calcularFunnelKPIs(ctx.metricasEmbudoV2);
+    const diagnosticos = diagnosticarEmbudo(kpis);
+    const criticos = diagnosticos.filter(d => d.nivel === 'critico');
+    const alertas = diagnosticos.filter(d => d.nivel === 'alerta');
+    EMBUDO_SECTION = `
+=== MÉTRICAS DEL EMBUDO (última semana) ===
+Gasto ads: $${ctx.metricasEmbudoV2.gasto_ads} | Mensajes: ${ctx.metricasEmbudoV2.mensajes_recibidos} | Formularios: ${ctx.metricasEmbudoV2.formularios_completados}
+Agendados: ${ctx.metricasEmbudoV2.agendados} | Shows: ${ctx.metricasEmbudoV2.shows} | Llamadas: ${ctx.metricasEmbudoV2.llamadas_tomadas}
+Ventas: ${ctx.metricasEmbudoV2.ventas_cerradas} | Ingresos: $${ctx.metricasEmbudoV2.ingresos_cobrados} | Horas/sem: ${ctx.metricasEmbudoV2.horas_trabajadas_semana}
+KPIs: Tasa cierre=${kpis.tasa_cierre !== null ? (kpis.tasa_cierre * 100).toFixed(1) + '%' : '—'} | CPV=${kpis.cpv !== null ? '$' + kpis.cpv.toFixed(0) : '—'} | PHR=${kpis.phr !== null ? '$' + kpis.phr.toFixed(0) : '—'}
+${criticos.length > 0 ? `CRÍTICOS: ${criticos.map(d => `${d.etapa}: ${d.mensaje}`).join(' | ')}` : ''}
+${alertas.length > 0 ? `ALERTAS: ${alertas.map(d => `${d.etapa}: ${d.mensaje}`).join(' | ')}` : ''}
+    `.trim();
+  }
+
+  // Energy average
+  const energiaAvg = ctx.energiaPromedio7d;
+  const ENERGIA_SECTION = energiaAvg !== undefined
+    ? `\n=== ENERGÍA PROMEDIO 7 DÍAS: ${energiaAvg.toFixed(1)}/10 ===${energiaAvg < 5 ? '\n⚠️ ENERGÍA BAJA — abordar esto en la conversación. Preguntar por sueño, alimentación, movimiento.' : ''}`
+    : '';
 
   const CONTEXTO_USUARIO = `
 === DATOS DEL PROFESIONAL ===
 Nombre: ${perfil.nombre ?? 'No especificado'}
 Especialidad: ${perfil.especialidad ?? 'No especificada'}
-Nicho: ${perfil.nicho ?? 'Aún no definido — objetivo del Pilar 2'}
-Avatar de cliente ideal: ${perfil.avatar_cliente ?? 'Aún no definido'}
+Nicho: ${perfil.nicho ?? perfil.adn_nicho ?? 'Aún no definido'}
+Avatar de cliente ideal: ${perfil.avatar_cliente ?? (perfil.adn_avatar ? perfil.adn_avatar.nombre_ficticio : 'Aún no definido')}
 Posicionamiento: ${perfil.posicionamiento ?? 'Aún no definido'}
-Historia de origen: ${perfil.historia_origen ? perfil.historia_origen.substring(0, 200) + '...' : 'Aún no documentada'}
-
+Historia de origen: ${perfil.historia_origen ? perfil.historia_origen.substring(0, 200) + '...' : perfil.historia_300 ? perfil.historia_300.substring(0, 200) + '...' : 'Aún no documentada'}
+${ADN_SECTION}
 === ESTADO DEL PROGRAMA ===
 Día del programa: ${perfil.dia_programa ?? 1} de 90
-Pilar actual: ${perfil.pilar_actual ?? 0} de 8
+Pilar actual: ${perfil.pilar_actual ?? 0} de 14
 Progreso total: ${progresoPct}%
 Nivel en el programa: Nivel ${nivel} — ${nombreNivel}
 Ventas registradas: ${ventasRegistradas}
-Semáforo: ${semaforoColor === 'verde' ? '🟢 EN CAMINO' : semaforoColor === 'amarillo' ? '🟡 AJUSTAR' : '🔴 INTERVENCIÓN NECESARIA'}
-
+Semáforo: ${semaforoColor === 'verde' ? 'EN CAMINO' : semaforoColor === 'amarillo' ? 'AJUSTAR' : 'INTERVENCIÓN NECESARIA'}
+${EMBUDO_SECTION}${ENERGIA_SECTION}
 === TAREA PRIORITARIA ACTUAL ===
 ${tareaEstrella}
 
@@ -192,17 +245,17 @@ No des consejos genéricos de ventas — todo debe ser específico para su nicho
     `.trim();
   }
 
-  // 5. Resumen del viernes → análisis de patrones de la semana
-  if (ctx.esResumenViernes && entradasSemana.length >= 3) {
+  // 5. Resumen semanal (domingo)
+  if ((ctx.esResumenDomingo || ctx.esResumenViernes) && entradasSemana.length >= 3) {
     const energiaPromedio = entradasSemana.reduce((sum, e) => sum + (e.energia_nivel ?? 5), 0) / entradasSemana.length;
     SECCIONES_CONDICIONALES += `
-=== MODO RESUMEN DEL VIERNES ===
-Es viernes. Analizá los patrones de la semana basándote en el Diario:
+=== MODO RESUMEN SEMANAL ===
+Es domingo. Analizá los patrones de la semana basándote en el Diario:
 - Energía promedio: ${energiaPromedio.toFixed(1)}/10
-- Entradas registradas: ${entradasSemana.length} de 5 posibles
+- Entradas registradas: ${entradasSemana.length} de 7 posibles
 - Fricción recurrente: ${entradasSemana.map((e) => e.respuestas?.q2 ?? '').filter(Boolean).join(' / ')}
 
-Generá el resumen de la semana según la especificación del Método CLÍNICA (racha, energía, bloqueo recurrente, correlación, pensamiento dominante, emoción dominante, 3 acciones para la próxima semana).
+Generá el resumen de la semana según el Método CLÍNICA (racha, energía, bloqueo recurrente, pensamiento dominante, emoción dominante, 3 acciones para la próxima semana).
     `.trim();
   }
 
@@ -240,6 +293,30 @@ export function detectarContextoConversacion(mensajeUsuario: string): Partial<Co
   return {
     esCallDeVenta: msg.includes('llamada') || msg.includes('venta') || msg.includes('cierre') || msg.includes('objeción'),
     esResumenViernes: new Date().getDay() === 5,
+    esResumenDomingo: new Date().getDay() === 0,
     esRetrospectivaMensual: msg.includes('retrospectiva') || msg.includes('revisión del mes') || msg.includes('mes que viene'),
   };
+}
+
+/**
+ * Load funnel metrics and energy average from localStorage for Coach context.
+ * Called by Coach.tsx before building the system prompt.
+ */
+export function loadCoachExtraContext(): Pick<ContextoCoach, 'metricasEmbudoV2' | 'energiaPromedio7d'> {
+  let metricasEmbudoV2: MetricaSemanaV2 | undefined;
+  try {
+    const saved = localStorage.getItem('tcd_metrics_v2');
+    if (saved) {
+      const arr = JSON.parse(saved) as MetricaSemanaV2[];
+      if (arr.length > 0) metricasEmbudoV2 = arr[arr.length - 1];
+    }
+  } catch { /* noop */ }
+
+  let energiaPromedio7d: number | undefined;
+  try {
+    const saved = localStorage.getItem('tcd_energia_promedio_7d');
+    if (saved) energiaPromedio7d = parseFloat(saved);
+  } catch { /* noop */ }
+
+  return { metricasEmbudoV2, energiaPromedio7d };
 }

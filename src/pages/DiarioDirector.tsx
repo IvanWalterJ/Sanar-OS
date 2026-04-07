@@ -34,13 +34,13 @@ interface EntradaDiario {
   accion_manana: string;
   modulo_energetico: ModuloEnergetico;
   respuestas: {
-    q1: string; // ¿Cómo te sentiste?
-    q2: string; // ¿Qué te frenó?
-    q3: string; // ¿Qué acción tomaste?
-    q4: string; // ¿Qué pensamiento dominante?
-    q5: string; // ¿Qué emoción?
-    q6: string; // ¿Qué aprendiste?
-    q7: string; // ¿Qué harás mañana?
+    q1: string; // ¿Completaste tu tarea de hoy? (Sí/No)
+    q2: string; // ¿Cómo estuvo tu energía? (slider, stored as level)
+    q3: string; // ¿Hubo algo que te bloqueó? (textarea, optional)
+    q4: string; // ¿Cuál fue el momento más importante del día? (textarea, required)
+    q5: string; // ¿Tomaste llamadas hoy? (Sí/No, day>=45)
+    q6: string; // ¿Cuántas? ¿Cerraste alguna? (text, if q5=Sí)
+    q7: string; // ¿Qué objeción apareció? (textarea, optional, if q5=Sí)
   };
 }
 
@@ -53,15 +53,29 @@ interface ResumenSemana {
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
 
-const PREGUNTAS = [
-  { id: 'q1', label: '¿Cómo te sentiste hoy en tu negocio?', placeholder: 'Contame con tus palabras cómo fue el día...', campo: 'general', color: 'indigo' },
-  { id: 'q2', label: '¿Qué te frenó o te generó fricción hoy?', placeholder: 'Puede ser una situación, una persona, una emoción, o algo técnico...', campo: 'friccion', color: 'amber' },
-  { id: 'q3', label: '¿Qué acción tomaste hoy que te acercó a tu meta?', placeholder: 'Aunque sea pequeña, ¿qué moviste hoy?', campo: 'accion', color: 'emerald' },
-  { id: 'q4', label: '¿Qué pensamiento dominante apareció hoy?', placeholder: 'El pensamiento que más veces repetiste mentalmente hoy...', campo: 'pensamiento', color: 'violet' },
-  { id: 'q5', label: '¿Qué emoción fue la predominante?', placeholder: 'Entusiasmo, ansiedad, claridad, miedo, orgullo, frustración...', campo: 'emocion', color: 'pink' },
-  { id: 'q6', label: '¿Qué aprendiste hoy?', placeholder: 'Sobre vos, tu negocio, tus clientes o el mercado...', campo: 'aprendizaje', color: 'cyan' },
-  { id: 'q7', label: '¿Qué vas a hacer mañana con lo de hoy?', placeholder: '1 acción concreta para mañana...', campo: 'accion_manana', color: 'teal' },
-];
+// Day calculation from tcd_profile
+function getCurrentDay(): number {
+  try {
+    const profile = localStorage.getItem('tcd_profile');
+    if (!profile) return 1;
+    const parsed = JSON.parse(profile);
+    const fechaInicio = parsed.fecha_inicio;
+    if (!fechaInicio) return 1;
+    const inicio = new Date(fechaInicio + 'T00:00:00');
+    const ahora = new Date();
+    return Math.floor((ahora.getTime() - inicio.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+  } catch {
+    return 1;
+  }
+}
+
+function calcEnergyAverage7d(allEntries: EntradaDiario[]): number | null {
+  const sorted = [...allEntries].sort((a, b) => b.fecha.localeCompare(a.fecha));
+  const last7 = sorted.slice(0, 7);
+  if (last7.length === 0) return null;
+  const sum = last7.reduce((acc, e) => acc + e.energia_nivel, 0);
+  return Math.round((sum / last7.length) * 10) / 10;
+}
 
 const CHECKLIST_ENERGETICO: { key: keyof ModuloEnergetico; emoji: string; label: string }[] = [
   { key: 'durmio_bien', emoji: '😴', label: 'Dormí bien' },
@@ -74,8 +88,8 @@ function getTodayStr(): string {
   return new Date().toISOString().split('T')[0];
 }
 
-function isViernes(): boolean {
-  return new Date().getDay() === 5;
+function isDomingo(): boolean {
+  return new Date().getDay() === 0;
 }
 
 function calcStreak(entries: EntradaDiario[]): number {
@@ -101,8 +115,8 @@ function BarraEnergia({ valor, onChange }: { valor: number; onChange: (v: number
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
-        <span className="text-xs text-gray-500">Energía del día</span>
-        <span className={`text-sm font-bold ${valor >= 7 ? 'text-emerald-400' : valor >= 4 ? 'text-amber-400' : 'text-red-400'}`}>
+        <span className="text-xs text-[#F0EAD8]/40">Energía del día</span>
+        <span className={`text-sm font-bold ${valor >= 7 ? 'text-[#2DD4A0]' : valor >= 4 ? 'text-[#C8893A]' : 'text-[#E85555]'}`}>
           {valor}/10
         </span>
       </div>
@@ -114,18 +128,18 @@ function BarraEnergia({ valor, onChange }: { valor: number; onChange: (v: number
             className={`flex-1 h-8 rounded-lg transition-all text-[10px] font-bold ${
               n <= valor
                 ? n >= 7
-                  ? 'bg-emerald-500 text-white'
+                  ? 'bg-[#2DD4A0] text-[#F0EAD8]'
                   : n >= 4
-                  ? 'bg-amber-500 text-white'
-                  : 'bg-red-500 text-white'
-                : 'bg-white/5 text-gray-600 hover:bg-white/10'
+                  ? 'bg-[#C8893A] text-[#F0EAD8]'
+                  : 'bg-[#E85555] text-[#F0EAD8]'
+                : 'bg-[#C8893A]/5 text-[#F0EAD8]/30 hover:bg-[#C8893A]/10'
             }`}
           >
             {n}
           </button>
         ))}
       </div>
-      <div className="flex justify-between text-[10px] text-gray-600">
+      <div className="flex justify-between text-[10px] text-[#F0EAD8]/30">
         <span>Sin energía</span>
         <span>Imparable</span>
       </div>
@@ -163,7 +177,17 @@ export default function DiarioDirector({
   const todayStr = getTodayStr();
   const todayEntry = entries.find((e) => e.fecha === todayStr);
   const streak = calcStreak(entries);
-  const esViernes = isViernes();
+  const esDomingo = isDomingo();
+  const currentDay = getCurrentDay();
+  const showConditional = currentDay >= 45;
+
+  // Energy average tracking
+  const energiaPromedio7d = calcEnergyAverage7d(entries);
+  useEffect(() => {
+    if (energiaPromedio7d !== null) {
+      localStorage.setItem('tcd_energia_promedio_7d', String(energiaPromedio7d));
+    }
+  }, [energiaPromedio7d]);
 
   // ─── Cargar datos ─────────────────────────────────────────────────────────
   useEffect(() => {
@@ -219,24 +243,32 @@ export default function DiarioDirector({
 
   // ─── Guardar entrada ──────────────────────────────────────────────────────
   const handleGuardar = async () => {
-    const camposRequeridos = [respuestas.q1, respuestas.q2, respuestas.q3];
-    if (camposRequeridos.some((c) => !c.trim())) {
-      toast.error('Completá al menos las primeras 3 preguntas.');
+    if (!respuestas.q1) {
+      toast.error('Respondé si completaste tu tarea de hoy.');
+      return;
+    }
+    if (!respuestas.q4.trim()) {
+      toast.error('Contanos cuál fue el momento más importante del día.');
       return;
     }
 
     setSaving(true);
     try {
+      const respuestasToSave = {
+        ...respuestas,
+        q2: String(energiaNivel),
+      };
+
       const entradaLocal: EntradaDiario = {
         id: String(Date.now()),
         fecha: todayStr,
         energia_nivel: energiaNivel,
-        emocion: respuestas.q5,
+        emocion: '',
         pensamiento_dominante: respuestas.q4,
-        aprendizaje: respuestas.q6,
-        accion_manana: respuestas.q7,
+        aprendizaje: '',
+        accion_manana: '',
         modulo_energetico: moduloEnergetico,
-        respuestas: { ...respuestas },
+        respuestas: respuestasToSave,
       };
 
       if (isSupabaseReady() && supabase && userId) {
@@ -247,12 +279,12 @@ export default function DiarioDirector({
               user_id: userId,
               fecha: todayStr,
               energia_nivel: energiaNivel,
-              emocion: respuestas.q5,
+              emocion: '',
               pensamiento_dominante: respuestas.q4,
-              aprendizaje: respuestas.q6,
-              accion_manana: respuestas.q7,
+              aprendizaje: '',
+              accion_manana: '',
               modulo_energetico: moduloEnergetico,
-              respuestas: { ...respuestas },
+              respuestas: respuestasToSave,
             },
             { onConflict: 'user_id,fecha' },
           )
@@ -266,8 +298,8 @@ export default function DiarioDirector({
       localStorage.setItem('tcd_diario_v2', JSON.stringify(actualizadas));
       toast.success('Entrada del diario guardada. ¡Sigue así!');
 
-      // Si es viernes y hay 5 entradas esta semana → generar resumen
-      if (esViernes) {
+      // Si es domingo → generar resumen semanal
+      if (esDomingo) {
         await generarResumenSemana(actualizadas);
       }
     } catch {
@@ -277,7 +309,7 @@ export default function DiarioDirector({
     }
   };
 
-  // ─── Generar resumen del viernes ──────────────────────────────────────────
+  // ─── Generar resumen semanal (domingo) ────────────────────────────────────
   const generarResumenSemana = useCallback(
     async (todasEntradas: EntradaDiario[]) => {
       if (!geminiKey) return;
@@ -369,15 +401,26 @@ Respondé SOLO con el JSON, sin texto adicional.`;
       {/* Header */}
       <div className="flex justify-between items-end">
         <div>
-          <h1 className="text-2xl font-light text-white flex items-center gap-2">
+          <h1 className="text-2xl font-light text-[#F0EAD8] flex items-center gap-2">
             📔 Diario de Cierre
           </h1>
-          <p className="text-sm text-gray-400 mt-1 flex items-center gap-2">
+          <p className="text-sm text-[#F0EAD8]/60 mt-1 flex items-center gap-2">
             <Calendar className="w-3.5 h-3.5" />
             {new Date().toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' })}
           </p>
         </div>
         <div className="flex items-center gap-3">
+          {energiaPromedio7d !== null && (
+            <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border ${
+              energiaPromedio7d >= 7 ? 'text-[#2DD4A0] bg-emerald-500/10 border-emerald-500/20' :
+              energiaPromedio7d >= 4 ? 'text-[#C8893A] bg-[#C8893A]/10 border-[#C8893A]/20' :
+              'text-[#E85555] bg-red-500/10 border-red-500/20'
+            }`}>
+              <Zap className="w-3.5 h-3.5" />
+              <span className="text-sm font-bold">{energiaPromedio7d}</span>
+              <span className="text-[10px] opacity-60">7d</span>
+            </div>
+          )}
           {streak > 0 && (
             <div className="flex items-center gap-1.5 text-amber-500 bg-amber-500/10 px-3 py-1.5 rounded-xl border border-amber-500/20">
               <Flame className="w-3.5 h-3.5" />
@@ -386,7 +429,7 @@ Respondé SOLO con el JSON, sin texto adicional.`;
           )}
           <button
             onClick={() => setVista(vista === 'formulario' ? 'historial' : 'formulario')}
-            className="flex items-center gap-1.5 text-gray-400 bg-white/5 px-3 py-1.5 rounded-xl border border-white/10 hover:bg-white/10 transition-colors text-sm"
+            className="flex items-center gap-1.5 text-[#F0EAD8]/60 bg-[#C8893A]/5 px-3 py-1.5 rounded-xl border border-[rgba(200,137,58,0.2)] hover:bg-[#C8893A]/10 transition-colors text-sm"
           >
             <History className="w-3.5 h-3.5" />
             Historial
@@ -397,7 +440,7 @@ Respondé SOLO con el JSON, sin texto adicional.`;
       {/* Alerta de energía baja */}
       {alertaEnergiaBaja && (
         <div className="flex items-start gap-3 bg-red-500/10 border border-red-500/20 rounded-2xl p-4">
-          <BatteryLow className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
+          <BatteryLow className="w-5 h-5 text-[#E85555] shrink-0 mt-0.5" />
           <div>
             <p className="text-sm font-medium text-red-300">Energía baja por 2 días consecutivos</p>
             <p className="text-xs text-red-400/70 mt-0.5">
@@ -407,45 +450,45 @@ Respondé SOLO con el JSON, sin texto adicional.`;
         </div>
       )}
 
-      {/* Resumen del viernes */}
+      {/* Resumen semanal (domingo) */}
       {generandoResumen && (
-        <div className="flex items-center gap-2 text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 rounded-2xl p-4">
+        <div className="flex items-center gap-2 text-[#C8893A] bg-[#C8893A]/10 border border-[#C8893A]/20 rounded-2xl p-4">
           <Loader2 className="w-4 h-4 animate-spin" />
           <span className="text-sm">El Coach está analizando tu semana...</span>
         </div>
       )}
 
-      {esViernes && resumen && (() => {
+      {esDomingo && resumen && (() => {
         try {
           const datos = JSON.parse(resumen.resumen_texto);
           return (
-            <div className="glass-panel p-5 rounded-2xl border border-violet-500/20 bg-violet-500/5 space-y-4">
+            <div className="card-panel p-5 rounded-2xl border border-violet-500/20 bg-violet-500/5 space-y-4">
               <div className="flex items-center gap-2">
                 <BarChart2 className="w-4 h-4 text-violet-400" />
                 <h3 className="text-sm font-medium text-violet-300">Resumen del Coach — Semana cerrada</h3>
               </div>
               <div className="grid grid-cols-2 gap-3 text-xs">
-                <div className="bg-white/3 rounded-xl p-3">
-                  <p className="text-gray-500 uppercase tracking-wider text-[10px]">Energía promedio</p>
-                  <p className="text-white font-medium mt-0.5">{datos.energia_promedio}/10 — {datos.tendencia_energia}</p>
+                <div className="bg-[#241A0C]/50 rounded-xl p-3">
+                  <p className="text-[#F0EAD8]/40 uppercase tracking-wider text-[10px]">Energía promedio</p>
+                  <p className="text-[#F0EAD8] font-medium mt-0.5">{datos.energia_promedio}/10 — {datos.tendencia_energia}</p>
                 </div>
-                <div className="bg-white/3 rounded-xl p-3">
-                  <p className="text-gray-500 uppercase tracking-wider text-[10px]">Racha del Diario</p>
-                  <p className="text-white font-medium mt-0.5">{datos.racha} días consecutivos</p>
+                <div className="bg-[#241A0C]/50 rounded-xl p-3">
+                  <p className="text-[#F0EAD8]/40 uppercase tracking-wider text-[10px]">Racha del Diario</p>
+                  <p className="text-[#F0EAD8] font-medium mt-0.5">{datos.racha} días consecutivos</p>
                 </div>
               </div>
               {datos.bloqueo_recurrente && (
-                <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-3">
-                  <p className="text-[10px] text-amber-400 uppercase tracking-wider mb-1">Bloqueo recurrente detectado</p>
+                <div className="bg-[#C8893A]/10 border border-[#C8893A]/20 rounded-xl p-3">
+                  <p className="text-[10px] text-[#C8893A] uppercase tracking-wider mb-1">Bloqueo recurrente detectado</p>
                   <p className="text-sm text-amber-200">{datos.bloqueo_recurrente}</p>
                 </div>
               )}
               <div>
-                <p className="text-[10px] text-gray-500 uppercase tracking-wider mb-2">3 acciones para la próxima semana</p>
+                <p className="text-[10px] text-[#F0EAD8]/40 uppercase tracking-wider mb-2">3 acciones para la próxima semana</p>
                 <ul className="space-y-1.5">
                   {datos.acciones_proxima_semana?.map((accion: string, i: number) => (
-                    <li key={i} className="flex items-start gap-2 text-sm text-gray-300">
-                      <span className="text-indigo-400 font-bold shrink-0">{i + 1}.</span>
+                    <li key={i} className="flex items-start gap-2 text-sm text-[#F0EAD8]/80">
+                      <span className="text-[#C8893A] font-bold shrink-0">{i + 1}.</span>
                       {accion}
                     </li>
                   ))}
@@ -460,63 +503,158 @@ Respondé SOLO con el JSON, sin texto adicional.`;
       {vista === 'formulario' && (
         <>
           {todayEntry ? (
-            <div className="glass-panel p-6 rounded-2xl border border-emerald-500/20 bg-emerald-500/5 flex items-center gap-4">
+            <div className="card-panel p-6 rounded-2xl border border-emerald-500/20 bg-emerald-500/5 flex items-center gap-4">
               <div className="w-12 h-12 rounded-full bg-emerald-500/20 flex items-center justify-center shrink-0 border border-emerald-500/30">
-                <Check className="w-6 h-6 text-emerald-400" />
+                <Check className="w-6 h-6 text-[#2DD4A0]" />
               </div>
               <div>
-                <h3 className="text-base font-medium text-emerald-400">Entrada del día completada</h3>
-                <p className="text-sm text-emerald-400/70 mt-0.5">
-                  Energía: <strong>{todayEntry.energia_nivel}/10</strong> · Emoción: {todayEntry.emocion || '—'}
+                <h3 className="text-base font-medium text-[#2DD4A0]">Entrada del día completada</h3>
+                <p className="text-sm text-[#2DD4A0]/70 mt-0.5">
+                  Energía: <strong>{todayEntry.energia_nivel}/10</strong> · Tarea: {todayEntry.respuestas.q1 || '—'}
                 </p>
               </div>
             </div>
           ) : (
-            <div className="glass-panel p-6 rounded-2xl space-y-6">
+            <div className="card-panel p-6 rounded-2xl space-y-6">
               <div className="flex items-center gap-3 mb-2">
-                <div className="w-10 h-10 rounded-xl bg-indigo-500/20 flex items-center justify-center border border-indigo-500/30">
-                  <BookOpen className="w-5 h-5 text-indigo-400" />
+                <div className="w-10 h-10 rounded-xl bg-[#C8893A]/20 flex items-center justify-center border border-[#C8893A]/30">
+                  <BookOpen className="w-5 h-5 text-[#C8893A]" />
                 </div>
                 <div>
-                  <h2 className="text-base font-medium text-white">Cierre del día</h2>
-                  <p className="text-xs text-gray-400">Lunes a viernes · 5–8 minutos</p>
+                  <h2 className="text-base font-medium text-[#F0EAD8]">Cierre del día</h2>
+                  <p className="text-xs text-[#F0EAD8]/60">Lunes a viernes · 5–8 minutos</p>
                 </div>
               </div>
 
-              {/* Energía */}
-              <div className="bg-white/[0.02] rounded-xl p-4 border border-white/5">
+              {/* Q1: ¿Completaste tu tarea de hoy? */}
+              <div>
+                <label className="block text-xs font-medium text-[#F0EAD8]/80 mb-2 uppercase tracking-wider">
+                  1. ¿Completaste tu tarea de hoy?
+                </label>
+                <div className="flex gap-3">
+                  {(['Sí', 'No'] as const).map((opt) => (
+                    <button
+                      key={opt}
+                      onClick={() => setRespuestas((prev) => ({ ...prev, q1: opt }))}
+                      className={`flex-1 py-3 rounded-xl border text-sm font-medium transition-all ${
+                        respuestas.q1 === opt
+                          ? opt === 'Sí'
+                            ? 'bg-emerald-500/20 border-emerald-500/40 text-[#2DD4A0]'
+                            : 'bg-red-500/20 border-red-500/40 text-[#E85555]'
+                          : 'bg-black/20 border-[rgba(200,137,58,0.2)] text-[#F0EAD8]/50 hover:bg-[#C8893A]/10'
+                      }`}
+                    >
+                      {opt}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Q2: Energía (slider) */}
+              <div className="bg-[#241A0C]/30 rounded-xl p-4 border border-[rgba(200,137,58,0.1)]">
                 <div className="flex items-center gap-2 mb-3">
                   <Zap className="w-4 h-4 text-yellow-400" />
-                  <span className="text-xs font-medium text-gray-300 uppercase tracking-wider">Nivel de energía</span>
+                  <span className="text-xs font-medium text-[#F0EAD8]/80 uppercase tracking-wider">2. ¿Cómo estuvo tu energía?</span>
                 </div>
                 <BarraEnergia valor={energiaNivel} onChange={setEnergiaNivel} />
               </div>
 
-              {/* 7 preguntas */}
-              <div className="space-y-5">
-                {PREGUNTAS.map((p, idx) => (
-                  <div key={p.id}>
-                    <label className="block text-xs font-medium text-gray-300 mb-2 uppercase tracking-wider">
-                      {idx + 1}. {p.label}
-                    </label>
-                    <textarea
-                      rows={2}
-                      placeholder={p.placeholder}
-                      className={`w-full bg-black/20 border border-white/10 rounded-xl p-3 text-white text-sm focus:border-${p.color}-500/50 focus:ring-1 focus:ring-${p.color}-500/50 resize-none transition-all placeholder-gray-600`}
-                      value={respuestas[p.id as keyof typeof respuestas]}
-                      onChange={(e) =>
-                        setRespuestas((prev) => ({ ...prev, [p.id]: e.target.value }))
-                      }
-                    />
-                  </div>
-                ))}
+              {/* Q3: ¿Hubo algo que te bloqueó? (optional) */}
+              <div>
+                <label className="block text-xs font-medium text-[#F0EAD8]/80 mb-2 uppercase tracking-wider">
+                  3. ¿Hubo algo que te bloqueó? <span className="text-[#F0EAD8]/30 normal-case">(opcional)</span>
+                </label>
+                <textarea
+                  rows={2}
+                  placeholder="Si algo te frenó hoy, contalo acá..."
+                  className="w-full bg-black/20 border border-[rgba(200,137,58,0.2)] rounded-xl p-3 text-[#F0EAD8] text-sm focus:border-[#C8893A]/50 focus:ring-1 focus:ring-[#C8893A]/50 resize-none transition-all placeholder-[#F0EAD8]/30"
+                  value={respuestas.q3}
+                  onChange={(e) => setRespuestas((prev) => ({ ...prev, q3: e.target.value }))}
+                />
               </div>
 
+              {/* Q4: Momento más importante (required) */}
+              <div>
+                <label className="block text-xs font-medium text-[#F0EAD8]/80 mb-2 uppercase tracking-wider">
+                  4. ¿Cuál fue el momento más importante del día?
+                </label>
+                <textarea
+                  rows={2}
+                  placeholder="El momento que más te marcó hoy..."
+                  className="w-full bg-black/20 border border-[rgba(200,137,58,0.2)] rounded-xl p-3 text-[#F0EAD8] text-sm focus:border-[#C8893A]/50 focus:ring-1 focus:ring-[#C8893A]/50 resize-none transition-all placeholder-[#F0EAD8]/30"
+                  value={respuestas.q4}
+                  onChange={(e) => setRespuestas((prev) => ({ ...prev, q4: e.target.value }))}
+                />
+              </div>
+
+              {/* Conditional questions (day >= 45) */}
+              {showConditional && (
+                <>
+                  {/* Q5: ¿Tomaste llamadas hoy? */}
+                  <div>
+                    <label className="block text-xs font-medium text-[#F0EAD8]/80 mb-2 uppercase tracking-wider">
+                      5. ¿Tomaste llamadas hoy?
+                    </label>
+                    <div className="flex gap-3">
+                      {(['Sí', 'No'] as const).map((opt) => (
+                        <button
+                          key={opt}
+                          onClick={() => setRespuestas((prev) => ({
+                            ...prev,
+                            q5: opt,
+                            ...(opt === 'No' ? { q6: '', q7: '' } : {}),
+                          }))}
+                          className={`flex-1 py-3 rounded-xl border text-sm font-medium transition-all ${
+                            respuestas.q5 === opt
+                              ? opt === 'Sí'
+                                ? 'bg-emerald-500/20 border-emerald-500/40 text-[#2DD4A0]'
+                                : 'bg-[#C8893A]/20 border-[#C8893A]/40 text-[#C8893A]'
+                              : 'bg-black/20 border-[rgba(200,137,58,0.2)] text-[#F0EAD8]/50 hover:bg-[#C8893A]/10'
+                          }`}
+                        >
+                          {opt}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Q6 & Q7: Only if q5 === 'Sí' */}
+                  {respuestas.q5 === 'Sí' && (
+                    <>
+                      <div>
+                        <label className="block text-xs font-medium text-[#F0EAD8]/80 mb-2 uppercase tracking-wider">
+                          6. ¿Cuántas? ¿Cerraste alguna?
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="Ej: 3 llamadas, cerré 1"
+                          className="w-full bg-black/20 border border-[rgba(200,137,58,0.2)] rounded-xl p-3 text-[#F0EAD8] text-sm focus:border-[#C8893A]/50 focus:ring-1 focus:ring-[#C8893A]/50 transition-all placeholder-[#F0EAD8]/30"
+                          value={respuestas.q6}
+                          onChange={(e) => setRespuestas((prev) => ({ ...prev, q6: e.target.value }))}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-[#F0EAD8]/80 mb-2 uppercase tracking-wider">
+                          7. ¿Qué objeción apareció? <span className="text-[#F0EAD8]/30 normal-case">(opcional)</span>
+                        </label>
+                        <textarea
+                          rows={2}
+                          placeholder="Si hubo alguna objeción recurrente..."
+                          className="w-full bg-black/20 border border-[rgba(200,137,58,0.2)] rounded-xl p-3 text-[#F0EAD8] text-sm focus:border-[#C8893A]/50 focus:ring-1 focus:ring-[#C8893A]/50 resize-none transition-all placeholder-[#F0EAD8]/30"
+                          value={respuestas.q7}
+                          onChange={(e) => setRespuestas((prev) => ({ ...prev, q7: e.target.value }))}
+                        />
+                      </div>
+                    </>
+                  )}
+                </>
+              )}
+
               {/* Módulo energético-corporal */}
-              <div className="bg-white/[0.02] rounded-xl p-4 border border-white/5">
+              <div className="bg-[#241A0C]/30 rounded-xl p-4 border border-[rgba(200,137,58,0.1)]">
                 <div className="flex items-center gap-2 mb-3">
-                  <Battery className="w-4 h-4 text-emerald-400" />
-                  <span className="text-xs font-medium text-gray-300 uppercase tracking-wider">
+                  <Battery className="w-4 h-4 text-[#2DD4A0]" />
+                  <span className="text-xs font-medium text-[#F0EAD8]/80 uppercase tracking-wider">
                     Bienestar energético-corporal
                   </span>
                 </div>
@@ -533,7 +671,7 @@ Respondé SOLO con el JSON, sin texto adicional.`;
                       className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border text-sm transition-all ${
                         moduloEnergetico[item.key]
                           ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-300'
-                          : 'bg-white/3 border-white/8 text-gray-500 hover:bg-white/8'
+                          : 'bg-[#241A0C]/50 border-white/8 text-[#F0EAD8]/40 hover:bg-white/8'
                       }`}
                     >
                       <span>{item.emoji}</span>
@@ -548,7 +686,7 @@ Respondé SOLO con el JSON, sin texto adicional.`;
               <button
                 onClick={handleGuardar}
                 disabled={saving}
-                className="w-full py-3.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-medium tracking-wide transition-all flex justify-center items-center gap-2"
+                className="w-full py-3.5 rounded-xl bg-[#C8893A] hover:bg-[#D9A04E] disabled:opacity-50 text-[#F0EAD8] font-medium tracking-wide transition-all flex justify-center items-center gap-2"
               >
                 {saving ? (
                   <><Loader2 className="w-4 h-4 animate-spin" /> Guardando...</>
@@ -565,63 +703,72 @@ Respondé SOLO con el JSON, sin texto adicional.`;
       {vista === 'historial' && (
         <div className="space-y-4">
           {loading && entries.length === 0 && (
-            <div className="flex items-center gap-2 text-gray-500 text-sm">
+            <div className="flex items-center gap-2 text-[#F0EAD8]/40 text-sm">
               <Loader2 className="w-4 h-4 animate-spin" /> Cargando historial...
             </div>
           )}
           {entries.length === 0 && !loading && (
-            <p className="text-center text-gray-500 text-sm py-12">
+            <p className="text-center text-[#F0EAD8]/40 text-sm py-12">
               Aún no hay entradas en el Diario.
             </p>
           )}
           {entries.map((entrada) => (
             <div
               key={entrada.id}
-              className="glass-panel p-5 rounded-2xl border-l-4 border-l-indigo-500/50 space-y-3"
+              className="card-panel p-5 rounded-2xl border-l-4 border-l-[#C8893A]/50 space-y-3"
             >
               <div className="flex items-center justify-between">
-                <span className="text-xs text-indigo-400 font-medium">
+                <span className="text-xs text-[#C8893A] font-medium">
                   {new Date(entrada.fecha + 'T12:00:00').toLocaleDateString('es-AR', {
                     weekday: 'long', day: 'numeric', month: 'long',
                   })}
                 </span>
                 <div className="flex items-center gap-2">
                   <span className={`text-xs font-bold px-2 py-1 rounded-full ${
-                    entrada.energia_nivel >= 7 ? 'bg-emerald-500/15 text-emerald-400' :
-                    entrada.energia_nivel >= 4 ? 'bg-amber-500/15 text-amber-400' :
-                    'bg-red-500/15 text-red-400'
+                    entrada.energia_nivel >= 7 ? 'bg-emerald-500/15 text-[#2DD4A0]' :
+                    entrada.energia_nivel >= 4 ? 'bg-[#C8893A]/15 text-[#C8893A]' :
+                    'bg-red-500/15 text-[#E85555]'
                   }`}>
                     ⚡ {entrada.energia_nivel}/10
                   </span>
                   {entrada.emocion && (
-                    <span className="text-xs text-gray-500">{entrada.emocion}</span>
+                    <span className="text-xs text-[#F0EAD8]/40">{entrada.emocion}</span>
                   )}
                 </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
-                {entrada.respuestas.q2 && (
+                {entrada.respuestas.q1 && (
                   <div>
-                    <span className="text-gray-600 uppercase tracking-wider text-[10px]">Fricción</span>
-                    <p className="text-gray-300 mt-0.5">{entrada.respuestas.q2}</p>
+                    <span className="text-[#F0EAD8]/30 uppercase tracking-wider text-[10px]">Tarea completada</span>
+                    <p className="text-[#F0EAD8]/80 mt-0.5">{entrada.respuestas.q1}</p>
                   </div>
                 )}
                 {entrada.respuestas.q3 && (
                   <div>
-                    <span className="text-gray-600 uppercase tracking-wider text-[10px]">Acción tomada</span>
-                    <p className="text-gray-300 mt-0.5">{entrada.respuestas.q3}</p>
+                    <span className="text-[#F0EAD8]/30 uppercase tracking-wider text-[10px]">Bloqueo</span>
+                    <p className="text-[#F0EAD8]/80 mt-0.5">{entrada.respuestas.q3}</p>
                   </div>
                 )}
-                {entrada.aprendizaje && (
+                {entrada.respuestas.q4 && (
                   <div>
-                    <span className="text-gray-600 uppercase tracking-wider text-[10px]">Aprendizaje</span>
-                    <p className="text-gray-300 mt-0.5">{entrada.aprendizaje}</p>
+                    <span className="text-[#F0EAD8]/30 uppercase tracking-wider text-[10px]">Momento importante</span>
+                    <p className="text-[#F0EAD8]/80 mt-0.5">{entrada.respuestas.q4}</p>
                   </div>
                 )}
-                {entrada.accion_manana && (
+                {entrada.respuestas.q5 && (
                   <div>
-                    <span className="text-gray-600 uppercase tracking-wider text-[10px]">Mañana</span>
-                    <p className="text-gray-300 mt-0.5">{entrada.accion_manana}</p>
+                    <span className="text-[#F0EAD8]/30 uppercase tracking-wider text-[10px]">Llamadas</span>
+                    <p className="text-[#F0EAD8]/80 mt-0.5">
+                      {entrada.respuestas.q5}
+                      {entrada.respuestas.q6 ? ` — ${entrada.respuestas.q6}` : ''}
+                    </p>
+                  </div>
+                )}
+                {entrada.respuestas.q7 && (
+                  <div>
+                    <span className="text-[#F0EAD8]/30 uppercase tracking-wider text-[10px]">Objeción</span>
+                    <p className="text-[#F0EAD8]/80 mt-0.5">{entrada.respuestas.q7}</p>
                   </div>
                 )}
               </div>
@@ -633,7 +780,7 @@ Respondé SOLO con el JSON, sin texto adicional.`;
                   .map(([k]) => {
                     const item = CHECKLIST_ENERGETICO.find((c) => c.key === k);
                     return item ? (
-                      <span key={k} className="text-[10px] bg-white/5 px-2 py-1 rounded-full text-gray-400">
+                      <span key={k} className="text-[10px] bg-[#C8893A]/5 px-2 py-1 rounded-full text-[#F0EAD8]/60">
                         {item.emoji} {item.label}
                       </span>
                     ) : null;

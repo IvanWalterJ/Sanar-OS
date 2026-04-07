@@ -1734,5 +1734,657 @@ export const GRUPOS_INFO: Record<GrupoHerramienta, { titulo: string; descripcion
 };
 
 export function getHerramienta(id: string): Herramienta | undefined {
-  return HERRAMIENTAS.find((h) => h.id === id);
+  // Buscar primero en V3, luego en legacy
+  return HERRAMIENTAS_V3.find((h) => h.id === id) ?? HERRAMIENTAS.find((h) => h.id === id);
 }
+
+// ─── V3: Herramientas del PDF Definitivo (22 herramientas) ──────────────────
+
+export interface HerramientaV3 extends Herramienta {
+  usa_ia: boolean;
+  adn_field?: string;
+  requiere_datos_de?: string[];
+  es_recurrente?: boolean;
+}
+
+function adnContext(perfil: Partial<ProfileV2>): string {
+  const parts: string[] = [];
+  if (perfil.nombre) parts.push(`Nombre: ${perfil.nombre}`);
+  if (perfil.especialidad) parts.push(`Especialidad: ${perfil.especialidad}`);
+  if (perfil.adn_linea_tiempo) parts.push(`Línea de tiempo vital:\n${perfil.adn_linea_tiempo}`);
+  if (perfil.historia_300) parts.push(`Historia 300 palabras:\n${perfil.historia_300}`);
+  if (perfil.historia_150) parts.push(`Historia 150 palabras:\n${perfil.historia_150}`);
+  if (perfil.historia_50) parts.push(`Historia 50 palabras:\n${perfil.historia_50}`);
+  if (perfil.proposito) parts.push(`Propósito: ${perfil.proposito}`);
+  if (perfil.legado) parts.push(`Legado: ${perfil.legado}`);
+  if (perfil.adn_carta_futuro) parts.push(`Carta al yo de 10 años:\n${perfil.adn_carta_futuro}`);
+  if (perfil.adn_pacientes_reales) parts.push(`Análisis de pacientes reales:\n${perfil.adn_pacientes_reales}`);
+  if (perfil.adn_avatar) parts.push(`Avatar:\n${JSON.stringify(perfil.adn_avatar, null, 2)}`);
+  if (perfil.adn_nicho) parts.push(`Nicho: ${perfil.adn_nicho}`);
+  if (perfil.adn_usp) parts.push(`USP: ${perfil.adn_usp}`);
+  if (perfil.adn_transformaciones) parts.push(`Transformaciones de pacientes:\n${perfil.adn_transformaciones}`);
+  if (perfil.matriz_a) parts.push(`Matriz A (dolor):\n${perfil.matriz_a}`);
+  if (perfil.matriz_b) parts.push(`Matriz B (obstáculos):\n${perfil.matriz_b}`);
+  if (perfil.matriz_c) parts.push(`Matriz C (resultado):\n${perfil.matriz_c}`);
+  if (perfil.adn_proceso_actual) parts.push(`Proceso actual:\n${perfil.adn_proceso_actual}`);
+  if (perfil.metodo_nombre) parts.push(`Método: ${perfil.metodo_nombre}`);
+  if (perfil.metodo_pasos) parts.push(`Pasos del método: ${perfil.metodo_pasos}`);
+  if (perfil.oferta_mid) parts.push(`Oferta Mid:\n${perfil.oferta_mid}`);
+  if (perfil.oferta_high) parts.push(`Oferta High:\n${perfil.oferta_high}`);
+  if (perfil.oferta_low) parts.push(`Oferta Low:\n${perfil.oferta_low}`);
+  if (perfil.lead_magnet) parts.push(`Lead Magnet:\n${perfil.lead_magnet}`);
+  if (perfil.script_venta) parts.push(`Script de venta:\n${perfil.script_venta}`);
+  return parts.length > 0 ? `\n=== ADN DEL NEGOCIO ===\n${parts.join('\n\n')}` : '';
+}
+
+export const HERRAMIENTAS_V3: HerramientaV3[] = [
+  // ─── P0.2: Formulario de bienvenida ─────────────────────────────────────────
+  {
+    id: 'H-P0.2',
+    grupo: 'A' as GrupoHerramienta,
+    titulo: 'Formulario de bienvenida',
+    descripcion: 'Respondé las preguntas iniciales para generar tu ADN prototipo beta.',
+    emoji: '🌱',
+    usa_ia: true,
+    adn_field: 'adn_formulario_bienvenida',
+    outputLabel: 'ADN Prototipo Beta',
+    inputs: [
+      { id: 'admiracion', label: '¿A qué profesionales del mundo admirás?', tipo: 'textarea', required: true },
+      { id: 'que_tienen', label: '¿Qué tienen ellos que vos querés tener?', tipo: 'textarea', required: true },
+      { id: 'impedimento', label: '¿Qué te impidió hasta ahora cobrar lo que vale tu trabajo?', tipo: 'textarea', required: true },
+      { id: 'vida_10k', label: '¿Cómo te imaginás tu vida con $10K/mes extra?', tipo: 'textarea', required: true },
+      { id: 'anios_profesion', label: '¿Cuántos años ejercés tu profesión?', tipo: 'number', required: true },
+      { id: 'modalidad', label: '¿Presencial, online o mixto?', tipo: 'select', opciones: ['Presencial', 'Online', 'Mixto'], required: true },
+      { id: 'pacientes_mes', label: '¿Cuántos pacientes pagando por mes?', tipo: 'number', required: true },
+      { id: 'problema_principal', label: '¿Qué problema principal resolvés?', tipo: 'textarea', required: true },
+    ],
+    promptTemplate: (inputs, perfil) => `
+Sos un consultor de negocios para profesionales de salud. Con las respuestas del formulario de bienvenida, generá un párrafo de presentación profesional (ADN prototipo beta). Debe ser personal, cálido y en primera persona.
+${adnContext(perfil)}
+
+Respuestas del formulario:
+- Profesionales que admira: ${inputs.admiracion}
+- Lo que quiere tener: ${inputs.que_tienen}
+- Lo que le impidió cobrar más: ${inputs.impedimento}
+- Cómo imagina su vida con $10K/mes: ${inputs.vida_10k}
+- Años de profesión: ${inputs.anios_profesion}
+- Modalidad: ${inputs.modalidad}
+- Pacientes pagando por mes: ${inputs.pacientes_mes}
+- Problema principal que resuelve: ${inputs.problema_principal}
+
+Generá un párrafo de 150-200 palabras que presente a este profesional. Usá tono rioplatense, directo y cálido.`.trim(),
+  },
+
+  // ─── P1.2: Línea de tiempo vital (NO IA) ───────────────────────────────────
+  {
+    id: 'H-P1.2',
+    grupo: 'A' as GrupoHerramienta,
+    titulo: 'Línea de tiempo vital',
+    descripcion: 'Anotá los 5-8 momentos que más te marcaron. Escritura pura, sin IA.',
+    emoji: '📖',
+    usa_ia: false,
+    adn_field: 'adn_linea_tiempo',
+    outputLabel: 'Línea de tiempo',
+    inputs: [
+      { id: 'linea_tiempo', label: 'Anotá los 5 a 8 momentos que más te marcaron en la vida. Fracasos, enfermedades, cambios de rumbo, descubrimientos. No los ve nadie más — es el insumo para construir tu historia.', tipo: 'textarea', required: true },
+    ],
+    promptTemplate: (inputs) => inputs.linea_tiempo,
+  },
+
+  // ─── P1.3: Historia en 3 versiones ──────────────────────────────────────────
+  {
+    id: 'H-P1.3',
+    grupo: 'A' as GrupoHerramienta,
+    titulo: 'Generador de Historia en 3 versiones',
+    descripcion: 'Genera tu historia en 300, 150 y 50 palabras a partir de tu línea de tiempo.',
+    emoji: '📖',
+    usa_ia: true,
+    adn_field: 'historia_300',
+    requiere_datos_de: ['H-P1.2'],
+    outputLabel: 'Historia en 3 versiones',
+    inputs: [],
+    promptTemplate: (_inputs, perfil) => `
+Sos un copywriter especializado en historias personales para profesionales de salud. A partir de la línea de tiempo vital del profesional, generá 3 versiones de su historia de origen.
+${adnContext(perfil)}
+
+Generá exactamente en este formato:
+
+---HISTORIA 300 PALABRAS---
+[Historia completa para sitio web. Incluí los momentos de quiebre, la transformación y por qué hace lo que hace. Tono personal, auténtico, en primera persona.]
+
+---HISTORIA 150 PALABRAS---
+[Versión compacta para bio de redes sociales. Los momentos clave y la esencia.]
+
+---HISTORIA 50 PALABRAS---
+[Versión ultra-corta para presentaciones. Una oración potente.]
+
+Usá tono rioplatense, directo, sin jerga de marketing. La historia tiene que sonar a persona real, no a bio de LinkedIn.`.trim(),
+  },
+
+  // ─── P2.2: Los 5 por qué ───────────────────────────────────────────────────
+  {
+    id: 'H-P2.2',
+    grupo: 'A' as GrupoHerramienta,
+    titulo: 'Los 5 por qué',
+    descripcion: 'Formulario encadenado de 5 preguntas para llegar al propósito real.',
+    emoji: '🎯',
+    usa_ia: false,
+    adn_field: 'adn_cinco_por_que',
+    outputLabel: 'Respuestas de los 5 por qué',
+    inputs: [
+      { id: 'pq1', label: '¿Por qué hacés lo que hacés?', tipo: 'textarea', required: true },
+      { id: 'pq2', label: '¿Y eso por qué importa?', tipo: 'textarea', required: true },
+      { id: 'pq3', label: '¿Y por qué eso importa para vos específicamente?', tipo: 'textarea', required: true },
+      { id: 'pq4', label: '¿Qué cambiaría si más personas tuvieran esto?', tipo: 'textarea', required: true },
+      { id: 'pq5', label: '¿Para qué estás realmente acá?', tipo: 'textarea', required: true },
+    ],
+    promptTemplate: (inputs) => `1. ${inputs.pq1}\n2. ${inputs.pq2}\n3. ${inputs.pq3}\n4. ${inputs.pq4}\n5. ${inputs.pq5}`,
+  },
+
+  // ─── P2.3: Destilador de Propósito ──────────────────────────────────────────
+  {
+    id: 'H-P2.3',
+    grupo: 'A' as GrupoHerramienta,
+    titulo: 'Destilador de Propósito',
+    descripcion: 'Genera 3 versiones de tu oración de propósito.',
+    emoji: '🎯',
+    usa_ia: true,
+    adn_field: 'proposito',
+    requiere_datos_de: ['H-P2.2'],
+    outputLabel: 'Propósito destilado',
+    inputs: [],
+    promptTemplate: (_inputs, perfil) => `
+Sos un coach de propósito para profesionales de salud. Leé las 5 respuestas del ejercicio "Los 5 por qué" y destilá 3 versiones de la oración de propósito.
+${adnContext(perfil)}
+
+Las 5 respuestas: ${perfil.adn_cinco_por_que ? (Array.isArray(perfil.adn_cinco_por_que) ? perfil.adn_cinco_por_que.join('\n') : perfil.adn_cinco_por_que) : 'No disponibles'}
+
+Estructura obligatoria: "Ayudo a [quién específico] a [resultado concreto] para que [para qué más profundo]."
+
+Generá 3 versiones diferentes, cada una en su propio párrafo numerado. La oración tiene que ser específica, verificable y personal — que solo esta persona pueda decirla.`.trim(),
+  },
+
+  // ─── P3.2: Carta al yo de 10 años (NO IA) ──────────────────────────────────
+  {
+    id: 'H-P3.2',
+    grupo: 'A' as GrupoHerramienta,
+    titulo: 'Carta al yo de dentro de 10 años',
+    descripcion: 'Escribí como si ya lograste todo. Mínimo 200 palabras.',
+    emoji: '🌅',
+    usa_ia: false,
+    adn_field: 'adn_carta_futuro',
+    outputLabel: 'Carta al futuro',
+    inputs: [
+      { id: 'carta', label: 'Es el año 2035. Lograste todo lo que querías lograr. ¿Cómo es tu vida? ¿A quiénes ayudaste? ¿Qué dejaste? ¿Cómo te sentís? Mínimo 200 palabras.', tipo: 'textarea', required: true },
+    ],
+    promptTemplate: (inputs) => inputs.carta,
+  },
+
+  // ─── P3.3: Sintetizador de Legado ───────────────────────────────────────────
+  {
+    id: 'H-P3.3',
+    grupo: 'A' as GrupoHerramienta,
+    titulo: 'Sintetizador de Legado',
+    descripcion: 'Extrae tu legado en 2-3 oraciones a partir de la carta.',
+    emoji: '🌅',
+    usa_ia: true,
+    adn_field: 'legado',
+    requiere_datos_de: ['H-P3.2'],
+    outputLabel: 'Legado sintetizado',
+    inputs: [],
+    promptTemplate: (_inputs, perfil) => `
+Leé la carta al yo de 10 años de este profesional y extraé el legado en 2-3 oraciones. Distinguí entre legado real (impacto en otros), metas financieras y reconocimiento personal. El legado trasciende lo económico.
+${adnContext(perfil)}
+
+Carta al futuro: ${perfil.adn_carta_futuro ?? 'No disponible'}
+
+Generá el legado en 2-3 oraciones directas. Sin florituras.`.trim(),
+  },
+
+  // ─── P4.2: Análisis de 3 pacientes reales ──────────────────────────────────
+  {
+    id: 'H-P4.2',
+    grupo: 'B' as GrupoHerramienta,
+    titulo: 'Análisis de 3 pacientes reales',
+    descripcion: '3 bloques con 5 preguntas cada uno sobre pacientes reales.',
+    emoji: '👤',
+    usa_ia: false,
+    adn_field: 'adn_pacientes_reales',
+    outputLabel: 'Análisis de pacientes',
+    inputs: [
+      { id: 'p1_problema', label: 'Paciente 1 — ¿Qué problema tenía cuando llegó?', tipo: 'textarea', required: true },
+      { id: 'p1_palabras', label: 'Paciente 1 — ¿Cómo lo describía con sus propias palabras?', tipo: 'textarea', required: true },
+      { id: 'p1_intento', label: 'Paciente 1 — ¿Qué intentó antes sin éxito?', tipo: 'textarea', required: true },
+      { id: 'p1_resultado', label: 'Paciente 1 — ¿Qué obtuvo después de trabajar juntos?', tipo: 'textarea', required: true },
+      { id: 'p1_ahora', label: 'Paciente 1 — ¿Cómo describe su vida ahora?', tipo: 'textarea', required: true },
+      { id: 'p2_problema', label: 'Paciente 2 — ¿Qué problema tenía cuando llegó?', tipo: 'textarea', required: true },
+      { id: 'p2_palabras', label: 'Paciente 2 — ¿Cómo lo describía con sus propias palabras?', tipo: 'textarea', required: true },
+      { id: 'p2_intento', label: 'Paciente 2 — ¿Qué intentó antes sin éxito?', tipo: 'textarea', required: true },
+      { id: 'p2_resultado', label: 'Paciente 2 — ¿Qué obtuvo después de trabajar juntos?', tipo: 'textarea', required: true },
+      { id: 'p2_ahora', label: 'Paciente 2 — ¿Cómo describe su vida ahora?', tipo: 'textarea', required: true },
+      { id: 'p3_problema', label: 'Paciente 3 — ¿Qué problema tenía cuando llegó?', tipo: 'textarea', required: true },
+      { id: 'p3_palabras', label: 'Paciente 3 — ¿Cómo lo describía con sus propias palabras?', tipo: 'textarea', required: true },
+      { id: 'p3_intento', label: 'Paciente 3 — ¿Qué intentó antes sin éxito?', tipo: 'textarea', required: true },
+      { id: 'p3_resultado', label: 'Paciente 3 — ¿Qué obtuvo después de trabajar juntos?', tipo: 'textarea', required: true },
+      { id: 'p3_ahora', label: 'Paciente 3 — ¿Cómo describe su vida ahora?', tipo: 'textarea', required: true },
+    ],
+    promptTemplate: (inputs) => Object.entries(inputs).map(([k, v]) => `${k}: ${v}`).join('\n'),
+  },
+
+  // ─── P4.3: Constructor de Avatar ────────────────────────────────────────────
+  {
+    id: 'H-P4.3',
+    grupo: 'B' as GrupoHerramienta,
+    titulo: 'Constructor de Avatar',
+    descripcion: 'Genera tu avatar ideal a partir de los 3 análisis de pacientes.',
+    emoji: '👤',
+    usa_ia: true,
+    adn_field: 'adn_avatar',
+    requiere_datos_de: ['H-P4.2'],
+    outputLabel: 'Avatar del paciente ideal',
+    inputs: [],
+    promptTemplate: (_inputs, perfil) => `
+Sos un experto en construcción de avatares de cliente. Leé los análisis de 3 pacientes reales y construí un perfil completo del avatar ideal.
+${adnContext(perfil)}
+
+Generá exactamente esto:
+- Nombre ficticio
+- Edad
+- Profesión
+- Situación de vida
+- Dolores (mínimo 5)
+- Sueños (mínimo 3)
+- Objeciones (mínimo 3)
+- Lenguaje exacto que usa (3-5 frases textuales que diría esta persona)
+
+El avatar tiene que ser una persona real con una vida real, no "profesional de 35-50 años con estrés".`.trim(),
+  },
+
+  // ─── P5.2: Definidor de Nicho y USP ────────────────────────────────────────
+  {
+    id: 'H-P5.2',
+    grupo: 'B' as GrupoHerramienta,
+    titulo: 'Definidor de Nicho y USP',
+    descripcion: 'Definí tu nicho y creá tu propuesta de valor única.',
+    emoji: '💡',
+    usa_ia: true,
+    adn_field: 'adn_nicho',
+    outputLabel: 'Nicho y USP',
+    inputs: [
+      { id: 'no_atender', label: '¿A quién específicamente NO querés atender?', tipo: 'textarea', required: true },
+      { id: 'mejor_que', label: '¿En qué problema sos claramente mejor que el promedio de tu especialidad?', tipo: 'textarea', required: true },
+      { id: 'diferencial', label: '¿Qué tenés vos que ningún colega tiene?', tipo: 'textarea', required: true },
+      { id: 'quien_busca', label: '¿Qué grupo de personas te busca a vos y no a otro?', tipo: 'textarea', required: true },
+    ],
+    promptTemplate: (inputs, perfil) => `
+Sos un estratega de posicionamiento para profesionales de salud. Con las respuestas y el ADN del profesional, generá:
+1. Descripción del nicho (2-3 oraciones)
+2. 3 versiones de USP con la estructura: "Ayudo a [avatar] a [resultado] sin [obstáculo que temen]."
+${adnContext(perfil)}
+
+Respuestas:
+- No quiere atender a: ${inputs.no_atender}
+- Es mejor en: ${inputs.mejor_que}
+- Su diferencial: ${inputs.diferencial}
+- Lo buscan: ${inputs.quien_busca}
+
+Sé específico. Si la USP podría ser dicha por cualquier colega, no está lista.`.trim(),
+  },
+
+  // ─── P6.2: Transformaciones reales de pacientes ─────────────────────────────
+  {
+    id: 'H-P6.2',
+    grupo: 'B' as GrupoHerramienta,
+    titulo: 'Transformaciones reales de pacientes',
+    descripcion: '10 bloques con Estado A, B y C de cada paciente. Mínimo 5.',
+    emoji: '🔺',
+    usa_ia: false,
+    adn_field: 'adn_transformaciones',
+    outputLabel: 'Transformaciones documentadas',
+    inputs: [
+      { id: 't1_a', label: 'Paciente 1 — Estado A: ¿Cómo llegó? ¿Qué le dolía?', tipo: 'textarea', required: true },
+      { id: 't1_b', label: 'Paciente 1 — Estado B: ¿Qué le impedía resolverlo solo?', tipo: 'textarea', required: true },
+      { id: 't1_c', label: 'Paciente 1 — Estado C: ¿Dónde terminó? ¿Qué cambió?', tipo: 'textarea', required: true },
+      { id: 't2_a', label: 'Paciente 2 — Estado A', tipo: 'textarea', required: true },
+      { id: 't2_b', label: 'Paciente 2 — Estado B', tipo: 'textarea', required: true },
+      { id: 't2_c', label: 'Paciente 2 — Estado C', tipo: 'textarea', required: true },
+      { id: 't3_a', label: 'Paciente 3 — Estado A', tipo: 'textarea', required: true },
+      { id: 't3_b', label: 'Paciente 3 — Estado B', tipo: 'textarea', required: true },
+      { id: 't3_c', label: 'Paciente 3 — Estado C', tipo: 'textarea', required: true },
+      { id: 't4_a', label: 'Paciente 4 — Estado A', tipo: 'textarea', required: true },
+      { id: 't4_b', label: 'Paciente 4 — Estado B', tipo: 'textarea', required: true },
+      { id: 't4_c', label: 'Paciente 4 — Estado C', tipo: 'textarea', required: true },
+      { id: 't5_a', label: 'Paciente 5 — Estado A', tipo: 'textarea', required: true },
+      { id: 't5_b', label: 'Paciente 5 — Estado B', tipo: 'textarea', required: true },
+      { id: 't5_c', label: 'Paciente 5 — Estado C', tipo: 'textarea', required: true },
+    ],
+    promptTemplate: (inputs) => Object.entries(inputs).map(([k, v]) => `${k}: ${v}`).join('\n'),
+  },
+
+  // ─── P6.3: Constructor de Matriz A→B→C ──────────────────────────────────────
+  {
+    id: 'H-P6.3',
+    grupo: 'B' as GrupoHerramienta,
+    titulo: 'Constructor de Matriz A→B→C',
+    descripcion: 'Genera la matriz completa del dolor, obstáculos y resultado.',
+    emoji: '🔺',
+    usa_ia: true,
+    adn_field: 'matriz_a',
+    requiere_datos_de: ['H-P6.2'],
+    outputLabel: 'Matriz A→B→C',
+    inputs: [],
+    promptTemplate: (_inputs, perfil) => `
+Sos un estratega de oferta para profesionales de salud. Leé las transformaciones de pacientes reales y construí la Matriz A→B→C.
+${adnContext(perfil)}
+
+Generá exactamente:
+
+---ESTADO A (El Dolor)---
+[2-3 párrafos describiendo la experiencia emocional completa del problema, en el LENGUAJE del paciente. No jerga clínica.]
+
+---ESTADO B (Los Obstáculos)---
+[Lista de 5-8 obstáculos concretos que le impiden resolverlo solo. Este es el MÁS IMPORTANTE — es la razón por la que existe el programa.]
+
+---ESTADO C (El Resultado)---
+[2-3 párrafos describiendo la vida que el paciente quiere cuando el problema ya no existe.]
+
+El Estado B tiene que ser tan específico que si el paciente lo lee, diga "eso soy yo".`.trim(),
+  },
+
+  // ─── P7.2: Documentador del proceso actual ─────────────────────────────────
+  {
+    id: 'H-P7.2',
+    grupo: 'B' as GrupoHerramienta,
+    titulo: 'Documentador del proceso actual',
+    descripcion: 'Documentá cómo trabajás con pacientes de principio a fin.',
+    emoji: '⚙️',
+    usa_ia: false,
+    adn_field: 'adn_proceso_actual',
+    outputLabel: 'Proceso documentado',
+    inputs: [
+      { id: 'primer_contacto', label: '¿Qué pasa en el primer contacto con el paciente?', tipo: 'textarea', required: true },
+      { id: 'primera_sesion', label: '¿Cómo es la primera sesión?', tipo: 'textarea', required: true },
+      { id: 'sesiones_siguientes', label: '¿Qué hacés en las sesiones siguientes, paso a paso?', tipo: 'textarea', required: true },
+      { id: 'como_termina', label: '¿Cómo sabés que el proceso terminó?', tipo: 'textarea', required: true },
+      { id: 'como_mide', label: '¿Cómo medís el resultado?', tipo: 'textarea', required: true },
+      { id: 'duracion', label: '¿Cuánto tiempo dura el proceso completo?', tipo: 'text', required: true },
+    ],
+    promptTemplate: (inputs) => Object.entries(inputs).map(([k, v]) => `${k}: ${v}`).join('\n'),
+  },
+
+  // ─── P7.3: Generador de Método ──────────────────────────────────────────────
+  {
+    id: 'H-P7.3',
+    grupo: 'B' as GrupoHerramienta,
+    titulo: 'Generador de Método',
+    descripcion: 'Genera 5 opciones de nombre + 3-7 pasos con descripción.',
+    emoji: '⚙️',
+    usa_ia: true,
+    adn_field: 'metodo_nombre',
+    requiere_datos_de: ['H-P7.2'],
+    outputLabel: 'Método propio',
+    inputs: [],
+    promptTemplate: (_inputs, perfil) => `
+Sos un consultor de branding para profesionales de salud. Leé el proceso actual del profesional y la Matriz A→B→C, y generá:
+${adnContext(perfil)}
+
+1. 5 opciones de nombre para el método. El nombre tiene que evocar el RESULTADO, no el mecanismo. "Sesiones de fisioterapia" es genérico. "Protocolo de Reintegración Funcional" es un activo diferenciador.
+
+2. Para la mejor opción, 3 a 7 pasos con nombre y descripción breve de cada uno.
+
+Formato:
+---NOMBRES---
+1. [nombre] — [por qué funciona]
+2. ...
+
+---PASOS DEL MÉTODO---
+Paso 1: [nombre] — [qué es y por qué existe]
+...`.trim(),
+  },
+
+  // ─── P8.2: Diseñador de Oferta Mid ──────────────────────────────────────────
+  {
+    id: 'H-P8.2',
+    grupo: 'B' as GrupoHerramienta,
+    titulo: 'Diseñador de Oferta Mid',
+    descripcion: 'El producto principal. Se construye primero.',
+    emoji: '🏗️',
+    usa_ia: true,
+    adn_field: 'oferta_mid',
+    outputLabel: 'Oferta Mid',
+    inputs: [
+      { id: 'duracion_protocolo', label: '¿Cuánto tiempo dura el protocolo completo?', tipo: 'text', required: true },
+      { id: 'sesiones', label: '¿Cuántas sesiones incluye?', tipo: 'number', required: true },
+      { id: 'resultado_garantizado', label: '¿Qué resultado concreto y medible garantizás?', tipo: 'textarea', required: true },
+      { id: 'soporte_adicional', label: '¿Qué soporte adicional incluye?', tipo: 'textarea', required: true },
+      { id: 'precio_mente', label: '¿Qué precio tenés en mente?', tipo: 'text', required: true },
+    ],
+    promptTemplate: (inputs, perfil) => `
+Sos un diseñador de ofertas para profesionales de salud. Diseñá la Oferta Mid usando el Método y la Matriz A→B→C del ADN.
+${adnContext(perfil)}
+
+Datos de la oferta:
+- Duración: ${inputs.duracion_protocolo}
+- Sesiones: ${inputs.sesiones}
+- Resultado garantizado: ${inputs.resultado_garantizado}
+- Soporte adicional: ${inputs.soporte_adicional}
+- Precio en mente: ${inputs.precio_mente}
+
+Generá: nombre de la oferta, promesa principal, para quién es, qué incluye, precio sugerido, garantía sugerida.`.trim(),
+  },
+
+  // ─── P8.3: Generador High + Low + Lead Magnet ──────────────────────────────
+  {
+    id: 'H-P8.3',
+    grupo: 'B' as GrupoHerramienta,
+    titulo: 'Generador de Oferta High + Low + Lead Magnet',
+    descripcion: 'Genera las 3 ofertas restantes a partir de la Oferta Mid.',
+    emoji: '🏗️',
+    usa_ia: true,
+    adn_field: 'oferta_high',
+    requiere_datos_de: ['H-P8.2'],
+    outputLabel: 'Escalera de ofertas',
+    inputs: [],
+    promptTemplate: (_inputs, perfil) => `
+Sos un estratega de ofertas. A partir de la Oferta Mid ya diseñada, generá las otras 3 ofertas de la escalera.
+${adnContext(perfil)}
+
+Generá exactamente:
+
+---OFERTA HIGH ($4.000 a $6.000)---
+[El Mid amplificado con acceso directo y pocas plazas. Nombre, qué incluye, precio, para quién.]
+
+---OFERTA LOW ($500 a $1.000)---
+[Las primeras 2-3 sesiones del protocolo Mid. Nombre, qué incluye, precio.]
+
+---LEAD MAGNET (gratis o hasta $27)---
+[Recurso que resuelve el primer dolor del Estado A de forma completa. Formato, contenido, CTA.]`.trim(),
+  },
+
+  // ─── P9A.2: Landing copy ────────────────────────────────────────────────────
+  {
+    id: 'H-P9A.2',
+    grupo: 'D' as GrupoHerramienta,
+    titulo: 'Generador de Copy de Landing Page',
+    descripcion: 'Copy completo usando Avatar + Matriz + Oferta Mid.',
+    emoji: '📣',
+    usa_ia: true,
+    adn_field: 'adn_landing_copy',
+    outputLabel: 'Copy de landing page',
+    inputs: [],
+    promptTemplate: (_inputs, perfil) => `
+Sos un copywriter de landing pages para profesionales de salud. Generá el copy completo usando el ADN del profesional.
+${adnContext(perfil)}
+
+Generá las siguientes secciones:
+1. Headline (1 línea potente)
+2. Subheadline (1-2 líneas)
+3. Sección del problema (usa Estado A del avatar)
+4. Obstáculos (usa Estado B)
+5. Solución (presenta el método)
+6. Qué incluye
+7. Para quién es
+8. Para quién NO es
+9. Preguntas frecuentes (5 mínimo)
+10. Llamado a la acción
+
+Tono: directo, empático, sin hipérboles. El avatar tiene que sentir que le estás hablando directamente.`.trim(),
+  },
+
+  // ─── P9A.3: 3 Anuncios para Meta ───────────────────────────────────────────
+  {
+    id: 'H-P9A.3',
+    grupo: 'D' as GrupoHerramienta,
+    titulo: 'Generador de 3 Anuncios para Meta',
+    descripcion: '3 versiones de anuncios: desde el dolor, el obstáculo y el sueño.',
+    emoji: '📣',
+    usa_ia: true,
+    adn_field: 'adn_anuncios',
+    outputLabel: '3 anuncios para Meta',
+    inputs: [],
+    promptTemplate: (_inputs, perfil) => `
+Sos un copywriter de anuncios para Meta/Instagram. Generá 3 versiones de anuncios usando el ADN del profesional.
+${adnContext(perfil)}
+
+---ANUNCIO 1: DESDE EL DOLOR (Estado A)---
+Copy para imagen estática (3-5 líneas):
+Guión de 30 segundos para video/reel:
+
+---ANUNCIO 2: DESDE EL OBSTÁCULO (Estado B)---
+Copy para imagen estática:
+Guión de 30 segundos:
+
+---ANUNCIO 3: DESDE EL SUEÑO (Estado C)---
+Copy para imagen estática:
+Guión de 30 segundos:
+
+Cada anuncio debe hablar al avatar específico. CTA: palabra clave para DM.`.trim(),
+  },
+
+  // ─── P9A.4: Genius Contenido ────────────────────────────────────────────────
+  {
+    id: 'H-P9A.4',
+    grupo: 'C' as GrupoHerramienta,
+    titulo: 'Genius Contenido — Plan semanal orgánico',
+    descripcion: 'Generá 5 ideas de contenido para la semana. Podés volver cada semana.',
+    emoji: '📣',
+    usa_ia: true,
+    es_recurrente: true,
+    outputLabel: 'Plan de contenido semanal',
+    inputs: [
+      { id: 'objecion_semana', label: '¿Qué objeción o miedo de tu avatar apareció más esta semana?', tipo: 'textarea', required: true },
+    ],
+    promptTemplate: (inputs, perfil) => `
+Sos un estratega de contenido orgánico para profesionales de salud. Generá 5 ideas de contenido para esta semana.
+${adnContext(perfil)}
+
+Objeción/miedo de la semana: ${inputs.objecion_semana}
+
+Generá exactamente:
+1. REEL 1: formato, hook de apertura, idea central, CTA
+2. REEL 2: formato, hook de apertura, idea central, CTA
+3. POST 1: formato, hook de apertura, idea central, CTA
+4. POST 2: formato, hook de apertura, idea central, CTA
+5. CARRUSEL: formato, hook de apertura, idea central, CTA
+
+El contenido debe responder directamente a la objeción/miedo de la semana.`.trim(),
+  },
+
+  // ─── P9B.2: Script de Ventas ────────────────────────────────────────────────
+  {
+    id: 'H-P9B.2',
+    grupo: 'E' as GrupoHerramienta,
+    titulo: 'Constructor de Script de Ventas',
+    descripcion: 'Script completo de llamada de diagnóstico de 45 minutos.',
+    emoji: '📞',
+    usa_ia: true,
+    adn_field: 'script_venta',
+    outputLabel: 'Script de ventas',
+    inputs: [],
+    promptTemplate: (_inputs, perfil) => `
+Sos un coach de ventas para profesionales de salud. Construí un script completo de llamada de diagnóstico de 45 minutos.
+${adnContext(perfil)}
+
+Secciones del script:
+1. Apertura y encuadre (primeros 5 min)
+2. Preguntas de diagnóstico (10 min)
+3. Profundización del dolor (10 min)
+4. Presentación de la solución (10 min)
+5. Manejo de las 5 objeciones más comunes del avatar (5 min)
+6. Cierre con precio (5 min)
+
+El tono es de evaluación, no de venta. Estás diagnosticando si podés ayudar, no convenciendo.`.trim(),
+  },
+
+  // ─── P9C.2: Protocolo de Entrega ────────────────────────────────────────────
+  {
+    id: 'H-P9C.2',
+    grupo: 'D' as GrupoHerramienta,
+    titulo: 'Documentador de Protocolo de Entrega',
+    descripcion: 'Automatizá la entrega sin perder el toque personal.',
+    emoji: '🤝',
+    usa_ia: true,
+    adn_field: 'adn_protocolo_servicio',
+    outputLabel: 'Protocolo de entrega',
+    inputs: [
+      { id: 'primeras_24h', label: '¿Qué recibe el paciente en las primeras 24 horas después de pagar?', tipo: 'textarea', required: true },
+      { id: 'primera_sesion', label: '¿Cómo se configura la primera sesión?', tipo: 'textarea', required: true },
+      { id: 'recordatorios', label: '¿Qué recordatorios automáticos necesita durante el protocolo?', tipo: 'textarea', required: true },
+      { id: 'seguimiento', label: '¿Cómo se hace el seguimiento entre sesiones?', tipo: 'textarea', required: true },
+      { id: 'cierre', label: '¿Qué pasa al terminar el protocolo?', tipo: 'textarea', required: true },
+    ],
+    promptTemplate: (inputs, perfil) => `
+Sos un consultor de automatización para profesionales de salud. Generá el protocolo de entrega completo.
+${adnContext(perfil)}
+
+Datos del servicio actual:
+- Primeras 24h: ${inputs.primeras_24h}
+- Primera sesión: ${inputs.primera_sesion}
+- Recordatorios: ${inputs.recordatorios}
+- Seguimiento: ${inputs.seguimiento}
+- Cierre: ${inputs.cierre}
+
+Generá:
+1. Email de bienvenida automático (texto completo)
+2. Lista de 5 automatizaciones prioritarias para GHL en orden de impacto
+3. Protocolo de cierre: encuesta de satisfacción + solicitud de testimonio + propuesta de referido`.trim(),
+  },
+
+  // ─── P10.2: Sistema de Identidad ────────────────────────────────────────────
+  {
+    id: 'H-P10.2',
+    grupo: 'D' as GrupoHerramienta,
+    titulo: 'Generador de Sistema de Identidad',
+    descripcion: 'Paleta, tipografía, tono de voz y brief completo.',
+    emoji: '🎨',
+    usa_ia: true,
+    adn_field: 'adn_identidad_sistema',
+    outputLabel: 'Sistema de identidad visual',
+    inputs: [],
+    promptTemplate: (_inputs, perfil) => `
+Sos un diseñador de identidad visual para profesionales de salud. Usando el ADN del profesional (Historia, Propósito, Avatar, Nicho), generá un sistema completo.
+${adnContext(perfil)}
+
+Generá exactamente:
+
+---PALETA DE COLORES---
+- Primario: [hex + nombre + justificación]
+- Secundario: [hex + nombre + justificación]
+- Acento: [hex + nombre + justificación]
+- Neutros: [2 hex + justificación]
+
+---TIPOGRAFÍAS---
+- Títulos: [fuente de Google Fonts + por qué]
+- Cuerpo: [fuente de Google Fonts + por qué]
+
+---TONO DE VOZ---
+- 5 palabras que SÍ definen la marca
+- 5 palabras que NO definen la marca
+- Ejemplo: el mismo mensaje en la voz correcta y en la incorrecta
+
+---BRIEF PARA DISEÑADOR---
+[Resumen de 10 líneas listo para entregar a un diseñador o implementar en Canva]
+
+La identidad debe ser coherente con el tipo de paciente que quiere atraer.`.trim(),
+  },
+];

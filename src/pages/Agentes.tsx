@@ -1,17 +1,20 @@
 /**
- * Agentes.tsx — Los 6 Agentes IA especializados del Método CLÍNICA
+ * Agentes.tsx — Los 6 Agentes IA de entrenamiento del Método CLÍNICA
+ *
+ * REGLA CRÍTICA: Los agentes NO escriben al ADN. Son solo para entrenamiento.
  *
  * Diferencia con Herramientas:
  * - Herramientas: generan un output específico en 1 paso
- * - Agentes: hacen el trabajo complejo de extremo a extremo en una conversación,
- *   combinando múltiples herramientas y adaptándose al diálogo
+ * - Agentes: entrenan al profesional en conversaciones interactivas,
+ *   combinando roleplay, análisis y feedback adaptado al diálogo
  */
-import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { Loader2, Send, RotateCcw, Copy, CheckCircle2, ArrowLeft } from 'lucide-react';
+import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
+import { Loader2, Send, RotateCcw, Copy, CheckCircle2, ArrowLeft, Lock } from 'lucide-react';
 import Markdown from 'react-markdown';
-import type { ProfileV2 } from '../lib/supabase';
+import type { PilarId, ProfileV2 } from '../lib/supabase';
 import { toast } from 'sonner';
 import { getUserKnowledgeBase } from '../lib/userKnowledgeBase';
+import { SEED_ROADMAP_V2 } from '../lib/roadmapSeed';
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 
@@ -25,102 +28,103 @@ interface ConfigAgente {
   titulo: string;
   subtitulo: string;
   emoji: string;
-  color: string;
+  /** Gold accent opacity variant for visual distinction between agents */
+  accentOpacity: string;
   descripcion: string;
+  /** Pilar that must be active/completed to unlock this agent */
+  unlockPilar: PilarId;
   sistemPrompt: (perfil: Partial<ProfileV2>) => string;
   mensajeInicial: (perfil: Partial<ProfileV2>) => string;
   sugerencias: string[];
 }
 
-// ─── Configuración de los 6 agentes ──────────────────────────────────────────
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+/** Returns the set of completed task keys from localStorage (e.g. "9-P9A.1"). */
+function getCompletadas(): Set<string> {
+  try {
+    const saved = localStorage.getItem('tcd_hoja_ruta_v2');
+    return new Set<string>(saved ? JSON.parse(saved) : []);
+  } catch {
+    return new Set<string>();
+  }
+}
+
+/** Check if a pilar is active (at least one task completed). */
+function isPilarActive(pilarId: PilarId, completadas: Set<string>): boolean {
+  const pilar = SEED_ROADMAP_V2.find((p) => p.id === pilarId);
+  if (!pilar) return false;
+  return (pilar.metas ?? []).some((m) => completadas.has(`${pilar.numero}-${m.codigo}`));
+}
+
+// ─── Configuración de los 6 agentes de entrenamiento ────────────────────────
 
 const AGENTES: ConfigAgente[] = [
   {
-    id: 'agente-historia',
-    titulo: 'Agente de Historia de Origen',
-    subtitulo: 'Genera las 3 versiones de tu historia',
-    emoji: '📖',
-    color: 'violet',
-    descripcion: 'Te hace las preguntas clave y genera las 3 versiones de tu historia de origen (300/150/50 palabras) listas para usar en tu landing, bio y conversaciones.',
+    id: 'agente-simulador-llamada',
+    titulo: 'Simulador de Llamada',
+    subtitulo: 'Practica ventas con tu avatar simulado',
+    emoji: '📞',
+    accentOpacity: '100',
+    unlockPilar: 'P9B',
+    descripcion: 'Simula tu avatar de cliente basándose en los datos de tu ADN. Después del roleplay te da una puntuación de 1 a 10 con feedback específico.',
     sistemPrompt: (perfil) => `
-Sos el Agente de Historia de Origen del Método CLÍNICA. Tu objetivo es extraer la historia de transformación de ${perfil.nombre ?? 'este profesional'} (especialidad: ${perfil.especialidad ?? 'salud'}) a través de una conversación, y luego generar las 3 versiones de su historia en formato A→B→C (Infierno → Brecha → Cielo).
+Sos el Simulador de Llamada del Método CLÍNICA. Tu rol es SIMULAR al avatar de cliente de ${perfil.nombre ?? 'este profesional'} (especialidad: ${perfil.especialidad ?? 'salud'}, nicho: ${perfil.nicho ?? 'por definir'}, avatar: ${perfil.avatar_cliente ?? 'cliente ideal'}).
 
-PROCESO:
-1. Primero, hacé 3-4 preguntas para entender la historia (de dónde vino, qué cambió, dónde está hoy)
-2. Luego pedí confirmación de que captaste bien
-3. Finalmente, generá las 3 versiones con los delimitadores:
-   ---VERSIÓN LARGA (300 palabras)---
-   ---VERSIÓN MEDIA (150 palabras)---
-   ---VERSIÓN CORTA (50 palabras)---
+REGLA CRÍTICA: NO escribís al ADN. Solo entrenás.
 
-Tono: cálido, curioso, no terapéutico. La historia debe sonar como el profesional, no como una plantilla de marketing.
+MODO ROLEPLAY:
+1. Adoptá la personalidad del avatar del profesional (sus miedos, objeciones, forma de hablar)
+2. Respondé como lo haría un lead real: con dudas, evasivas, preguntas incómodas
+3. No seas fácil de convencer — sé realista
+4. Después de 5-8 intercambios (o cuando el profesional cierre/falle), salí del personaje
+
+EVALUACIÓN POST-ROLEPLAY:
+- Puntuación: X/10
+- Lo que hiciste bien (2-3 puntos)
+- Lo que mejorar (2-3 puntos)
+- Frase exacta que podrías haber dicho en el momento clave
+- Veredicto: ¿el lead hubiera comprado? Sí/No y por qué
     `.trim(),
     mensajeInicial: (perfil) =>
-      `Hola ${perfil.nombre?.split(' ')[0] ?? ''}! Voy a ayudarte a escribir tu Historia de Origen en 3 versiones. Esta historia es la que va en tu landing page, tu bio y tus conversaciones de venta — es fundamental que suene auténtica.
+      `Hola ${perfil.nombre?.split(' ')[0] ?? ''}! Soy tu simulador de llamadas de venta.
 
-Empecemos: **¿Cuándo y cómo decidiste empezar a ver pacientes de forma privada o a lanzar tu práctica independiente?** ¿Qué estaba pasando en tu vida en ese momento?`,
+Voy a actuar como tu avatar de cliente — con sus dudas, objeciones y forma de hablar. Al final te doy un puntaje de 1 a 10.
+
+**¿Arrancamos el roleplay?** Cuando digas "dale", me convierto en tu lead y vos empezás la llamada como si fuera real.`,
     sugerencias: [
-      'Contame más sobre esa etapa',
-      '¿Y cómo llegaste a donde estás hoy?',
-      'Generá las 3 versiones ahora',
+      'Dale, arrancá el roleplay',
+      'Primero contame cómo funciona',
+      'Quiero practicar manejo de objeciones',
     ],
   },
 
   {
-    id: 'agente-oferta',
-    titulo: 'Agente de Oferta Completa',
-    subtitulo: 'Diseña tu protocolo de principio a fin',
-    emoji: '💼',
-    color: 'blue',
-    descripcion: 'Trabaja con vos para definir el nombre, estructura, precio, bonos, garantía y presentación completa de tu protocolo principal.',
-    sistemPrompt: (perfil) => `
-Sos el Agente de Oferta Completa del Método CLÍNICA. Ayudás a ${perfil.nombre ?? 'este profesional'} (${perfil.especialidad ?? 'salud'}, nicho: ${perfil.nicho ?? 'por definir'}) a construir su oferta irresistible.
-
-PROCESO:
-1. Preguntá por el resultado principal que el protocolo promete
-2. Definí la estructura (sesiones, duración, formato)
-3. Calculá el precio basado en valor (no en costo)
-4. Diseñá los bonos que amplifican el valor percibido
-5. Creá la garantía que elimina el riesgo
-6. Generá el nombre del protocolo
-7. Producí el pitch de 2 minutos y el copy de 1 párrafo para la landing
-
-Sé específico. Hacé una pregunta a la vez. Cuando tengas toda la información, generá el documento de oferta completo.
-    `.trim(),
-    mensajeInicial: (perfil) =>
-      `Hola ${perfil.nombre?.split(' ')[0] ?? ''}! Vamos a construir tu oferta completa paso a paso. Al final de esta conversación vas a tener el protocolo con nombre, estructura, precio justificado, bonos, garantía y el copy listo para usar.
-
-Primera pregunta: **¿Cuál es el resultado específico que logran tus clientes en el tiempo que dura tu protocolo?** No el proceso — el resultado. Lo más concreto posible.`,
-    sugerencias: [
-      'El resultado es que [describilo]...',
-      '¿Cuánto debería cobrar?',
-      'Generá el documento de oferta completo',
-    ],
-  },
-
-  {
-    id: 'agente-contenido',
-    titulo: 'Agente de Contenido Semanal',
-    subtitulo: 'Plan de 7 días listo para publicar',
+    id: 'agente-contenido-semanal',
+    titulo: 'Generador Contenido Semanal',
+    subtitulo: 'Ideas de reels, posts y carruseles',
     emoji: '📅',
-    color: 'pink',
-    descripcion: 'Genera el plan de contenido completo de la semana: stories diarias, idea de Reel, captions y hashtags. Todo personalizado para tu nicho y etapa del programa.',
+    accentOpacity: '80',
+    unlockPilar: 'P9A',
+    descripcion: 'Genera ideas de contenido semanal personalizadas: reels, posts de feed, carruseles y stories. Todo alineado con tu nicho y tu etapa del programa.',
     sistemPrompt: (perfil) => `
-Sos el Agente de Contenido Semanal. Creás el plan de contenido de 7 días para ${perfil.nombre ?? 'este profesional'} (nicho: ${perfil.nicho ?? 'salud'}, avatar: ${perfil.avatar_cliente ?? 'profesional de la salud emprendedor'}).
+Sos el Generador de Contenido Semanal del Método CLÍNICA. Generás ideas de contenido para ${perfil.nombre ?? 'este profesional'} (nicho: ${perfil.nicho ?? 'salud'}, avatar: ${perfil.avatar_cliente ?? 'cliente ideal'}).
+
+REGLA CRÍTICA: NO escribís al ADN. Solo entrenás y generás ideas.
 
 PROCESO:
-1. Preguntá cuál es el tema/foco de la semana y si hay algo importante (lanzamiento, temporada, etc.)
-2. Generá el plan completo con:
-   - LUNES a DOMINGO: 3 stories + acción del día
-   - 1 DÍA de Reel (el de mayor energía de la semana)
-   - 1 post de feed de valor
-   - Hashtags curados para el nicho
+1. Preguntá el foco de la semana y si hay algo especial (lanzamiento, temporada, resultado de cliente)
+2. Generá el plan semanal:
+   - 2 IDEAS DE REELS (con hook, desarrollo, CTA)
+   - 2 IDEAS DE POSTS DE FEED (con caption completo)
+   - 1 IDEA DE CARRUSEL (con slides sugeridos)
+   - STORIES DIARIAS (lunes a viernes: 3 ideas por día)
 
 Regla de contenido: 40% valor, 30% proceso/detrás de escena, 30% prueba social/ventas.
-Nada de "Hola soy..." como primera palabra. Nada de captions con listas de puntos sin contexto.
+Nada de "Hola soy..." como primera palabra. Hooks que detengan el scroll.
     `.trim(),
     mensajeInicial: (perfil) =>
-      `Hola ${perfil.nombre?.split(' ')[0] ?? ''}! Vamos a armar el plan de contenido de esta semana.
+      `Hola ${perfil.nombre?.split(' ')[0] ?? ''}! Vamos a generar las ideas de contenido de esta semana.
 
 **¿Cuál es el tema o foco de esta semana?** Por ejemplo: estás lanzando el protocolo, querés aumentar leads, tenés un resultado de cliente para compartir, o es una semana de construcción de audiencia.`,
     sugerencias: [
@@ -131,16 +135,60 @@ Nada de "Hola soy..." como primera palabra. Nada de captions con listas de punto
   },
 
   {
-    id: 'agente-embudo',
-    titulo: 'Agente de Embudo',
-    subtitulo: 'Revisa y conecta todos los componentes',
-    emoji: '🔄',
-    color: 'cyan',
-    descripcion: 'Audita tu embudo completo: contenido → CTA → lead magnet → formulario → agenda → llamada → pago. Identifica qué falta, qué está roto y qué mejora primero.',
+    id: 'agente-entrenador-camara',
+    titulo: 'Entrenador de Cámara',
+    subtitulo: 'Estructura hook/desarrollo/cierre/CTA',
+    emoji: '🎬',
+    accentOpacity: '60',
+    unlockPilar: 'P9A',
+    descripcion: 'Te entrena en la estructura de contenido frente a cámara: hook que detiene el scroll, desarrollo que engancha, cierre memorable y CTA que convierte.',
     sistemPrompt: (perfil) => `
-Sos el Agente de Embudo del Método CLÍNICA. Auditás el embudo de ${perfil.nombre ?? 'este profesional'} (nicho: ${perfil.nicho ?? 'salud'}) y generás un plan de acción específico.
+Sos el Entrenador de Cámara del Método CLÍNICA. Entrenás a ${perfil.nombre ?? 'este profesional'} (nicho: ${perfil.nicho ?? 'salud'}) en la estructura de contenido frente a cámara.
 
-PROCESO DE AUDITORÍA (hacé una pregunta a la vez):
+REGLA CRÍTICA: NO escribís al ADN. Solo entrenás.
+
+ESTRUCTURA QUE ENSEÑÁS:
+1. HOOK (primeros 3 segundos): frase que detiene el scroll
+2. DESARROLLO (20-40 segundos): contenido que engancha con tensión/curiosidad
+3. CIERRE (5-10 segundos): conclusión memorable
+4. CTA (3-5 segundos): llamada a la acción específica
+
+MODO ENTRENAMIENTO:
+- Pedí que te cuenten el tema del video
+- Generá 3 opciones de hook
+- Ayudá a estructurar el desarrollo con storytelling
+- Proponé cierres que conecten con el hook
+- Sugerí CTAs que no suenen a venta desesperada
+
+MODO REVISIÓN:
+- Si te mandan un guión, analizá cada parte y dá feedback específico
+- Puntuá cada sección: Hook X/10, Desarrollo X/10, Cierre X/10, CTA X/10
+    `.trim(),
+    mensajeInicial: (perfil) =>
+      `Hola ${perfil.nombre?.split(' ')[0] ?? ''}! Soy tu entrenador de cámara. Te ayudo a armar videos con la estructura correcta: hook que para el scroll, desarrollo que engancha, cierre memorable y CTA que convierte.
+
+**¿Querés que te ayude a estructurar un video nuevo o preferís que revise un guión que ya tenés?**`,
+    sugerencias: [
+      'Quiero armar un video nuevo sobre...',
+      'Revisá este guión que escribí',
+      'Dame ejemplos de hooks para mi nicho',
+    ],
+  },
+
+  {
+    id: 'agente-auditor-embudo',
+    titulo: 'Auditor de Embudo',
+    subtitulo: 'Diagnóstico componente por componente',
+    emoji: '🔍',
+    accentOpacity: '50',
+    unlockPilar: 'P9A',
+    descripcion: 'Diagnostica tu embudo completo componente por componente: contenido, CTA, lead magnet, formulario, agenda, llamada, pago. Identifica fugas y prioriza mejoras.',
+    sistemPrompt: (perfil) => `
+Sos el Auditor de Embudo del Método CLÍNICA. Diagnosticás el embudo de ${perfil.nombre ?? 'este profesional'} (nicho: ${perfil.nicho ?? 'salud'}) componente por componente.
+
+REGLA CRÍTICA: NO escribís al ADN. Solo analizás y entrenás.
+
+PROCESO DE AUDITORÍA (una pregunta a la vez):
 1. ¿Dónde llegan primero tus leads? (Instagram, Google, referidos, etc.)
 2. ¿Qué CTA usás en el contenido? ¿Dónde dirige?
 3. ¿Tenés lead magnet? ¿Cuál? ¿Cómo se descarga?
@@ -149,14 +197,15 @@ PROCESO DE AUDITORÍA (hacé una pregunta a la vez):
 6. ¿Cuánto tiempo pasa entre el lead y la llamada?
 7. ¿Tenés link de pago? ¿Cuándo lo enviás?
 
-Al final de la auditoría, generá:
+INFORME FINAL:
 - MAPA DEL EMBUDO ACTUAL (paso a paso)
-- PUNTOS DE FUGA (dónde se pierden leads)
+- PUNTOS DE FUGA (dónde se pierden leads y por qué)
+- DIAGNÓSTICO POR COMPONENTE (cada uno con semáforo: 🟢🟡🔴)
 - TOP 3 MEJORAS DE MAYOR IMPACTO (ordenadas por impacto)
 - PLAN DE 7 DÍAS para implementar las mejoras
     `.trim(),
     mensajeInicial: (perfil) =>
-      `Hola ${perfil.nombre?.split(' ')[0] ?? ''}! Vamos a auditar tu embudo completo. Voy a hacerte preguntas una a una para entender cómo llegan tus clientes, qué pasa en cada paso y dónde se están perdiendo leads.
+      `Hola ${perfil.nombre?.split(' ')[0] ?? ''}! Vamos a auditar tu embudo completo. Voy a revisar cada componente uno por uno para encontrar dónde se están perdiendo leads.
 
 Primera pregunta: **¿Por dónde llegan hoy la mayoría de tus clientes potenciales?** (Instagram, Google, referidos, WhatsApp, otro)`,
     sugerencias: [
@@ -167,66 +216,85 @@ Primera pregunta: **¿Por dónde llegan hoy la mayoría de tus clientes potencia
   },
 
   {
-    id: 'agente-venta',
-    titulo: 'Agente de Llamada de Venta',
-    subtitulo: 'Prepara y practica tu cierre',
-    emoji: '📞',
-    color: 'orange',
-    descripcion: 'Te prepara para una llamada de venta específica: genera el guión personalizado, anticipa las objeciones de ese lead y te entrena en el cierre.',
-    sistemPrompt: (perfil) => `
-Sos el Agente de Llamada de Venta del Método CLÍNICA. Preparás a ${perfil.nombre ?? 'este profesional'} (nicho: ${perfil.nicho ?? 'salud'}, precio del protocolo: ${perfil.posicionamiento ?? 'a definir'}) para una llamada de venta específica.
-
-MODO 1 — PREPARACIÓN:
-Si el profesional tiene una llamada próxima, preguntá:
-- ¿Cuándo es la llamada?
-- ¿Qué sabe del lead? (por dónde llegó, qué preguntó, qué perfil tiene)
-- ¿Cuál es el mayor miedo del profesional para esta llamada?
-
-Luego generá: guión específico + top 3 objeciones probables para ESE lead + cierres alternativos.
-
-MODO 2 — ROLE PLAY:
-Si el profesional quiere practicar, jugá el rol del lead con objeciones reales. Después del role play, dá feedback específico: qué funcionó, qué cambiarías, cuál fue el momento de mayor impacto.
-    `.trim(),
-    mensajeInicial: (perfil) =>
-      `Hola ${perfil.nombre?.split(' ')[0] ?? ''}! Estoy acá para prepararte para tu llamada de venta.
-
-**¿Tenés una llamada específica próximamente que querés preparar?** Si es así, contame todo lo que sabés de ese lead. Si preferís primero practicar con un role play, también podemos hacer eso.`,
-    sugerencias: [
-      'Tengo una llamada mañana con...',
-      'Quiero practicar con un role play',
-      '¿Cómo manejo la objeción "es caro"?',
-    ],
-  },
-
-  {
-    id: 'agente-retrospectiva',
-    titulo: 'Agente de Retrospectiva',
-    subtitulo: 'Análisis mensual completo',
+    id: 'agente-retrospectiva-mensual',
+    titulo: 'Retrospectiva Mensual',
+    subtitulo: 'Análisis mensual con métricas del Dashboard',
     emoji: '🔭',
-    color: 'rose',
-    descripcion: 'Guía la retrospectiva mensual completa: qué se logró, qué se aprendió, qué hay que cambiar, y genera el plan de los próximos 30 días.',
+    accentOpacity: '90',
+    unlockPilar: 'P9C',
+    descripcion: 'Guía tu retrospectiva mensual usando las métricas del Dashboard: qué se logró, qué se aprendió, qué hay que cambiar, y genera el plan de los próximos 30 días.',
     sistemPrompt: (perfil) => `
-Sos el Agente de Retrospectiva del Método CLÍNICA. Guiás la revisión mensual de ${perfil.nombre ?? 'este profesional'} (día ${perfil.dia_programa ?? '?'} de 90).
+Sos el Agente de Retrospectiva Mensual del Método CLÍNICA. Guiás la revisión mensual de ${perfil.nombre ?? 'este profesional'} (día ${perfil.dia_programa ?? '?'} de 90).
+
+REGLA CRÍTICA: NO escribís al ADN. Solo analizás y entrenás.
 
 ESTRUCTURA DE LA RETROSPECTIVA:
-1. LOGROS DEL MES (qué se completó, qué resultados se obtuvieron — con números)
+1. LOGROS DEL MES (qué se completó, qué resultados se obtuvieron — con números del Dashboard)
 2. MAYOR APRENDIZAJE (no el más cómodo — el más importante)
 3. ANÁLISIS DE FRICCIÓN (qué frenó el avance, por qué)
 4. ESTADO DE LA HOJA DE RUTA (¿vas a tiempo? ¿qué está atrasado?)
-5. AJUSTES NECESARIOS (qué cambia el próximo mes — máximo 3 cambios)
-6. PLAN DEL PRÓXIMO MES (3 objetivos SMART con fechas)
-7. UNA COSA QUE ELIMINÁS (qué dejás de hacer para ir más rápido)
+5. MÉTRICAS CLAVE (leads generados, llamadas realizadas, cierres, facturación)
+6. AJUSTES NECESARIOS (qué cambia el próximo mes — máximo 3 cambios)
+7. PLAN DEL PRÓXIMO MES (3 objetivos SMART con fechas)
+8. UNA COSA QUE ELIMINÁS (qué dejás de hacer para ir más rápido)
 
 Hacé las preguntas de a una. Al final, generá el documento de retrospectiva completo.
     `.trim(),
     mensajeInicial: (perfil) =>
       `Hola ${perfil.nombre?.split(' ')[0] ?? ''}! Es momento de la revisión mensual. Vamos a mirar el mes con honestidad — lo que funcionó, lo que no, y cómo ajustamos para el próximo.
 
-Primera pregunta: **¿Cuáles fueron los 3 principales logros de este mes?** No necesitan ser perfectos — sé honesto/a. Contame también los números si los tenés.`,
+Primera pregunta: **¿Cuáles fueron los 3 principales logros de este mes?** No necesitan ser perfectos — sé honesto/a. Si tenés los números del Dashboard, compartilos.`,
     sugerencias: [
       'Mis logros del mes fueron...',
       'Fue un mes difícil, la verdad...',
-      '¿Por dónde empezamos?',
+      'Te comparto mis métricas del Dashboard',
+    ],
+  },
+
+  {
+    id: 'agente-simulador-casos-dificiles',
+    titulo: 'Simulador Casos Difíciles',
+    subtitulo: 'Pacientes difíciles, cancelaciones, descuentos',
+    emoji: '🎭',
+    accentOpacity: '70',
+    unlockPilar: 'P9B',
+    descripcion: 'Simula situaciones difíciles: paciente complicado, cancelación de último momento, petición de descuento. Entrenamiento para manejar presión sin perder profesionalismo.',
+    sistemPrompt: (perfil) => `
+Sos el Simulador de Casos Difíciles del Método CLÍNICA. Simulás situaciones complicadas para entrenar a ${perfil.nombre ?? 'este profesional'} (especialidad: ${perfil.especialidad ?? 'salud'}, nicho: ${perfil.nicho ?? 'por definir'}).
+
+REGLA CRÍTICA: NO escribís al ADN. Solo entrenás.
+
+ESCENARIOS DISPONIBLES:
+A) PACIENTE DIFÍCIL: paciente que cuestiona todo, no sigue indicaciones, se queja
+B) CANCELACIÓN DE ÚLTIMO MOMENTO: cliente que quiere cancelar el protocolo cuando ya empezó
+C) PETICIÓN DE DESCUENTO: lead que dice "me interesa pero es caro, ¿no hay descuento?"
+D) CASO PERSONALIZADO: el profesional describe la situación
+
+MODO ROLEPLAY:
+1. Preguntá qué escenario quiere practicar
+2. Adoptá el rol del paciente/cliente con realismo
+3. Usá las objeciones y comportamientos típicos del escenario
+4. Después de 5-8 intercambios, salí del personaje
+
+EVALUACIÓN POST-ROLEPLAY:
+- Puntuación: X/10
+- Manejo emocional: ¿mantuviste la calma y profesionalismo?
+- Técnica: ¿usaste las herramientas correctas?
+- Resultado: ¿el paciente/cliente hubiera quedado satisfecho?
+- Frase alternativa para el momento más tenso
+    `.trim(),
+    mensajeInicial: (perfil) =>
+      `Hola ${perfil.nombre?.split(' ')[0] ?? ''}! Soy tu simulador de casos difíciles. Voy a ponerte en situaciones incómodas para que practiques cómo manejarlas con profesionalismo.
+
+**¿Qué escenario querés practicar?**
+A) Paciente difícil que cuestiona todo
+B) Cancelación de último momento
+C) Petición de descuento ("es caro")
+D) Otro caso que me quieras describir`,
+    sugerencias: [
+      'Quiero practicar con un paciente difícil',
+      'Simulá una cancelación de último momento',
+      'Practicar manejo de "es caro"',
     ],
   },
 ];
@@ -248,6 +316,9 @@ export default function Agentes({
   const [cargando, setCargando] = useState(false);
   const [copiado, setCopiado] = useState(false);
   const knowledgeBaseRef = useRef<string>('');
+
+  /** Completed task keys from localStorage — recalculated on mount. */
+  const completadas = useMemo(() => getCompletadas(), []);
 
   useEffect(() => {
     getUserKnowledgeBase(userId).then(kb => { knowledgeBaseRef.current = kb; });
@@ -327,30 +398,47 @@ export default function Agentes({
     return (
       <div className="max-w-3xl mx-auto space-y-6 pb-12 animate-in fade-in duration-500">
         <div>
-          <h1 className="text-2xl font-light text-white flex items-center gap-2">🤖 Agentes IA</h1>
-          <p className="text-sm text-gray-400 mt-1">6 agentes especializados que trabajan de extremo a extremo</p>
+          <h1 className="text-2xl font-light text-[#F0EAD8] flex items-center gap-2">🤖 Agentes IA</h1>
+          <p className="text-sm text-[#F0EAD8]/60 mt-1">6 agentes de entrenamiento — se desbloquean con tu progreso en la hoja de ruta</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {AGENTES.map((agente) => (
-            <button
-              key={agente.id}
-              onClick={() => iniciarAgente(agente)}
-              className={`text-left p-5 rounded-2xl border bg-${agente.color}-500/10 border-${agente.color}-500/25 hover:bg-${agente.color}-500/15 transition-all group`}
-            >
-              <div className="flex items-start gap-3 mb-3">
-                <span className="text-2xl">{agente.emoji}</span>
-                <div>
-                  <h3 className={`text-sm font-medium text-${agente.color}-300`}>{agente.titulo}</h3>
-                  <p className="text-xs text-gray-500">{agente.subtitulo}</p>
+          {AGENTES.map((agente) => {
+            const unlocked = isPilarActive(agente.unlockPilar, completadas);
+            return (
+              <button
+                key={agente.id}
+                onClick={() => unlocked && iniciarAgente(agente)}
+                disabled={!unlocked}
+                className={`text-left p-5 rounded-2xl border transition-all group ${
+                  unlocked
+                    ? 'bg-[#C8893A]/10 border-[#C8893A]/20 hover:bg-[#C8893A]/15 cursor-pointer'
+                    : 'bg-[#C8893A]/5 border-[#C8893A]/10 opacity-50 cursor-not-allowed'
+                }`}
+              >
+                <div className="flex items-start gap-3 mb-3">
+                  <span className="text-2xl">{unlocked ? agente.emoji : ''}</span>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <h3 className={`text-sm font-medium ${unlocked ? 'text-[#C8893A]' : 'text-[#F0EAD8]/30'}`}>
+                        {agente.titulo}
+                      </h3>
+                      {!unlocked && <Lock className="w-3.5 h-3.5 text-[#F0EAD8]/30" />}
+                    </div>
+                    <p className="text-xs text-[#F0EAD8]/40">{agente.subtitulo}</p>
+                  </div>
                 </div>
-              </div>
-              <p className="text-xs text-gray-400 leading-relaxed">{agente.descripcion}</p>
-              <div className={`mt-3 text-[10px] text-${agente.color}-400 font-medium uppercase tracking-wider group-hover:underline`}>
-                Iniciar conversación →
-              </div>
-            </button>
-          ))}
+                <p className="text-xs text-[#F0EAD8]/60 leading-relaxed">{agente.descripcion}</p>
+                <div className={`mt-3 text-[10px] font-medium uppercase tracking-wider ${
+                  unlocked
+                    ? 'text-[#C8893A] group-hover:underline'
+                    : 'text-[#F0EAD8]/30'
+                }`}>
+                  {unlocked ? 'Iniciar conversación →' : `Desbloquear con pilar ${agente.unlockPilar}`}
+                </div>
+              </button>
+            );
+          })}
         </div>
       </div>
     );
@@ -360,32 +448,32 @@ export default function Agentes({
   return (
     <div className="max-w-3xl mx-auto flex flex-col h-[calc(100vh-8rem)] animate-in fade-in duration-300">
       {/* Cabecera */}
-      <div className={`glass-panel p-4 rounded-2xl mb-4 border border-${agenteActivo.color}-500/25 bg-${agenteActivo.color}-500/10`}>
+      <div className="card-panel p-4 rounded-2xl mb-4 border border-[#C8893A]/20 bg-[#C8893A]/10">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <button
               onClick={() => { setAgenteActivo(null); setMensajes([]); }}
-              className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-white bg-white/5 px-3 py-1.5 rounded-xl transition-colors shrink-0"
+              className="flex items-center gap-1.5 text-xs text-[#F0EAD8]/60 hover:text-[#F0EAD8] bg-[#C8893A]/5 px-3 py-1.5 rounded-xl transition-colors shrink-0"
             >
               <ArrowLeft className="w-3.5 h-3.5" /> Volver
             </button>
             <span className="text-2xl">{agenteActivo.emoji}</span>
             <div>
-              <h2 className={`text-sm font-medium text-${agenteActivo.color}-300`}>{agenteActivo.titulo}</h2>
-              <p className="text-xs text-gray-500">{agenteActivo.subtitulo}</p>
+              <h2 className="text-sm font-medium text-[#C8893A]">{agenteActivo.titulo}</h2>
+              <p className="text-xs text-[#F0EAD8]/40">{agenteActivo.subtitulo}</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
             <button
               onClick={copiarConversacion}
-              className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-white bg-white/5 px-3 py-1.5 rounded-xl transition-colors"
+              className="flex items-center gap-1.5 text-xs text-[#F0EAD8]/60 hover:text-[#F0EAD8] bg-[#C8893A]/5 px-3 py-1.5 rounded-xl transition-colors"
             >
               {copiado ? <CheckCircle2 className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
               {copiado ? 'Copiado' : 'Copiar'}
             </button>
             <button
               onClick={() => { setAgenteActivo(null); setMensajes([]); }}
-              className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-white bg-white/5 px-3 py-1.5 rounded-xl transition-colors"
+              className="flex items-center gap-1.5 text-xs text-[#F0EAD8]/60 hover:text-[#F0EAD8] bg-[#C8893A]/5 px-3 py-1.5 rounded-xl transition-colors"
             >
               <RotateCcw className="w-3.5 h-3.5" />
               Cambiar
@@ -401,12 +489,12 @@ export default function Agentes({
             <div
               className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-relaxed ${
                 msg.rol === 'usuario'
-                  ? 'bg-indigo-600 text-white whitespace-pre-wrap'
-                  : 'glass-panel text-gray-200'
+                  ? 'bg-[#C8893A] text-[#F0EAD8] whitespace-pre-wrap'
+                  : 'card-panel text-[#F0EAD8]/90'
               }`}
             >
               {msg.rol === 'agente' ? (
-                <div className="prose prose-invert prose-sm max-w-none prose-p:my-1.5 prose-p:leading-relaxed prose-headings:text-gray-100 prose-headings:font-semibold prose-headings:mt-3 prose-headings:mb-1.5 prose-li:my-0.5 prose-li:text-gray-300 prose-strong:text-white prose-strong:font-semibold prose-code:text-indigo-300 prose-code:bg-indigo-500/10 prose-code:px-1 prose-code:rounded prose-hr:border-white/10">
+                <div className="prose prose-invert prose-sm max-w-none prose-p:my-1.5 prose-p:leading-relaxed prose-headings:text-[#F0EAD8] prose-headings:font-semibold prose-headings:mt-3 prose-headings:mb-1.5 prose-li:my-0.5 prose-li:text-[#F0EAD8]/80 prose-strong:text-[#F0EAD8] prose-strong:font-semibold prose-code:text-[#C8893A] prose-code:bg-[#C8893A]/10 prose-code:px-1 prose-code:rounded prose-hr:border-[rgba(200,137,58,0.2)]">
                   <Markdown>{msg.contenido}</Markdown>
                 </div>
               ) : (
@@ -417,7 +505,7 @@ export default function Agentes({
         ))}
         {cargando && (
           <div className="flex justify-start">
-            <div className="glass-panel rounded-2xl px-4 py-3 flex items-center gap-2 text-gray-400 text-sm">
+            <div className="card-panel rounded-2xl px-4 py-3 flex items-center gap-2 text-[#F0EAD8]/60 text-sm">
               <Loader2 className="w-4 h-4 animate-spin" />
               Pensando...
             </div>
@@ -432,7 +520,7 @@ export default function Agentes({
             <button
               key={s}
               onClick={() => enviarMensaje(s)}
-              className="text-xs bg-white/5 border border-white/10 text-gray-400 px-3 py-1.5 rounded-xl hover:bg-white/10 hover:text-white transition-colors"
+              className="text-xs bg-[#C8893A]/5 border border-[rgba(200,137,58,0.2)] text-[#F0EAD8]/60 px-3 py-1.5 rounded-xl hover:bg-[#C8893A]/10 hover:text-[#F0EAD8] transition-colors"
             >
               {s}
             </button>
@@ -453,14 +541,14 @@ export default function Agentes({
           }}
           placeholder="Escribí tu respuesta..."
           rows={2}
-          className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm resize-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/50 transition-all"
+          className="flex-1 bg-[#C8893A]/5 border border-[rgba(200,137,58,0.2)] rounded-xl px-4 py-3 text-[#F0EAD8] text-sm resize-none focus:border-[#C8893A]/50 focus:ring-1 focus:ring-[#C8893A]/50 transition-all"
         />
         <button
           onClick={() => enviarMensaje(inputUsuario)}
           disabled={cargando || !inputUsuario.trim()}
-          className="shrink-0 w-10 h-10 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 flex items-center justify-center transition-colors"
+          className="shrink-0 w-10 h-10 rounded-xl bg-[#C8893A] hover:bg-[#D9A04E] disabled:opacity-40 flex items-center justify-center transition-colors"
         >
-          <Send className="w-4 h-4 text-white" />
+          <Send className="w-4 h-4 text-[#F0EAD8]" />
         </button>
       </div>
     </div>
