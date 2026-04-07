@@ -90,15 +90,15 @@ export default function Sidebar({ currentPage, setCurrentPage, onOpenSettings, o
 
   return (
     <aside
-      className={`${collapsed ? 'w-16' : 'w-64'} h-full flex flex-col py-6 transition-all duration-300 z-20 shrink-0 overflow-x-hidden border-r border-[rgba(212,162,78,0.15)] bg-[#0A0804]/90 backdrop-blur-xl relative`}
+      className={`${collapsed ? 'w-16' : 'w-64'} h-full flex flex-col py-6 transition-all duration-300 z-20 shrink-0 overflow-x-hidden border-r border-[rgba(245,166,35,0.15)] bg-[#0A0A0A]/90 backdrop-blur-xl relative`}
     >
       {/* Logo */}
       <div className={`flex items-center mb-8 ${collapsed ? 'justify-center px-0' : 'px-6'}`}>
-        <div className="w-8 h-8 rounded-lg bg-[#D4A24E]/20 flex items-center justify-center border border-[#D4A24E]/30 shrink-0">
-          <Hexagon className="w-4 h-4 text-[#D4A24E] fill-[#D4A24E]/20" />
+        <div className="w-8 h-8 rounded-lg bg-[#F5A623]/20 flex items-center justify-center border border-[#F5A623]/30 shrink-0">
+          <Hexagon className="w-4 h-4 text-[#F5A623] fill-[#F5A623]/20" />
         </div>
         {!collapsed && (
-          <span className="ml-3 font-semibold text-sm tracking-wide text-[#F5F0E1] truncate">
+          <span className="ml-3 font-semibold text-sm tracking-wide text-[#FFFFFF] truncate">
             Tu Clínica Digital
           </span>
         )}
@@ -108,24 +108,24 @@ export default function Sidebar({ currentPage, setCurrentPage, onOpenSettings, o
       {!collapsed && (
         <div className="px-5 mb-8">
           <div className="flex items-center gap-3 mb-4">
-            <div className="w-8 h-8 rounded-full bg-[#D4A24E]/20 border border-[#D4A24E]/30 flex items-center justify-center shrink-0 text-xs font-bold text-[#D4A24E]">
+            <div className="w-8 h-8 rounded-full bg-[#F5A623]/20 border border-[#F5A623]/30 flex items-center justify-center shrink-0 text-xs font-bold text-[#F5A623]">
               {initial}
             </div>
             <div className="min-w-0">
-              <p className="text-[#F5F0E1] text-sm font-medium truncate">{data.profile.nombre}</p>
-              <p className="text-[10px] text-[#F5F0E1]/40 uppercase tracking-wider truncate">Prog: {data.profile.plan}</p>
+              <p className="text-[#FFFFFF] text-sm font-medium truncate">{data.profile.nombre}</p>
+              <p className="text-[10px] text-[#FFFFFF]/40 uppercase tracking-wider truncate">Prog: {data.profile.plan}</p>
             </div>
           </div>
 
-          <div className="bg-[#1A1410]/60 border border-[rgba(212,162,78,0.15)] rounded-xl p-3 relative group">
+          <div className="bg-[#1C1C1C]/60 border border-[rgba(245,166,35,0.15)] rounded-xl p-3 relative group">
             <div className="flex justify-between items-center mb-2">
-              <span className="text-[10px] text-[#F5F0E1]/50 font-medium tracking-wide">Semana {data.semana} de 13</span>
-              <span className="text-[10px] text-[#F5F0E1] font-medium">{data.progress}%</span>
+              <span className="text-[10px] text-[#FFFFFF]/50 font-medium tracking-wide">Semana {data.semana} de 13</span>
+              <span className="text-[10px] text-[#FFFFFF] font-medium">{data.progress}%</span>
             </div>
-            <div className="h-1 bg-[#F5F0E1]/10 rounded-full overflow-hidden">
-              <div className="h-full bg-[#D4A24E] rounded-full transition-all duration-1000" style={{ width: `${data.progress}%` }} />
+            <div className="h-1 bg-[#FFFFFF]/10 rounded-full overflow-hidden">
+              <div className="h-full bg-[#F5A623] rounded-full transition-all duration-1000" style={{ width: `${data.progress}%` }} />
             </div>
-            <div className="opacity-0 group-hover:opacity-100 transition-opacity absolute top-full left-0 mt-2 w-full bg-[#1A1410] border border-[rgba(212,162,78,0.2)] text-[10px] text-[#F5F0E1]/70 p-2 rounded-lg shadow-xl pointer-events-none z-50">
+            <div className="opacity-0 group-hover:opacity-100 transition-opacity absolute top-full left-0 mt-2 w-full bg-[#1C1C1C] border border-[rgba(245,166,35,0.2)] text-[10px] text-[#FFFFFF]/70 p-2 rounded-lg shadow-xl pointer-events-none z-50">
               ADN del Negocio: {data.progress}% completado
             </div>
           </div>
@@ -135,7 +135,7 @@ export default function Sidebar({ currentPage, setCurrentPage, onOpenSettings, o
       {/* Collapsed avatar */}
       {collapsed && (
         <div className="flex justify-center mb-6">
-          <div className="w-8 h-8 rounded-full bg-[#D4A24E]/20 border border-[#D4A24E]/30 flex items-center justify-center text-xs font-bold text-[#D4A24E]">
+          <div className="w-8 h-8 rounded-full bg-[#F5A623]/20 border border-[#F5A623]/30 flex items-center justify-center text-xs font-bold text-[#F5A623]">
             {initial}
           </div>
         </div>
@@ -146,11 +146,11 @@ export default function Sidebar({ currentPage, setCurrentPage, onOpenSettings, o
         {sections.map((section, sidx) => (
           <div key={sidx} className="w-full">
             {!collapsed && (
-              <h3 className="px-6 text-[9px] font-bold text-[#F5F0E1]/25 uppercase tracking-[0.1em] mb-2">
+              <h3 className="px-6 text-[9px] font-bold text-[#FFFFFF]/25 uppercase tracking-[0.1em] mb-2">
                 {section.title}
               </h3>
             )}
-            {collapsed && sidx > 0 && <div className="mx-3 border-t border-[rgba(212,162,78,0.1)] mb-2" />}
+            {collapsed && sidx > 0 && <div className="mx-3 border-t border-[rgba(245,166,35,0.1)] mb-2" />}
             <nav className="space-y-0.5">
               {section.items.map((item) => {
                 const isActive = currentPage === item.id;
@@ -164,29 +164,29 @@ export default function Sidebar({ currentPage, setCurrentPage, onOpenSettings, o
                     title={collapsed ? item.label : undefined}
                     className={`w-full flex items-center transition-all relative group ${
                       collapsed ? 'justify-center px-0 py-2.5' : 'px-6 py-2.5'
-                    } ${isActive ? 'bg-[#D4A24E]/15' : 'bg-transparent hover:bg-[#D4A24E]/5'}`}
+                    } ${isActive ? 'bg-[#F5A623]/15' : 'bg-transparent hover:bg-[#F5A623]/5'}`}
                   >
                     {isActive && (
-                      <div className="absolute left-0 top-0 bottom-0 w-[3px] bg-[#D4A24E] rounded-r-full shadow-[0_0_10px_rgba(212,162,78,0.5)]" />
+                      <div className="absolute left-0 top-0 bottom-0 w-[3px] bg-[#F5A623] rounded-r-full shadow-[0_0_10px_rgba(245,166,35,0.5)]" />
                     )}
                     <div className="relative">
                       <item.icon className={`w-[18px] h-[18px] transition-colors ${
-                        isActive ? 'text-[#D4A24E]' : 'text-[#F5F0E1]/40 group-hover:text-[#F5F0E1]/60'
+                        isActive ? 'text-[#F5A623]' : 'text-[#FFFFFF]/40 group-hover:text-[#FFFFFF]/60'
                       }`} />
                       {item.badge && (
-                        <div className="absolute -top-1 -right-1 w-2 h-2 bg-[#E85555] rounded-full shadow-[0_0_8px_rgba(232,85,85,0.8)] border border-[#0A0804]" />
+                        <div className="absolute -top-1 -right-1 w-2 h-2 bg-[#EF4444] rounded-full shadow-[0_0_8px_rgba(232,85,85,0.8)] border border-[#0A0A0A]" />
                       )}
                     </div>
                     {!collapsed && (
                       <span className={`ml-3 text-[13px] tracking-wide ${
-                        isActive ? 'text-[#F5F0E1] font-semibold' : 'text-[#F5F0E1]/60 font-medium group-hover:text-[#F5F0E1]/80'
+                        isActive ? 'text-[#FFFFFF] font-semibold' : 'text-[#FFFFFF]/60 font-medium group-hover:text-[#FFFFFF]/80'
                       }`}>
                         {item.label}
                       </span>
                     )}
                     {/* Tooltip on collapse */}
                     {collapsed && (
-                      <div className="absolute left-full ml-2 px-2.5 py-1.5 bg-[#1A1410] border border-[rgba(212,162,78,0.2)] text-xs text-[#F5F0E1] rounded-lg shadow-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50">
+                      <div className="absolute left-full ml-2 px-2.5 py-1.5 bg-[#1C1C1C] border border-[rgba(245,166,35,0.2)] text-xs text-[#FFFFFF] rounded-lg shadow-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50">
                         {item.label}
                       </div>
                     )}
@@ -201,7 +201,7 @@ export default function Sidebar({ currentPage, setCurrentPage, onOpenSettings, o
       {/* Toggle collapse button */}
       <button
         onClick={onToggleCollapse}
-        className={`mt-6 flex items-center justify-center gap-2 text-[#F5F0E1]/40 hover:text-[#F5F0E1] transition-colors py-2 ${collapsed ? 'px-0' : 'px-6'}`}
+        className={`mt-6 flex items-center justify-center gap-2 text-[#FFFFFF]/40 hover:text-[#FFFFFF] transition-colors py-2 ${collapsed ? 'px-0' : 'px-6'}`}
         title={collapsed ? 'Expandir menú' : 'Contraer menú'}
       >
         {collapsed

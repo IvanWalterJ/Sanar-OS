@@ -177,36 +177,36 @@ function AvatarCard({ data }: { data: AvatarData }) {
       <div className="grid grid-cols-2 gap-3">
         {data.nombre_ficticio && (
           <div>
-            <span className="text-xs text-[#D4A24E]">Nombre ficticio</span>
-            <p className="text-sm text-[#F5F0E1]">{data.nombre_ficticio}</p>
+            <span className="text-xs text-[#F5A623]">Nombre ficticio</span>
+            <p className="text-sm text-[#FFFFFF]">{data.nombre_ficticio}</p>
           </div>
         )}
         {data.edad !== undefined && (
           <div>
-            <span className="text-xs text-[#D4A24E]">Edad</span>
-            <p className="text-sm text-[#F5F0E1]">{data.edad}</p>
+            <span className="text-xs text-[#F5A623]">Edad</span>
+            <p className="text-sm text-[#FFFFFF]">{data.edad}</p>
           </div>
         )}
         {data.profesion && (
           <div>
-            <span className="text-xs text-[#D4A24E]">Profesion</span>
-            <p className="text-sm text-[#F5F0E1]">{data.profesion}</p>
+            <span className="text-xs text-[#F5A623]">Profesion</span>
+            <p className="text-sm text-[#FFFFFF]">{data.profesion}</p>
           </div>
         )}
         {data.situacion && (
           <div className="col-span-2">
-            <span className="text-xs text-[#D4A24E]">Situacion</span>
-            <p className="text-sm text-[#F5F0E1]">{data.situacion}</p>
+            <span className="text-xs text-[#F5A623]">Situacion</span>
+            <p className="text-sm text-[#FFFFFF]">{data.situacion}</p>
           </div>
         )}
       </div>
 
       {data.dolores && data.dolores.length > 0 && (
         <div>
-          <span className="text-xs text-[#E85555] font-medium">Dolores</span>
+          <span className="text-xs text-[#EF4444] font-medium">Dolores</span>
           <ul className="mt-1 space-y-1">
             {data.dolores.map((d, i) => (
-              <li key={i} className="text-sm text-[#F5F0E1]/80 pl-3 relative before:content-[''] before:absolute before:left-0 before:top-2 before:w-1.5 before:h-1.5 before:rounded-full before:bg-[#E85555]/40">
+              <li key={i} className="text-sm text-[#FFFFFF]/80 pl-3 relative before:content-[''] before:absolute before:left-0 before:top-2 before:w-1.5 before:h-1.5 before:rounded-full before:bg-[#EF4444]/40">
                 {d}
               </li>
             ))}
@@ -216,10 +216,10 @@ function AvatarCard({ data }: { data: AvatarData }) {
 
       {data.suenos && data.suenos.length > 0 && (
         <div>
-          <span className="text-xs text-[#2DD4A0] font-medium">Suenos</span>
+          <span className="text-xs text-[#22C55E] font-medium">Suenos</span>
           <ul className="mt-1 space-y-1">
             {data.suenos.map((s, i) => (
-              <li key={i} className="text-sm text-[#F5F0E1]/80 pl-3 relative before:content-[''] before:absolute before:left-0 before:top-2 before:w-1.5 before:h-1.5 before:rounded-full before:bg-[#2DD4A0]/40">
+              <li key={i} className="text-sm text-[#FFFFFF]/80 pl-3 relative before:content-[''] before:absolute before:left-0 before:top-2 before:w-1.5 before:h-1.5 before:rounded-full before:bg-[#22C55E]/40">
                 {s}
               </li>
             ))}
@@ -229,10 +229,10 @@ function AvatarCard({ data }: { data: AvatarData }) {
 
       {data.objeciones && data.objeciones.length > 0 && (
         <div>
-          <span className="text-xs text-[#D4A24E] font-medium">Objeciones</span>
+          <span className="text-xs text-[#F5A623] font-medium">Objeciones</span>
           <ul className="mt-1 space-y-1">
             {data.objeciones.map((o, i) => (
-              <li key={i} className="text-sm text-[#F5F0E1]/80 pl-3 relative before:content-[''] before:absolute before:left-0 before:top-2 before:w-1.5 before:h-1.5 before:rounded-full before:bg-[#D4A24E]/40">
+              <li key={i} className="text-sm text-[#FFFFFF]/80 pl-3 relative before:content-[''] before:absolute before:left-0 before:top-2 before:w-1.5 before:h-1.5 before:rounded-full before:bg-[#F5A623]/40">
                 {o}
               </li>
             ))}
@@ -259,12 +259,12 @@ function FieldItem({ field, perfil, setCurrentPage }: FieldItemProps) {
     return (
       <div className="py-4 px-5 flex items-center justify-between gap-4">
         <div className="min-w-0">
-          <p className="text-sm text-[#F5F0E1]/40">{field.label}</p>
-          <p className="text-xs text-[#F5F0E1]/20 mt-0.5">Pendiente de completar</p>
+          <p className="text-sm text-[#FFFFFF]/40">{field.label}</p>
+          <p className="text-xs text-[#FFFFFF]/20 mt-0.5">Pendiente de completar</p>
         </div>
         <button
           onClick={() => setCurrentPage('roadmap')}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-[#D4A24E] hover:text-[#E2B865] bg-[#D4A24E]/10 hover:bg-[#D4A24E]/15 border border-[rgba(212,162,78,0.2)] rounded-lg transition-all whitespace-nowrap shrink-0"
+          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-[#F5A623] hover:text-[#FFB94D] bg-[#F5A623]/10 hover:bg-[#F5A623]/15 border border-[rgba(245,166,35,0.2)] rounded-lg transition-all whitespace-nowrap shrink-0"
         >
           Completar
           <ArrowRight className="w-3 h-3" />
@@ -277,30 +277,30 @@ function FieldItem({ field, perfil, setCurrentPage }: FieldItemProps) {
   return (
     <div className="py-4 px-5">
       <div className="flex items-center justify-between mb-2">
-        <p className="text-sm font-medium text-[#F5F0E1]">{field.label}</p>
+        <p className="text-sm font-medium text-[#FFFFFF]">{field.label}</p>
         <button
           onClick={() => setCurrentPage('roadmap')}
-          className="flex items-center gap-1 px-2 py-1 text-xs text-[#D4A24E]/60 hover:text-[#D4A24E] transition-colors"
+          className="flex items-center gap-1 px-2 py-1 text-xs text-[#F5A623]/60 hover:text-[#F5A623] transition-colors"
         >
           <Pencil className="w-3 h-3" />
           Editar
         </button>
       </div>
 
-      <div className="pl-3 border-l-2 border-[rgba(212,162,78,0.15)]">
+      <div className="pl-3 border-l-2 border-[rgba(245,166,35,0.15)]">
         {field.type === 'object' && field.key === 'adn_avatar' ? (
           <AvatarCard data={value as AvatarData} />
         ) : field.type === 'array' && Array.isArray(value) ? (
           <ol className="space-y-1.5">
             {(value as string[]).map((item, i) => (
-              <li key={i} className="text-sm text-[#F5F0E1]/80 flex gap-2">
-                <span className="text-[#D4A24E] font-medium shrink-0">{i + 1}.</span>
+              <li key={i} className="text-sm text-[#FFFFFF]/80 flex gap-2">
+                <span className="text-[#F5A623] font-medium shrink-0">{i + 1}.</span>
                 <span>{item}</span>
               </li>
             ))}
           </ol>
         ) : (
-          <div className="prose prose-invert prose-sm max-w-none prose-p:text-[#F5F0E1]/80 prose-headings:text-[#F5F0E1] prose-strong:text-[#F5F0E1] prose-li:text-[#F5F0E1]/80">
+          <div className="prose prose-invert prose-sm max-w-none prose-p:text-[#FFFFFF]/80 prose-headings:text-[#FFFFFF] prose-strong:text-[#FFFFFF] prose-li:text-[#FFFFFF]/80">
             <Markdown>{String(value)}</Markdown>
           </div>
         )}
@@ -325,42 +325,42 @@ function SectionCard({ section, perfil, isExpanded, onToggle, setCurrentPage }: 
   const Icon = section.icon;
 
   return (
-    <div className="card-panel border border-[rgba(212,162,78,0.2)] rounded-2xl overflow-hidden" style={{ borderLeftWidth: 3, borderLeftColor: '#D4A24E' }}>
+    <div className="card-panel border border-[rgba(245,166,35,0.2)] rounded-2xl overflow-hidden" style={{ borderLeftWidth: 3, borderLeftColor: '#F5A623' }}>
       <button
         onClick={onToggle}
-        className="w-full flex items-center justify-between p-5 hover:bg-[#F5F0E1]/[0.02] transition-colors"
+        className="w-full flex items-center justify-between p-5 hover:bg-[#FFFFFF]/[0.02] transition-colors"
       >
         <div className="flex items-center gap-3 min-w-0 text-left">
-          <div className="w-9 h-9 rounded-lg bg-[#D4A24E]/10 border border-[rgba(212,162,78,0.2)] flex items-center justify-center shrink-0">
-            <Icon className="w-4.5 h-4.5 text-[#D4A24E]" />
+          <div className="w-9 h-9 rounded-lg bg-[#F5A623]/10 border border-[rgba(245,166,35,0.2)] flex items-center justify-center shrink-0">
+            <Icon className="w-4.5 h-4.5 text-[#F5A623]" />
           </div>
           <div className="min-w-0">
             <div className="flex items-center gap-2">
-              <span className="text-[#D4A24E] font-bold text-base" style={{ fontFamily: 'var(--font-display)', fontStyle: 'italic' }}>
+              <span className="text-[#F5A623] font-bold text-base" style={{ fontFamily: 'var(--font-display)', fontStyle: 'italic' }}>
                 {section.letter}
               </span>
-              <span className="text-[10px] text-[#F5F0E1]/30 font-medium tracking-wider uppercase">
+              <span className="text-[10px] text-[#FFFFFF]/30 font-medium tracking-wider uppercase">
                 {section.pillars}
               </span>
             </div>
-            <p className="text-sm font-medium text-[#F5F0E1] mt-0.5 truncate">
+            <p className="text-sm font-medium text-[#FFFFFF] mt-0.5 truncate">
               {section.name}
             </p>
           </div>
         </div>
 
         <div className="flex items-center gap-3 shrink-0 ml-4">
-          <span className="px-2.5 py-1 rounded-full text-[10px] font-semibold border border-[rgba(212,162,78,0.2)] bg-[#D4A24E]/10 text-[#D4A24E]">
+          <span className="px-2.5 py-1 rounded-full text-[10px] font-semibold border border-[rgba(245,166,35,0.2)] bg-[#F5A623]/10 text-[#F5A623]">
             {completed}/{total} completados
           </span>
           {isExpanded
-            ? <ChevronUp className="w-4 h-4 text-[#F5F0E1]/30" />
-            : <ChevronDown className="w-4 h-4 text-[#F5F0E1]/30" />}
+            ? <ChevronUp className="w-4 h-4 text-[#FFFFFF]/30" />
+            : <ChevronDown className="w-4 h-4 text-[#FFFFFF]/30" />}
         </div>
       </button>
 
       {isExpanded && (
-        <div className="border-t border-[rgba(212,162,78,0.1)] divide-y divide-[rgba(212,162,78,0.06)]">
+        <div className="border-t border-[rgba(245,166,35,0.1)] divide-y divide-[rgba(245,166,35,0.06)]">
           {section.fields.map((field) => (
             <FieldItem
               key={field.key}
@@ -404,32 +404,32 @@ export default function ManualNegocio({ perfil, setCurrentPage }: ManualNegocioP
   return (
     <div className="max-w-4xl mx-auto space-y-4 pb-12">
       {/* Header with overall progress */}
-      <div className="card-panel border border-[rgba(212,162,78,0.2)] rounded-2xl p-6">
+      <div className="card-panel border border-[rgba(245,166,35,0.2)] rounded-2xl p-6">
         <h1
-          className="text-2xl font-bold text-[#F5F0E1] tracking-tight"
+          className="text-2xl font-bold text-[#FFFFFF] tracking-tight"
           style={{ fontFamily: 'var(--font-display)', fontStyle: 'italic' }}
         >
           ADN del Negocio
         </h1>
-        <p className="text-sm text-[#F5F0E1]/40 mt-1">
+        <p className="text-sm text-[#FFFFFF]/40 mt-1">
           Tu estrategia completa documentada con el metodo CLINICA
         </p>
 
         <div className="mt-5">
           <div className="flex justify-between items-center mb-2">
-            <span className="text-sm text-[#F5F0E1]/60">
+            <span className="text-sm text-[#FFFFFF]/60">
               ADN completado: {progressPct}%
             </span>
-            <span className="text-xs text-[#D4A24E] font-semibold">
+            <span className="text-xs text-[#F5A623] font-semibold">
               {totalCompleted}/{totalFields}
             </span>
           </div>
-          <div className="h-2 bg-[#F5F0E1]/5 rounded-full overflow-hidden">
+          <div className="h-2 bg-[#FFFFFF]/5 rounded-full overflow-hidden">
             <div
               className="h-full rounded-full transition-all duration-700"
               style={{
                 width: `${progressPct}%`,
-                backgroundColor: '#D4A24E',
+                backgroundColor: '#F5A623',
               }}
             />
           </div>

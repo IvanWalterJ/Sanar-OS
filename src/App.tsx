@@ -195,8 +195,8 @@ export default function App() {
   // ─── Loading state ──────────────────────────────────────────────────────────
   if (authState === 'loading') {
     return (
-      <div className="min-h-screen bg-[#080808] flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-[#D4A24E]/30 border-t-[#D4A24E] rounded-full animate-spin" />
+      <div className="min-h-screen bg-[#0A0A0A] flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-[#F5A623]/30 border-t-[#F5A623] rounded-full animate-spin" />
       </div>
     );
   }
@@ -226,10 +226,10 @@ export default function App() {
 
   // ─── Main app ────────────────────────────────────────────────────────────────
   return (
-    <div className="flex h-screen bg-[#080808] text-[#F5F0E1] overflow-hidden font-sans selection:bg-[#D4A24E]/30">
+    <div className="flex h-screen bg-[#0A0A0A] text-[#FFFFFF] overflow-hidden font-sans selection:bg-[#F5A623]/30">
       {/* Background Glow */}
-      <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] rounded-full bg-[#D4A24E]/10 blur-[120px] pointer-events-none" />
-      <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] rounded-full bg-[#D4A24E]/5 blur-[120px] pointer-events-none" />
+      <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] rounded-full bg-[#F5A623]/10 blur-[120px] pointer-events-none" />
+      <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] rounded-full bg-[#F5A623]/5 blur-[120px] pointer-events-none" />
 
       <Sidebar
         currentPage={currentPage}
@@ -277,12 +277,12 @@ export default function App() {
       {/* Settings Modal */}
       {showSettings && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="w-full max-w-2xl bg-[#1A1410] border border-[rgba(212,162,78,0.2)] rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
-            <div className="flex items-center justify-between p-6 border-b border-[rgba(212,162,78,0.2)]">
-              <h2 className="text-xl font-medium text-[#F5F0E1]">Ajustes de la Cuenta</h2>
+          <div className="w-full max-w-2xl bg-[#1C1C1C] border border-[rgba(245,166,35,0.2)] rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            <div className="flex items-center justify-between p-6 border-b border-[rgba(245,166,35,0.2)]">
+              <h2 className="text-xl font-medium text-[#FFFFFF]">Ajustes de la Cuenta</h2>
               <button
                 onClick={() => setShowSettings(false)}
-                className="text-[#F5F0E1]/60 hover:text-[#F5F0E1] transition-colors"
+                className="text-[#FFFFFF]/60 hover:text-[#FFFFFF] transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -290,7 +290,7 @@ export default function App() {
 
             <div className="flex flex-1 overflow-hidden">
               {/* Settings Sidebar */}
-              <div className="w-1/3 border-r border-[rgba(212,162,78,0.2)] p-4 space-y-2 bg-[#241A0C]/50 flex flex-col">
+              <div className="w-1/3 border-r border-[rgba(245,166,35,0.2)] p-4 space-y-2 bg-[#1C1C1C]/50 flex flex-col">
                 <div className="flex-1 space-y-2">
                   {([
                     { id: 'perfil' as SettingsTab, label: 'Perfil', icon: User },
@@ -303,8 +303,8 @@ export default function App() {
                       onClick={() => setSettingsTab(tab.id)}
                       className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-colors ${
                         settingsTab === tab.id
-                          ? 'bg-[#D4A24E]/10 text-[#D4A24E] font-medium'
-                          : 'text-[#F5F0E1]/60 hover:bg-[#D4A24E]/5 hover:text-[#F5F0E1]'
+                          ? 'bg-[#F5A623]/10 text-[#F5A623] font-medium'
+                          : 'text-[#FFFFFF]/60 hover:bg-[#F5A623]/5 hover:text-[#FFFFFF]'
                       }`}
                     >
                       <tab.icon className="w-4 h-4" /> {tab.label}
@@ -314,7 +314,7 @@ export default function App() {
                 {/* Sign out */}
                 <button
                   onClick={handleSignOut}
-                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm text-[#E85555] hover:bg-[#E85555]/10 transition-colors mt-auto"
+                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm text-[#EF4444] hover:bg-[#EF4444]/10 transition-colors mt-auto"
                 >
                   <LogOut className="w-4 h-4" /> Cerrar sesión
                 </button>
@@ -329,12 +329,12 @@ export default function App() {
                       <input ref={avatarInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} />
                       <button
                         onClick={() => avatarInputRef.current?.click()}
-                        className="relative group w-20 h-20 rounded-full border-2 border-dashed border-[rgba(212,162,78,0.3)] hover:border-[#D4A24E]/50 transition-colors overflow-hidden"
+                        className="relative group w-20 h-20 rounded-full border-2 border-dashed border-[rgba(245,166,35,0.3)] hover:border-[#F5A623]/50 transition-colors overflow-hidden"
                       >
                         {avatarUrl ? (
                           <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
                         ) : (
-                          <div className="w-full h-full bg-[#D4A24E]/10 flex items-center justify-center text-2xl font-bold text-[#D4A24E]">
+                          <div className="w-full h-full bg-[#F5A623]/10 flex items-center justify-center text-2xl font-bold text-[#F5A623]">
                             {(profileDraft.nombre || 'P').charAt(0).toUpperCase()}
                           </div>
                         )}
@@ -342,43 +342,43 @@ export default function App() {
                           <Camera className="w-6 h-6 text-white" />
                         </div>
                       </button>
-                      <p className="text-xs text-[#F5F0E1]/40">Clic para cambiar foto de perfil</p>
+                      <p className="text-xs text-[#FFFFFF]/40">Clic para cambiar foto de perfil</p>
                     </div>
                     <div>
-                      <h3 className="text-lg font-medium text-[#F5F0E1] mb-4">Información Personal</h3>
+                      <h3 className="text-lg font-medium text-[#FFFFFF] mb-4">Información Personal</h3>
                       <div className="space-y-4">
                         <div>
-                          <label className="block text-xs text-[#F5F0E1]/60 mb-1">Nombre Completo</label>
+                          <label className="block text-xs text-[#FFFFFF]/60 mb-1">Nombre Completo</label>
                           <input
                             type="text"
                             value={profileDraft.nombre}
                             onChange={e => setProfileDraft({ ...profileDraft, nombre: e.target.value })}
-                            className="w-full bg-black/20 border border-[rgba(212,162,78,0.2)] rounded-lg px-4 py-2.5 text-[#F5F0E1] focus:outline-none focus:border-[#D4A24E]/50"
+                            className="w-full bg-black/20 border border-[rgba(245,166,35,0.2)] rounded-lg px-4 py-2.5 text-[#FFFFFF] focus:outline-none focus:border-[#F5A623]/50"
                           />
                         </div>
                         <div>
-                          <label className="block text-xs text-[#F5F0E1]/60 mb-1">Correo Electrónico</label>
+                          <label className="block text-xs text-[#FFFFFF]/60 mb-1">Correo Electrónico</label>
                           <input
                             type="email"
                             value={profileDraft.email}
                             disabled
-                            className="w-full bg-black/20 border border-[rgba(212,162,78,0.2)] rounded-lg px-4 py-2.5 text-[#F5F0E1]/40 cursor-not-allowed"
+                            className="w-full bg-black/20 border border-[rgba(245,166,35,0.2)] rounded-lg px-4 py-2.5 text-[#FFFFFF]/40 cursor-not-allowed"
                           />
-                          <p className="text-xs text-[#F5F0E1]/30 mt-1">El email no se puede cambiar desde aquí</p>
+                          <p className="text-xs text-[#FFFFFF]/30 mt-1">El email no se puede cambiar desde aquí</p>
                         </div>
                         <div>
-                          <label className="block text-xs text-[#F5F0E1]/60 mb-1">Especialidad</label>
+                          <label className="block text-xs text-[#FFFFFF]/60 mb-1">Especialidad</label>
                           <input
                             type="text"
                             value={profileDraft.especialidad}
                             onChange={e => setProfileDraft({ ...profileDraft, especialidad: e.target.value })}
-                            className="w-full bg-black/20 border border-[rgba(212,162,78,0.2)] rounded-lg px-4 py-2.5 text-[#F5F0E1] focus:outline-none focus:border-[#D4A24E]/50"
+                            className="w-full bg-black/20 border border-[rgba(245,166,35,0.2)] rounded-lg px-4 py-2.5 text-[#FFFFFF] focus:outline-none focus:border-[#F5A623]/50"
                           />
                         </div>
                       </div>
                     </div>
-                    <div className="pt-6 border-t border-[rgba(212,162,78,0.2)] flex justify-end gap-3">
-                      <button onClick={() => setShowSettings(false)} className="px-5 py-2.5 rounded-xl text-sm font-medium text-[#F5F0E1]/60 hover:text-[#F5F0E1] transition-colors">
+                    <div className="pt-6 border-t border-[rgba(245,166,35,0.2)] flex justify-end gap-3">
+                      <button onClick={() => setShowSettings(false)} className="px-5 py-2.5 rounded-xl text-sm font-medium text-[#FFFFFF]/60 hover:text-[#FFFFFF] transition-colors">
                         Cancelar
                       </button>
                       <button onClick={saveProfile} className="btn-primary">
@@ -390,11 +390,11 @@ export default function App() {
 
                 {settingsTab === 'notificaciones' && (
                   <div className="space-y-6">
-                    <h3 className="text-lg font-medium text-[#F5F0E1] mb-4">Preferencias de Notificaciones</h3>
+                    <h3 className="text-lg font-medium text-[#FFFFFF] mb-4">Preferencias de Notificaciones</h3>
                     {['Recordatorios del diario', 'Mensajes del equipo', 'Recordatorios de tareas', 'Resumen semanal'].map((item, i) => (
-                      <label key={i} className="flex items-center justify-between py-3 border-b border-[rgba(212,162,78,0.1)]">
-                        <span className="text-sm text-[#F5F0E1]/80">{item}</span>
-                        <input type="checkbox" defaultChecked className="w-4 h-4 rounded accent-[#D4A24E]" />
+                      <label key={i} className="flex items-center justify-between py-3 border-b border-[rgba(245,166,35,0.1)]">
+                        <span className="text-sm text-[#FFFFFF]/80">{item}</span>
+                        <input type="checkbox" defaultChecked className="w-4 h-4 rounded accent-[#F5A623]" />
                       </label>
                     ))}
                   </div>
@@ -402,22 +402,22 @@ export default function App() {
 
                 {settingsTab === 'seguridad' && (
                   <div className="space-y-6">
-                    <h3 className="text-lg font-medium text-[#F5F0E1] mb-4">Seguridad</h3>
-                    <p className="text-sm text-[#F5F0E1]/60">Para cambiar tu contraseña, pedile a tu coach que te envíe un email de restablecimiento.</p>
+                    <h3 className="text-lg font-medium text-[#FFFFFF] mb-4">Seguridad</h3>
+                    <p className="text-sm text-[#FFFFFF]/60">Para cambiar tu contraseña, pedile a tu coach que te envíe un email de restablecimiento.</p>
                   </div>
                 )}
 
                 {settingsTab === 'facturacion' && (
                   <div className="space-y-6">
-                    <h3 className="text-lg font-medium text-[#F5F0E1] mb-4">Facturación</h3>
-                    <div className="bg-[#241A0C]/50 border border-[rgba(212,162,78,0.2)] p-4 rounded-xl">
+                    <h3 className="text-lg font-medium text-[#FFFFFF] mb-4">Facturación</h3>
+                    <div className="bg-[#1C1C1C]/50 border border-[rgba(245,166,35,0.2)] p-4 rounded-xl">
                       <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm text-[#F5F0E1]/80">Plan Actual</span>
-                        <span className="px-3 py-1 rounded-full bg-[#D4A24E]/20 text-[#D4A24E] text-xs font-medium">
+                        <span className="text-sm text-[#FFFFFF]/80">Plan Actual</span>
+                        <span className="px-3 py-1 rounded-full bg-[#F5A623]/20 text-[#F5A623] text-xs font-medium">
                           Tu Clínica Digital — {profile.plan}
                         </span>
                       </div>
-                      <p className="text-xs text-[#F5F0E1]/40">Programa de 90 días</p>
+                      <p className="text-xs text-[#FFFFFF]/40">Programa de 90 días</p>
                     </div>
                   </div>
                 )}

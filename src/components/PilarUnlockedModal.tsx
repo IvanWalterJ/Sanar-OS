@@ -77,7 +77,7 @@ export default function PilarUnlockedModal({
         {/* Close button */}
         <button
           onClick={handleClose}
-          className="absolute -top-2 -right-2 z-20 w-8 h-8 rounded-full bg-[#1A1410] border border-[rgba(212,162,78,0.3)] flex items-center justify-center text-[#F5F0E1]/40 hover:text-[#F5F0E1] transition-colors"
+          className="absolute -top-2 -right-2 z-20 w-8 h-8 rounded-full bg-[#141414] border border-[rgba(245,166,35,0.3)] flex items-center justify-center text-[#FFFFFF]/40 hover:text-[#FFFFFF] transition-colors"
         >
           <X className="w-4 h-4" />
         </button>
@@ -91,7 +91,7 @@ export default function PilarUnlockedModal({
         </div>
 
         {/* Content card */}
-        <div className="card-panel p-8 rounded-2xl border border-[rgba(212,162,78,0.4)]">
+        <div className="card-panel p-8 rounded-2xl border border-[rgba(245,166,35,0.4)]">
           {/* Badge */}
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[var(--accent-gold)]/15 border border-[var(--accent-gold)]/30 mb-4">
             <Sparkles className="w-4 h-4 text-[var(--accent-gold)]" />
@@ -102,7 +102,7 @@ export default function PilarUnlockedModal({
 
           {/* Title */}
           <h2
-            className="text-2xl font-medium text-[#F5F0E1] mb-2"
+            className="text-2xl font-medium text-[#FFFFFF] mb-2"
             style={{ fontFamily: 'var(--font-display)', fontStyle: 'italic' }}
           >
             Pilar {pilarNumero} completado
@@ -117,8 +117,8 @@ export default function PilarUnlockedModal({
           {/* Next pilar */}
           {pilarDesbloqueado ? (
             <div className="mb-6">
-              <p className="text-sm text-[#F5F0E1]/60 mb-1">Nuevo pilar desbloqueado:</p>
-              <p className="text-lg font-medium text-[#F5F0E1]">{pilarDesbloqueado}</p>
+              <p className="text-sm text-[#FFFFFF]/60 mb-1">Nuevo pilar desbloqueado:</p>
+              <p className="text-lg font-medium text-[#FFFFFF]">{pilarDesbloqueado}</p>
             </div>
           ) : (
             <div className="mb-6">

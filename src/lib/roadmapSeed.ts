@@ -66,7 +66,7 @@ export const SEED_ROADMAP_V3: RoadmapPilar[] = [
     numero_orden: 0,
     titulo: 'Onboarding',
     subtitulo: 'Bienvenida y ADN prototipo beta',
-    color: '#D4A24E',
+    color: '#F5A623',
     numero: 0,
     icon: 'Sprout',
     emoji: '🌱',
@@ -111,7 +111,7 @@ export const SEED_ROADMAP_V3: RoadmapPilar[] = [
     numero_orden: 1,
     titulo: 'Historia',
     subtitulo: 'Tu narrativa personal en 3 formatos',
-    color: '#D4A24E',
+    color: '#F5A623',
     numero: 1,
     icon: 'BookOpen',
     emoji: '📖',
@@ -179,7 +179,7 @@ export const SEED_ROADMAP_V3: RoadmapPilar[] = [
     numero_orden: 2,
     titulo: 'Propósito',
     subtitulo: 'El propósito como filtro de decisiones',
-    color: '#D4A24E',
+    color: '#F5A623',
     numero: 2,
     icon: 'Target',
     emoji: '🎯',
@@ -247,7 +247,7 @@ export const SEED_ROADMAP_V3: RoadmapPilar[] = [
     numero_orden: 3,
     titulo: 'Legado',
     subtitulo: 'Legado vs. éxito financiero',
-    color: '#D4A24E',
+    color: '#F5A623',
     numero: 3,
     icon: 'Sunrise',
     emoji: '🌅',
@@ -321,7 +321,7 @@ export const SEED_ROADMAP_V3: RoadmapPilar[] = [
     numero_orden: 4,
     titulo: 'Avatar',
     subtitulo: 'Tu paciente ideal desde datos reales',
-    color: '#D4A24E',
+    color: '#F5A623',
     numero: 4,
     icon: 'UserCircle',
     emoji: '👤',
@@ -389,7 +389,7 @@ export const SEED_ROADMAP_V3: RoadmapPilar[] = [
     numero_orden: 5,
     titulo: 'Nicho + USP',
     subtitulo: 'Nicho no es restricción, es amplificación',
-    color: '#D4A24E',
+    color: '#F5A623',
     numero: 5,
     icon: 'Lightbulb',
     emoji: '💡',
@@ -444,7 +444,7 @@ export const SEED_ROADMAP_V3: RoadmapPilar[] = [
     numero_orden: 6,
     titulo: 'Matriz A→B→C',
     subtitulo: 'Por qué el obstáculo es más importante que el dolor',
-    color: '#D4A24E',
+    color: '#F5A623',
     numero: 6,
     icon: 'Triangle',
     emoji: '🔺',
@@ -518,7 +518,7 @@ export const SEED_ROADMAP_V3: RoadmapPilar[] = [
     numero_orden: 7,
     titulo: 'Método',
     subtitulo: 'Tu método propio como activo diferenciador',
-    color: '#D4A24E',
+    color: '#F5A623',
     numero: 7,
     icon: 'Cog',
     emoji: '⚙️',
@@ -586,7 +586,7 @@ export const SEED_ROADMAP_V3: RoadmapPilar[] = [
     numero_orden: 8,
     titulo: 'Escalera de Ofertas',
     subtitulo: 'Los cuatro niveles de acceso a tu trabajo',
-    color: '#D4A24E',
+    color: '#F5A623',
     numero: 8,
     icon: 'Building2',
     emoji: '🏗️',
@@ -661,7 +661,7 @@ export const SEED_ROADMAP_V3: RoadmapPilar[] = [
     numero_orden: 9,
     titulo: 'Marketing',
     subtitulo: 'El embudo mínimo viable',
-    color: '#D4A24E',
+    color: '#F5A623',
     numero: 9,
     icon: 'Megaphone',
     emoji: '📣',
@@ -740,7 +740,7 @@ export const SEED_ROADMAP_V3: RoadmapPilar[] = [
     numero_orden: 10,
     titulo: 'Ventas',
     subtitulo: 'No estás vendiendo, estás evaluando',
-    color: '#D4A24E',
+    color: '#F5A623',
     numero: 9,
     icon: 'Phone',
     emoji: '📞',
@@ -806,7 +806,7 @@ export const SEED_ROADMAP_V3: RoadmapPilar[] = [
     numero_orden: 11,
     titulo: 'Servicio',
     subtitulo: 'Automatizar la entrega sin perder el toque personal',
-    color: '#D4A24E',
+    color: '#F5A623',
     numero: 9,
     icon: 'Handshake',
     emoji: '🤝',
@@ -865,7 +865,7 @@ export const SEED_ROADMAP_V3: RoadmapPilar[] = [
     numero_orden: 12,
     titulo: 'Identidad Visual',
     subtitulo: 'El sistema visual que expresa quién sos',
-    color: '#D4A24E',
+    color: '#F5A623',
     numero: 10,
     icon: 'Palette',
     emoji: '🎨',
@@ -924,7 +924,7 @@ export const SEED_ROADMAP_V3: RoadmapPilar[] = [
     numero_orden: 13,
     titulo: 'Análisis y Optimización',
     subtitulo: 'Retrospectiva y plan de ajuste',
-    color: '#D4A24E',
+    color: '#F5A623',
     numero: 11,
     icon: 'BarChart3',
     emoji: '📊',
@@ -1011,11 +1011,11 @@ export function colorEstadoPilar(
 ): string {
   switch (estado) {
     case 'completado':
-      return 'border-l-[3px] border-l-[#2DD4A0] bg-[#1A1410] border border-[rgba(212,162,78,0.2)]';
+      return 'border-l-[3px] border-l-[#22C55E] bg-[#141414] border border-[rgba(245,166,35,0.2)]';
     case 'en_progreso':
-      return 'border-l-[3px] border-l-[#D4A24E] bg-[#1A1410] border border-[rgba(212,162,78,0.2)]';
+      return 'border-l-[3px] border-l-[#F5A623] bg-[#141414] border border-[rgba(245,166,35,0.2)]';
     case 'bloqueado':
-      return 'opacity-40 cursor-not-allowed bg-[#1A1410] border border-[rgba(212,162,78,0.1)]';
+      return 'opacity-40 cursor-not-allowed bg-[#141414] border border-[rgba(245,166,35,0.1)]';
   }
 }
 

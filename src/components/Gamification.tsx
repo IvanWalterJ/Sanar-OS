@@ -111,31 +111,31 @@ export function TarjetaNivel({
     <div className={`bg-${cfg.color}-500/10 border border-${cfg.color}-500/25 rounded-2xl p-5 space-y-3`}>
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <cfg.icon className="w-8 h-8 text-[#D4A24E]" />
+          <cfg.icon className="w-8 h-8 text-[#F5A623]" />
           <div>
-            <p className="text-[10px] text-[#F5F0E1]/40 uppercase tracking-wider">Nivel {nivelActual} de 5</p>
+            <p className="text-[10px] text-[#FFFFFF]/40 uppercase tracking-wider">Nivel {nivelActual} de 5</p>
             <h3 className={`text-base font-medium text-${cfg.color}-300`}>{cfg.nombre}</h3>
           </div>
         </div>
         <div className="text-right">
-          <p className="text-xs text-[#F5F0E1]/40">Día</p>
-          <p className="text-lg font-light text-[#F5F0E1]">{diasEnPrograma}</p>
-          <p className="text-[10px] text-[#F5F0E1]/30">de 90</p>
+          <p className="text-xs text-[#FFFFFF]/40">Día</p>
+          <p className="text-lg font-light text-[#FFFFFF]">{diasEnPrograma}</p>
+          <p className="text-[10px] text-[#FFFFFF]/30">de 90</p>
         </div>
       </div>
-      <p className="text-xs text-[#F5F0E1]/60">{cfg.descripcion}</p>
+      <p className="text-xs text-[#FFFFFF]/60">{cfg.descripcion}</p>
       {siguiente && (
         <div className="flex items-center gap-2 pt-1">
-          <Lock className="w-3 h-3 text-[#F5F0E1]/30" />
-          <p className="text-[10px] text-[#F5F0E1]/40">
-            Próximo: <span className="text-[#F5F0E1]/60">{siguiente.nombre}</span>
+          <Lock className="w-3 h-3 text-[#FFFFFF]/30" />
+          <p className="text-[10px] text-[#FFFFFF]/40">
+            Próximo: <span className="text-[#FFFFFF]/60">{siguiente.nombre}</span>
           </p>
         </div>
       )}
       {nivelActual === 5 && (
-        <div className="flex items-center gap-2 bg-[#D4A24E]/10 border border-[#D4A24E]/20 rounded-xl px-3 py-2">
-          <Trophy className="w-4 h-4 text-[#D4A24E]" />
-          <p className="text-xs text-[#D4A24E] font-medium">¡Completaste el Método CLÍNICA!</p>
+        <div className="flex items-center gap-2 bg-[#F5A623]/10 border border-[#F5A623]/20 rounded-xl px-3 py-2">
+          <Trophy className="w-4 h-4 text-[#F5A623]" />
+          <p className="text-xs text-[#F5A623] font-medium">¡Completaste el Método CLÍNICA!</p>
         </div>
       )}
     </div>
@@ -174,25 +174,25 @@ export function GridBadgesPilares({
             badge.completado
               ? `bg-${badge.color}-500/20 border-${badge.color}-500/40`
               : badge.desbloqueado
-              ? 'bg-[#D4A24E]/5 border-[rgba(212,162,78,0.2)]'
-              : 'bg-[#D4A24E]/2 border-[rgba(212,162,78,0.1)] opacity-40'
+              ? 'bg-[#F5A623]/5 border-[rgba(245,166,35,0.2)]'
+              : 'bg-[#F5A623]/2 border-[rgba(245,166,35,0.1)] opacity-40'
           }`}
         >
           {/* Badge de completado */}
           {badge.completado && (
             <div className={`absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-${badge.color}-500 flex items-center justify-center`}>
-              <Star className="w-3 h-3 text-[#F5F0E1] fill-white" />
+              <Star className="w-3 h-3 text-[#FFFFFF] fill-white" />
             </div>
           )}
 
-          {(() => { const IconComp = PILAR_ICON_MAP[badge.icon]; return IconComp ? <IconComp className="w-5 h-5 text-[#D4A24E]" /> : null; })()}
-          <p className="text-[10px] text-[#F5F0E1]/60 text-center leading-tight font-medium">
+          {(() => { const IconComp = PILAR_ICON_MAP[badge.icon]; return IconComp ? <IconComp className="w-5 h-5 text-[#F5A623]" /> : null; })()}
+          <p className="text-[10px] text-[#FFFFFF]/60 text-center leading-tight font-medium">
             {badge.titulo}
           </p>
 
           {/* Mini barra */}
           {badge.desbloqueado && (
-            <div className="w-full h-1 bg-[#D4A24E]/10 rounded-full overflow-hidden">
+            <div className="w-full h-1 bg-[#F5A623]/10 rounded-full overflow-hidden">
               <div
                 className={`h-full bg-${badge.color}-500 rounded-full transition-all`}
                 style={{ width: `${badge.pct}%` }}
@@ -200,7 +200,7 @@ export function GridBadgesPilares({
             </div>
           )}
           {!badge.desbloqueado && (
-            <Lock className="w-3 h-3 text-[#F5F0E1]/30" />
+            <Lock className="w-3 h-3 text-[#FFFFFF]/30" />
           )}
         </div>
       ))}
@@ -258,8 +258,8 @@ export function ToastCelebracion({
     <div
       className={`fixed top-6 right-6 z-50 max-w-sm rounded-2xl shadow-2xl p-4 animate-in slide-in-from-right duration-300 ${
         isVenta
-          ? 'bg-[#D4A24E]/20 border border-[#D4A24E]/40 backdrop-blur-xl'
-          : 'bg-[#D4A24E]/20 border border-[#D4A24E]/30 backdrop-blur-xl'
+          ? 'bg-[#F5A623]/20 border border-[#F5A623]/40 backdrop-blur-xl'
+          : 'bg-[#F5A623]/20 border border-[#F5A623]/30 backdrop-blur-xl'
       }`}
     >
       <div className="flex items-start gap-3">
@@ -267,11 +267,11 @@ export function ToastCelebracion({
           {payload.tipo === 'primera_venta' ? '🎉' : payload.tipo === 'nivel' ? '⚡' : '✅'}
         </span>
         <div>
-          <p className={`text-sm font-medium ${isVenta ? 'text-[#D4A24E]' : 'text-[#F5F0E1]'}`}>
+          <p className={`text-sm font-medium ${isVenta ? 'text-[#F5A623]' : 'text-[#FFFFFF]'}`}>
             {mensaje}
           </p>
         </div>
-        <button onClick={onClose} className="shrink-0 text-[#F5F0E1]/60 hover:text-[#F5F0E1] text-lg leading-none ml-1">
+        <button onClick={onClose} className="shrink-0 text-[#FFFFFF]/60 hover:text-[#FFFFFF] text-lg leading-none ml-1">
           ×
         </button>
       </div>
@@ -293,18 +293,18 @@ export function PanelGamificacion({ progreso }: { progreso: ProgresoGamificacion
       <TarjetaNivel nivelActual={nivel} diasEnPrograma={progreso.diasEnPrograma} />
 
       <div className="card-panel p-5 rounded-2xl space-y-4">
-        <h3 className="text-xs font-medium text-[#F5F0E1]/60 uppercase tracking-wider flex items-center gap-2">
-          <Zap className="w-3.5 h-3.5 text-[#D4A24E]" />
+        <h3 className="text-xs font-medium text-[#FFFFFF]/60 uppercase tracking-wider flex items-center gap-2">
+          <Zap className="w-3.5 h-3.5 text-[#F5A623]" />
           Progreso global
         </h3>
         <div className="space-y-1.5">
-          <div className="flex justify-between text-xs text-[#F5F0E1]/40">
+          <div className="flex justify-between text-xs text-[#FFFFFF]/40">
             <span>{progreso.metasCompletadasTotal} de {progreso.metasTotalPrograma} metas</span>
-            <span className="font-medium text-[#F5F0E1]">{progreso.progresoPorcentaje}%</span>
+            <span className="font-medium text-[#FFFFFF]">{progreso.progresoPorcentaje}%</span>
           </div>
-          <div className="h-2 bg-[#D4A24E]/5 rounded-full overflow-hidden">
+          <div className="h-2 bg-[#F5A623]/5 rounded-full overflow-hidden">
             <div
-              className="h-full bg-[#D4A24E] rounded-full transition-all duration-1000"
+              className="h-full bg-[#F5A623] rounded-full transition-all duration-1000"
               style={{ width: `${progreso.progresoPorcentaje}%` }}
             />
           </div>

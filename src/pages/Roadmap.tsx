@@ -88,15 +88,15 @@ interface Props {
 function getTypeBadge(tipo: string) {
   switch (tipo) {
     case 'VIDEO':
-      return { icon: Play, label: 'VIDEO', color: 'text-[#D4A24E]', bg: 'bg-[#D4A24E]/10 border-[#D4A24E]/20' };
+      return { icon: Play, label: 'VIDEO', color: 'text-[#F5A623]', bg: 'bg-[#F5A623]/10 border-[#F5A623]/20' };
     case 'HERRAMIENTA':
-      return { icon: Wrench, label: 'HERRAMIENTA', color: 'text-[#2DD4A0]', bg: 'bg-[#2DD4A0]/10 border-[#2DD4A0]/20' };
+      return { icon: Wrench, label: 'HERRAMIENTA', color: 'text-[#22C55E]', bg: 'bg-[#22C55E]/10 border-[#22C55E]/20' };
     case 'COACH':
-      return { icon: MessageSquare, label: 'COACH', color: 'text-[#F5F0E1]/70', bg: 'bg-[#F5F0E1]/5 border-[#F5F0E1]/15' };
+      return { icon: MessageSquare, label: 'COACH', color: 'text-[#FFFFFF]/70', bg: 'bg-[#FFFFFF]/5 border-[#FFFFFF]/15' };
     case 'AGENTE':
       return { icon: Bot, label: 'AGENTE', color: 'text-purple-400', bg: 'bg-purple-500/10 border-purple-500/20' };
     default:
-      return { icon: FileText, label: tipo, color: 'text-[#F5F0E1]/50', bg: 'bg-[#F5F0E1]/5 border-[#F5F0E1]/10' };
+      return { icon: FileText, label: tipo, color: 'text-[#FFFFFF]/50', bg: 'bg-[#FFFFFF]/5 border-[#FFFFFF]/10' };
   }
 }
 
@@ -416,7 +416,7 @@ export default function Roadmap({ userId, perfil, geminiKey, onNavigate }: Props
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64 text-[#F5F0E1]/40 text-sm">
+      <div className="flex items-center justify-center h-64 text-[#FFFFFF]/40 text-sm">
         Cargando tu Hoja de Ruta...
       </div>
     );
@@ -427,7 +427,7 @@ export default function Roadmap({ userId, perfil, geminiKey, onNavigate }: Props
 
       {/* ── Notificación de celebración ── */}
       {celebracion && (
-        <div className="fixed top-6 right-6 z-50 bg-[#D4A24E]/90 backdrop-blur text-[#0A0804] text-sm font-medium px-5 py-3 rounded-2xl shadow-xl animate-in slide-in-from-right duration-300">
+        <div className="fixed top-6 right-6 z-50 bg-[#F5A623]/90 backdrop-blur text-[#0A0A0A] text-sm font-medium px-5 py-3 rounded-2xl shadow-xl animate-in slide-in-from-right duration-300">
           {celebracion}
         </div>
       )}
@@ -436,29 +436,29 @@ export default function Roadmap({ userId, perfil, geminiKey, onNavigate }: Props
       <div className="card-panel p-6 rounded-2xl space-y-4">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h1 className="text-3xl text-[#F5F0E1] flex items-center gap-3" style={{ fontFamily: 'var(--font-display)', fontStyle: 'italic' }}>
-              <MapIcon className="w-7 h-7 text-[#D4A24E]" /> Hoja de Ruta
+            <h1 className="text-3xl text-[#FFFFFF] flex items-center gap-3" style={{ fontFamily: 'var(--font-display)', fontStyle: 'italic' }}>
+              <MapIcon className="w-7 h-7 text-[#F5A623]" /> Hoja de Ruta
             </h1>
-            <p className="text-base text-[#F5F0E1]/60 mt-1">
+            <p className="text-base text-[#FFFFFF]/60 mt-1">
               Método CLÍNICA · 90 días · 14 pilares · Objetivo: $10,000 USD/mes
             </p>
           </div>
           <div className="shrink-0 text-right">
-            <p className="text-xs text-[#F5F0E1]/40 uppercase tracking-wider">Nivel actual</p>
-            <p className="text-sm font-medium text-[#D4A24E] mt-0.5">{nombreNivel}</p>
-            <p className="text-xs text-[#F5F0E1]/40">Nivel {nivel} de 5</p>
+            <p className="text-xs text-[#FFFFFF]/40 uppercase tracking-wider">Nivel actual</p>
+            <p className="text-sm font-medium text-[#F5A623] mt-0.5">{nombreNivel}</p>
+            <p className="text-xs text-[#FFFFFF]/40">Nivel {nivel} de 5</p>
           </div>
         </div>
 
         {/* Barra de progreso global */}
         <div className="space-y-1.5">
-          <div className="flex justify-between text-xs text-[#F5F0E1]/60">
+          <div className="flex justify-between text-xs text-[#FFFFFF]/60">
             <span>Progreso global</span>
             <span>{progresoPct}% — {totalCompletadas} de {TOTAL_METAS} metas</span>
           </div>
-          <div className="h-2 bg-[#D4A24E]/5 rounded-full overflow-hidden">
+          <div className="h-2 bg-[#F5A623]/5 rounded-full overflow-hidden">
             <div
-              className="h-full bg-gradient-to-r from-[#D4A24E] to-[#E2B865] rounded-full transition-all duration-1000"
+              className="h-full bg-gradient-to-r from-[#F5A623] to-[#FFB94D] rounded-full transition-all duration-1000"
               style={{ width: `${progresoPct}%` }}
             />
           </div>
@@ -466,19 +466,19 @@ export default function Roadmap({ userId, perfil, geminiKey, onNavigate }: Props
 
         {/* Indicadores rápidos */}
         <div className="grid grid-cols-3 gap-3">
-          <div className="bg-[#241A0C]/50 rounded-xl p-3 text-center">
-            <p className="text-lg font-light text-[#F5F0E1]">{perfil?.dia_programa ?? 1}</p>
-            <p className="text-[10px] text-[#F5F0E1]/40 uppercase tracking-wider">Día de prog.</p>
+          <div className="bg-[#1C1C1C]/50 rounded-xl p-3 text-center">
+            <p className="text-lg font-light text-[#FFFFFF]">{perfil?.dia_programa ?? 1}</p>
+            <p className="text-[10px] text-[#FFFFFF]/40 uppercase tracking-wider">Día de prog.</p>
           </div>
-          <div className="bg-[#241A0C]/50 rounded-xl p-3 text-center">
-            <p className="text-lg font-light text-[#F5F0E1]">{ventas.length}</p>
-            <p className="text-[10px] text-[#F5F0E1]/40 uppercase tracking-wider">Ventas registradas</p>
+          <div className="bg-[#1C1C1C]/50 rounded-xl p-3 text-center">
+            <p className="text-lg font-light text-[#FFFFFF]">{ventas.length}</p>
+            <p className="text-[10px] text-[#FFFFFF]/40 uppercase tracking-wider">Ventas registradas</p>
           </div>
-          <div className="bg-[#241A0C]/50 rounded-xl p-3 text-center">
-            <p className="text-lg font-light text-[#F5F0E1]">
+          <div className="bg-[#1C1C1C]/50 rounded-xl p-3 text-center">
+            <p className="text-lg font-light text-[#FFFFFF]">
               {pilaresConEstado.filter((p) => p.estado === 'completado').length}
             </p>
-            <p className="text-[10px] text-[#F5F0E1]/40 uppercase tracking-wider">Pilares completados</p>
+            <p className="text-[10px] text-[#FFFFFF]/40 uppercase tracking-wider">Pilares completados</p>
           </div>
         </div>
       </div>
@@ -494,21 +494,21 @@ export default function Roadmap({ userId, perfil, geminiKey, onNavigate }: Props
               {/* Encabezado de fase */}
               <div className="flex items-center gap-3 px-1">
                 <div className="flex-1">
-                  <p className="text-xs text-[#F5F0E1]/50 uppercase tracking-widest font-bold">
+                  <p className="text-xs text-[#FFFFFF]/50 uppercase tracking-widest font-bold">
                     {fase.titulo}
                     {fase.metodo_letra && (
-                      <span className="ml-2 text-[#D4A24E]">· Método {fase.metodo_letra}</span>
+                      <span className="ml-2 text-[#F5A623]">· Método {fase.metodo_letra}</span>
                     )}
                   </p>
-                  <p className="text-sm text-[#F5F0E1]/30">{fase.subtitulo} · {fase.dias}</p>
+                  <p className="text-sm text-[#FFFFFF]/30">{fase.subtitulo} · {fase.dias}</p>
                 </div>
               </div>
 
               {/* Banner de hito Día 45 (antes de Fase 4) */}
               {fase.fase === 4 && (
-                <div className="flex items-center gap-3 p-3 rounded-xl bg-[#D4A24E]/10 border border-[#D4A24E]/25">
-                  <Trophy className="w-4 h-4 text-[#D4A24E] shrink-0" />
-                  <p className="text-xs text-[#D4A24E] font-medium">
+                <div className="flex items-center gap-3 p-3 rounded-xl bg-[#F5A623]/10 border border-[#F5A623]/25">
+                  <Trophy className="w-4 h-4 text-[#F5A623] shrink-0" />
+                  <p className="text-xs text-[#F5A623] font-medium">
                     Punto de no retorno — Día 45 max. Sin el ADN base completo, los $10,000 USD/mes no son un objetivo realista.
                   </p>
                 </div>
@@ -531,22 +531,22 @@ export default function Roadmap({ userId, perfil, geminiKey, onNavigate }: Props
                       disabled={pilar.estado === 'bloqueado'}
                       className={`relative text-left p-5 rounded-2xl border transition-all duration-300 ${
                         pilar.estado === 'bloqueado'
-                          ? 'bg-[#241A0C]/50 border-[rgba(212,162,78,0.08)] cursor-not-allowed opacity-40'
+                          ? 'bg-[#1C1C1C]/50 border-[rgba(245,166,35,0.08)] cursor-not-allowed opacity-40'
                           : isSelected
-                          ? 'bg-[#D4A24E]/15 border-[#D4A24E]/50 shadow-lg shadow-[#D4A24E]/15 scale-[1.02]'
+                          ? 'bg-[#F5A623]/15 border-[#F5A623]/50 shadow-lg shadow-[#F5A623]/15 scale-[1.02]'
                           : pilar.estado === 'completado'
-                          ? 'bg-[#2DD4A0]/8 border-[#2DD4A0]/25 hover:bg-[#2DD4A0]/12'
-                          : 'bg-[#D4A24E]/5 border-[rgba(212,162,78,0.2)] hover:bg-[#D4A24E]/10 hover:border-[#D4A24E]/35'
+                          ? 'bg-[#22C55E]/8 border-[#22C55E]/25 hover:bg-[#22C55E]/12'
+                          : 'bg-[#F5A623]/5 border-[rgba(245,166,35,0.2)] hover:bg-[#F5A623]/10 hover:border-[#F5A623]/35'
                       }`}
                     >
                       <div className="flex items-start justify-between mb-2">
-                        {(() => { const IconComp = ICON_MAP[pilar.icon]; return IconComp ? <IconComp className="w-6 h-6 text-[#D4A24E]" /> : null; })()}
+                        {(() => { const IconComp = ICON_MAP[pilar.icon]; return IconComp ? <IconComp className="w-6 h-6 text-[#F5A623]" /> : null; })()}
                         <div className="flex items-center gap-1">
                           {pilar.es_hito && (
-                            <Trophy className="w-3 h-3 text-[#D4A24E]" />
+                            <Trophy className="w-3 h-3 text-[#F5A623]" />
                           )}
                           {pilar.estado === 'bloqueado' ? (
-                            <Lock className="w-3.5 h-3.5 text-[#F5F0E1]/30" />
+                            <Lock className="w-3.5 h-3.5 text-[#FFFFFF]/30" />
                           ) : pilar.estado === 'completado' ? (
                             <Trophy className="w-3.5 h-3.5 text-yellow-400" />
                           ) : (
@@ -554,18 +554,18 @@ export default function Roadmap({ userId, perfil, geminiKey, onNavigate }: Props
                           )}
                         </div>
                       </div>
-                      <p className="text-xs text-[#F5F0E1]/40 font-medium uppercase tracking-wider">
+                      <p className="text-xs text-[#FFFFFF]/40 font-medium uppercase tracking-wider">
                         Pilar {pilar.numero}
                       </p>
-                      <p className={`text-sm font-semibold mt-0.5 ${pilar.estado === 'bloqueado' ? 'text-[#F5F0E1]/30' : 'text-[#F5F0E1]'}`}>
+                      <p className={`text-sm font-semibold mt-0.5 ${pilar.estado === 'bloqueado' ? 'text-[#FFFFFF]/30' : 'text-[#FFFFFF]'}`}>
                         {pilar.titulo}
                       </p>
 
                       {/* Mini barra de progreso */}
                       {pilar.estado !== 'bloqueado' && (
-                        <div className="mt-3 h-1.5 bg-[#D4A24E]/10 rounded-full overflow-hidden">
+                        <div className="mt-3 h-1.5 bg-[#F5A623]/10 rounded-full overflow-hidden">
                           <div
-                            className={`h-full rounded-full transition-all duration-500 ${pilar.estado === 'completado' ? 'bg-[#2DD4A0]' : 'bg-[#D4A24E]'}`}
+                            className={`h-full rounded-full transition-all duration-500 ${pilar.estado === 'completado' ? 'bg-[#22C55E]' : 'bg-[#F5A623]'}`}
                             style={{ width: `${pilar.totalMetas === 0 ? 0 : Math.round((pilar.metasCompletadas / pilar.totalMetas) * 100)}%` }}
                           />
                         </div>
@@ -573,7 +573,7 @@ export default function Roadmap({ userId, perfil, geminiKey, onNavigate }: Props
 
                       {/* Condición de desbloqueo especial */}
                       {pilar.estado === 'bloqueado' && (
-                        <p className="text-[9px] text-[#F5F0E1]/30 mt-1.5 leading-tight">
+                        <p className="text-[9px] text-[#FFFFFF]/30 mt-1.5 leading-tight">
                           {pilar.desbloqueo === 'venta_real' && 'Requiere 1 venta real'}
                           {pilar.desbloqueo === 'qa_verde' && 'Requiere QA 24/24 ✓'}
                         </p>
@@ -595,21 +595,21 @@ export default function Roadmap({ userId, perfil, geminiKey, onNavigate }: Props
         return (
           <div ref={detalleRef} className="card-panel rounded-2xl animate-in fade-in slide-in-from-bottom-2 duration-300 scroll-mt-4">
             {/* Cabecera del pilar */}
-            <div className="p-6 border-b border-[rgba(212,162,78,0.1)]">
+            <div className="p-6 border-b border-[rgba(245,166,35,0.1)]">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  {(() => { const IconComp = ICON_MAP[pilar.icon]; return IconComp ? <IconComp className="w-8 h-8 text-[#D4A24E]" /> : null; })()}
+                  {(() => { const IconComp = ICON_MAP[pilar.icon]; return IconComp ? <IconComp className="w-8 h-8 text-[#F5A623]" /> : null; })()}
                   <div>
-                    <p className="text-sm text-[#D4A24E] uppercase tracking-wider font-bold">
+                    <p className="text-sm text-[#F5A623] uppercase tracking-wider font-bold">
                       Pilar {pilar.numero}
                     </p>
-                    <h2 className="text-xl text-[#F5F0E1]" style={{ fontFamily: 'var(--font-display)', fontStyle: 'italic' }}>{pilar.titulo}</h2>
-                    <p className="text-sm text-[#F5F0E1]/60">{pilar.subtitulo}</p>
+                    <h2 className="text-xl text-[#FFFFFF]" style={{ fontFamily: 'var(--font-display)', fontStyle: 'italic' }}>{pilar.titulo}</h2>
+                    <p className="text-sm text-[#FFFFFF]/60">{pilar.subtitulo}</p>
                   </div>
                 </div>
                 <button
                   onClick={() => setPilarAbierto(null)}
-                  className="text-[#F5F0E1]/40 hover:text-[#F5F0E1] transition-colors p-1"
+                  className="text-[#FFFFFF]/40 hover:text-[#FFFFFF] transition-colors p-1"
                 >
                   <ChevronUp className="w-5 h-5" />
                 </button>
@@ -617,13 +617,13 @@ export default function Roadmap({ userId, perfil, geminiKey, onNavigate }: Props
 
               {/* Progreso del pilar */}
               <div className="mt-4 space-y-1.5">
-                <div className="flex justify-between text-xs text-[#F5F0E1]/40">
+                <div className="flex justify-between text-xs text-[#FFFFFF]/40">
                   <span>{pilar.metasCompletadas} de {pilar.totalMetas} metas</span>
                   <span className="flex items-center gap-1">{pilar.estrellas_completadas} <Star className="w-3.5 h-3.5 text-yellow-400 fill-yellow-400 inline" /> completadas</span>
                 </div>
-                <div className="h-1.5 bg-[#D4A24E]/5 rounded-full overflow-hidden">
+                <div className="h-1.5 bg-[#F5A623]/5 rounded-full overflow-hidden">
                   <div
-                    className={`h-full rounded-full transition-all duration-700 ${pilar.estado === 'completado' ? 'bg-[#2DD4A0]' : 'bg-[#D4A24E]'}`}
+                    className={`h-full rounded-full transition-all duration-700 ${pilar.estado === 'completado' ? 'bg-[#22C55E]' : 'bg-[#F5A623]'}`}
                     style={{ width: `${pilar.totalMetas === 0 ? 0 : Math.round((pilar.metasCompletadas / pilar.totalMetas) * 100)}%` }}
                   />
                 </div>
@@ -631,9 +631,9 @@ export default function Roadmap({ userId, perfil, geminiKey, onNavigate }: Props
 
               {/* Aviso de desbloqueo especial */}
               {(pilar.desbloqueo === 'venta_real' || pilar.desbloqueo === 'qa_verde') && (
-                <div className="mt-3 flex items-start gap-2 bg-[#D4A24E]/10 border border-[#D4A24E]/20 rounded-xl px-3 py-2">
-                  <AlertCircle className="w-4 h-4 text-[#D4A24E] shrink-0 mt-0.5" />
-                  <p className="text-xs text-[#D4A24E]">
+                <div className="mt-3 flex items-start gap-2 bg-[#F5A623]/10 border border-[#F5A623]/20 rounded-xl px-3 py-2">
+                  <AlertCircle className="w-4 h-4 text-[#F5A623] shrink-0 mt-0.5" />
+                  <p className="text-xs text-[#F5A623]">
                     {pilar.desbloqueo === 'venta_real'
                       ? 'Este pilar se desbloqueó porque registraste tu primera venta real.'
                       : 'Este pilar se desbloqueó porque completaste el QA del embudo con 24/24 puntos verdes.'}
@@ -645,16 +645,16 @@ export default function Roadmap({ userId, perfil, geminiKey, onNavigate }: Props
               {pilar.hito_mensaje && pilar.estado === 'completado' && (
                 <div className={`mt-3 flex items-start gap-2 rounded-xl px-3 py-2 ${
                   pilar.hito_tipo === 'urgent'
-                    ? 'bg-[#E85555]/10 border border-[#E85555]/25'
+                    ? 'bg-[#EF4444]/10 border border-[#EF4444]/25'
                     : pilar.hito_tipo === 'checkpoint'
-                    ? 'bg-[#2DD4A0]/10 border border-[#2DD4A0]/25'
-                    : 'bg-[#D4A24E]/10 border border-[#D4A24E]/25'
+                    ? 'bg-[#22C55E]/10 border border-[#22C55E]/25'
+                    : 'bg-[#F5A623]/10 border border-[#F5A623]/25'
                 }`}>
                   <Trophy className={`w-4 h-4 shrink-0 mt-0.5 ${
-                    pilar.hito_tipo === 'urgent' ? 'text-[#E85555]' : pilar.hito_tipo === 'checkpoint' ? 'text-[#2DD4A0]' : 'text-[#D4A24E]'
+                    pilar.hito_tipo === 'urgent' ? 'text-[#EF4444]' : pilar.hito_tipo === 'checkpoint' ? 'text-[#22C55E]' : 'text-[#F5A623]'
                   }`} />
                   <p className={`text-xs font-medium ${
-                    pilar.hito_tipo === 'urgent' ? 'text-[#E85555]' : pilar.hito_tipo === 'checkpoint' ? 'text-[#2DD4A0]' : 'text-[#D4A24E]'
+                    pilar.hito_tipo === 'urgent' ? 'text-[#EF4444]' : pilar.hito_tipo === 'checkpoint' ? 'text-[#22C55E]' : 'text-[#F5A623]'
                   }`}>
                     {pilar.hito_mensaje}
                   </p>
@@ -685,26 +685,26 @@ export default function Roadmap({ userId, perfil, geminiKey, onNavigate }: Props
                       }}
                       className={`group flex items-start gap-4 p-4 rounded-xl transition-all border ${
                         !unlocked
-                          ? 'opacity-40 cursor-not-allowed bg-[#241A0C]/20 border-[rgba(212,162,78,0.05)]'
+                          ? 'opacity-40 cursor-not-allowed bg-[#1C1C1C]/20 border-[rgba(245,166,35,0.05)]'
                           : estaCompletada
-                          ? 'bg-[#2DD4A0]/5 border-[#2DD4A0]/15 cursor-pointer'
+                          ? 'bg-[#22C55E]/5 border-[#22C55E]/15 cursor-pointer'
                           : isActive
-                          ? 'bg-[#D4A24E]/10 border-[#D4A24E]/30 cursor-pointer'
-                          : 'bg-[#241A0C]/30 border-[rgba(212,162,78,0.1)] hover:bg-[#241A0C]/60 hover:border-[rgba(212,162,78,0.2)] cursor-pointer'
+                          ? 'bg-[#F5A623]/10 border-[#F5A623]/30 cursor-pointer'
+                          : 'bg-[#1C1C1C]/30 border-[rgba(245,166,35,0.1)] hover:bg-[#1C1C1C]/60 hover:border-[rgba(245,166,35,0.2)] cursor-pointer'
                       }`}
                     >
                       <div className="shrink-0 mt-0.5">
                         {!unlocked ? (
-                          <Lock className="w-5 h-5 text-[#F5F0E1]/20" />
+                          <Lock className="w-5 h-5 text-[#FFFFFF]/20" />
                         ) : estaCompletada ? (
-                          <CheckCircle2 className="w-5 h-5 text-[#2DD4A0]" />
+                          <CheckCircle2 className="w-5 h-5 text-[#22C55E]" />
                         ) : (
-                          <Circle className="w-5 h-5 text-[#F5F0E1]/30 group-hover:text-[#F5F0E1]/60 transition-colors" />
+                          <Circle className="w-5 h-5 text-[#FFFFFF]/30 group-hover:text-[#FFFFFF]/60 transition-colors" />
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1 flex-wrap">
-                          <span className="text-[10px] font-mono text-[#F5F0E1]/40 bg-[#D4A24E]/5 px-2 py-0.5 rounded">
+                          <span className="text-[10px] font-mono text-[#FFFFFF]/40 bg-[#F5A623]/5 px-2 py-0.5 rounded">
                             {meta.codigo}
                           </span>
                           {/* Type badge */}
@@ -715,19 +715,19 @@ export default function Roadmap({ userId, perfil, geminiKey, onNavigate }: Props
                             <Star className="w-3 h-3 text-yellow-400 fill-yellow-400" />
                           )}
                           {tieneOutput && (
-                            <FileText className="w-3 h-3 text-[#2DD4A0]" />
+                            <FileText className="w-3 h-3 text-[#22C55E]" />
                           )}
                         </div>
-                        <p className={`text-base font-medium ${estaCompletada ? 'text-[#F5F0E1]/40 line-through' : 'text-[#F5F0E1]'}`}>
+                        <p className={`text-base font-medium ${estaCompletada ? 'text-[#FFFFFF]/40 line-through' : 'text-[#FFFFFF]'}`}>
                           {meta.titulo}
                         </p>
                         {!isActive && (
-                          <p className="text-sm text-[#F5F0E1]/40 mt-1 leading-relaxed line-clamp-2">
+                          <p className="text-sm text-[#FFFFFF]/40 mt-1 leading-relaxed line-clamp-2">
                             {meta.descripcion}
                           </p>
                         )}
                         <div className="flex items-center gap-3 mt-2">
-                          <span className="text-xs text-[#F5F0E1]/30 font-medium">
+                          <span className="text-xs text-[#FFFFFF]/30 font-medium">
                             {meta.tiempo_estimado}
                           </span>
                           {meta.es_estrella && (
@@ -736,7 +736,7 @@ export default function Roadmap({ userId, perfil, geminiKey, onNavigate }: Props
                             </span>
                           )}
                           {!unlocked && (
-                            <span className="text-xs text-[#F5F0E1]/30 font-medium flex items-center gap-1">
+                            <span className="text-xs text-[#FFFFFF]/30 font-medium flex items-center gap-1">
                               <Lock className="w-3 h-3" /> Completá la tarea anterior primero
                             </span>
                           )}
@@ -746,7 +746,7 @@ export default function Roadmap({ userId, perfil, geminiKey, onNavigate }: Props
 
                     {/* ── Inline task panel ── */}
                     {isActive && unlocked && (
-                      <div ref={taskRef} className="mt-3 card-panel p-6 rounded-2xl border border-[rgba(212,162,78,0.2)] animate-in fade-in slide-in-from-top-2 duration-300">
+                      <div ref={taskRef} className="mt-3 card-panel p-6 rounded-2xl border border-[rgba(245,166,35,0.2)] animate-in fade-in slide-in-from-top-2 duration-300">
                         {meta.tipo === 'VIDEO' && (
                           <TaskVideo
                             meta={meta}
@@ -792,11 +792,11 @@ export default function Roadmap({ userId, perfil, geminiKey, onNavigate }: Props
               <div className="px-4 pb-4">
                 <div className={`text-xs rounded-xl px-4 py-3 border ${
                   pilar.estrellas_completadas >= pilar.metas.filter((m) => m.es_estrella).length
-                    ? 'bg-[#2DD4A0]/10 border-[#2DD4A0]/20 text-[#2DD4A0]'
-                    : 'bg-[#241A0C]/50 border-[rgba(212,162,78,0.08)] text-[#F5F0E1]/40'
+                    ? 'bg-[#22C55E]/10 border-[#22C55E]/20 text-[#22C55E]'
+                    : 'bg-[#1C1C1C]/50 border-[rgba(245,166,35,0.08)] text-[#FFFFFF]/40'
                 }`}>
                   {pilar.estrellas_completadas >= pilar.metas.filter((m) => m.es_estrella).length
-                    ? <span className="flex items-center gap-1.5"><CheckCircle2 className="w-3.5 h-3.5 text-[#2DD4A0] inline shrink-0" /> Pilar {pilar.numero + 1} desbloqueado — todas las metas completadas</span>
+                    ? <span className="flex items-center gap-1.5"><CheckCircle2 className="w-3.5 h-3.5 text-[#22C55E] inline shrink-0" /> Pilar {pilar.numero + 1} desbloqueado — todas las metas completadas</span>
                     : <span className="flex items-center gap-1.5"><Star className="w-3.5 h-3.5 text-yellow-400 fill-yellow-400 inline shrink-0" /> Completa {pilar.metas.filter((m) => m.es_estrella).length - pilar.estrellas_completadas} metas mas para desbloquear el Pilar {pilar.numero + 1}</span>}
                 </div>
               </div>

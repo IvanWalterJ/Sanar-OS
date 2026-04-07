@@ -7,20 +7,20 @@ import TaskDetailModal from '../components/TaskDetailModal';
 
 function getTypeBadge(tipo?: string) {
   switch (tipo) {
-    case 'VIDEO': return 'bg-[#D4A24E]/15 text-[#D4A24E] border-[#D4A24E]/25';
-    case 'HERRAMIENTA': return 'bg-[#2DD4A0]/15 text-[#2DD4A0] border-[#2DD4A0]/25';
-    case 'COACH': return 'bg-[#F5F0E1]/10 text-[#F5F0E1]/70 border-[#F5F0E1]/15';
+    case 'VIDEO': return 'bg-[#F5A623]/15 text-[#F5A623] border-[#F5A623]/25';
+    case 'HERRAMIENTA': return 'bg-[#22C55E]/15 text-[#22C55E] border-[#22C55E]/25';
+    case 'COACH': return 'bg-[#FFFFFF]/10 text-[#FFFFFF]/70 border-[#FFFFFF]/15';
     case 'AGENTE': return 'bg-purple-500/15 text-purple-400 border-purple-500/25';
-    default: return 'bg-[#F5F0E1]/5 text-[#F5F0E1]/50 border-[#F5F0E1]/10';
+    default: return 'bg-[#FFFFFF]/5 text-[#FFFFFF]/50 border-[#FFFFFF]/10';
   }
 }
 
 function MetricCard({ label, value, sub }: { label: string; value: string; sub: string }) {
   return (
     <div className="card-panel p-5">
-      <p className="text-[10px] text-[#F5F0E1]/40 uppercase tracking-widest mb-2 font-semibold">{label}</p>
-      <p className="text-2xl font-light text-[#F5F0E1] tracking-tight">{value}</p>
-      <p className="text-xs text-[#F5F0E1]/50 mt-1">{sub}</p>
+      <p className="text-[10px] text-[#FFFFFF]/40 uppercase tracking-widest mb-2 font-semibold">{label}</p>
+      <p className="text-2xl font-light text-[#FFFFFF] tracking-tight">{value}</p>
+      <p className="text-xs text-[#FFFFFF]/50 mt-1">{sub}</p>
     </div>
   );
 }
@@ -205,14 +205,14 @@ export default function Dashboard({ setCurrentPage, userId }: { setCurrentPage: 
     <div className="max-w-4xl mx-auto space-y-6 pb-12 animate-in fade-in duration-500">
 
       {/* ZONA A — Header contextual */}
-      <div className="relative overflow-hidden card-panel p-8 border border-[#D4A24E]/20 bg-gradient-to-br from-[#D4A24E]/[0.05] to-transparent">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-[#D4A24E]/10 blur-[100px] rounded-full" />
+      <div className="relative overflow-hidden card-panel p-8 border border-[#F5A623]/20 bg-gradient-to-br from-[#F5A623]/[0.05] to-transparent">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-[#F5A623]/10 blur-[100px] rounded-full" />
         <div className="relative z-10">
-          <p className="text-2xl font-light text-[#F5F0E1] mb-2" style={{ fontFamily: 'var(--font-display)', fontStyle: 'italic' }}>Buenos días, {nombreDisplay}.</p>
-          <p className="text-sm text-[#F5F0E1]/60 max-w-lg mb-6 leading-relaxed">
-            Estás en la <strong className="text-[#F5F0E1]/90">Semana {data.semanaActual} de 13</strong>. Tenés <strong className="text-[#D4A24E]">{data.tareasHoy.length} {data.tareasHoy.length === 1 ? 'tarea pendiente' : 'tareas pendientes'}</strong> para avanzar con tu ADN.
+          <p className="text-2xl font-light text-[#FFFFFF] mb-2" style={{ fontFamily: 'var(--font-display)', fontStyle: 'italic' }}>Buenos días, {nombreDisplay}.</p>
+          <p className="text-sm text-[#FFFFFF]/60 max-w-lg mb-6 leading-relaxed">
+            Estás en la <strong className="text-[#FFFFFF]/90">Semana {data.semanaActual} de 13</strong>. Tenés <strong className="text-[#F5A623]">{data.tareasHoy.length} {data.tareasHoy.length === 1 ? 'tarea pendiente' : 'tareas pendientes'}</strong> para avanzar con tu ADN.
           </p>
-          <button onClick={() => setCurrentPage('roadmap')} className="text-[11px] font-bold text-[#D4A24E] hover:text-[#E2B865] transition-colors flex items-center gap-1.5 uppercase tracking-widest bg-[#D4A24E]/10 px-4 py-2 rounded-lg border border-[#D4A24E]/20 w-max">
+          <button onClick={() => setCurrentPage('roadmap')} className="text-[11px] font-bold text-[#F5A623] hover:text-[#FFB94D] transition-colors flex items-center gap-1.5 uppercase tracking-widest bg-[#F5A623]/10 px-4 py-2 rounded-lg border border-[#F5A623]/20 w-max">
             Ver hoja de ruta <ChevronRight className="w-3.5 h-3.5" />
           </button>
         </div>
@@ -231,42 +231,42 @@ export default function Dashboard({ setCurrentPage, userId }: { setCurrentPage: 
         {/* Foco de Hoy (60%) */}
         <div className="lg:col-span-7 card-panel p-6">
           <div className="flex justify-between items-center mb-6">
-            <h2 className="text-[11px] font-bold text-[#F5F0E1] tracking-widest uppercase">Tu foco de hoy</h2>
-            <button onClick={() => setCurrentPage('roadmap')} className="text-[10px] text-[#F5F0E1]/40 hover:text-[#D4A24E] uppercase font-bold tracking-wider transition-colors">
+            <h2 className="text-[11px] font-bold text-[#FFFFFF] tracking-widest uppercase">Tu foco de hoy</h2>
+            <button onClick={() => setCurrentPage('roadmap')} className="text-[10px] text-[#FFFFFF]/40 hover:text-[#F5A623] uppercase font-bold tracking-wider transition-colors">
               Ir a tareas →
             </button>
           </div>
 
           <div className="space-y-3">
             {data.tareasHoy.length === 0 ? (
-              <div className="py-10 text-center border border-dashed border-[rgba(212,162,78,0.15)] rounded-xl bg-[#241A0C]/30">
-                <CheckCircle2 className="w-8 h-8 text-[#2DD4A0]/50 mx-auto mb-3" />
-                <p className="text-sm text-[#F5F0E1]/60">Todo al día. Estás libre.</p>
-                <p className="text-xs text-[#F5F0E1]/30 mt-1">Revisá tu hoja de ruta para ver los próximos pilares.</p>
+              <div className="py-10 text-center border border-dashed border-[rgba(245,166,35,0.15)] rounded-xl bg-[#1C1C1C]/30">
+                <CheckCircle2 className="w-8 h-8 text-[#22C55E]/50 mx-auto mb-3" />
+                <p className="text-sm text-[#FFFFFF]/60">Todo al día. Estás libre.</p>
+                <p className="text-xs text-[#FFFFFF]/30 mt-1">Revisá tu hoja de ruta para ver los próximos pilares.</p>
               </div>
             ) : data.tareasHoy.map((t, idx) => (
               <div
                 key={idx}
-                className="group flex items-start gap-4 p-4 rounded-xl bg-[#241A0C]/30 border border-[rgba(212,162,78,0.1)] hover:bg-[#241A0C]/60 hover:border-[rgba(212,162,78,0.25)] transition-all cursor-pointer"
+                className="group flex items-start gap-4 p-4 rounded-xl bg-[#1C1C1C]/30 border border-[rgba(245,166,35,0.1)] hover:bg-[#1C1C1C]/60 hover:border-[rgba(245,166,35,0.25)] transition-all cursor-pointer"
                 onClick={() => setSelectedTask(t)}
               >
                 <div className="shrink-0 mt-0.5">
-                  <div className="w-5 h-5 rounded-full border border-[#F5F0E1]/20 group-hover:border-[#D4A24E] transition-colors flex items-center justify-center">
-                    <div className="w-1.5 h-1.5 bg-transparent group-hover:bg-[#D4A24E] rounded-full" />
+                  <div className="w-5 h-5 rounded-full border border-[#FFFFFF]/20 group-hover:border-[#F5A623] transition-colors flex items-center justify-center">
+                    <div className="w-1.5 h-1.5 bg-transparent group-hover:bg-[#F5A623] rounded-full" />
                   </div>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-[#F5F0E1]/90">{t.titulo}</p>
-                  <p className="text-[10px] text-[#F5F0E1]/40 mt-1">{t.pilarTitulo}</p>
+                  <p className="text-sm font-medium text-[#FFFFFF]/90">{t.titulo}</p>
+                  <p className="text-[10px] text-[#FFFFFF]/40 mt-1">{t.pilarTitulo}</p>
                   <div className="flex flex-wrap items-center gap-3 mt-3">
                     <span className={`text-[9px] uppercase font-bold px-2 py-0.5 rounded-full border tracking-wider ${getTypeBadge(t.tipo)}`}>
                       {t.tipo || `Pilar ${t.pilarNumero}`}
                     </span>
-                    <span className="text-[10px] text-[#F5F0E1]/40 flex items-center gap-1 font-medium">
+                    <span className="text-[10px] text-[#FFFFFF]/40 flex items-center gap-1 font-medium">
                       <Clock className="w-3 h-3" /> {t.tiempo_estimado || '15–30 min'}
                     </span>
                     {(t.herramienta_id || t.agente_id) && (
-                      <span className="text-[9px] text-[#D4A24E] font-bold uppercase tracking-wider">Ver herramienta →</span>
+                      <span className="text-[9px] text-[#F5A623] font-bold uppercase tracking-wider">Ver herramienta →</span>
                     )}
                   </div>
                 </div>
@@ -275,72 +275,99 @@ export default function Dashboard({ setCurrentPage, userId }: { setCurrentPage: 
           </div>
         </div>
 
-        {/* Próximo Hito (40%) */}
-        <div className="lg:col-span-5 card-panel p-6 relative overflow-hidden flex flex-col justify-between border-[#D4A24E]/15 bg-gradient-to-br from-[#D4A24E]/[0.03] to-transparent">
-          <div className="absolute -top-10 -right-10 w-40 h-40 bg-[#D4A24E]/10 blur-[50px] rounded-full" />
+        {/* Inspiración del Día */}
+        <div className="lg:col-span-5 card-panel p-6 relative overflow-hidden flex flex-col justify-between border-[#F5A623]/15 bg-gradient-to-br from-[#F5A623]/[0.05] to-transparent">
+          <div className="absolute -top-10 -right-10 w-40 h-40 bg-[#F5A623]/10 blur-[50px] rounded-full" />
+          <div className="absolute bottom-0 left-0 w-32 h-32 bg-[#22C55E]/5 blur-[40px] rounded-full" />
 
-          {proximoHito ? (
-            <>
-              <div className="relative z-10">
-                {/* Header with day counter */}
-                <div className="flex items-center justify-between mb-5">
-                  <h2 className="text-[11px] font-bold text-[#D4A24E] tracking-widest uppercase flex items-center gap-2">
-                    <span className="w-1.5 h-1.5 rounded-full bg-[#D4A24E] animate-pulse ring-4 ring-[#D4A24E]/20" /> Próximo hito
-                  </h2>
-                  <div className="flex items-center gap-1.5 bg-[#D4A24E]/10 px-3 py-1 rounded-full border border-[#D4A24E]/20">
-                    <Sparkles className="w-3 h-3 text-[#D4A24E]" />
-                    <span className="text-[10px] font-bold text-[#D4A24E]">Día {proximoHito.diaPrograma}/90</span>
-                  </div>
-                </div>
-
-                {/* Pilar title */}
-                <p className="text-xl font-medium text-[#F5F0E1] mb-1 line-clamp-2 leading-tight" style={{ fontFamily: 'var(--font-display)', fontStyle: 'italic' }}>{proximoHito.titulo}</p>
-                <p className="text-xs text-[#F5F0E1]/40 mb-4">{proximoHito.subtitulo}</p>
-
-                {/* Pending tasks mini-list */}
-                {proximoHito.tareasRestantes.length > 0 && (
-                  <div className="space-y-2 mb-4">
-                    {proximoHito.tareasRestantes.map((t, i) => (
-                      <div key={i} className="flex items-center gap-2.5 py-1.5 px-3 rounded-lg bg-[#F5F0E1]/[0.03] border border-[#F5F0E1]/[0.06]">
-                        {t.tipo === 'VIDEO' && <Play className="w-3 h-3 text-[#D4A24E] shrink-0" />}
-                        {t.tipo === 'HERRAMIENTA' && <Wrench className="w-3 h-3 text-[#2DD4A0] shrink-0" />}
-                        {t.tipo === 'COACH' && <MessageCircle className="w-3 h-3 text-[#F5F0E1]/60 shrink-0" />}
-                        {t.tipo === 'AGENTE' && <Bot className="w-3 h-3 text-purple-400 shrink-0" />}
-                        {!t.tipo && <Target className="w-3 h-3 text-[#F5F0E1]/40 shrink-0" />}
-                        <span className="text-[11px] text-[#F5F0E1]/70 truncate">{t.titulo}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {/* Motivational quote if available */}
-                {proximoHito.hitoMensaje && (
-                  <div className="px-3 py-2 rounded-lg border-l-2 border-[#D4A24E]/40 bg-[#D4A24E]/[0.04] mb-4">
-                    <p className="text-[11px] text-[#F5F0E1]/50 italic leading-relaxed">{proximoHito.hitoMensaje}</p>
-                  </div>
-                )}
+          <div className="relative z-10">
+            <div className="flex items-center justify-between mb-5">
+              <h2 className="text-[11px] font-bold text-[#F5A623] tracking-widest uppercase flex items-center gap-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#F5A623] ring-4 ring-[#F5A623]/20" /> Inspiración del día
+              </h2>
+              <div className="flex items-center gap-1.5 bg-[#F5A623]/10 px-3 py-1 rounded-full border border-[#F5A623]/20">
+                <Sparkles className="w-3 h-3 text-[#F5A623]" />
+                <span className="text-[10px] font-bold text-[#F5A623]">Día {proximoHito?.diaPrograma ?? 1}/90</span>
               </div>
-
-              {/* Progress bar */}
-              <div className="relative z-10">
-                <div className="flex justify-between items-center mb-3">
-                  <span className="text-[10px] text-[#F5F0E1]/50 font-bold uppercase tracking-wider">Progreso del pilar</span>
-                  <span className="text-[10px] text-[#F5F0E1] bg-[#F5F0E1]/10 px-2 py-0.5 rounded-full">
-                    {tareasRestantesHito === 0 ? 'Completado' : `${proximoHito.metasCompletadas}/${proximoHito.metasTotal}`}
-                  </span>
-                </div>
-                <div className="h-2 bg-[#F5F0E1]/5 rounded-full overflow-hidden">
-                  <div className="h-full bg-[#D4A24E] rounded-full transition-all duration-500" style={{ width: `${pctHito}%` }} />
-                </div>
-              </div>
-            </>
-          ) : (
-            <div className="flex flex-col items-center justify-center h-full text-center py-6">
-              <Target className="w-10 h-10 text-[#2DD4A0]/50 mx-auto mb-3" />
-              <p className="text-sm font-medium text-[#2DD4A0]">Programa completado</p>
-              <p className="text-xs text-[#F5F0E1]/40 mt-1 max-w-[180px]">Completaste todos los pilares del programa.</p>
             </div>
-          )}
+
+            {(() => {
+              const QUOTES = [
+                { text: "El éxito no se mide por lo que lográs, sino por los obstáculos que superás.", author: "Booker T. Washington" },
+                { text: "La mejor manera de predecir el futuro es creándolo.", author: "Peter Drucker" },
+                { text: "No esperes las condiciones perfectas. Empezá con lo que tenés.", author: "Arthur Ashe" },
+                { text: "Tu consultorio es tu empresa. Tratalo como tal y los resultados van a cambiar.", author: "Método CLÍNICA" },
+                { text: "El profesional que domina su negocio, libera tiempo para su vocación.", author: "Método CLÍNICA" },
+                { text: "Cada paciente que llega es el resultado de un sistema, no de la suerte.", author: "Método CLÍNICA" },
+                { text: "La disciplina es el puente entre las metas y los logros.", author: "Jim Rohn" },
+                { text: "No se trata de trabajar más horas, sino de construir mejores sistemas.", author: "Método CLÍNICA" },
+                { text: "Lo que no se mide, no se mejora. Lo que no se mejora, se deteriora.", author: "William Thomson" },
+                { text: "El precio es lo que pagás. El valor es lo que recibís.", author: "Warren Buffett" },
+                { text: "Un sistema sin ventas es un hobby. Un profesional sin sistema está atrapado.", author: "Método CLÍNICA" },
+                { text: "El liderazgo es la capacidad de traducir visión en realidad.", author: "Warren Bennis" },
+                { text: "Automatizar lo repetitivo te libera para lo que realmente importa: tus pacientes.", author: "Método CLÍNICA" },
+                { text: "La clave no es priorizar tu agenda, sino agendar tus prioridades.", author: "Stephen Covey" },
+                { text: "Tu historia personal es tu mayor activo de marketing. Contala.", author: "Método CLÍNICA" },
+                { text: "Hacé lo que tenés que hacer hasta que puedas hacer lo que querés hacer.", author: "Oprah Winfrey" },
+                { text: "El emprendedor siempre busca el cambio, responde a él y lo explota como una oportunidad.", author: "Peter Drucker" },
+                { text: "Si tu oferta no es irresistible, el problema no es el mercado. Es la oferta.", author: "Método CLÍNICA" },
+                { text: "La simplicidad es la máxima sofisticación.", author: "Leonardo da Vinci" },
+                { text: "Tu legado profesional se construye una decisión a la vez.", author: "Método CLÍNICA" },
+                { text: "Primero te ignoran, después se ríen de vos, después pelean con vos, y entonces ganás.", author: "Mahatma Gandhi" },
+                { text: "La confianza en uno mismo es el primer secreto del éxito.", author: "Ralph Waldo Emerson" },
+                { text: "Un paciente bien atendido es la mejor estrategia de captación.", author: "Método CLÍNICA" },
+                { text: "La innovación distingue al líder del seguidor.", author: "Steve Jobs" },
+                { text: "No necesitás más pacientes. Necesitás un mejor sistema para los que ya tenés.", author: "Método CLÍNICA" },
+                { text: "Invertir en vos mismo es la mejor inversión que jamás harás.", author: "Warren Buffett" },
+                { text: "El secreto de avanzar es empezar.", author: "Mark Twain" },
+                { text: "Cada día que construís tu sistema es un día menos de depender de la suerte.", author: "Método CLÍNICA" },
+                { text: "El que tiene un porqué para vivir puede soportar casi cualquier cómo.", author: "Friedrich Nietzsche" },
+                { text: "Tu clínica digital no es un gasto. Es la infraestructura de tu libertad.", author: "Método CLÍNICA" },
+              ];
+              const TIPS = [
+                "Completá tu diario hoy — 5 minutos que transforman tu semana.",
+                "Revisá tus métricas semanales para saber qué ajustar.",
+                "Definí tu oferta irresistible antes de invertir en publicidad.",
+                "Tu avatar ideal determina toda tu comunicación. ¿Ya lo tenés claro?",
+                "El seguimiento post-consulta es donde se ganan las recomendaciones.",
+                "Medí tu tasa de cierre: ¿cuántos leads se convierten en pacientes?",
+                "Un embudo simple y funcional vale más que uno complejo sin resultados.",
+                "Escribí tu historia en 3 formatos: 300, 150 y 50 palabras.",
+                "Tu propósito es tu filtro de decisiones. Todo lo demás es ruido.",
+                "Cada tarea completada es un ladrillo de tu clínica digital.",
+              ];
+              const dayIndex = (proximoHito?.diaPrograma ?? 1) - 1;
+              const quote = QUOTES[dayIndex % QUOTES.length];
+              const tip = TIPS[dayIndex % TIPS.length];
+              return (
+                <>
+                  <div className="mb-6">
+                    <div className="text-4xl text-[#F5A623]/20 mb-2 leading-none" style={{ fontFamily: 'Georgia, serif' }}>"</div>
+                    <p className="text-[15px] text-white/90 leading-relaxed italic mb-3" style={{ fontFamily: 'var(--font-display)' }}>
+                      {quote.text}
+                    </p>
+                    <p className="text-xs text-white/40 font-medium">— {quote.author}</p>
+                  </div>
+
+                  <div className="px-3 py-3 rounded-xl bg-[#22C55E]/[0.06] border border-[#22C55E]/15">
+                    <p className="text-[10px] text-[#22C55E] font-bold uppercase tracking-widest mb-1">Tip del día</p>
+                    <p className="text-[12px] text-white/70 leading-relaxed">{tip}</p>
+                  </div>
+                </>
+              );
+            })()}
+          </div>
+
+          {/* Day progress mini-bar */}
+          <div className="relative z-10 mt-5">
+            <div className="flex justify-between items-center mb-2">
+              <span className="text-[10px] text-white/40 font-bold uppercase tracking-wider">Progreso general</span>
+              <span className="text-[10px] text-white bg-white/10 px-2 py-0.5 rounded-full">{pctTareas}%</span>
+            </div>
+            <div className="h-2 bg-white/5 rounded-full overflow-hidden">
+              <div className="h-full bg-gradient-to-r from-[#F5A623] to-[#FFB94D] rounded-full transition-all duration-500" style={{ width: `${pctTareas}%` }} />
+            </div>
+          </div>
         </div>
       </div>
 

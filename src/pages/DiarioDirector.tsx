@@ -119,8 +119,8 @@ function BarraEnergia({ valor, onChange }: { valor: number; onChange: (v: number
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
-        <span className="text-xs text-[#F5F0E1]/40">Energía del día</span>
-        <span className={`text-sm font-bold ${valor >= 7 ? 'text-[#2DD4A0]' : valor >= 4 ? 'text-[#D4A24E]' : 'text-[#E85555]'}`}>
+        <span className="text-xs text-[#FFFFFF]/40">Energía del día</span>
+        <span className={`text-sm font-bold ${valor >= 7 ? 'text-[#22C55E]' : valor >= 4 ? 'text-[#F5A623]' : 'text-[#EF4444]'}`}>
           {valor}/10
         </span>
       </div>
@@ -132,18 +132,18 @@ function BarraEnergia({ valor, onChange }: { valor: number; onChange: (v: number
             className={`flex-1 h-8 rounded-lg transition-all text-[10px] font-bold ${
               n <= valor
                 ? n >= 7
-                  ? 'bg-[#2DD4A0] text-[#F5F0E1]'
+                  ? 'bg-[#22C55E] text-[#FFFFFF]'
                   : n >= 4
-                  ? 'bg-[#D4A24E] text-[#F5F0E1]'
-                  : 'bg-[#E85555] text-[#F5F0E1]'
-                : 'bg-[#D4A24E]/5 text-[#F5F0E1]/30 hover:bg-[#D4A24E]/10'
+                  ? 'bg-[#F5A623] text-[#FFFFFF]'
+                  : 'bg-[#EF4444] text-[#FFFFFF]'
+                : 'bg-[#F5A623]/5 text-[#FFFFFF]/30 hover:bg-[#F5A623]/10'
             }`}
           >
             {n}
           </button>
         ))}
       </div>
-      <div className="flex justify-between text-[10px] text-[#F5F0E1]/30">
+      <div className="flex justify-between text-[10px] text-[#FFFFFF]/30">
         <span>Sin energía</span>
         <span>Imparable</span>
       </div>
@@ -405,10 +405,10 @@ Respondé SOLO con el JSON, sin texto adicional.`;
       {/* Header */}
       <div className="flex justify-between items-end">
         <div>
-          <h1 className="text-2xl font-light text-[#F5F0E1] flex items-center gap-2">
-            <BookOpen className="w-6 h-6 text-[#D4A24E]" /> Diario de Cierre
+          <h1 className="text-2xl font-light text-[#FFFFFF] flex items-center gap-2">
+            <BookOpen className="w-6 h-6 text-[#F5A623]" /> Diario de Cierre
           </h1>
-          <p className="text-sm text-[#F5F0E1]/60 mt-1 flex items-center gap-2">
+          <p className="text-sm text-[#FFFFFF]/60 mt-1 flex items-center gap-2">
             <Calendar className="w-3.5 h-3.5" />
             {new Date().toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' })}
           </p>
@@ -416,9 +416,9 @@ Respondé SOLO con el JSON, sin texto adicional.`;
         <div className="flex items-center gap-3">
           {energiaPromedio7d !== null && (
             <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border ${
-              energiaPromedio7d >= 7 ? 'text-[#2DD4A0] bg-emerald-500/10 border-emerald-500/20' :
-              energiaPromedio7d >= 4 ? 'text-[#D4A24E] bg-[#D4A24E]/10 border-[#D4A24E]/20' :
-              'text-[#E85555] bg-red-500/10 border-red-500/20'
+              energiaPromedio7d >= 7 ? 'text-[#22C55E] bg-emerald-500/10 border-emerald-500/20' :
+              energiaPromedio7d >= 4 ? 'text-[#F5A623] bg-[#F5A623]/10 border-[#F5A623]/20' :
+              'text-[#EF4444] bg-red-500/10 border-red-500/20'
             }`}>
               <Zap className="w-3.5 h-3.5" />
               <span className="text-sm font-bold">{energiaPromedio7d}</span>
@@ -433,7 +433,7 @@ Respondé SOLO con el JSON, sin texto adicional.`;
           )}
           <button
             onClick={() => setVista(vista === 'formulario' ? 'historial' : 'formulario')}
-            className="flex items-center gap-1.5 text-[#F5F0E1]/60 bg-[#D4A24E]/5 px-3 py-1.5 rounded-xl border border-[rgba(212,162,78,0.2)] hover:bg-[#D4A24E]/10 transition-colors text-sm"
+            className="flex items-center gap-1.5 text-[#FFFFFF]/60 bg-[#F5A623]/5 px-3 py-1.5 rounded-xl border border-[rgba(245,166,35,0.2)] hover:bg-[#F5A623]/10 transition-colors text-sm"
           >
             <History className="w-3.5 h-3.5" />
             Historial
@@ -444,7 +444,7 @@ Respondé SOLO con el JSON, sin texto adicional.`;
       {/* Alerta de energía baja */}
       {alertaEnergiaBaja && (
         <div className="flex items-start gap-3 bg-red-500/10 border border-red-500/20 rounded-2xl p-4">
-          <BatteryLow className="w-5 h-5 text-[#E85555] shrink-0 mt-0.5" />
+          <BatteryLow className="w-5 h-5 text-[#EF4444] shrink-0 mt-0.5" />
           <div>
             <p className="text-sm font-medium text-red-300">Energía baja por 2 días consecutivos</p>
             <p className="text-xs text-red-400/70 mt-0.5">
@@ -456,7 +456,7 @@ Respondé SOLO con el JSON, sin texto adicional.`;
 
       {/* Resumen semanal (domingo) */}
       {generandoResumen && (
-        <div className="flex items-center gap-2 text-[#D4A24E] bg-[#D4A24E]/10 border border-[#D4A24E]/20 rounded-2xl p-4">
+        <div className="flex items-center gap-2 text-[#F5A623] bg-[#F5A623]/10 border border-[#F5A623]/20 rounded-2xl p-4">
           <Loader2 className="w-4 h-4 animate-spin" />
           <span className="text-sm">El Coach está analizando tu semana...</span>
         </div>
@@ -472,27 +472,27 @@ Respondé SOLO con el JSON, sin texto adicional.`;
                 <h3 className="text-sm font-medium text-violet-300">Resumen del Coach — Semana cerrada</h3>
               </div>
               <div className="grid grid-cols-2 gap-3 text-xs">
-                <div className="bg-[#241A0C]/50 rounded-xl p-3">
-                  <p className="text-[#F5F0E1]/40 uppercase tracking-wider text-[10px]">Energía promedio</p>
-                  <p className="text-[#F5F0E1] font-medium mt-0.5">{datos.energia_promedio}/10 — {datos.tendencia_energia}</p>
+                <div className="bg-[#1C1C1C]/50 rounded-xl p-3">
+                  <p className="text-[#FFFFFF]/40 uppercase tracking-wider text-[10px]">Energía promedio</p>
+                  <p className="text-[#FFFFFF] font-medium mt-0.5">{datos.energia_promedio}/10 — {datos.tendencia_energia}</p>
                 </div>
-                <div className="bg-[#241A0C]/50 rounded-xl p-3">
-                  <p className="text-[#F5F0E1]/40 uppercase tracking-wider text-[10px]">Racha del Diario</p>
-                  <p className="text-[#F5F0E1] font-medium mt-0.5">{datos.racha} días consecutivos</p>
+                <div className="bg-[#1C1C1C]/50 rounded-xl p-3">
+                  <p className="text-[#FFFFFF]/40 uppercase tracking-wider text-[10px]">Racha del Diario</p>
+                  <p className="text-[#FFFFFF] font-medium mt-0.5">{datos.racha} días consecutivos</p>
                 </div>
               </div>
               {datos.bloqueo_recurrente && (
-                <div className="bg-[#D4A24E]/10 border border-[#D4A24E]/20 rounded-xl p-3">
-                  <p className="text-[10px] text-[#D4A24E] uppercase tracking-wider mb-1">Bloqueo recurrente detectado</p>
+                <div className="bg-[#F5A623]/10 border border-[#F5A623]/20 rounded-xl p-3">
+                  <p className="text-[10px] text-[#F5A623] uppercase tracking-wider mb-1">Bloqueo recurrente detectado</p>
                   <p className="text-sm text-amber-200">{datos.bloqueo_recurrente}</p>
                 </div>
               )}
               <div>
-                <p className="text-[10px] text-[#F5F0E1]/40 uppercase tracking-wider mb-2">3 acciones para la próxima semana</p>
+                <p className="text-[10px] text-[#FFFFFF]/40 uppercase tracking-wider mb-2">3 acciones para la próxima semana</p>
                 <ul className="space-y-1.5">
                   {datos.acciones_proxima_semana?.map((accion: string, i: number) => (
-                    <li key={i} className="flex items-start gap-2 text-sm text-[#F5F0E1]/80">
-                      <span className="text-[#D4A24E] font-bold shrink-0">{i + 1}.</span>
+                    <li key={i} className="flex items-start gap-2 text-sm text-[#FFFFFF]/80">
+                      <span className="text-[#F5A623] font-bold shrink-0">{i + 1}.</span>
                       {accion}
                     </li>
                   ))}
@@ -509,11 +509,11 @@ Respondé SOLO con el JSON, sin texto adicional.`;
           {todayEntry ? (
             <div className="card-panel p-6 rounded-2xl border border-emerald-500/20 bg-emerald-500/5 flex items-center gap-4">
               <div className="w-12 h-12 rounded-full bg-emerald-500/20 flex items-center justify-center shrink-0 border border-emerald-500/30">
-                <Check className="w-6 h-6 text-[#2DD4A0]" />
+                <Check className="w-6 h-6 text-[#22C55E]" />
               </div>
               <div>
-                <h3 className="text-base font-medium text-[#2DD4A0]">Entrada del día completada</h3>
-                <p className="text-sm text-[#2DD4A0]/70 mt-0.5">
+                <h3 className="text-base font-medium text-[#22C55E]">Entrada del día completada</h3>
+                <p className="text-sm text-[#22C55E]/70 mt-0.5">
                   Energía: <strong>{todayEntry.energia_nivel}/10</strong> · Tarea: {todayEntry.respuestas.q1 || '—'}
                 </p>
               </div>
@@ -521,18 +521,18 @@ Respondé SOLO con el JSON, sin texto adicional.`;
           ) : (
             <div className="card-panel p-6 rounded-2xl space-y-6">
               <div className="flex items-center gap-3 mb-2">
-                <div className="w-10 h-10 rounded-xl bg-[#D4A24E]/20 flex items-center justify-center border border-[#D4A24E]/30">
-                  <BookOpen className="w-5 h-5 text-[#D4A24E]" />
+                <div className="w-10 h-10 rounded-xl bg-[#F5A623]/20 flex items-center justify-center border border-[#F5A623]/30">
+                  <BookOpen className="w-5 h-5 text-[#F5A623]" />
                 </div>
                 <div>
-                  <h2 className="text-base font-medium text-[#F5F0E1]">Cierre del día</h2>
-                  <p className="text-xs text-[#F5F0E1]/60">Lunes a viernes · 5–8 minutos</p>
+                  <h2 className="text-base font-medium text-[#FFFFFF]">Cierre del día</h2>
+                  <p className="text-xs text-[#FFFFFF]/60">Lunes a viernes · 5–8 minutos</p>
                 </div>
               </div>
 
               {/* Q1: ¿Completaste tu tarea de hoy? */}
               <div>
-                <label className="block text-xs font-medium text-[#F5F0E1]/80 mb-2 uppercase tracking-wider">
+                <label className="block text-xs font-medium text-[#FFFFFF]/80 mb-2 uppercase tracking-wider">
                   1. ¿Completaste tu tarea de hoy?
                 </label>
                 <div className="flex gap-3">
@@ -543,9 +543,9 @@ Respondé SOLO con el JSON, sin texto adicional.`;
                       className={`flex-1 py-3 rounded-xl border text-sm font-medium transition-all ${
                         respuestas.q1 === opt
                           ? opt === 'Sí'
-                            ? 'bg-emerald-500/20 border-emerald-500/40 text-[#2DD4A0]'
-                            : 'bg-red-500/20 border-red-500/40 text-[#E85555]'
-                          : 'bg-black/20 border-[rgba(212,162,78,0.2)] text-[#F5F0E1]/50 hover:bg-[#D4A24E]/10'
+                            ? 'bg-emerald-500/20 border-emerald-500/40 text-[#22C55E]'
+                            : 'bg-red-500/20 border-red-500/40 text-[#EF4444]'
+                          : 'bg-black/20 border-[rgba(245,166,35,0.2)] text-[#FFFFFF]/50 hover:bg-[#F5A623]/10'
                       }`}
                     >
                       {opt}
@@ -555,23 +555,23 @@ Respondé SOLO con el JSON, sin texto adicional.`;
               </div>
 
               {/* Q2: Energía (slider) */}
-              <div className="bg-[#241A0C]/30 rounded-xl p-4 border border-[rgba(212,162,78,0.1)]">
+              <div className="bg-[#1C1C1C]/30 rounded-xl p-4 border border-[rgba(245,166,35,0.1)]">
                 <div className="flex items-center gap-2 mb-3">
                   <Zap className="w-4 h-4 text-yellow-400" />
-                  <span className="text-xs font-medium text-[#F5F0E1]/80 uppercase tracking-wider">2. ¿Cómo estuvo tu energía?</span>
+                  <span className="text-xs font-medium text-[#FFFFFF]/80 uppercase tracking-wider">2. ¿Cómo estuvo tu energía?</span>
                 </div>
                 <BarraEnergia valor={energiaNivel} onChange={setEnergiaNivel} />
               </div>
 
               {/* Q3: ¿Hubo algo que te bloqueó? (optional) */}
               <div>
-                <label className="block text-xs font-medium text-[#F5F0E1]/80 mb-2 uppercase tracking-wider">
-                  3. ¿Hubo algo que te bloqueó? <span className="text-[#F5F0E1]/30 normal-case">(opcional)</span>
+                <label className="block text-xs font-medium text-[#FFFFFF]/80 mb-2 uppercase tracking-wider">
+                  3. ¿Hubo algo que te bloqueó? <span className="text-[#FFFFFF]/30 normal-case">(opcional)</span>
                 </label>
                 <textarea
                   rows={2}
                   placeholder="Si algo te frenó hoy, contalo acá..."
-                  className="w-full bg-black/20 border border-[rgba(212,162,78,0.2)] rounded-xl p-3 text-[#F5F0E1] text-sm focus:border-[#D4A24E]/50 focus:ring-1 focus:ring-[#D4A24E]/50 resize-none transition-all placeholder-[#F5F0E1]/30"
+                  className="w-full bg-black/20 border border-[rgba(245,166,35,0.2)] rounded-xl p-3 text-[#FFFFFF] text-sm focus:border-[#F5A623]/50 focus:ring-1 focus:ring-[#F5A623]/50 resize-none transition-all placeholder-[#FFFFFF]/30"
                   value={respuestas.q3}
                   onChange={(e) => setRespuestas((prev) => ({ ...prev, q3: e.target.value }))}
                 />
@@ -579,13 +579,13 @@ Respondé SOLO con el JSON, sin texto adicional.`;
 
               {/* Q4: Momento más importante (required) */}
               <div>
-                <label className="block text-xs font-medium text-[#F5F0E1]/80 mb-2 uppercase tracking-wider">
+                <label className="block text-xs font-medium text-[#FFFFFF]/80 mb-2 uppercase tracking-wider">
                   4. ¿Cuál fue el momento más importante del día?
                 </label>
                 <textarea
                   rows={2}
                   placeholder="El momento que más te marcó hoy..."
-                  className="w-full bg-black/20 border border-[rgba(212,162,78,0.2)] rounded-xl p-3 text-[#F5F0E1] text-sm focus:border-[#D4A24E]/50 focus:ring-1 focus:ring-[#D4A24E]/50 resize-none transition-all placeholder-[#F5F0E1]/30"
+                  className="w-full bg-black/20 border border-[rgba(245,166,35,0.2)] rounded-xl p-3 text-[#FFFFFF] text-sm focus:border-[#F5A623]/50 focus:ring-1 focus:ring-[#F5A623]/50 resize-none transition-all placeholder-[#FFFFFF]/30"
                   value={respuestas.q4}
                   onChange={(e) => setRespuestas((prev) => ({ ...prev, q4: e.target.value }))}
                 />
@@ -596,7 +596,7 @@ Respondé SOLO con el JSON, sin texto adicional.`;
                 <>
                   {/* Q5: ¿Tomaste llamadas hoy? */}
                   <div>
-                    <label className="block text-xs font-medium text-[#F5F0E1]/80 mb-2 uppercase tracking-wider">
+                    <label className="block text-xs font-medium text-[#FFFFFF]/80 mb-2 uppercase tracking-wider">
                       5. ¿Tomaste llamadas hoy?
                     </label>
                     <div className="flex gap-3">
@@ -611,9 +611,9 @@ Respondé SOLO con el JSON, sin texto adicional.`;
                           className={`flex-1 py-3 rounded-xl border text-sm font-medium transition-all ${
                             respuestas.q5 === opt
                               ? opt === 'Sí'
-                                ? 'bg-emerald-500/20 border-emerald-500/40 text-[#2DD4A0]'
-                                : 'bg-[#D4A24E]/20 border-[#D4A24E]/40 text-[#D4A24E]'
-                              : 'bg-black/20 border-[rgba(212,162,78,0.2)] text-[#F5F0E1]/50 hover:bg-[#D4A24E]/10'
+                                ? 'bg-emerald-500/20 border-emerald-500/40 text-[#22C55E]'
+                                : 'bg-[#F5A623]/20 border-[#F5A623]/40 text-[#F5A623]'
+                              : 'bg-black/20 border-[rgba(245,166,35,0.2)] text-[#FFFFFF]/50 hover:bg-[#F5A623]/10'
                           }`}
                         >
                           {opt}
@@ -626,25 +626,25 @@ Respondé SOLO con el JSON, sin texto adicional.`;
                   {respuestas.q5 === 'Sí' && (
                     <>
                       <div>
-                        <label className="block text-xs font-medium text-[#F5F0E1]/80 mb-2 uppercase tracking-wider">
+                        <label className="block text-xs font-medium text-[#FFFFFF]/80 mb-2 uppercase tracking-wider">
                           6. ¿Cuántas? ¿Cerraste alguna?
                         </label>
                         <input
                           type="text"
                           placeholder="Ej: 3 llamadas, cerré 1"
-                          className="w-full bg-black/20 border border-[rgba(212,162,78,0.2)] rounded-xl p-3 text-[#F5F0E1] text-sm focus:border-[#D4A24E]/50 focus:ring-1 focus:ring-[#D4A24E]/50 transition-all placeholder-[#F5F0E1]/30"
+                          className="w-full bg-black/20 border border-[rgba(245,166,35,0.2)] rounded-xl p-3 text-[#FFFFFF] text-sm focus:border-[#F5A623]/50 focus:ring-1 focus:ring-[#F5A623]/50 transition-all placeholder-[#FFFFFF]/30"
                           value={respuestas.q6}
                           onChange={(e) => setRespuestas((prev) => ({ ...prev, q6: e.target.value }))}
                         />
                       </div>
                       <div>
-                        <label className="block text-xs font-medium text-[#F5F0E1]/80 mb-2 uppercase tracking-wider">
-                          7. ¿Qué objeción apareció? <span className="text-[#F5F0E1]/30 normal-case">(opcional)</span>
+                        <label className="block text-xs font-medium text-[#FFFFFF]/80 mb-2 uppercase tracking-wider">
+                          7. ¿Qué objeción apareció? <span className="text-[#FFFFFF]/30 normal-case">(opcional)</span>
                         </label>
                         <textarea
                           rows={2}
                           placeholder="Si hubo alguna objeción recurrente..."
-                          className="w-full bg-black/20 border border-[rgba(212,162,78,0.2)] rounded-xl p-3 text-[#F5F0E1] text-sm focus:border-[#D4A24E]/50 focus:ring-1 focus:ring-[#D4A24E]/50 resize-none transition-all placeholder-[#F5F0E1]/30"
+                          className="w-full bg-black/20 border border-[rgba(245,166,35,0.2)] rounded-xl p-3 text-[#FFFFFF] text-sm focus:border-[#F5A623]/50 focus:ring-1 focus:ring-[#F5A623]/50 resize-none transition-all placeholder-[#FFFFFF]/30"
                           value={respuestas.q7}
                           onChange={(e) => setRespuestas((prev) => ({ ...prev, q7: e.target.value }))}
                         />
@@ -655,10 +655,10 @@ Respondé SOLO con el JSON, sin texto adicional.`;
               )}
 
               {/* Módulo energético-corporal */}
-              <div className="bg-[#241A0C]/30 rounded-xl p-4 border border-[rgba(212,162,78,0.1)]">
+              <div className="bg-[#1C1C1C]/30 rounded-xl p-4 border border-[rgba(245,166,35,0.1)]">
                 <div className="flex items-center gap-2 mb-3">
-                  <Battery className="w-4 h-4 text-[#2DD4A0]" />
-                  <span className="text-xs font-medium text-[#F5F0E1]/80 uppercase tracking-wider">
+                  <Battery className="w-4 h-4 text-[#22C55E]" />
+                  <span className="text-xs font-medium text-[#FFFFFF]/80 uppercase tracking-wider">
                     Bienestar energético-corporal
                   </span>
                 </div>
@@ -675,7 +675,7 @@ Respondé SOLO con el JSON, sin texto adicional.`;
                       className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border text-sm transition-all ${
                         moduloEnergetico[item.key]
                           ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-300'
-                          : 'bg-[#241A0C]/50 border-white/8 text-[#F5F0E1]/40 hover:bg-white/8'
+                          : 'bg-[#1C1C1C]/50 border-white/8 text-[#FFFFFF]/40 hover:bg-white/8'
                       }`}
                     >
                       <item.icon className="w-4 h-4" />
@@ -690,7 +690,7 @@ Respondé SOLO con el JSON, sin texto adicional.`;
               <button
                 onClick={handleGuardar}
                 disabled={saving}
-                className="w-full py-3.5 rounded-xl bg-[#D4A24E] hover:bg-[#E2B865] disabled:opacity-50 text-[#F5F0E1] font-medium tracking-wide transition-all flex justify-center items-center gap-2"
+                className="w-full py-3.5 rounded-xl bg-[#F5A623] hover:bg-[#FFB94D] disabled:opacity-50 text-[#FFFFFF] font-medium tracking-wide transition-all flex justify-center items-center gap-2"
               >
                 {saving ? (
                   <><Loader2 className="w-4 h-4 animate-spin" /> Guardando...</>
@@ -707,36 +707,36 @@ Respondé SOLO con el JSON, sin texto adicional.`;
       {vista === 'historial' && (
         <div className="space-y-4">
           {loading && entries.length === 0 && (
-            <div className="flex items-center gap-2 text-[#F5F0E1]/40 text-sm">
+            <div className="flex items-center gap-2 text-[#FFFFFF]/40 text-sm">
               <Loader2 className="w-4 h-4 animate-spin" /> Cargando historial...
             </div>
           )}
           {entries.length === 0 && !loading && (
-            <p className="text-center text-[#F5F0E1]/40 text-sm py-12">
+            <p className="text-center text-[#FFFFFF]/40 text-sm py-12">
               Aún no hay entradas en el Diario.
             </p>
           )}
           {entries.map((entrada) => (
             <div
               key={entrada.id}
-              className="card-panel p-5 rounded-2xl border-l-4 border-l-[#D4A24E]/50 space-y-3"
+              className="card-panel p-5 rounded-2xl border-l-4 border-l-[#F5A623]/50 space-y-3"
             >
               <div className="flex items-center justify-between">
-                <span className="text-xs text-[#D4A24E] font-medium">
+                <span className="text-xs text-[#F5A623] font-medium">
                   {new Date(entrada.fecha + 'T12:00:00').toLocaleDateString('es-AR', {
                     weekday: 'long', day: 'numeric', month: 'long',
                   })}
                 </span>
                 <div className="flex items-center gap-2">
                   <span className={`text-xs font-bold px-2 py-1 rounded-full ${
-                    entrada.energia_nivel >= 7 ? 'bg-emerald-500/15 text-[#2DD4A0]' :
-                    entrada.energia_nivel >= 4 ? 'bg-[#D4A24E]/15 text-[#D4A24E]' :
-                    'bg-red-500/15 text-[#E85555]'
+                    entrada.energia_nivel >= 7 ? 'bg-emerald-500/15 text-[#22C55E]' :
+                    entrada.energia_nivel >= 4 ? 'bg-[#F5A623]/15 text-[#F5A623]' :
+                    'bg-red-500/15 text-[#EF4444]'
                   }`}>
                     <Zap className="w-3 h-3 inline" /> {entrada.energia_nivel}/10
                   </span>
                   {entrada.emocion && (
-                    <span className="text-xs text-[#F5F0E1]/40">{entrada.emocion}</span>
+                    <span className="text-xs text-[#FFFFFF]/40">{entrada.emocion}</span>
                   )}
                 </div>
               </div>
@@ -744,26 +744,26 @@ Respondé SOLO con el JSON, sin texto adicional.`;
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
                 {entrada.respuestas.q1 && (
                   <div>
-                    <span className="text-[#F5F0E1]/30 uppercase tracking-wider text-[10px]">Tarea completada</span>
-                    <p className="text-[#F5F0E1]/80 mt-0.5">{entrada.respuestas.q1}</p>
+                    <span className="text-[#FFFFFF]/30 uppercase tracking-wider text-[10px]">Tarea completada</span>
+                    <p className="text-[#FFFFFF]/80 mt-0.5">{entrada.respuestas.q1}</p>
                   </div>
                 )}
                 {entrada.respuestas.q3 && (
                   <div>
-                    <span className="text-[#F5F0E1]/30 uppercase tracking-wider text-[10px]">Bloqueo</span>
-                    <p className="text-[#F5F0E1]/80 mt-0.5">{entrada.respuestas.q3}</p>
+                    <span className="text-[#FFFFFF]/30 uppercase tracking-wider text-[10px]">Bloqueo</span>
+                    <p className="text-[#FFFFFF]/80 mt-0.5">{entrada.respuestas.q3}</p>
                   </div>
                 )}
                 {entrada.respuestas.q4 && (
                   <div>
-                    <span className="text-[#F5F0E1]/30 uppercase tracking-wider text-[10px]">Momento importante</span>
-                    <p className="text-[#F5F0E1]/80 mt-0.5">{entrada.respuestas.q4}</p>
+                    <span className="text-[#FFFFFF]/30 uppercase tracking-wider text-[10px]">Momento importante</span>
+                    <p className="text-[#FFFFFF]/80 mt-0.5">{entrada.respuestas.q4}</p>
                   </div>
                 )}
                 {entrada.respuestas.q5 && (
                   <div>
-                    <span className="text-[#F5F0E1]/30 uppercase tracking-wider text-[10px]">Llamadas</span>
-                    <p className="text-[#F5F0E1]/80 mt-0.5">
+                    <span className="text-[#FFFFFF]/30 uppercase tracking-wider text-[10px]">Llamadas</span>
+                    <p className="text-[#FFFFFF]/80 mt-0.5">
                       {entrada.respuestas.q5}
                       {entrada.respuestas.q6 ? ` — ${entrada.respuestas.q6}` : ''}
                     </p>
@@ -771,8 +771,8 @@ Respondé SOLO con el JSON, sin texto adicional.`;
                 )}
                 {entrada.respuestas.q7 && (
                   <div>
-                    <span className="text-[#F5F0E1]/30 uppercase tracking-wider text-[10px]">Objeción</span>
-                    <p className="text-[#F5F0E1]/80 mt-0.5">{entrada.respuestas.q7}</p>
+                    <span className="text-[#FFFFFF]/30 uppercase tracking-wider text-[10px]">Objeción</span>
+                    <p className="text-[#FFFFFF]/80 mt-0.5">{entrada.respuestas.q7}</p>
                   </div>
                 )}
               </div>
@@ -784,7 +784,7 @@ Respondé SOLO con el JSON, sin texto adicional.`;
                   .map(([k]) => {
                     const item = CHECKLIST_ENERGETICO.find((c) => c.key === k);
                     return item ? (
-                      <span key={k} className="text-[10px] bg-[#D4A24E]/5 px-2 py-1 rounded-full text-[#F5F0E1]/60 flex items-center gap-1">
+                      <span key={k} className="text-[10px] bg-[#F5A623]/5 px-2 py-1 rounded-full text-[#FFFFFF]/60 flex items-center gap-1">
                         <item.icon className="w-3 h-3" /> {item.label}
                       </span>
                     ) : null;

@@ -114,9 +114,9 @@ export default function WelcomeWizard({ profile, onComplete }: WelcomeWizardProp
   const currentStepIndex = STEPS.indexOf(step);
 
   return (
-    <div className="min-h-screen bg-[#080808] flex items-center justify-center p-4 selection:bg-[#D4A24E]/30">
-      <div className="absolute top-0 left-[-10%] w-[500px] h-[500px] bg-[#D4A24E]/10 rounded-full blur-[150px] pointer-events-none" />
-      <div className="absolute bottom-0 right-[-10%] w-[500px] h-[500px] bg-[#E2B865]/10 rounded-full blur-[150px] pointer-events-none" />
+    <div className="min-h-screen bg-[#0A0A0A] flex items-center justify-center p-4 selection:bg-[#F5A623]/30">
+      <div className="absolute top-0 left-[-10%] w-[500px] h-[500px] bg-[#F5A623]/10 rounded-full blur-[150px] pointer-events-none" />
+      <div className="absolute bottom-0 right-[-10%] w-[500px] h-[500px] bg-[#FFB94D]/10 rounded-full blur-[150px] pointer-events-none" />
 
       <div className="relative z-10 w-full max-w-md max-h-[90vh] overflow-y-auto scrollbar-hide">
         {/* Progress dots */}
@@ -125,8 +125,8 @@ export default function WelcomeWizard({ profile, onComplete }: WelcomeWizardProp
             <div
               key={s}
               className={`h-1.5 rounded-full transition-all duration-300 ${
-                s === step ? 'w-8 bg-[#D4A24E]' :
-                idx < currentStepIndex ? 'w-4 bg-[#D4A24E]/40' : 'w-4 bg-[#D4A24E]/10'
+                s === step ? 'w-8 bg-[#F5A623]' :
+                idx < currentStepIndex ? 'w-4 bg-[#F5A623]/40' : 'w-4 bg-[#F5A623]/10'
               }`}
             />
           ))}
@@ -134,51 +134,51 @@ export default function WelcomeWizard({ profile, onComplete }: WelcomeWizardProp
 
         {/* ── STEP 1: PASSWORD ── */}
         {step === 'password' && (
-          <div className="bg-[#1A1410] border border-[rgba(212,162,78,0.2)] rounded-3xl p-8 shadow-2xl animate-in fade-in slide-in-from-bottom-4 duration-400">
+          <div className="bg-[#141414] border border-[rgba(245,166,35,0.2)] rounded-3xl p-8 shadow-2xl animate-in fade-in slide-in-from-bottom-4 duration-400">
             <div className="mb-8">
-              <div className="w-12 h-12 rounded-2xl bg-[#D4A24E] flex items-center justify-center mb-5 shadow-[0_0_20px_rgba(212,162,78,0.3)]">
-                <LockKeyhole className="w-5 h-5 text-[#0A0804]" />
+              <div className="w-12 h-12 rounded-2xl bg-[#F5A623] flex items-center justify-center mb-5 shadow-[0_0_20px_rgba(245,166,35,0.3)]">
+                <LockKeyhole className="w-5 h-5 text-[#0A0A0A]" />
               </div>
-              <h1 className="text-2xl font-semibold text-[#F5F0E1] mb-2">Hola, {nombreCorto}</h1>
-              <p className="text-sm text-[#F5F0E1]/60 leading-relaxed">
+              <h1 className="text-2xl font-semibold text-[#FFFFFF] mb-2">Hola, {nombreCorto}</h1>
+              <p className="text-sm text-[#FFFFFF]/60 leading-relaxed">
                 Para empezar, elegí una contraseña personal. La contraseña temporal que te enviamos ya no va a funcionar después de esto.
               </p>
             </div>
 
             <div className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-[#F5F0E1]/60 uppercase tracking-wider mb-2">Nueva contraseña</label>
+                <label className="block text-xs font-semibold text-[#FFFFFF]/60 uppercase tracking-wider mb-2">Nueva contraseña</label>
                 <div className="relative">
                   <input
                     type={showPwd ? 'text' : 'password'}
                     value={newPassword}
                     onChange={e => setNewPassword(e.target.value)}
                     placeholder="Mínimo 8 caracteres"
-                    className="w-full bg-black/40 border border-[rgba(212,162,78,0.2)] rounded-xl px-4 py-3 pr-12 text-sm text-[#F5F0E1] focus:outline-none focus:border-[#D4A24E]/50 transition-colors"
+                    className="w-full bg-black/40 border border-[rgba(245,166,35,0.2)] rounded-xl px-4 py-3 pr-12 text-sm text-[#FFFFFF] focus:outline-none focus:border-[#F5A623]/50 transition-colors"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPwd(v => !v)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#F5F0E1]/40 hover:text-[#F5F0E1]/80 transition-colors"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#FFFFFF]/40 hover:text-[#FFFFFF]/80 transition-colors"
                   >
                     {showPwd ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
               </div>
               <div>
-                <label className="block text-xs font-semibold text-[#F5F0E1]/60 uppercase tracking-wider mb-2">Confirmar contraseña</label>
+                <label className="block text-xs font-semibold text-[#FFFFFF]/60 uppercase tracking-wider mb-2">Confirmar contraseña</label>
                 <input
                   type={showPwd ? 'text' : 'password'}
                   value={confirmPassword}
                   onChange={e => setConfirmPassword(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && handlePasswordSubmit()}
                   placeholder="Repetí la contraseña"
-                  className={`w-full bg-black/40 border rounded-xl px-4 py-3 text-sm text-[#F5F0E1] focus:outline-none transition-colors ${
+                  className={`w-full bg-black/40 border rounded-xl px-4 py-3 text-sm text-[#FFFFFF] focus:outline-none transition-colors ${
                     confirmPassword && confirmPassword !== newPassword
                       ? 'border-red-500/50 focus:border-red-500/70'
                       : confirmPassword && confirmPassword === newPassword
                       ? 'border-emerald-500/50'
-                      : 'border-[rgba(212,162,78,0.2)] focus:border-[#D4A24E]/50'
+                      : 'border-[rgba(245,166,35,0.2)] focus:border-[#F5A623]/50'
                   }`}
                 />
               </div>
@@ -188,11 +188,11 @@ export default function WelcomeWizard({ profile, onComplete }: WelcomeWizardProp
               <div className="mt-3 flex items-center gap-2">
                 <div className="flex gap-1">
                   {[1, 2, 3].map(i => (
-                    <div key={i} className={`h-1 w-8 rounded-full transition-colors ${newPassword.length >= i * 4 ? 'bg-[#2DD4A0]' : 'bg-[#D4A24E]/10'}`} />
+                    <div key={i} className={`h-1 w-8 rounded-full transition-colors ${newPassword.length >= i * 4 ? 'bg-[#22C55E]' : 'bg-[#F5A623]/10'}`} />
                   ))}
                 </div>
-                <span className="text-[10px] text-[#F5F0E1]/40">
-                  {newPassword.length < 4 ? 'Muy corta' : newPassword.length < 8 ? 'Casi...' : <span className="flex items-center gap-0.5">Lista <CheckCircle2 className="w-3 h-3 text-[#2DD4A0] inline" /></span>}
+                <span className="text-[10px] text-[#FFFFFF]/40">
+                  {newPassword.length < 4 ? 'Muy corta' : newPassword.length < 8 ? 'Casi...' : <span className="flex items-center gap-0.5">Lista <CheckCircle2 className="w-3 h-3 text-[#22C55E] inline" /></span>}
                 </span>
               </div>
             )}
@@ -200,7 +200,7 @@ export default function WelcomeWizard({ profile, onComplete }: WelcomeWizardProp
             <button
               onClick={handlePasswordSubmit}
               disabled={savingPwd || newPassword.length < 8 || newPassword !== confirmPassword}
-              className="w-full mt-6 py-3.5 rounded-xl bg-[#D4A24E] hover:bg-[#E2B865] disabled:opacity-50 text-[#0A0804] text-sm font-bold transition-all flex items-center justify-center gap-2 shadow-lg shadow-[#D4A24E]/20"
+              className="w-full mt-6 py-3.5 rounded-xl bg-[#F5A623] hover:bg-[#FFB94D] disabled:opacity-50 text-[#0A0A0A] text-sm font-bold transition-all flex items-center justify-center gap-2 shadow-lg shadow-[#F5A623]/20"
             >
               {savingPwd ? <Loader2 className="w-4 h-4 animate-spin" /> : <><ArrowRight className="w-4 h-4" /> Continuar</>}
             </button>
@@ -209,20 +209,20 @@ export default function WelcomeWizard({ profile, onComplete }: WelcomeWizardProp
 
         {/* ── STEP 2: PROFILE ── */}
         {step === 'profile' && (
-          <div className="bg-[#1A1410] border border-[rgba(212,162,78,0.2)] rounded-3xl p-8 shadow-2xl animate-in fade-in slide-in-from-bottom-4 duration-400">
+          <div className="bg-[#141414] border border-[rgba(245,166,35,0.2)] rounded-3xl p-8 shadow-2xl animate-in fade-in slide-in-from-bottom-4 duration-400">
             <div className="mb-6">
-              <div className="w-12 h-12 rounded-2xl bg-[#D4A24E] flex items-center justify-center mb-5 shadow-[0_0_20px_rgba(212,162,78,0.3)]">
-                <UserCircle className="w-5 h-5 text-[#0A0804]" />
+              <div className="w-12 h-12 rounded-2xl bg-[#F5A623] flex items-center justify-center mb-5 shadow-[0_0_20px_rgba(245,166,35,0.3)]">
+                <UserCircle className="w-5 h-5 text-[#0A0A0A]" />
               </div>
-              <h1 className="text-2xl font-semibold text-[#F5F0E1] mb-2">Contanos sobre vos</h1>
-              <p className="text-sm text-[#F5F0E1]/60 leading-relaxed">
+              <h1 className="text-2xl font-semibold text-[#FFFFFF] mb-2">Contanos sobre vos</h1>
+              <p className="text-sm text-[#FFFFFF]/60 leading-relaxed">
                 Esta info le sirve a tu acompañante para conocerte mejor desde el día 1 y que el Coach IA te dé respuestas más precisas.
               </p>
             </div>
 
             <div className="space-y-5">
               <div>
-                <label className="block text-xs font-semibold text-[#F5F0E1]/60 uppercase tracking-wider mb-2">¿Cuál es tu profesión?</label>
+                <label className="block text-xs font-semibold text-[#FFFFFF]/60 uppercase tracking-wider mb-2">¿Cuál es tu profesión?</label>
                 <div className="flex flex-wrap gap-2">
                   {ESPECIALIDADES.map(esp => (
                     <button
@@ -231,8 +231,8 @@ export default function WelcomeWizard({ profile, onComplete }: WelcomeWizardProp
                       onClick={() => setEspecialidad(esp)}
                       className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-all ${
                         especialidad === esp
-                          ? 'bg-[#D4A24E]/20 text-[#D4A24E] border border-[#D4A24E]/40'
-                          : 'bg-[#1A1410] text-[#F5F0E1]/60 border border-[rgba(212,162,78,0.2)] hover:border-[rgba(212,162,78,0.3)] hover:text-[#F5F0E1]/90'
+                          ? 'bg-[#F5A623]/20 text-[#F5A623] border border-[#F5A623]/40'
+                          : 'bg-[#141414] text-[#FFFFFF]/60 border border-[rgba(245,166,35,0.2)] hover:border-[rgba(245,166,35,0.3)] hover:text-[#FFFFFF]/90'
                       }`}
                     >
                       {esp}
@@ -246,14 +246,14 @@ export default function WelcomeWizard({ profile, onComplete }: WelcomeWizardProp
                     value={especialidadOtro}
                     onChange={e => setEspecialidadOtro(e.target.value)}
                     placeholder="¿Cuál es tu profesión?"
-                    className="mt-3 w-full bg-black/40 border border-[#D4A24E]/30 rounded-xl px-4 py-2.5 text-sm text-[#F5F0E1] focus:outline-none focus:border-[#D4A24E]/60 transition-colors"
+                    className="mt-3 w-full bg-black/40 border border-[#F5A623]/30 rounded-xl px-4 py-2.5 text-sm text-[#FFFFFF] focus:outline-none focus:border-[#F5A623]/60 transition-colors"
                   />
                 )}
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-[#F5F0E1]/60 uppercase tracking-wider mb-2">
-                  ¿Cómo está tu energía hoy? <span className="text-[#F5F0E1]/30 normal-case font-normal">(1 = agotado/a · 10 = con todo)</span>
+                <label className="block text-xs font-semibold text-[#FFFFFF]/60 uppercase tracking-wider mb-2">
+                  ¿Cómo está tu energía hoy? <span className="text-[#FFFFFF]/30 normal-case font-normal">(1 = agotado/a · 10 = con todo)</span>
                 </label>
                 <div className="flex items-center gap-1.5">
                   {[1,2,3,4,5,6,7,8,9,10].map(n => (
@@ -263,8 +263,8 @@ export default function WelcomeWizard({ profile, onComplete }: WelcomeWizardProp
                       onClick={() => setEnergia(n)}
                       className={`w-7 h-7 rounded-lg text-xs font-bold transition-all ${
                         n <= energia
-                          ? 'bg-amber-500 text-[#0A0804] shadow-sm shadow-amber-500/30'
-                          : 'bg-[#1A1410] text-[#F5F0E1]/30 border border-[rgba(212,162,78,0.2)] hover:border-[rgba(212,162,78,0.3)]'
+                          ? 'bg-amber-500 text-[#0A0A0A] shadow-sm shadow-amber-500/30'
+                          : 'bg-[#141414] text-[#FFFFFF]/30 border border-[rgba(245,166,35,0.2)] hover:border-[rgba(245,166,35,0.3)]'
                       }`}
                     >
                       {n}
@@ -274,38 +274,38 @@ export default function WelcomeWizard({ profile, onComplete }: WelcomeWizardProp
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-[#F5F0E1]/60 uppercase tracking-wider mb-2">
-                  ¿Cuál es tu mayor frustración hoy en tu práctica? <span className="text-[#F5F0E1]/30 normal-case font-normal">(opcional)</span>
+                <label className="block text-xs font-semibold text-[#FFFFFF]/60 uppercase tracking-wider mb-2">
+                  ¿Cuál es tu mayor frustración hoy en tu práctica? <span className="text-[#FFFFFF]/30 normal-case font-normal">(opcional)</span>
                 </label>
                 <textarea
                   value={frustracion}
                   onChange={e => setFrustracion(e.target.value)}
                   placeholder="Ej: No sé cómo conseguir pacientes nuevos sin depender de referidos, siento que trabajo mucho y gano poco..."
                   rows={3}
-                  className="w-full bg-black/40 border border-[rgba(212,162,78,0.2)] rounded-xl px-4 py-3 text-sm text-[#F5F0E1] focus:outline-none focus:border-[#D4A24E]/50 transition-colors resize-none"
+                  className="w-full bg-black/40 border border-[rgba(245,166,35,0.2)] rounded-xl px-4 py-3 text-sm text-[#FFFFFF] focus:outline-none focus:border-[#F5A623]/50 transition-colors resize-none"
                 />
-                <p className="text-[10px] text-[#F5F0E1]/30 mt-1.5">Tu coach va a leer esto para entenderte desde el inicio.</p>
+                <p className="text-[10px] text-[#FFFFFF]/30 mt-1.5">Tu coach va a leer esto para entenderte desde el inicio.</p>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-[#F5F0E1]/60 uppercase tracking-wider mb-2">Ingresos mensuales (USD)</label>
+                  <label className="block text-xs font-semibold text-[#FFFFFF]/60 uppercase tracking-wider mb-2">Ingresos mensuales (USD)</label>
                   <input
                     type="number"
                     value={ingresosMensuales}
                     onChange={e => setIngresosMensuales(e.target.value)}
                     placeholder="Ej: 2000"
-                    className="w-full bg-black/40 border border-[rgba(212,162,78,0.2)] rounded-xl px-4 py-3 text-sm text-[#F5F0E1] focus:outline-none focus:border-[#D4A24E]/50 transition-colors"
+                    className="w-full bg-black/40 border border-[rgba(245,166,35,0.2)] rounded-xl px-4 py-3 text-sm text-[#FFFFFF] focus:outline-none focus:border-[#F5A623]/50 transition-colors"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-[#F5F0E1]/60 uppercase tracking-wider mb-2">Horas/semana</label>
+                  <label className="block text-xs font-semibold text-[#FFFFFF]/60 uppercase tracking-wider mb-2">Horas/semana</label>
                   <input
                     type="number"
                     value={horasSemana}
                     onChange={e => setHorasSemana(e.target.value)}
                     placeholder="Ej: 40"
-                    className="w-full bg-black/40 border border-[rgba(212,162,78,0.2)] rounded-xl px-4 py-3 text-sm text-[#F5F0E1] focus:outline-none focus:border-[#D4A24E]/50 transition-colors"
+                    className="w-full bg-black/40 border border-[rgba(245,166,35,0.2)] rounded-xl px-4 py-3 text-sm text-[#FFFFFF] focus:outline-none focus:border-[#F5A623]/50 transition-colors"
                   />
                 </div>
               </div>
@@ -314,14 +314,14 @@ export default function WelcomeWizard({ profile, onComplete }: WelcomeWizardProp
             <div className="flex gap-3 mt-6">
               <button
                 onClick={() => setStep('welcome')}
-                className="px-5 py-3 rounded-xl text-sm text-[#F5F0E1]/40 hover:text-[#F5F0E1]/80 transition-colors"
+                className="px-5 py-3 rounded-xl text-sm text-[#FFFFFF]/40 hover:text-[#FFFFFF]/80 transition-colors"
               >
                 Saltar
               </button>
               <button
                 onClick={handleProfileSubmit}
                 disabled={savingProfile}
-                className="flex-1 py-3 rounded-xl bg-[#D4A24E] hover:bg-[#E2B865] disabled:opacity-50 text-[#0A0804] text-sm font-bold transition-all flex items-center justify-center gap-2 shadow-lg shadow-[#D4A24E]/20"
+                className="flex-1 py-3 rounded-xl bg-[#F5A623] hover:bg-[#FFB94D] disabled:opacity-50 text-[#0A0A0A] text-sm font-bold transition-all flex items-center justify-center gap-2 shadow-lg shadow-[#F5A623]/20"
               >
                 {savingProfile ? <Loader2 className="w-4 h-4 animate-spin" /> : <><ArrowRight className="w-4 h-4" /> Continuar</>}
               </button>
@@ -331,17 +331,17 @@ export default function WelcomeWizard({ profile, onComplete }: WelcomeWizardProp
 
         {/* ── STEP 3: WELCOME ── */}
         {step === 'welcome' && (
-          <div className="bg-[#1A1410] border border-[rgba(212,162,78,0.2)] rounded-3xl p-8 shadow-2xl text-center animate-in fade-in slide-in-from-bottom-4 duration-400">
-            <div className="w-16 h-16 rounded-2xl bg-[#2DD4A0] flex items-center justify-center mx-auto mb-6 shadow-[0_0_30px_rgba(16,185,129,0.3)]">
-              <CheckCircle2 className="w-8 h-8 text-[#F5F0E1]" />
+          <div className="bg-[#141414] border border-[rgba(245,166,35,0.2)] rounded-3xl p-8 shadow-2xl text-center animate-in fade-in slide-in-from-bottom-4 duration-400">
+            <div className="w-16 h-16 rounded-2xl bg-[#22C55E] flex items-center justify-center mx-auto mb-6 shadow-[0_0_30px_rgba(16,185,129,0.3)]">
+              <CheckCircle2 className="w-8 h-8 text-[#FFFFFF]" />
             </div>
 
-            <h1 className="text-2xl font-semibold text-[#F5F0E1] mb-3">¡Bienvenido/a, {nombreCorto}!</h1>
-            <p className="text-sm text-[#F5F0E1]/60 leading-relaxed mb-2">
+            <h1 className="text-2xl font-semibold text-[#FFFFFF] mb-3">¡Bienvenido/a, {nombreCorto}!</h1>
+            <p className="text-sm text-[#FFFFFF]/60 leading-relaxed mb-2">
               Ya estás dentro del programa.
             </p>
-            <p className="text-sm text-[#F5F0E1]/80 leading-relaxed mb-6">
-              <span className="text-[#D4A24E] font-semibold">Paolis</span> es tu acompañante personal — ella sigue tu progreso, responde tus dudas y te guía durante todo el proceso. Podés escribirle en cualquier momento desde el Chat.
+            <p className="text-sm text-[#FFFFFF]/80 leading-relaxed mb-6">
+              <span className="text-[#F5A623] font-semibold">Paolis</span> es tu acompañante personal — ella sigue tu progreso, responde tus dudas y te guía durante todo el proceso. Podés escribirle en cualquier momento desde el Chat.
             </p>
 
             <div className="grid grid-cols-3 gap-3 mb-8">
@@ -350,17 +350,17 @@ export default function WelcomeWizard({ profile, onComplete }: WelcomeWizardProp
                 { icon: Bot, label: 'Coach IA', desc: 'Disponible 24/7' },
                 { icon: MessageSquare, label: 'Chat directo', desc: 'Con Paolis, siempre' },
               ].map(item => (
-                <div key={item.label} className="bg-[#1A1410] border border-[rgba(212,162,78,0.1)] rounded-2xl p-4">
-                  <div className="mb-2"><item.icon className="w-6 h-6 text-[#D4A24E]" /></div>
-                  <p className="text-xs font-semibold text-[#F5F0E1] mb-1">{item.label}</p>
-                  <p className="text-[10px] text-[#F5F0E1]/40">{item.desc}</p>
+                <div key={item.label} className="bg-[#141414] border border-[rgba(245,166,35,0.1)] rounded-2xl p-4">
+                  <div className="mb-2"><item.icon className="w-6 h-6 text-[#F5A623]" /></div>
+                  <p className="text-xs font-semibold text-[#FFFFFF] mb-1">{item.label}</p>
+                  <p className="text-[10px] text-[#FFFFFF]/40">{item.desc}</p>
                 </div>
               ))}
             </div>
 
             <button
               onClick={() => setStep('guide')}
-              className="w-full py-4 rounded-xl bg-[#D4A24E] hover:bg-[#E2B865] text-[#0A0804] text-sm font-bold transition-all flex items-center justify-center gap-2 shadow-lg shadow-[#D4A24E]/20"
+              className="w-full py-4 rounded-xl bg-[#F5A623] hover:bg-[#FFB94D] text-[#0A0A0A] text-sm font-bold transition-all flex items-center justify-center gap-2 shadow-lg shadow-[#F5A623]/20"
             >
               <ArrowRight className="w-4 h-4" /> Ver cómo empezar
             </button>
@@ -369,13 +369,13 @@ export default function WelcomeWizard({ profile, onComplete }: WelcomeWizardProp
 
         {/* ── STEP 4: GUIDE ── */}
         {step === 'guide' && (
-          <div className="bg-[#1A1410] border border-[rgba(212,162,78,0.2)] rounded-3xl p-8 shadow-2xl animate-in fade-in slide-in-from-bottom-4 duration-400">
+          <div className="bg-[#141414] border border-[rgba(245,166,35,0.2)] rounded-3xl p-8 shadow-2xl animate-in fade-in slide-in-from-bottom-4 duration-400">
             <div className="mb-6 text-center">
               <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center mx-auto mb-4 shadow-[0_0_20px_rgba(245,158,11,0.3)]">
-                <Rocket className="w-5 h-5 text-[#F5F0E1]" />
+                <Rocket className="w-5 h-5 text-[#FFFFFF]" />
               </div>
-              <h1 className="text-xl font-semibold text-[#F5F0E1] mb-2">¿Por dónde empezar?</h1>
-              <p className="text-sm text-[#F5F0E1]/60">Estos son tus primeros 3 pasos concretos:</p>
+              <h1 className="text-xl font-semibold text-[#FFFFFF] mb-2">¿Por dónde empezar?</h1>
+              <p className="text-sm text-[#FFFFFF]/60">Estos son tus primeros 3 pasos concretos:</p>
             </div>
 
             <div className="space-y-3 mb-8">
@@ -386,12 +386,12 @@ export default function WelcomeWizard({ profile, onComplete }: WelcomeWizardProp
                   title: 'Abrí tu Hoja de Ruta',
                   desc: 'Ahí están todos los pilares del programa. Mirá en qué pilar empezás y completá la primera tarea.',
                   styles: {
-                    card: 'bg-[#D4A24E]/5 border-[#D4A24E]/20 hover:bg-[#D4A24E]/10',
-                    icon: 'bg-[#D4A24E]/20',
-                    iconColor: 'text-[#D4A24E]',
-                    step: 'text-[#D4A24E]/60',
-                    title: 'text-[#D4A24E]',
-                    arrow: 'text-[#D4A24E]/40 group-hover:text-[#D4A24E]',
+                    card: 'bg-[#F5A623]/5 border-[#F5A623]/20 hover:bg-[#F5A623]/10',
+                    icon: 'bg-[#F5A623]/20',
+                    iconColor: 'text-[#F5A623]',
+                    step: 'text-[#F5A623]/60',
+                    title: 'text-[#F5A623]',
+                    arrow: 'text-[#F5A623]/40 group-hover:text-[#F5A623]',
                   },
                   page: 'roadmap',
                 },
@@ -401,12 +401,12 @@ export default function WelcomeWizard({ profile, onComplete }: WelcomeWizardProp
                   title: 'Presentate con Paolis',
                   desc: 'Mandále un mensaje presentándote. Ella ya tiene tu información y te va a responder lo antes posible.',
                   styles: {
-                    card: 'bg-[#D4A24E]/5 border-[#D4A24E]/20 hover:bg-[#D4A24E]/10',
-                    icon: 'bg-[#D4A24E]/20',
-                    iconColor: 'text-[#D4A24E]',
-                    step: 'text-[#D4A24E]/60',
-                    title: 'text-[#D4A24E]',
-                    arrow: 'text-[#D4A24E]/40 group-hover:text-[#D4A24E]',
+                    card: 'bg-[#F5A623]/5 border-[#F5A623]/20 hover:bg-[#F5A623]/10',
+                    icon: 'bg-[#F5A623]/20',
+                    iconColor: 'text-[#F5A623]',
+                    step: 'text-[#F5A623]/60',
+                    title: 'text-[#F5A623]',
+                    arrow: 'text-[#F5A623]/40 group-hover:text-[#F5A623]',
                   },
                   page: 'mensajes',
                 },
@@ -416,12 +416,12 @@ export default function WelcomeWizard({ profile, onComplete }: WelcomeWizardProp
                   title: 'Probá el Coach IA',
                   desc: 'Hacele cualquier pregunta sobre tu negocio. Está entrenado para el contexto de profesionales de la salud.',
                   styles: {
-                    card: 'bg-[#D4A24E]/5 border-[#D4A24E]/20 hover:bg-[#D4A24E]/10',
-                    icon: 'bg-[#D4A24E]/20',
-                    iconColor: 'text-[#D4A24E]',
-                    step: 'text-[#D4A24E]/60',
-                    title: 'text-[#D4A24E]',
-                    arrow: 'text-[#D4A24E]/40 group-hover:text-[#D4A24E]',
+                    card: 'bg-[#F5A623]/5 border-[#F5A623]/20 hover:bg-[#F5A623]/10',
+                    icon: 'bg-[#F5A623]/20',
+                    iconColor: 'text-[#F5A623]',
+                    step: 'text-[#F5A623]/60',
+                    title: 'text-[#F5A623]',
+                    arrow: 'text-[#F5A623]/40 group-hover:text-[#F5A623]',
                   },
                   page: 'coach',
                 },
@@ -438,7 +438,7 @@ export default function WelcomeWizard({ profile, onComplete }: WelcomeWizardProp
                     <div className="flex-1">
                       <span className={`text-[10px] font-bold uppercase tracking-wider ${item.styles.step}`}>Paso {item.num}</span>
                       <p className={`text-sm font-semibold mb-0.5 mt-0.5 ${item.styles.title}`}>{item.title}</p>
-                      <p className="text-xs text-[#F5F0E1]/40 leading-relaxed">{item.desc}</p>
+                      <p className="text-xs text-[#FFFFFF]/40 leading-relaxed">{item.desc}</p>
                     </div>
                     <ArrowRight className={`w-4 h-4 transition-colors shrink-0 mt-2 ${item.styles.arrow}`} />
                   </div>
@@ -448,7 +448,7 @@ export default function WelcomeWizard({ profile, onComplete }: WelcomeWizardProp
 
             <button
               onClick={() => handleComplete('dashboard')}
-              className="w-full py-3 rounded-xl bg-[#D4A24E]/5 border border-[rgba(212,162,78,0.2)] hover:bg-[#D4A24E]/10 text-[#F5F0E1]/60 hover:text-[#F5F0E1] text-sm font-medium transition-all flex items-center justify-center gap-2"
+              className="w-full py-3 rounded-xl bg-[#F5A623]/5 border border-[rgba(245,166,35,0.2)] hover:bg-[#F5A623]/10 text-[#FFFFFF]/60 hover:text-[#FFFFFF] text-sm font-medium transition-all flex items-center justify-center gap-2"
             >
               <Sparkles className="w-4 h-4" /> Ir al dashboard primero
             </button>

@@ -27,23 +27,23 @@ export default function TaskVideo({ meta, onComplete, isCompleted }: TaskVideoPr
       {/* Video Title */}
       <div>
         <div className="flex items-center gap-2 mb-2">
-          <span className="text-[9px] uppercase font-bold px-2 py-0.5 rounded-full bg-[#D4A24E]/15 text-[#D4A24E] border border-[#D4A24E]/25 tracking-wider">
+          <span className="text-[9px] uppercase font-bold px-2 py-0.5 rounded-full bg-[#F5A623]/15 text-[#F5A623] border border-[#F5A623]/25 tracking-wider">
             VIDEO
           </span>
           {watched && (
-            <span className="text-[9px] uppercase font-bold px-2 py-0.5 rounded-full bg-[#2DD4A0]/15 text-[#2DD4A0] border border-[#2DD4A0]/25 tracking-wider flex items-center gap-1">
+            <span className="text-[9px] uppercase font-bold px-2 py-0.5 rounded-full bg-[#22C55E]/15 text-[#22C55E] border border-[#22C55E]/25 tracking-wider flex items-center gap-1">
               <CheckCircle2 className="w-3 h-3" /> Visto
             </span>
           )}
         </div>
-        <h3 className="text-lg font-medium text-[#F5F0E1]" style={{ fontFamily: 'var(--font-display)', fontStyle: 'italic' }}>
+        <h3 className="text-lg font-medium text-[#FFFFFF]" style={{ fontFamily: 'var(--font-display)', fontStyle: 'italic' }}>
           {meta.titulo}
         </h3>
-        <p className="text-sm text-[#F5F0E1]/60 mt-1">{meta.descripcion}</p>
+        <p className="text-sm text-[#FFFFFF]/60 mt-1">{meta.descripcion}</p>
       </div>
 
       {/* YouTube Embed */}
-      <div className="relative w-full aspect-video rounded-xl overflow-hidden border border-[rgba(212,162,78,0.2)] bg-black">
+      <div className="relative w-full aspect-video rounded-xl overflow-hidden border border-[rgba(245,166,35,0.2)] bg-black">
         {meta.video_youtube_id ? (
           <iframe
             src={getYoutubeEmbedUrl(videoId)}
@@ -53,22 +53,22 @@ export default function TaskVideo({ meta, onComplete, isCompleted }: TaskVideoPr
             className="absolute inset-0 w-full h-full"
           />
         ) : (
-          <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#1A1410]">
-            <Play className="w-12 h-12 text-[#D4A24E]/50 mb-3" />
-            <p className="text-sm text-[#F5F0E1]/40">Video pendiente de configuración</p>
-            <p className="text-xs text-[#F5F0E1]/25 mt-1">El ID de YouTube se cargará próximamente</p>
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#141414]">
+            <Play className="w-12 h-12 text-[#F5A623]/50 mb-3" />
+            <p className="text-sm text-[#FFFFFF]/40">Video pendiente de configuración</p>
+            <p className="text-xs text-[#FFFFFF]/25 mt-1">El ID de YouTube se cargará próximamente</p>
           </div>
         )}
       </div>
 
       {/* Mark as watched */}
       <div className="flex items-center justify-between">
-        <p className="text-xs text-[#F5F0E1]/40">
+        <p className="text-xs text-[#FFFFFF]/40">
           {meta.tiempo_estimado || '10–15 min'}
         </p>
 
         {watched ? (
-          <div className="flex items-center gap-2 text-[#2DD4A0] text-sm font-medium">
+          <div className="flex items-center gap-2 text-[#22C55E] text-sm font-medium">
             <CheckCircle2 className="w-5 h-5" />
             Video completado
           </div>

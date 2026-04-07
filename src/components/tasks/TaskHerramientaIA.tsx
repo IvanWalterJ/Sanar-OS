@@ -152,19 +152,19 @@ export default function TaskHerramientaIA({
       {/* Header */}
       <div>
         <div className="flex items-center gap-2 mb-2">
-          <span className="text-[9px] uppercase font-bold px-2 py-0.5 rounded-full bg-[#2DD4A0]/15 text-[#2DD4A0] border border-[#2DD4A0]/25 tracking-wider">
+          <span className="text-[9px] uppercase font-bold px-2 py-0.5 rounded-full bg-[#22C55E]/15 text-[#22C55E] border border-[#22C55E]/25 tracking-wider">
             HERRAMIENTA {usaIA ? 'IA' : ''}
           </span>
           {modo === 'guardado' && (
-            <span className="text-[9px] uppercase font-bold px-2 py-0.5 rounded-full bg-[#2DD4A0]/15 text-[#2DD4A0] border border-[#2DD4A0]/25 tracking-wider flex items-center gap-1">
+            <span className="text-[9px] uppercase font-bold px-2 py-0.5 rounded-full bg-[#22C55E]/15 text-[#22C55E] border border-[#22C55E]/25 tracking-wider flex items-center gap-1">
               <CheckCircle2 className="w-3 h-3" /> Guardado en ADN
             </span>
           )}
         </div>
-        <h3 className="text-lg font-medium text-[#F5F0E1]" style={{ fontFamily: 'var(--font-display)', fontStyle: 'italic' }}>
+        <h3 className="text-lg font-medium text-[#FFFFFF]" style={{ fontFamily: 'var(--font-display)', fontStyle: 'italic' }}>
           {meta.titulo}
         </h3>
-        <p className="text-sm text-[#F5F0E1]/60 mt-1">{meta.descripcion}</p>
+        <p className="text-sm text-[#FFFFFF]/60 mt-1">{meta.descripcion}</p>
       </div>
 
       {/* ─── FORM MODE ─────────────────────────────────────────────────────── */}
@@ -176,7 +176,7 @@ export default function TaskHerramientaIA({
                 // Simple form — all fields visible
                 inputs.map(campo => (
                   <div key={campo.id}>
-                    <label className="block text-xs text-[#F5F0E1]/60 mb-1.5 font-medium">
+                    <label className="block text-xs text-[#FFFFFF]/60 mb-1.5 font-medium">
                       {campo.label}
                     </label>
                     {renderField(campo)}
@@ -188,24 +188,24 @@ export default function TaskHerramientaIA({
                   const groupInputs = inputs.slice(groupIdx * 3, (groupIdx + 1) * 3);
                   const isExpanded = expandedSections.has(groupIdx);
                   return (
-                    <div key={groupIdx} className="card-panel border border-[rgba(212,162,78,0.15)]">
+                    <div key={groupIdx} className="card-panel border border-[rgba(245,166,35,0.15)]">
                       <button
                         onClick={() => toggleSection(groupIdx)}
                         className="w-full flex items-center justify-between p-4 text-left"
                       >
-                        <span className="text-sm font-medium text-[#F5F0E1]/80">
+                        <span className="text-sm font-medium text-[#FFFFFF]/80">
                           {groupInputs[0]?.label?.split(' ').slice(0, 3).join(' ')}...
                         </span>
                         {isExpanded
-                          ? <ChevronUp className="w-4 h-4 text-[#F5F0E1]/40" />
-                          : <ChevronDown className="w-4 h-4 text-[#F5F0E1]/40" />
+                          ? <ChevronUp className="w-4 h-4 text-[#FFFFFF]/40" />
+                          : <ChevronDown className="w-4 h-4 text-[#FFFFFF]/40" />
                         }
                       </button>
                       {isExpanded && (
                         <div className="px-4 pb-4 space-y-4">
                           {groupInputs.map(campo => (
                             <div key={campo.id}>
-                              <label className="block text-xs text-[#F5F0E1]/60 mb-1.5 font-medium">
+                              <label className="block text-xs text-[#FFFFFF]/60 mb-1.5 font-medium">
                                 {campo.label}
                               </label>
                               {renderField(campo)}
@@ -220,12 +220,12 @@ export default function TaskHerramientaIA({
             </>
           ) : (
             // No inputs — herramienta uses previous ADN data
-            <div className="card-panel p-5 border border-[#D4A24E]/15 bg-[#D4A24E]/[0.03]">
-              <p className="text-sm text-[#F5F0E1]/70">
+            <div className="card-panel p-5 border border-[#F5A623]/15 bg-[#F5A623]/[0.03]">
+              <p className="text-sm text-[#FFFFFF]/70">
                 Esta herramienta usa los datos que ya completaste en pasos anteriores para generar el resultado.
               </p>
               {meta.requiere_datos_de && meta.requiere_datos_de.length > 0 && (
-                <p className="text-xs text-[#F5F0E1]/40 mt-2">
+                <p className="text-xs text-[#FFFFFF]/40 mt-2">
                   Datos de: {meta.requiere_datos_de.join(', ')}
                 </p>
               )}
@@ -255,20 +255,20 @@ export default function TaskHerramientaIA({
       {/* ─── GENERATING ────────────────────────────────────────────────────── */}
       {modo === 'generando' && (
         <div className="flex flex-col items-center justify-center py-12">
-          <Loader2 className="w-8 h-8 text-[#D4A24E] animate-spin mb-4" />
-          <p className="text-sm text-[#F5F0E1]/60">Generando con IA...</p>
-          <p className="text-xs text-[#F5F0E1]/30 mt-1">Esto puede tomar unos segundos</p>
+          <Loader2 className="w-8 h-8 text-[#F5A623] animate-spin mb-4" />
+          <p className="text-sm text-[#FFFFFF]/60">Generando con IA...</p>
+          <p className="text-xs text-[#FFFFFF]/30 mt-1">Esto puede tomar unos segundos</p>
         </div>
       )}
 
       {/* ─── REVIEW MODE ───────────────────────────────────────────────────── */}
       {modo === 'revision' && (
         <div className="space-y-5" ref={outputRef}>
-          <div className="card-panel p-5 border border-[rgba(212,162,78,0.2)]">
-            <p className="text-[10px] text-[#D4A24E] uppercase tracking-widest font-bold mb-3">
+          <div className="card-panel p-5 border border-[rgba(245,166,35,0.2)]">
+            <p className="text-[10px] text-[#F5A623] uppercase tracking-widest font-bold mb-3">
               {usaIA ? 'Resultado generado' : 'Tu contenido'}
             </p>
-            <div className="text-sm text-[#F5F0E1]/90 leading-relaxed prose prose-invert max-w-none prose-a:text-[#D4A24E]">
+            <div className="text-sm text-[#FFFFFF]/90 leading-relaxed prose prose-invert max-w-none prose-a:text-[#F5A623]">
               <Markdown>{output}</Markdown>
             </div>
           </div>
@@ -283,7 +283,7 @@ export default function TaskHerramientaIA({
             {usaIA && (
               <button
                 onClick={handleRegenerate}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-[#F5F0E1]/50 hover:text-[#F5F0E1] transition-colors"
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-[#FFFFFF]/50 hover:text-[#FFFFFF] transition-colors"
               >
                 <RotateCcw className="w-4 h-4" /> Rehacer
               </button>
@@ -327,11 +327,11 @@ export default function TaskHerramientaIA({
       {/* ─── SAVED MODE ────────────────────────────────────────────────────── */}
       {modo === 'guardado' && (
         <div className="space-y-5">
-          <div className="card-panel p-5 border border-[#2DD4A0]/20 bg-[#2DD4A0]/[0.03]">
-            <p className="text-[10px] text-[#2DD4A0] uppercase tracking-widest font-bold mb-3 flex items-center gap-1.5">
+          <div className="card-panel p-5 border border-[#22C55E]/20 bg-[#22C55E]/[0.03]">
+            <p className="text-[10px] text-[#22C55E] uppercase tracking-widest font-bold mb-3 flex items-center gap-1.5">
               <CheckCircle2 className="w-3.5 h-3.5" /> Guardado en tu ADN
             </p>
-            <div className="text-sm text-[#F5F0E1]/80 leading-relaxed prose prose-invert max-w-none prose-a:text-[#D4A24E]">
+            <div className="text-sm text-[#FFFFFF]/80 leading-relaxed prose prose-invert max-w-none prose-a:text-[#F5A623]">
               <Markdown>{output}</Markdown>
             </div>
           </div>

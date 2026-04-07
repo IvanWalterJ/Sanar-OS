@@ -26,15 +26,15 @@ export default function TaskAgente({ meta, onComplete, isCompleted, onNavigateTo
             AGENTE
           </span>
           {checked && (
-            <span className="text-[9px] uppercase font-bold px-2 py-0.5 rounded-full bg-[#2DD4A0]/15 text-[#2DD4A0] border border-[#2DD4A0]/25 tracking-wider flex items-center gap-1">
+            <span className="text-[9px] uppercase font-bold px-2 py-0.5 rounded-full bg-[#22C55E]/15 text-[#22C55E] border border-[#22C55E]/25 tracking-wider flex items-center gap-1">
               <CheckCircle2 className="w-3 h-3" /> Completado
             </span>
           )}
         </div>
-        <h3 className="text-lg font-medium text-[#F5F0E1]" style={{ fontFamily: 'var(--font-display)', fontStyle: 'italic' }}>
+        <h3 className="text-lg font-medium text-[#FFFFFF]" style={{ fontFamily: 'var(--font-display)', fontStyle: 'italic' }}>
           {meta.titulo}
         </h3>
-        <p className="text-sm text-[#F5F0E1]/60 mt-1">{meta.descripcion}</p>
+        <p className="text-sm text-[#FFFFFF]/60 mt-1">{meta.descripcion}</p>
       </div>
 
       {/* Instruction */}
@@ -42,7 +42,7 @@ export default function TaskAgente({ meta, onComplete, isCompleted, onNavigateTo
         <p className="text-[10px] text-purple-400 uppercase tracking-widest font-bold mb-3">
           Instrucción
         </p>
-        <p className="text-sm text-[#F5F0E1]/80 leading-relaxed">
+        <p className="text-sm text-[#FFFFFF]/80 leading-relaxed">
           {meta.descripcion}
         </p>
       </div>
@@ -58,9 +58,9 @@ export default function TaskAgente({ meta, onComplete, isCompleted, onNavigateTo
       </button>
 
       {/* Confirmation checkbox */}
-      <div className="border-t border-[rgba(212,162,78,0.1)] pt-5">
+      <div className="border-t border-[rgba(245,166,35,0.1)] pt-5">
         {checked ? (
-          <div className="flex items-center gap-2 text-[#2DD4A0] text-sm font-medium">
+          <div className="flex items-center gap-2 text-[#22C55E] text-sm font-medium">
             <CheckCircle2 className="w-5 h-5" />
             Sesión con el Agente completada
           </div>
@@ -70,9 +70,9 @@ export default function TaskAgente({ meta, onComplete, isCompleted, onNavigateTo
               type="checkbox"
               checked={checked}
               onChange={handleCheck}
-              className="w-5 h-5 rounded border-purple-500/30 bg-transparent accent-[#2DD4A0] cursor-pointer"
+              className="w-5 h-5 rounded border-purple-500/30 bg-transparent accent-[#22C55E] cursor-pointer"
             />
-            <span className="text-sm text-[#F5F0E1]/70 group-hover:text-[#F5F0E1] transition-colors">
+            <span className="text-sm text-[#FFFFFF]/70 group-hover:text-[#FFFFFF] transition-colors">
               Completé la sesión con el Agente
             </span>
           </label>

@@ -8,19 +8,20 @@
 @source inline("border-{emerald,violet,blue,indigo,cyan,sky,amber,orange,rose}-500/{15,20,25,30,35,60}");
 @source inline("shadow-{emerald,violet,blue,indigo,cyan,sky,amber,orange,rose}-500/{10,15,20}");
 
-/* ─── Design Tokens V3 ──────────────────────────────────────────── */
+/* ─── Design Tokens V4 — Bright Tech Palette ──────────────────── */
 :root {
-  --bg-root: #080808;
-  --bg-card: #1A1410;
-  --bg-surface2: #241A0C;
-  --accent-gold: #D4A24E;
-  --accent-gold-hover: #E2B865;
-  --green-success: #2DD4A0;
-  --red-alert: #E85555;
-  --text-cream: #F5F0E1;
-  --text-muted: rgba(245, 240, 225, 0.6);
-  --border-gold: rgba(212, 162, 78, 0.25);
-  --border-gold-strong: rgba(212, 162, 78, 0.5);
+  --bg-root: #0A0A0A;
+  --bg-card: #141414;
+  --bg-surface2: #1C1C1C;
+  --accent-gold: #F5A623;
+  --accent-gold-hover: #FFB94D;
+  --accent-blue: #3B82F6;
+  --green-success: #22C55E;
+  --red-alert: #EF4444;
+  --text-cream: #FFFFFF;
+  --text-muted: rgba(255, 255, 255, 0.6);
+  --border-gold: rgba(245, 166, 35, 0.25);
+  --border-gold-strong: rgba(245, 166, 35, 0.5);
   --font-body: 'DM Sans', system-ui, sans-serif;
   --font-display: 'DM Serif Display', Georgia, serif;
 }
@@ -56,7 +57,7 @@ h1, h2, h3 {
 
   /* Legacy alias — keep for backward compat during migration */
   .glass-panel {
-    @apply bg-[#1A1410]/80 backdrop-blur-xl border border-[rgba(200,137,58,0.2)] shadow-2xl;
+    @apply bg-[#141414]/80 backdrop-blur-xl border border-[rgba(245,166,35,0.2)] shadow-2xl;
   }
 
   /* New card panel */
@@ -64,23 +65,24 @@ h1, h2, h3 {
     background: var(--bg-card);
     border: 1px solid var(--border-gold);
     border-radius: 12px;
-    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4), 0 0 40px rgba(245, 166, 35, 0.03);
   }
 
   /* Primary button */
   .btn-primary {
     background: var(--accent-gold);
-    color: #0E0B07;
-    font-weight: 600;
+    color: #0A0A0A;
+    font-weight: 700;
     font-size: 0.875rem;
     padding: 0.625rem 1.25rem;
     border-radius: 0.75rem;
-    transition: background 0.2s, box-shadow 0.2s;
-    box-shadow: 0 4px 12px rgba(200, 137, 58, 0.3);
+    transition: background 0.2s, box-shadow 0.2s, transform 0.1s;
+    box-shadow: 0 4px 20px rgba(245, 166, 35, 0.4), 0 0 40px rgba(245, 166, 35, 0.1);
   }
   .btn-primary:hover {
     background: var(--accent-gold-hover);
-    box-shadow: 0 6px 20px rgba(200, 137, 58, 0.4);
+    box-shadow: 0 6px 28px rgba(245, 166, 35, 0.5), 0 0 60px rgba(245, 166, 35, 0.15);
+    transform: translateY(-1px);
   }
 
   /* Secondary button */
@@ -95,7 +97,7 @@ h1, h2, h3 {
     transition: background 0.2s, border-color 0.2s;
   }
   .btn-secondary:hover {
-    background: rgba(200, 137, 58, 0.1);
+    background: rgba(245, 166, 35, 0.1);
     border-color: var(--border-gold-strong);
   }
 
@@ -108,10 +110,11 @@ h1, h2, h3 {
     color: var(--text-cream);
     font-size: 0.875rem;
     outline: none;
-    transition: border-color 0.2s;
+    transition: border-color 0.2s, box-shadow 0.2s;
   }
   .input-field:focus {
     border-color: var(--accent-gold);
+    box-shadow: 0 0 12px rgba(245, 166, 35, 0.15);
   }
   .input-field::placeholder {
     color: var(--text-muted);
@@ -123,6 +126,11 @@ h1, h2, h3 {
     font-style: italic;
     font-size: 1.5rem;
     color: var(--text-cream);
+  }
+
+  /* Tech glow utility */
+  .glow-accent {
+    box-shadow: 0 0 20px rgba(245, 166, 35, 0.15), 0 0 60px rgba(245, 166, 35, 0.05);
   }
 
   /* Custom select — override native browser dropdown */
@@ -139,7 +147,7 @@ h1, h2, h3 {
     outline: none;
     cursor: pointer;
     transition: border-color 0.2s, background 0.2s;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23D4A24E' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23F5A623' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
     background-repeat: no-repeat;
     background-position: right 0.75rem center;
     background-size: 1rem;
@@ -149,7 +157,7 @@ h1, h2, h3 {
     background-color: rgba(0, 0, 0, 0.5);
   }
   .custom-select option {
-    background: #1A1410;
+    background: #141414;
     color: var(--text-cream);
     padding: 0.5rem;
   }

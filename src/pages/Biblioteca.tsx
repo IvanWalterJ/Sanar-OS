@@ -52,49 +52,49 @@ const CLINICA_TABS: readonly ClinicaTab[] = [
     letter: 'C',
     label: 'Claridad',
     pilarIds: ['P1', 'P2', 'P3'],
-    color: '#D4A24E',
+    color: '#F5A623',
   },
   {
     id: 'L',
     letter: 'L',
     label: 'Liberación',
     pilarIds: ['P0'],
-    color: '#E2B865',
+    color: '#FFB94D',
   },
   {
     id: 'I1',
     letter: 'Í',
     label: 'Irresistible',
     pilarIds: ['P4', 'P5', 'P6', 'P7', 'P8'],
-    color: '#D4A24E',
+    color: '#F5A623',
   },
   {
     id: 'N',
     letter: 'N',
     label: 'Notoriedad',
     pilarIds: ['P9A'],
-    color: '#E2B865',
+    color: '#FFB94D',
   },
   {
     id: 'I2',
     letter: 'I',
     label: 'Infraestructura',
     pilarIds: ['P9C'],
-    color: '#D4A24E',
+    color: '#F5A623',
   },
   {
     id: 'C2',
     letter: 'C',
     label: 'Captación',
     pilarIds: ['P9B'],
-    color: '#E2B865',
+    color: '#FFB94D',
   },
   {
     id: 'A',
     letter: 'A',
     label: 'Autonomía',
     pilarIds: ['P11', 'P10'],
-    color: '#D4A24E',
+    color: '#F5A623',
   },
 ] as const;
 
@@ -260,7 +260,7 @@ export default function Biblioteca({ userId }: BibliotecaProps) {
       <div className="max-w-4xl mx-auto space-y-4 animate-in fade-in duration-300 pb-12">
         <button
           onClick={() => setHerramientaActivaId(null)}
-          className="flex items-center gap-2 text-sm text-[#F5F0E1]/60 hover:text-[#F5F0E1] transition-colors uppercase tracking-wider font-bold mb-4 bg-[#D4A24E]/5 hover:bg-[#D4A24E]/10 px-4 py-2 rounded-xl w-max"
+          className="flex items-center gap-2 text-sm text-[#FFFFFF]/60 hover:text-[#FFFFFF] transition-colors uppercase tracking-wider font-bold mb-4 bg-[#F5A623]/5 hover:bg-[#F5A623]/10 px-4 py-2 rounded-xl w-max"
         >
           <ArrowLeft className="w-4 h-4" /> Volver a Biblioteca
         </button>
@@ -280,10 +280,10 @@ export default function Biblioteca({ userId }: BibliotecaProps) {
     <div className="max-w-5xl mx-auto space-y-8 pb-12 animate-in fade-in duration-500">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-light tracking-tight text-[#F5F0E1] mb-2">
+        <h1 className="text-3xl font-light tracking-tight text-[#FFFFFF] mb-2">
           Biblioteca
         </h1>
-        <p className="text-[#F5F0E1]/60 text-sm">
+        <p className="text-[#FFFFFF]/60 text-sm">
           Videos y herramientas IA del Método C·L·I·N·I·C·A.
         </p>
       </div>
@@ -293,7 +293,7 @@ export default function Biblioteca({ userId }: BibliotecaProps) {
         {canScrollLeft && (
           <button
             onClick={() => scrollTabs('left')}
-            className="shrink-0 w-8 h-8 rounded-lg bg-[#D4A24E]/5 hover:bg-[#D4A24E]/10 border border-[rgba(212,162,78,0.2)] flex items-center justify-center text-[#F5F0E1]/60 hover:text-[#F5F0E1] transition-colors"
+            className="shrink-0 w-8 h-8 rounded-lg bg-[#F5A623]/5 hover:bg-[#F5A623]/10 border border-[rgba(245,166,35,0.2)] flex items-center justify-center text-[#FFFFFF]/60 hover:text-[#FFFFFF] transition-colors"
           >
             <ChevronLeft className="w-4 h-4" />
           </button>
@@ -312,14 +312,14 @@ export default function Biblioteca({ userId }: BibliotecaProps) {
                 disabled={!unlocked}
                 className={`flex flex-col items-center px-5 py-3 rounded-xl transition-all border min-w-[80px] ${
                   !unlocked
-                    ? 'bg-[#1A1410]/40 border-[rgba(212,162,78,0.05)] text-[#F5F0E1]/20 cursor-not-allowed'
+                    ? 'bg-[#1C1C1C]/40 border-[rgba(245,166,35,0.05)] text-[#FFFFFF]/20 cursor-not-allowed'
                     : isActive
-                    ? 'bg-[#D4A24E]/15 border-[#D4A24E]/50 text-[#D4A24E]'
-                    : 'bg-[#241A0C]/30 border-[rgba(212,162,78,0.1)] text-[#F5F0E1]/60 hover:text-[#F5F0E1] hover:bg-[#241A0C]/50'
+                    ? 'bg-[#F5A623]/15 border-[#F5A623]/50 text-[#F5A623]'
+                    : 'bg-[#1C1C1C]/30 border-[rgba(245,166,35,0.1)] text-[#FFFFFF]/60 hover:text-[#FFFFFF] hover:bg-[#1C1C1C]/50'
                 }`}
               >
                 {!unlocked ? (
-                  <Lock className="w-5 h-5 mb-1 text-[#F5F0E1]/15" />
+                  <Lock className="w-5 h-5 mb-1 text-[#FFFFFF]/15" />
                 ) : (
                   <span
                     className="text-xl font-bold leading-none mb-1"
@@ -338,7 +338,7 @@ export default function Biblioteca({ userId }: BibliotecaProps) {
         {canScrollRight && (
           <button
             onClick={() => scrollTabs('right')}
-            className="shrink-0 w-8 h-8 rounded-lg bg-[#D4A24E]/5 hover:bg-[#D4A24E]/10 border border-[rgba(212,162,78,0.2)] flex items-center justify-center text-[#F5F0E1]/60 hover:text-[#F5F0E1] transition-colors"
+            className="shrink-0 w-8 h-8 rounded-lg bg-[#F5A623]/5 hover:bg-[#F5A623]/10 border border-[rgba(245,166,35,0.2)] flex items-center justify-center text-[#FFFFFF]/60 hover:text-[#FFFFFF] transition-colors"
           >
             <ChevronRight className="w-4 h-4" />
           </button>
@@ -346,15 +346,15 @@ export default function Biblioteca({ userId }: BibliotecaProps) {
       </div>
 
       {/* Tab description */}
-      <div className="bg-[#D4A24E]/5 border border-[#D4A24E]/20 rounded-2xl px-5 py-4">
-        <p className="text-sm text-[#F5F0E1]/80">
+      <div className="bg-[#F5A623]/5 border border-[#F5A623]/20 rounded-2xl px-5 py-4">
+        <p className="text-sm text-[#FFFFFF]/80">
           <span
             className="font-bold text-lg mr-2"
             style={{ color: activeTab.color }}
           >
             {activeTab.letter}
           </span>
-          <span className="font-semibold text-[#F5F0E1]">
+          <span className="font-semibold text-[#FFFFFF]">
             {activeTab.label}
           </span>
           {' — '}
@@ -370,13 +370,13 @@ export default function Biblioteca({ userId }: BibliotecaProps) {
       {/* Videos section */}
       {tabVideos.length > 0 && (
         <div className="space-y-4">
-          <h2 className="text-sm font-bold uppercase tracking-widest text-[#F5F0E1]/40 flex items-center gap-2">
-            <Youtube className="w-4 h-4 text-[#E85555]" /> Videos
+          <h2 className="text-sm font-bold uppercase tracking-widest text-[#FFFFFF]/40 flex items-center gap-2">
+            <Youtube className="w-4 h-4 text-[#EF4444]" /> Videos
           </h2>
           {videosLoading ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
-              <Loader2 className="w-8 h-8 text-[#D4A24E] animate-spin mb-3" />
-              <p className="text-[#F5F0E1]/60 text-sm">Cargando videos...</p>
+              <Loader2 className="w-8 h-8 text-[#F5A623] animate-spin mb-3" />
+              <p className="text-[#FFFFFF]/60 text-sm">Cargando videos...</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -391,7 +391,7 @@ export default function Biblioteca({ userId }: BibliotecaProps) {
                 return (
                   <div
                     key={v.id}
-                    className="card-panel rounded-2xl border border-[rgba(212,162,78,0.1)] hover:border-[rgba(212,162,78,0.2)] transition-all overflow-hidden group flex flex-col"
+                    className="card-panel rounded-2xl border border-[rgba(245,166,35,0.1)] hover:border-[rgba(245,166,35,0.2)] transition-all overflow-hidden group flex flex-col"
                   >
                     <div
                       className={`relative aspect-video overflow-hidden bg-black/40 ${
@@ -406,19 +406,19 @@ export default function Biblioteca({ userId }: BibliotecaProps) {
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                         />
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center bg-[#241A0C]/30">
-                          <Youtube className="w-10 h-10 text-[#D4A24E]/30" />
+                        <div className="w-full h-full flex items-center justify-center bg-[#1C1C1C]/30">
+                          <Youtube className="w-10 h-10 text-[#F5A623]/30" />
                         </div>
                       )}
                       {!isPlaceholder && (
                         <div className="absolute inset-0 flex items-center justify-center bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <div className="w-14 h-14 rounded-full bg-[#D4A24E] flex items-center justify-center shadow-2xl">
-                            <Play className="w-6 h-6 text-[#F5F0E1] fill-white ml-0.5" />
+                          <div className="w-14 h-14 rounded-full bg-[#F5A623] flex items-center justify-center shadow-2xl">
+                            <Play className="w-6 h-6 text-[#FFFFFF] fill-white ml-0.5" />
                           </div>
                         </div>
                       )}
                       {v.duracion && (
-                        <div className="absolute bottom-2 right-2 bg-black/80 text-[#F5F0E1] text-[10px] font-mono px-1.5 py-0.5 rounded flex items-center gap-1">
+                        <div className="absolute bottom-2 right-2 bg-black/80 text-[#FFFFFF] text-[10px] font-mono px-1.5 py-0.5 rounded flex items-center gap-1">
                           <Clock className="w-2.5 h-2.5" />
                           {v.duracion}
                         </div>
@@ -427,20 +427,20 @@ export default function Biblioteca({ userId }: BibliotecaProps) {
 
                     <div className="p-4 flex-1 flex flex-col">
                       <div className="flex items-center gap-2 mb-2">
-                        <span className="text-[9px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded bg-[#D4A24E]/15 text-[#D4A24E] border border-[#D4A24E]/20">
+                        <span className="text-[9px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded bg-[#F5A623]/15 text-[#F5A623] border border-[#F5A623]/20">
                           {v.id}
                         </span>
                       </div>
-                      <h3 className="text-sm font-semibold text-[#F5F0E1] mb-1">
+                      <h3 className="text-sm font-semibold text-[#FFFFFF] mb-1">
                         {v.titulo}
                       </h3>
-                      <p className="text-xs text-[#F5F0E1]/60 leading-relaxed flex-1">
+                      <p className="text-xs text-[#FFFFFF]/60 leading-relaxed flex-1">
                         {v.descripcion}
                       </p>
                       {!isPlaceholder && (
                         <button
                           onClick={() => setVideoActivo(v)}
-                          className="mt-3 w-full py-2.5 rounded-xl text-[11px] font-bold uppercase tracking-widest bg-[#D4A24E]/80 hover:bg-[#D4A24E] text-[#F5F0E1] transition-all flex items-center justify-center gap-2"
+                          className="mt-3 w-full py-2.5 rounded-xl text-[11px] font-bold uppercase tracking-widest bg-[#F5A623]/80 hover:bg-[#F5A623] text-[#FFFFFF] transition-all flex items-center justify-center gap-2"
                         >
                           <Play className="w-3.5 h-3.5 fill-white" /> Ver Video
                         </button>
@@ -457,13 +457,13 @@ export default function Biblioteca({ userId }: BibliotecaProps) {
       {/* Herramientas section */}
       {herramientas.length > 0 && (
         <div className="space-y-4">
-          <h2 className="text-sm font-bold uppercase tracking-widest text-[#F5F0E1]/40 flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-[#D4A24E]" /> Herramientas IA
+          <h2 className="text-sm font-bold uppercase tracking-widest text-[#FFFFFF]/40 flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-[#F5A623]" /> Herramientas IA
           </h2>
 
           {!geminiKey && (
             <div className="flex items-center gap-3 bg-amber-500/10 border border-amber-500/30 rounded-2xl px-5 py-4">
-              <Lock className="w-4 h-4 text-[#D4A24E] shrink-0" />
+              <Lock className="w-4 h-4 text-[#F5A623] shrink-0" />
               <p className="text-sm text-amber-300">
                 Configura la variable{' '}
                 <code className="bg-amber-500/20 px-1.5 py-0.5 rounded text-amber-200 font-mono text-xs">
@@ -478,23 +478,23 @@ export default function Biblioteca({ userId }: BibliotecaProps) {
             {herramientas.map((h) => (
               <div
                 key={h.id}
-                className="card-panel rounded-2xl p-5 border border-[rgba(212,162,78,0.1)] hover:border-[rgba(212,162,78,0.2)] hover:bg-[#241A0C]/50 transition-all group flex flex-col"
+                className="card-panel rounded-2xl p-5 border border-[rgba(245,166,35,0.1)] hover:border-[rgba(245,166,35,0.2)] hover:bg-[#1C1C1C]/50 transition-all group flex flex-col"
               >
                 <div className="flex items-start gap-3 mb-3">
-                  {(() => { const iconName = EMOJI_TO_ICON[h.emoji]; const IC = iconName ? BIB_ICON_MAP[iconName] : null; return IC ? <IC className="w-6 h-6 text-[#D4A24E] shrink-0" /> : <Sparkles className="w-6 h-6 text-[#D4A24E] shrink-0" />; })()}
+                  {(() => { const iconName = EMOJI_TO_ICON[h.emoji]; const IC = iconName ? BIB_ICON_MAP[iconName] : null; return IC ? <IC className="w-6 h-6 text-[#F5A623] shrink-0" /> : <Sparkles className="w-6 h-6 text-[#F5A623] shrink-0" />; })()}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
-                      <span className="text-[9px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded bg-[#D4A24E]/15 text-[#D4A24E] border border-[#D4A24E]/20">
+                      <span className="text-[9px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded bg-[#F5A623]/15 text-[#F5A623] border border-[#F5A623]/20">
                         {h.id}
                       </span>
                     </div>
-                    <h3 className="text-sm font-semibold text-[#F5F0E1] leading-snug">
+                    <h3 className="text-sm font-semibold text-[#FFFFFF] leading-snug">
                       {h.titulo}
                     </h3>
                   </div>
                 </div>
 
-                <p className="text-xs text-[#F5F0E1]/60 leading-relaxed mb-4 flex-1">
+                <p className="text-xs text-[#FFFFFF]/60 leading-relaxed mb-4 flex-1">
                   {h.descripcion}
                 </p>
 
@@ -503,8 +503,8 @@ export default function Biblioteca({ userId }: BibliotecaProps) {
                   disabled={!geminiKey}
                   className={`w-full py-2.5 rounded-xl text-[11px] font-bold uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${
                     geminiKey
-                      ? 'bg-[#D4A24E] hover:bg-[#E2B865] text-[#F5F0E1] shadow-lg shadow-[#D4A24E]/20'
-                      : 'bg-[#D4A24E]/5 text-[#F5F0E1]/30 cursor-not-allowed border border-[rgba(212,162,78,0.1)]'
+                      ? 'bg-[#F5A623] hover:bg-[#FFB94D] text-[#FFFFFF] shadow-lg shadow-[#F5A623]/20'
+                      : 'bg-[#F5A623]/5 text-[#FFFFFF]/30 cursor-not-allowed border border-[rgba(245,166,35,0.1)]'
                   }`}
                 >
                   <Sparkles className="w-3.5 h-3.5" />
@@ -518,14 +518,14 @@ export default function Biblioteca({ userId }: BibliotecaProps) {
 
       {/* Empty state when both lists are empty */}
       {herramientas.length === 0 && tabVideos.length === 0 && (
-        <div className="flex flex-col items-center justify-center py-16 text-center bg-[#241A0C]/30 border border-[rgba(212,162,78,0.1)] border-dashed rounded-2xl">
-          <Sparkles className="w-12 h-12 text-[#D4A24E]/30 mb-4" />
-          <p className="text-[#F5F0E1]/60 text-sm font-medium mb-2">
+        <div className="flex flex-col items-center justify-center py-16 text-center bg-[#1C1C1C]/30 border border-[rgba(245,166,35,0.1)] border-dashed rounded-2xl">
+          <Sparkles className="w-12 h-12 text-[#F5A623]/30 mb-4" />
+          <p className="text-[#FFFFFF]/60 text-sm font-medium mb-2">
             Este modulo esta en desarrollo
           </p>
-          <p className="text-[#F5F0E1]/30 text-xs max-w-sm leading-relaxed">
+          <p className="text-[#FFFFFF]/30 text-xs max-w-sm leading-relaxed">
             Pronto se habilitaran videos y herramientas para{' '}
-            <strong className="text-[#F5F0E1]/60">{activeTab.label}</strong>.
+            <strong className="text-[#FFFFFF]/60">{activeTab.label}</strong>.
           </p>
         </div>
       )}
@@ -541,17 +541,17 @@ export default function Biblioteca({ userId }: BibliotecaProps) {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-3 px-1">
-              <h3 className="text-[#F5F0E1] font-medium text-sm truncate flex-1">
+              <h3 className="text-[#FFFFFF] font-medium text-sm truncate flex-1">
                 {videoActivo.titulo}
               </h3>
               <button
                 onClick={() => setVideoActivo(null)}
-                className="w-8 h-8 rounded-full bg-[#D4A24E]/10 hover:bg-[#D4A24E]/20 flex items-center justify-center text-[#F5F0E1]/60 hover:text-[#F5F0E1] transition-colors shrink-0 ml-3"
+                className="w-8 h-8 rounded-full bg-[#F5A623]/10 hover:bg-[#F5A623]/20 flex items-center justify-center text-[#FFFFFF]/60 hover:text-[#FFFFFF] transition-colors shrink-0 ml-3"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
-            <div className="aspect-video w-full rounded-2xl overflow-hidden bg-black shadow-2xl ring-1 ring-[rgba(212,162,78,0.2)]">
+            <div className="aspect-video w-full rounded-2xl overflow-hidden bg-black shadow-2xl ring-1 ring-[rgba(245,166,35,0.2)]">
               <iframe
                 src={getYoutubeEmbedUrl(videoActivo.youtubeUrl)}
                 title={videoActivo.titulo}

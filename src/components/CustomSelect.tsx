@@ -43,19 +43,19 @@ export default function CustomSelect({
         className={`
           w-full flex items-center justify-between gap-2
           bg-black/20 border rounded-xl px-3 py-3
-          text-sm text-[#F5F0E1] text-left
+          text-sm text-[#FFFFFF] text-left
           transition-all duration-150 outline-none
-          ${open ? 'border-[#D4A24E]/50 ring-1 ring-[#D4A24E]/20' : 'border-[rgba(212,162,78,0.2)] hover:border-[rgba(212,162,78,0.3)]'}
+          ${open ? 'border-[#F5A623]/50 ring-1 ring-[#F5A623]/20' : 'border-[rgba(245,166,35,0.2)] hover:border-[rgba(245,166,35,0.3)]'}
         `}
       >
-        <span className={value ? 'text-[#F5F0E1]' : 'text-[#F5F0E1]/40'}>{selectedLabel}</span>
+        <span className={value ? 'text-[#FFFFFF]' : 'text-[#FFFFFF]/40'}>{selectedLabel}</span>
         <ChevronDown
-          className={`w-4 h-4 text-[#F5F0E1]/60 shrink-0 transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
+          className={`w-4 h-4 text-[#FFFFFF]/60 shrink-0 transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
         />
       </button>
 
       {open && (
-        <div className="absolute z-50 w-full mt-1.5 bg-[#1A1410] border border-[rgba(212,162,78,0.2)] rounded-xl shadow-xl shadow-black/50 overflow-hidden">
+        <div className="absolute z-50 w-full mt-1.5 bg-[#141414] border border-[rgba(245,166,35,0.2)] rounded-xl shadow-xl shadow-black/50 overflow-hidden">
           {options.map((opt) => (
             <button
               key={opt.value}
@@ -64,8 +64,8 @@ export default function CustomSelect({
               className={`
                 w-full px-3 py-2.5 text-sm text-left transition-colors duration-100
                 ${opt.value === value
-                  ? 'bg-[#D4A24E]/20 text-[#D4A24E]'
-                  : 'text-[#F5F0E1]/80 hover:bg-[#D4A24E]/5 hover:text-[#F5F0E1]'
+                  ? 'bg-[#F5A623]/20 text-[#F5A623]'
+                  : 'text-[#FFFFFF]/80 hover:bg-[#F5A623]/5 hover:text-[#FFFFFF]'
                 }
               `}
             >
