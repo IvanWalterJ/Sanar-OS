@@ -268,7 +268,7 @@ export default function TaskHerramientaIA({
             <p className="text-[10px] text-[#F5A623] uppercase tracking-widest font-bold mb-3">
               {usaIA ? 'Resultado generado' : 'Tu contenido'}
             </p>
-            <div className="text-sm text-[#FFFFFF]/90 leading-relaxed prose prose-invert max-w-none prose-a:text-[#F5A623]">
+            <div className="text-sm text-[#FFFFFF]/90 leading-relaxed prose prose-invert max-w-none prose-a:text-[#F5A623] prose-headings:text-[#F5A623] prose-headings:font-semibold prose-strong:text-[#FFFFFF] prose-strong:font-bold prose-p:leading-relaxed prose-li:my-0.5 prose-hr:border-[rgba(245,166,35,0.15)]">
               <Markdown>{output}</Markdown>
             </div>
           </div>
@@ -331,7 +331,7 @@ export default function TaskHerramientaIA({
             <p className="text-[10px] text-[#22C55E] uppercase tracking-widest font-bold mb-3 flex items-center gap-1.5">
               <CheckCircle2 className="w-3.5 h-3.5" /> Guardado en tu ADN
             </p>
-            <div className="text-sm text-[#FFFFFF]/80 leading-relaxed prose prose-invert max-w-none prose-a:text-[#F5A623]">
+            <div className="text-sm text-[#FFFFFF]/80 leading-relaxed prose prose-invert max-w-none prose-a:text-[#F5A623] prose-headings:text-[#F5A623] prose-headings:font-semibold prose-strong:text-[#FFFFFF] prose-strong:font-bold prose-p:leading-relaxed prose-li:my-0.5 prose-hr:border-[rgba(245,166,35,0.15)]">
               <Markdown>{output}</Markdown>
             </div>
           </div>

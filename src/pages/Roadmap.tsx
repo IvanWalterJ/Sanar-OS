@@ -224,6 +224,26 @@ export default function Roadmap({ userId, perfil, geminiKey, onNavigate }: Props
     }
   }, [userId]);
 
+  // ─── Auto-open task from ManualNegocio navigation ─────────────────────
+  useEffect(() => {
+    if (loading) return;
+    const autoOpen = localStorage.getItem('tcd_auto_open_adn_field');
+    if (!autoOpen) return;
+    localStorage.removeItem('tcd_auto_open_adn_field');
+    // Find the pilar and meta that has this adn_field
+    for (const pilar of SEED_ROADMAP_V2) {
+      for (const meta of pilar.metas) {
+        if (meta.adn_field === autoOpen) {
+          setPilarAbierto(pilar.numero);
+          setActiveMeta(meta.codigo);
+          // Scroll after render
+          setTimeout(() => taskRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 300);
+          return;
+        }
+      }
+    }
+  }, [loading]);
+
   // ─── Lógica de desbloqueo ───────────────────────────────────────────────
   const calcularEstadoPilar = useCallback(
     (pilar: RoadmapPilar, pilares: RoadmapPilar[]): EstadoPilar => {
@@ -362,6 +382,19 @@ export default function Roadmap({ userId, perfil, geminiKey, onNavigate }: Props
     [completadas, userId],
   );
 
+  // ─── Parse historia output into 3 separate versions ────────────────────
+  function parseHistoriaVersions(texto: string): { historia_300: string; historia_150: string; historia_50: string } | null {
+    const match300 = texto.match(/---\s*HISTORIA\s+300\s+PALABRAS\s*---\s*([\s\S]*?)(?=---\s*HISTORIA\s+150|$)/i);
+    const match150 = texto.match(/---\s*HISTORIA\s+150\s+PALABRAS\s*---\s*([\s\S]*?)(?=---\s*HISTORIA\s+50|$)/i);
+    const match50 = texto.match(/---\s*HISTORIA\s+50\s+PALABRAS\s*---\s*([\s\S]*?)$/i);
+    if (!match300 || !match150 || !match50) return null;
+    return {
+      historia_300: match300[1].trim(),
+      historia_150: match150[1].trim(),
+      historia_50: match50[1].trim(),
+    };
+  }
+
   // ─── Save ADN output from herramienta task ────────────────────────────
   const handleSaveADN = useCallback((pilarNum: number, meta: RoadmapMeta, outputTexto: string) => {
     const key = `${pilarNum}-${meta.codigo}`;
@@ -387,6 +420,29 @@ export default function Roadmap({ userId, perfil, geminiKey, onNavigate }: Props
         },
         { onConflict: 'usuario_id,pilar_numero,meta_codigo' },
       ).then(() => {});
+
+      // ─── Save to profiles table (ADN field) ─────────────────────────────
+      if (meta.adn_field) {
+        // Special case: historia generates 3 versions in one output
+        if (meta.adn_field === 'historia_300') {
+          const parsed = parseHistoriaVersions(outputTexto);
+          if (parsed) {
+            supabase.from('profiles').update(parsed).eq('id', userId).then(() => {});
+          } else {
+            // Fallback: save entire output as historia_300
+            supabase.from('profiles').update({ historia_300: outputTexto }).eq('id', userId).then(() => {});
+          }
+        } else if (meta.adn_field === 'adn_cinco_por_que') {
+          // Array field — split by newlines or numbered items
+          const items = outputTexto
+            .split(/\n/)
+            .map(l => l.replace(/^\d+[\.\)]\s*/, '').trim())
+            .filter(l => l.length > 0);
+          supabase.from('profiles').update({ [meta.adn_field]: items }).eq('id', userId).then(() => {});
+        } else {
+          supabase.from('profiles').update({ [meta.adn_field]: outputTexto }).eq('id', userId).then(() => {});
+        }
+      }
     }
   }, [userId]);
 
@@ -492,15 +548,15 @@ export default function Roadmap({ userId, perfil, geminiKey, onNavigate }: Props
           return (
             <div key={fase.fase} className="space-y-2">
               {/* Encabezado de fase */}
-              <div className="flex items-center gap-3 px-1">
+              <div className="flex items-center gap-3 px-1 mb-1">
                 <div className="flex-1">
-                  <p className="text-xs text-[#FFFFFF]/50 uppercase tracking-widest font-bold">
+                  <h2 className="text-lg font-bold uppercase tracking-wide text-[#FFFFFF]/90" style={{ fontFamily: 'var(--font-body)', letterSpacing: '0.08em' }}>
                     {fase.titulo}
                     {fase.metodo_letra && (
-                      <span className="ml-2 text-[#F5A623]">· Método {fase.metodo_letra}</span>
+                      <span className="ml-2 text-[#F5A623] text-base">· Método {fase.metodo_letra}</span>
                     )}
-                  </p>
-                  <p className="text-sm text-[#FFFFFF]/30">{fase.subtitulo} · {fase.dias}</p>
+                  </h2>
+                  <p className="text-sm text-[#FFFFFF]/40 mt-0.5">{fase.subtitulo} · {fase.dias}</p>
                 </div>
               </div>
 

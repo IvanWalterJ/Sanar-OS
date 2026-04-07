@@ -719,8 +719,15 @@ Sé directa, empática y concisa. Sin bullet points, solo texto corrido. Sin emo
         const { data } = await supabase.rpc('get_user_diary', { target_user_id: userId });
         setDetalleDiario(data ?? []);
       } else if (detalleTab === 'metricas') {
-        const { data } = await supabase.rpc('get_user_metrics', { target_user_id: userId });
-        setDetalleMetricas(data ?? []);
+        const [metricsRes, tareasRes, outputsRes] = await Promise.all([
+          supabase.rpc('get_user_metrics', { target_user_id: userId }),
+          supabase.from('hoja_de_ruta').select('*').eq('usuario_id', userId).eq('completada', true),
+          supabase.from('herramienta_outputs').select('*').eq('usuario_id', userId),
+        ]);
+        setDetalleMetricas(metricsRes.data ?? []);
+        setMetricasTareas(tareasRes.data ?? []);
+        setMetricasOutputs(outputsRes.data ?? []);
+        setPilarExpandido({});
       } else if (detalleTab === 'mensajes') {
         const { data } = await supabase
           .from('mensajes')
@@ -1473,28 +1480,14 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
                         {selectedCliente.plan}
                       </span>
                       {/* Status badge + quick change */}
-                      <div className="flex items-center gap-1.5 relative group">
-                        {(() => {
-                          const st = selectedCliente.status ?? 'ACTIVE';
-                          const cfg = STATUS_CONFIG[st];
-                          return (
-                            <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider ${cfg?.bg} ${cfg?.color} border ${cfg?.border}`}>
-                              {cfg?.label ?? st}
-                            </span>
-                          );
-                        })()}
-                        <select
-                          disabled={statusCambiando}
+                      <div className="flex items-center gap-1.5 relative">
+                        <CustomSelect
                           value={selectedCliente.status ?? 'ACTIVE'}
-                          onChange={e => cambiarStatusCliente(e.target.value as UserStatus)}
-                          className="opacity-0 absolute inset-0 w-full cursor-pointer"
-                          title="Cambiar estado"
-                        >
-                          {Object.entries(STATUS_CONFIG).map(([val, cfg]) => (
-                            <option key={val} value={val}>{cfg.label}</option>
-                          ))}
-                        </select>
-                        <span title="Click en el badge para cambiar"><Pencil className="w-3 h-3 text-[#FFFFFF]/30 group-hover:text-[#FFFFFF]/60 transition-colors" /></span>
+                          onChange={(val) => cambiarStatusCliente(val as UserStatus)}
+                          options={Object.entries(STATUS_CONFIG).map(([val, cfg]) => ({ value: val, label: cfg.label }))}
+                          className="min-w-[120px]"
+                        />
+                        {statusCambiando && <Loader2 className="w-3 h-3 text-[#F5A623] animate-spin" />}
                       </div>
                     </div>
                     <p className="text-xs text-[#FFFFFF]/60 flex items-center gap-2">
@@ -1673,21 +1666,85 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
                       {/* ── METRICAS ── */}
                       {detalleTab === 'metricas' && (
                         <div className="space-y-5">
-                          <div className="bg-[#141414] border border-[rgba(245,166,35,0.1)] rounded-2xl p-5">
-                            <h3 className="text-[10px] font-bold uppercase tracking-widest text-[#FFFFFF]/60 mb-4">Progreso por Pilar</h3>
-                            <div className="space-y-3">
+                          <div className="card-panel border border-[rgba(245,166,35,0.2)] rounded-2xl overflow-hidden">
+                            <div className="px-5 pt-5 pb-3 flex items-center justify-between">
+                              <h3 className="text-xs font-bold uppercase tracking-widest text-[#FFFFFF]/60 flex items-center gap-2">
+                                <BarChart2 className="w-3.5 h-3.5 text-[#F5A623]" /> Progreso por Pilar
+                              </h3>
+                              {metricasTareasLoading && <Loader2 className="w-3.5 h-3.5 text-[#F5A623] animate-spin" />}
+                            </div>
+                            <div className="divide-y divide-[rgba(245,166,35,0.1)]">
                               {SEED_ROADMAP_V2.map(pilar => {
                                 const metasPilar = pilar.metas.length;
-                                const completadas = selectedCliente.tareas_por_pilar?.[pilar.numero] ?? 0;
-                                const pct = metasPilar > 0 ? Math.round((completadas / metasPilar) * 100) : 0;
+                                const completadasReales = selectedCliente.tareas_por_pilar?.[pilar.numero] ?? 0;
+                                const pctPilar = metasPilar > 0 ? Math.round((completadasReales / metasPilar) * 100) : 0;
+                                const expandido = pilarExpandido[pilar.numero] ?? false;
+                                const tareasCompletadasPilar = metricasTareas.filter((t: any) => (t.pilar_numero ?? t.pilarNumero) === pilar.numero);
                                 return (
-                                  <div key={pilar.numero} className="flex items-center gap-3">
-                                    {(() => { const IC = ADMIN_PILAR_ICON_MAP[pilar.icon]; return IC ? <IC className="w-5 h-5 text-[#F5A623] shrink-0" /> : <span className="w-5 h-5 shrink-0" />; })()}
-                                    <span className="text-xs text-[#FFFFFF]/60 w-36 truncate shrink-0">{pilar.titulo}</span>
-                                    <div className="flex-1 h-2 bg-[#F5A623]/5 rounded-full overflow-hidden">
-                                      <div className="h-full bg-[#F5A623] rounded-full transition-all" style={{ width: `${pct}%` }} />
-                                    </div>
-                                    <span className="text-xs text-[#FFFFFF]/60 w-10 text-right shrink-0">{completadas}/{metasPilar}</span>
+                                  <div key={pilar.numero}>
+                                    <button
+                                      type="button"
+                                      onClick={() => completadasReales > 0 && setPilarExpandido(prev => ({ ...prev, [pilar.numero]: !expandido }))}
+                                      className={`w-full flex items-center gap-3 px-5 py-3.5 transition-colors text-left bg-[#141414] ${
+                                        completadasReales > 0 ? 'hover:bg-[#1C1C1C] cursor-pointer' : 'cursor-default'
+                                      }`}
+                                    >
+                                      {(() => { const IC = ADMIN_PILAR_ICON_MAP[pilar.icon]; return IC ? <IC className="w-5 h-5 text-[#F5A623] shrink-0" /> : <span className="w-5 h-5 shrink-0" />; })()}
+                                      <span className="text-xs text-[#FFFFFF]/80 w-36 truncate shrink-0 font-medium">{pilar.titulo}</span>
+                                      <div className="flex-1 h-1.5 bg-[#F5A623]/5 rounded-full overflow-hidden">
+                                        <div className="h-full rounded-full bg-[#F5A623] transition-all duration-500" style={{ width: `${pctPilar}%` }} />
+                                      </div>
+                                      <span className="text-xs text-[#FFFFFF]/40 w-10 text-right shrink-0">{completadasReales}/{metasPilar}</span>
+                                      {completadasReales > 0 && (
+                                        <ChevronDown className={`w-3.5 h-3.5 shrink-0 transition-transform text-[#F5A623] ${expandido ? 'rotate-180' : ''}`} />
+                                      )}
+                                    </button>
+                                    {expandido && (
+                                      <div className="px-5 pb-4 space-y-2 bg-[#F5A623]/5">
+                                        {pilar.metas.map(meta => {
+                                          const tareaData = tareasCompletadasPilar.find((t: any) => t.meta_codigo === meta.codigo);
+                                          if (!tareaData) return null;
+                                          const herramientaOutput = meta.herramienta_id
+                                            ? metricasOutputs.find((o: any) => o.herramienta_id === meta.herramienta_id)
+                                            : null;
+                                          const rawOutput = tareaData.output_generado ?? herramientaOutput?.output ?? null;
+                                          const hasOutput = !!rawOutput;
+                                          return (
+                                            <button
+                                              key={meta.codigo}
+                                              type="button"
+                                              onClick={() => abrirTareaModal(meta, tareaData, rawOutput, selectedCliente.nombre)}
+                                              className="w-full text-left bg-black/20 border border-[rgba(245,166,35,0.12)] rounded-xl overflow-hidden hover:border-[rgba(245,166,35,0.3)] hover:bg-[#1C1C1C]/50 transition-all group"
+                                            >
+                                              <div className="flex items-center gap-3 p-3.5">
+                                                <CheckCircle2 className="w-4 h-4 shrink-0 text-[#F5A623]" />
+                                                <div className="flex-1 min-w-0">
+                                                  <div className="flex items-center gap-2 flex-wrap">
+                                                    <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-[#F5A623]/10 text-[#F5A623]">{meta.codigo}</span>
+                                                    {meta.es_estrella && <Star className="w-3 h-3 text-[#F5A623] fill-[#F5A623]" />}
+                                                    {tareaData.fecha_completada && (
+                                                      <span className="text-[10px] text-[#FFFFFF]/30">
+                                                        {new Date(tareaData.fecha_completada).toLocaleDateString('es-AR', { day: 'numeric', month: 'short' })}
+                                                      </span>
+                                                    )}
+                                                  </div>
+                                                  <p className="text-sm font-semibold text-[#FFFFFF] mt-0.5 truncate">{meta.titulo}</p>
+                                                </div>
+                                                <div className="flex items-center gap-2 shrink-0">
+                                                  {hasOutput && (
+                                                    <span className="text-[10px] text-[#F5A623] bg-[#F5A623]/10 px-2 py-0.5 rounded-full">Con output</span>
+                                                  )}
+                                                  <ChevronRight className="w-3.5 h-3.5 text-[#FFFFFF]/30 group-hover:text-[#FFFFFF]/60 transition-colors" />
+                                                </div>
+                                              </div>
+                                            </button>
+                                          );
+                                        })}
+                                        {tareasCompletadasPilar.length === 0 && (
+                                          <p className="text-xs text-[#FFFFFF]/30 py-2">Sin datos detallados disponibles aún.</p>
+                                        )}
+                                      </div>
+                                    )}
                                   </div>
                                 );
                               })}
@@ -2432,7 +2489,7 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
 
               {showAddTeamMember && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md">
-                  <div className="w-full max-w-md bg-[#141414] border border-[rgba(245,166,35,0.2)] rounded-3xl p-8 shadow-2xl relative overflow-hidden">
+                  <div className="w-full max-w-md max-h-[90vh] bg-[#141414] border border-[rgba(245,166,35,0.2)] rounded-3xl p-8 shadow-2xl relative overflow-y-auto scrollbar-hide">
                     <div className="absolute top-0 left-0 right-0 h-1 bg-[#F5A623]" />
                     <div className="flex items-center justify-between mb-8">
                       <div>

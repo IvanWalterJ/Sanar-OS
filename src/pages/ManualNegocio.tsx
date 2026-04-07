@@ -251,6 +251,11 @@ interface FieldItemProps {
   setCurrentPage: (page: string) => void;
 }
 
+function navigateToTask(setCurrentPage: (page: string) => void, fieldKey: string) {
+  localStorage.setItem('tcd_auto_open_adn_field', fieldKey);
+  setCurrentPage('roadmap');
+}
+
 function FieldItem({ field, perfil, setCurrentPage }: FieldItemProps) {
   const value = getFieldValue(perfil, field.key);
   const completed = isFieldCompleted(perfil, field);
@@ -263,7 +268,7 @@ function FieldItem({ field, perfil, setCurrentPage }: FieldItemProps) {
           <p className="text-xs text-[#FFFFFF]/20 mt-0.5">Pendiente de completar</p>
         </div>
         <button
-          onClick={() => setCurrentPage('roadmap')}
+          onClick={() => navigateToTask(setCurrentPage, field.key)}
           className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-[#F5A623] hover:text-[#FFB94D] bg-[#F5A623]/10 hover:bg-[#F5A623]/15 border border-[rgba(245,166,35,0.2)] rounded-lg transition-all whitespace-nowrap shrink-0"
         >
           Completar
@@ -279,7 +284,7 @@ function FieldItem({ field, perfil, setCurrentPage }: FieldItemProps) {
       <div className="flex items-center justify-between mb-2">
         <p className="text-sm font-medium text-[#FFFFFF]">{field.label}</p>
         <button
-          onClick={() => setCurrentPage('roadmap')}
+          onClick={() => navigateToTask(setCurrentPage, field.key)}
           className="flex items-center gap-1 px-2 py-1 text-xs text-[#F5A623]/60 hover:text-[#F5A623] transition-colors"
         >
           <Pencil className="w-3 h-3" />
@@ -300,7 +305,7 @@ function FieldItem({ field, perfil, setCurrentPage }: FieldItemProps) {
             ))}
           </ol>
         ) : (
-          <div className="prose prose-invert prose-sm max-w-none prose-p:text-[#FFFFFF]/80 prose-headings:text-[#FFFFFF] prose-strong:text-[#FFFFFF] prose-li:text-[#FFFFFF]/80">
+          <div className="prose prose-invert prose-sm max-w-none prose-p:text-[#FFFFFF]/80 prose-p:leading-relaxed prose-headings:text-[#F5A623] prose-headings:font-semibold prose-headings:mt-4 prose-headings:mb-2 prose-strong:text-[#FFFFFF] prose-strong:font-bold prose-em:text-[#FFFFFF]/70 prose-li:text-[#FFFFFF]/80 prose-li:my-0.5 prose-ul:my-2 prose-ol:my-2 prose-hr:border-[rgba(245,166,35,0.15)] prose-a:text-[#F5A623] prose-a:underline">
             <Markdown>{String(value)}</Markdown>
           </div>
         )}
