@@ -81,6 +81,7 @@ interface Props {
   perfil?: Partial<ProfileV2>;
   geminiKey?: string;
   onNavigate?: (page: string) => void;
+  onProfileFieldUpdate?: (fields: Record<string, unknown>) => void;
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -118,7 +119,7 @@ function isTaskUnlocked(
 
 // ─── Componente principal ─────────────────────────────────────────────────────
 
-export default function Roadmap({ userId, perfil, geminiKey, onNavigate }: Props) {
+export default function Roadmap({ userId, perfil, geminiKey, onNavigate, onProfileFieldUpdate }: Props) {
   const [completadas, setCompletadas] = useState<Set<string>>(new Set());
   const [ventas, setVentas] = useState<VentaRegistrada[]>([]);
   const [qaVerde, setQaVerde] = useState(false);
@@ -423,28 +424,27 @@ export default function Roadmap({ userId, perfil, geminiKey, onNavigate }: Props
 
       // ─── Save to profiles table (ADN field) ─────────────────────────────
       if (meta.adn_field) {
-        // Special case: historia generates 3 versions in one output
+        let profileUpdate: Record<string, unknown> = {};
+
         if (meta.adn_field === 'historia_300') {
           const parsed = parseHistoriaVersions(outputTexto);
-          if (parsed) {
-            supabase.from('profiles').update(parsed).eq('id', userId).then(() => {});
-          } else {
-            // Fallback: save entire output as historia_300
-            supabase.from('profiles').update({ historia_300: outputTexto }).eq('id', userId).then(() => {});
-          }
+          profileUpdate = parsed ?? { historia_300: outputTexto };
         } else if (meta.adn_field === 'adn_cinco_por_que') {
-          // Array field — split by newlines or numbered items
           const items = outputTexto
             .split(/\n/)
             .map(l => l.replace(/^\d+[\.\)]\s*/, '').trim())
             .filter(l => l.length > 0);
-          supabase.from('profiles').update({ [meta.adn_field]: items }).eq('id', userId).then(() => {});
+          profileUpdate = { [meta.adn_field]: items };
         } else {
-          supabase.from('profiles').update({ [meta.adn_field]: outputTexto }).eq('id', userId).then(() => {});
+          profileUpdate = { [meta.adn_field]: outputTexto };
         }
+
+        supabase.from('profiles').update(profileUpdate).eq('id', userId).then(() => {});
+        // Update local profile state so ADN del Negocio reflects changes immediately
+        onProfileFieldUpdate?.(profileUpdate);
       }
     }
-  }, [userId]);
+  }, [userId, onProfileFieldUpdate]);
 
   // ─── Complete a task (VIDEO, COACH, AGENTE) ───────────────────────────
   const handleCompleteTask = useCallback((pilarNum: number, meta: RoadmapMeta) => {
