@@ -98,81 +98,81 @@ Sé directo, usa números y ejemplos concretos. Formato markdown.`,
   return (
     <div className="max-w-5xl mx-auto space-y-6 pb-6 animate-in fade-in duration-500">
       <div>
-        <h1 className="text-3xl font-light tracking-tight text-[#F0EAD8] mb-2">Calculadora PHR</h1>
-        <p className="text-[#F0EAD8]/60">Descubrí cuánto vale realmente tu hora de trabajo</p>
+        <h1 className="text-3xl font-light tracking-tight text-[#F5F0E1] mb-2">Calculadora PHR</h1>
+        <p className="text-[#F5F0E1]/60">Descubrí cuánto vale realmente tu hora de trabajo</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Input Form */}
         <div className="card-panel p-6 rounded-2xl space-y-4">
-          <h3 className="text-lg font-medium text-[#F0EAD8] flex items-center gap-2">
-            <Calculator className="w-5 h-5 text-[#C8893A]" /> Tus Números
+          <h3 className="text-lg font-medium text-[#F5F0E1] flex items-center gap-2">
+            <Calculator className="w-5 h-5 text-[#D4A24E]" /> Tus Números
           </h3>
 
           <div>
-            <label className="block text-xs text-[#F0EAD8]/60 mb-1">Especialidad</label>
+            <label className="block text-xs text-[#F5F0E1]/60 mb-1">Especialidad</label>
             <input
               type="text"
               value={data.especialidad}
               onChange={(e) => updateField('especialidad', e.target.value)}
               placeholder="Ej: Nutricionista"
-              className="w-full bg-black/20 border border-[rgba(200,137,58,0.2)] rounded-lg px-4 py-2.5 text-[#F0EAD8] text-sm focus:outline-none focus:border-[#C8893A]/50"
+              className="w-full bg-black/20 border border-[rgba(212,162,78,0.2)] rounded-lg px-4 py-2.5 text-[#F5F0E1] text-sm focus:outline-none focus:border-[#D4A24E]/50"
             />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs text-[#F0EAD8]/60 mb-1">Tarifa por Consulta ($)</label>
+              <label className="block text-xs text-[#F5F0E1]/60 mb-1">Tarifa por Consulta ($)</label>
               <input
                 type="number"
                 value={data.tarifaConsulta}
                 onChange={(e) => updateField('tarifaConsulta', e.target.value)}
                 placeholder="50"
-                className="w-full bg-black/20 border border-[rgba(200,137,58,0.2)] rounded-lg px-4 py-2.5 text-[#F0EAD8] text-sm focus:outline-none focus:border-[#C8893A]/50"
+                className="w-full bg-black/20 border border-[rgba(212,162,78,0.2)] rounded-lg px-4 py-2.5 text-[#F5F0E1] text-sm focus:outline-none focus:border-[#D4A24E]/50"
               />
             </div>
             <div>
-              <label className="block text-xs text-[#F0EAD8]/60 mb-1">Consultas por Semana</label>
+              <label className="block text-xs text-[#F5F0E1]/60 mb-1">Consultas por Semana</label>
               <input
                 type="number"
                 value={data.consultasSemana}
                 onChange={(e) => updateField('consultasSemana', e.target.value)}
                 placeholder="20"
-                className="w-full bg-black/20 border border-[rgba(200,137,58,0.2)] rounded-lg px-4 py-2.5 text-[#F0EAD8] text-sm focus:outline-none focus:border-[#C8893A]/50"
+                className="w-full bg-black/20 border border-[rgba(212,162,78,0.2)] rounded-lg px-4 py-2.5 text-[#F5F0E1] text-sm focus:outline-none focus:border-[#D4A24E]/50"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-xs text-[#F0EAD8]/60 mb-1">Horas de Trabajo por Semana</label>
+            <label className="block text-xs text-[#F5F0E1]/60 mb-1">Horas de Trabajo por Semana</label>
             <input
               type="number"
               value={data.horasTrabajoSemana}
               onChange={(e) => updateField('horasTrabajoSemana', e.target.value)}
               placeholder="40"
-              className="w-full bg-black/20 border border-[rgba(200,137,58,0.2)] rounded-lg px-4 py-2.5 text-[#F0EAD8] text-sm focus:outline-none focus:border-[#C8893A]/50"
+              className="w-full bg-black/20 border border-[rgba(212,162,78,0.2)] rounded-lg px-4 py-2.5 text-[#F5F0E1] text-sm focus:outline-none focus:border-[#D4A24E]/50"
             />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs text-[#F0EAD8]/60 mb-1">Gastos Fijos Mensuales ($)</label>
+              <label className="block text-xs text-[#F5F0E1]/60 mb-1">Gastos Fijos Mensuales ($)</label>
               <input
                 type="number"
                 value={data.gastosFijos}
                 onChange={(e) => updateField('gastosFijos', e.target.value)}
                 placeholder="1000"
-                className="w-full bg-black/20 border border-[rgba(200,137,58,0.2)] rounded-lg px-4 py-2.5 text-[#F0EAD8] text-sm focus:outline-none focus:border-[#C8893A]/50"
+                className="w-full bg-black/20 border border-[rgba(212,162,78,0.2)] rounded-lg px-4 py-2.5 text-[#F5F0E1] text-sm focus:outline-none focus:border-[#D4A24E]/50"
               />
             </div>
             <div>
-              <label className="block text-xs text-[#F0EAD8]/60 mb-1">Gastos Variables Mensuales ($)</label>
+              <label className="block text-xs text-[#F5F0E1]/60 mb-1">Gastos Variables Mensuales ($)</label>
               <input
                 type="number"
                 value={data.gastosVariables}
                 onChange={(e) => updateField('gastosVariables', e.target.value)}
                 placeholder="500"
-                className="w-full bg-black/20 border border-[rgba(200,137,58,0.2)] rounded-lg px-4 py-2.5 text-[#F0EAD8] text-sm focus:outline-none focus:border-[#C8893A]/50"
+                className="w-full bg-black/20 border border-[rgba(212,162,78,0.2)] rounded-lg px-4 py-2.5 text-[#F5F0E1] text-sm focus:outline-none focus:border-[#D4A24E]/50"
               />
             </div>
           </div>
@@ -180,7 +180,7 @@ Sé directo, usa números y ejemplos concretos. Formato markdown.`,
           <button
             onClick={generateAnalysis}
             disabled={!hasData || generating}
-            className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-[#C8893A] hover:bg-[#D9A04E] disabled:opacity-50 text-[#F0EAD8] text-sm font-medium transition-all shadow-lg shadow-[#C8893A]/20"
+            className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-[#D4A24E] hover:bg-[#E2B865] disabled:opacity-50 text-[#F5F0E1] text-sm font-medium transition-all shadow-lg shadow-[#D4A24E]/20"
           >
             {generating ? (
               <><Loader2 className="w-4 h-4 animate-spin" /> Analizando...</>
@@ -193,43 +193,43 @@ Sé directo, usa números y ejemplos concretos. Formato markdown.`,
         {/* Results */}
         <div className="space-y-4">
           <div className="card-panel p-6 rounded-2xl">
-            <h3 className="text-sm text-[#F0EAD8]/60 uppercase tracking-wider mb-4">Resultados en Tiempo Real</h3>
+            <h3 className="text-sm text-[#F5F0E1]/60 uppercase tracking-wider mb-4">Resultados en Tiempo Real</h3>
 
             <div className="space-y-4">
-              <div className="flex items-center justify-between p-4 rounded-xl bg-black/20 border border-[rgba(200,137,58,0.1)]">
+              <div className="flex items-center justify-between p-4 rounded-xl bg-black/20 border border-[rgba(212,162,78,0.1)]">
                 <div className="flex items-center gap-3">
                   <DollarSign className="w-5 h-5 text-[#2DD4A0]" />
-                  <span className="text-sm text-[#F0EAD8]/80">PHR (Precio Hora Real)</span>
+                  <span className="text-sm text-[#F5F0E1]/80">PHR (Precio Hora Real)</span>
                 </div>
-                <span className={`text-2xl font-light ${phr > 0 ? 'text-[#2DD4A0]' : 'text-[#F0EAD8]/40'}`}>
+                <span className={`text-2xl font-light ${phr > 0 ? 'text-[#2DD4A0]' : 'text-[#F5F0E1]/40'}`}>
                   ${phr.toFixed(2)}
                 </span>
               </div>
 
-              <div className="flex items-center justify-between p-4 rounded-xl bg-black/20 border border-[rgba(200,137,58,0.1)]">
+              <div className="flex items-center justify-between p-4 rounded-xl bg-black/20 border border-[rgba(212,162,78,0.1)]">
                 <div className="flex items-center gap-3">
-                  <TrendingUp className="w-5 h-5 text-[#C8893A]" />
-                  <span className="text-sm text-[#F0EAD8]/80">Ingreso Bruto Mensual</span>
+                  <TrendingUp className="w-5 h-5 text-[#D4A24E]" />
+                  <span className="text-sm text-[#F5F0E1]/80">Ingreso Bruto Mensual</span>
                 </div>
-                <span className="text-xl font-light text-[#F0EAD8]">${ingresoMensual.toLocaleString()}</span>
+                <span className="text-xl font-light text-[#F5F0E1]">${ingresoMensual.toLocaleString()}</span>
               </div>
 
-              <div className="flex items-center justify-between p-4 rounded-xl bg-black/20 border border-[rgba(200,137,58,0.1)]">
+              <div className="flex items-center justify-between p-4 rounded-xl bg-black/20 border border-[rgba(212,162,78,0.1)]">
                 <div className="flex items-center gap-3">
-                  <DollarSign className="w-5 h-5 text-[#C8893A]" />
-                  <span className="text-sm text-[#F0EAD8]/80">Ingreso Neto Mensual</span>
+                  <DollarSign className="w-5 h-5 text-[#D4A24E]" />
+                  <span className="text-sm text-[#F5F0E1]/80">Ingreso Neto Mensual</span>
                 </div>
-                <span className={`text-xl font-light ${ingresoNeto > 0 ? 'text-[#F0EAD8]' : 'text-[#E85555]'}`}>
+                <span className={`text-xl font-light ${ingresoNeto > 0 ? 'text-[#F5F0E1]' : 'text-[#E85555]'}`}>
                   ${ingresoNeto.toLocaleString()}
                 </span>
               </div>
 
-              <div className="flex items-center justify-between p-4 rounded-xl bg-black/20 border border-[rgba(200,137,58,0.1)]">
+              <div className="flex items-center justify-between p-4 rounded-xl bg-black/20 border border-[rgba(212,162,78,0.1)]">
                 <div className="flex items-center gap-3">
-                  <Clock className="w-5 h-5 text-[#C8893A]" />
-                  <span className="text-sm text-[#F0EAD8]/80">Margen de Ganancia</span>
+                  <Clock className="w-5 h-5 text-[#D4A24E]" />
+                  <span className="text-sm text-[#F5F0E1]/80">Margen de Ganancia</span>
                 </div>
-                <span className={`text-xl font-light ${margenGanancia > 30 ? 'text-[#2DD4A0]' : margenGanancia > 15 ? 'text-[#C8893A]' : 'text-[#E85555]'}`}>
+                <span className={`text-xl font-light ${margenGanancia > 30 ? 'text-[#2DD4A0]' : margenGanancia > 15 ? 'text-[#D4A24E]' : 'text-[#E85555]'}`}>
                   {margenGanancia.toFixed(1)}%
                 </span>
               </div>
@@ -249,15 +249,15 @@ Sé directo, usa números y ejemplos concretos. Formato markdown.`,
       {analysis && (
         <div className="card-panel p-8 rounded-2xl border-l-4 border-l-emerald-500 animate-in fade-in duration-500">
           <div className="flex items-center gap-3 mb-6">
-            <div className="w-10 h-10 rounded-xl bg-[#C8893A] flex items-center justify-center">
-              <Sparkles className="w-5 h-5 text-[#F0EAD8]" />
+            <div className="w-10 h-10 rounded-xl bg-[#D4A24E] flex items-center justify-center">
+              <Sparkles className="w-5 h-5 text-[#F5F0E1]" />
             </div>
             <div>
-              <h2 className="text-lg font-medium text-[#F0EAD8]">Diagnóstico Financiero IA</h2>
+              <h2 className="text-lg font-medium text-[#F5F0E1]">Diagnóstico Financiero IA</h2>
               <p className="text-xs text-[#2DD4A0]">Análisis personalizado de tu PHR</p>
             </div>
           </div>
-          <div className="prose prose-invert max-w-none prose-p:leading-relaxed prose-headings:text-gray-100 prose-li:text-[#F0EAD8]/80 text-sm">
+          <div className="prose prose-invert max-w-none prose-p:leading-relaxed prose-headings:text-gray-100 prose-li:text-[#F5F0E1]/80 text-sm">
             <Markdown>{analysis}</Markdown>
           </div>
         </div>

@@ -9,7 +9,7 @@
  *   combinando roleplay, análisis y feedback adaptado al diálogo
  */
 import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
-import { Loader2, Send, RotateCcw, Copy, CheckCircle2, ArrowLeft, Lock } from 'lucide-react';
+import { Loader2, Send, RotateCcw, Copy, CheckCircle2, ArrowLeft, Lock, Phone, CalendarDays, Clapperboard, Search, Telescope, Drama, Bot } from 'lucide-react';
 import Markdown from 'react-markdown';
 import type { PilarId, ProfileV2 } from '../lib/supabase';
 import { toast } from 'sonner';
@@ -23,11 +23,22 @@ interface MensajeAgente {
   contenido: string;
 }
 
+const AGENTE_ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
+  Phone,
+  CalendarDays,
+  Clapperboard,
+  Search,
+  Telescope,
+  Drama,
+};
+
 interface ConfigAgente {
   id: string;
   titulo: string;
   subtitulo: string;
-  emoji: string;
+  icon: string;
+  /** @deprecated Use icon */
+  emoji?: string;
   /** Gold accent opacity variant for visual distinction between agents */
   accentOpacity: string;
   descripcion: string;
@@ -64,7 +75,7 @@ const AGENTES: ConfigAgente[] = [
     id: 'agente-simulador-llamada',
     titulo: 'Simulador de Llamada',
     subtitulo: 'Practica ventas con tu avatar simulado',
-    emoji: '📞',
+    icon: 'Phone',
     accentOpacity: '100',
     unlockPilar: 'P9B',
     descripcion: 'Simula tu avatar de cliente basándose en los datos de tu ADN. Después del roleplay te da una puntuación de 1 a 10 con feedback específico.',
@@ -103,7 +114,7 @@ Voy a actuar como tu avatar de cliente — con sus dudas, objeciones y forma de 
     id: 'agente-contenido-semanal',
     titulo: 'Generador Contenido Semanal',
     subtitulo: 'Ideas de reels, posts y carruseles',
-    emoji: '📅',
+    icon: 'CalendarDays',
     accentOpacity: '80',
     unlockPilar: 'P9A',
     descripcion: 'Genera ideas de contenido semanal personalizadas: reels, posts de feed, carruseles y stories. Todo alineado con tu nicho y tu etapa del programa.',
@@ -138,7 +149,7 @@ Nada de "Hola soy..." como primera palabra. Hooks que detengan el scroll.
     id: 'agente-entrenador-camara',
     titulo: 'Entrenador de Cámara',
     subtitulo: 'Estructura hook/desarrollo/cierre/CTA',
-    emoji: '🎬',
+    icon: 'Clapperboard',
     accentOpacity: '60',
     unlockPilar: 'P9A',
     descripcion: 'Te entrena en la estructura de contenido frente a cámara: hook que detiene el scroll, desarrollo que engancha, cierre memorable y CTA que convierte.',
@@ -179,7 +190,7 @@ MODO REVISIÓN:
     id: 'agente-auditor-embudo',
     titulo: 'Auditor de Embudo',
     subtitulo: 'Diagnóstico componente por componente',
-    emoji: '🔍',
+    icon: 'Search',
     accentOpacity: '50',
     unlockPilar: 'P9A',
     descripcion: 'Diagnostica tu embudo completo componente por componente: contenido, CTA, lead magnet, formulario, agenda, llamada, pago. Identifica fugas y prioriza mejoras.',
@@ -219,7 +230,7 @@ Primera pregunta: **¿Por dónde llegan hoy la mayoría de tus clientes potencia
     id: 'agente-retrospectiva-mensual',
     titulo: 'Retrospectiva Mensual',
     subtitulo: 'Análisis mensual con métricas del Dashboard',
-    emoji: '🔭',
+    icon: 'Telescope',
     accentOpacity: '90',
     unlockPilar: 'P9C',
     descripcion: 'Guía tu retrospectiva mensual usando las métricas del Dashboard: qué se logró, qué se aprendió, qué hay que cambiar, y genera el plan de los próximos 30 días.',
@@ -255,7 +266,7 @@ Primera pregunta: **¿Cuáles fueron los 3 principales logros de este mes?** No 
     id: 'agente-simulador-casos-dificiles',
     titulo: 'Simulador Casos Difíciles',
     subtitulo: 'Pacientes difíciles, cancelaciones, descuentos',
-    emoji: '🎭',
+    icon: 'Drama',
     accentOpacity: '70',
     unlockPilar: 'P9B',
     descripcion: 'Simula situaciones difíciles: paciente complicado, cancelación de último momento, petición de descuento. Entrenamiento para manejar presión sin perder profesionalismo.',
@@ -398,8 +409,8 @@ export default function Agentes({
     return (
       <div className="max-w-3xl mx-auto space-y-6 pb-12 animate-in fade-in duration-500">
         <div>
-          <h1 className="text-2xl font-light text-[#F0EAD8] flex items-center gap-2">🤖 Agentes IA</h1>
-          <p className="text-sm text-[#F0EAD8]/60 mt-1">6 agentes de entrenamiento — se desbloquean con tu progreso en la hoja de ruta</p>
+          <h1 className="text-2xl font-light text-[#F5F0E1] flex items-center gap-2"><Bot className="w-6 h-6 text-[#D4A24E]" /> Agentes IA</h1>
+          <p className="text-sm text-[#F5F0E1]/60 mt-1">6 agentes de entrenamiento — se desbloquean con tu progreso en la hoja de ruta</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -412,27 +423,27 @@ export default function Agentes({
                 disabled={!unlocked}
                 className={`text-left p-5 rounded-2xl border transition-all group ${
                   unlocked
-                    ? 'bg-[#C8893A]/10 border-[#C8893A]/20 hover:bg-[#C8893A]/15 cursor-pointer'
-                    : 'bg-[#C8893A]/5 border-[#C8893A]/10 opacity-50 cursor-not-allowed'
+                    ? 'bg-[#D4A24E]/10 border-[#D4A24E]/20 hover:bg-[#D4A24E]/15 cursor-pointer'
+                    : 'bg-[#D4A24E]/5 border-[#D4A24E]/10 opacity-50 cursor-not-allowed'
                 }`}
               >
                 <div className="flex items-start gap-3 mb-3">
-                  <span className="text-2xl">{unlocked ? agente.emoji : ''}</span>
+                  {unlocked && (() => { const IconComp = AGENTE_ICON_MAP[agente.icon]; return IconComp ? <IconComp className="w-6 h-6 text-[#D4A24E]" /> : null; })()}
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
-                      <h3 className={`text-sm font-medium ${unlocked ? 'text-[#C8893A]' : 'text-[#F0EAD8]/30'}`}>
+                      <h3 className={`text-sm font-medium ${unlocked ? 'text-[#D4A24E]' : 'text-[#F5F0E1]/30'}`}>
                         {agente.titulo}
                       </h3>
-                      {!unlocked && <Lock className="w-3.5 h-3.5 text-[#F0EAD8]/30" />}
+                      {!unlocked && <Lock className="w-3.5 h-3.5 text-[#F5F0E1]/30" />}
                     </div>
-                    <p className="text-xs text-[#F0EAD8]/40">{agente.subtitulo}</p>
+                    <p className="text-xs text-[#F5F0E1]/40">{agente.subtitulo}</p>
                   </div>
                 </div>
-                <p className="text-xs text-[#F0EAD8]/60 leading-relaxed">{agente.descripcion}</p>
+                <p className="text-xs text-[#F5F0E1]/60 leading-relaxed">{agente.descripcion}</p>
                 <div className={`mt-3 text-[10px] font-medium uppercase tracking-wider ${
                   unlocked
-                    ? 'text-[#C8893A] group-hover:underline'
-                    : 'text-[#F0EAD8]/30'
+                    ? 'text-[#D4A24E] group-hover:underline'
+                    : 'text-[#F5F0E1]/30'
                 }`}>
                   {unlocked ? 'Iniciar conversación →' : `Desbloquear con pilar ${agente.unlockPilar}`}
                 </div>
@@ -448,32 +459,32 @@ export default function Agentes({
   return (
     <div className="max-w-3xl mx-auto flex flex-col h-[calc(100vh-8rem)] animate-in fade-in duration-300">
       {/* Cabecera */}
-      <div className="card-panel p-4 rounded-2xl mb-4 border border-[#C8893A]/20 bg-[#C8893A]/10">
+      <div className="card-panel p-4 rounded-2xl mb-4 border border-[#D4A24E]/20 bg-[#D4A24E]/10">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <button
               onClick={() => { setAgenteActivo(null); setMensajes([]); }}
-              className="flex items-center gap-1.5 text-xs text-[#F0EAD8]/60 hover:text-[#F0EAD8] bg-[#C8893A]/5 px-3 py-1.5 rounded-xl transition-colors shrink-0"
+              className="flex items-center gap-1.5 text-xs text-[#F5F0E1]/60 hover:text-[#F5F0E1] bg-[#D4A24E]/5 px-3 py-1.5 rounded-xl transition-colors shrink-0"
             >
               <ArrowLeft className="w-3.5 h-3.5" /> Volver
             </button>
-            <span className="text-2xl">{agenteActivo.emoji}</span>
+            {(() => { const IconComp = AGENTE_ICON_MAP[agenteActivo.icon]; return IconComp ? <IconComp className="w-6 h-6 text-[#D4A24E]" /> : null; })()}
             <div>
-              <h2 className="text-sm font-medium text-[#C8893A]">{agenteActivo.titulo}</h2>
-              <p className="text-xs text-[#F0EAD8]/40">{agenteActivo.subtitulo}</p>
+              <h2 className="text-sm font-medium text-[#D4A24E]">{agenteActivo.titulo}</h2>
+              <p className="text-xs text-[#F5F0E1]/40">{agenteActivo.subtitulo}</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
             <button
               onClick={copiarConversacion}
-              className="flex items-center gap-1.5 text-xs text-[#F0EAD8]/60 hover:text-[#F0EAD8] bg-[#C8893A]/5 px-3 py-1.5 rounded-xl transition-colors"
+              className="flex items-center gap-1.5 text-xs text-[#F5F0E1]/60 hover:text-[#F5F0E1] bg-[#D4A24E]/5 px-3 py-1.5 rounded-xl transition-colors"
             >
               {copiado ? <CheckCircle2 className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
               {copiado ? 'Copiado' : 'Copiar'}
             </button>
             <button
               onClick={() => { setAgenteActivo(null); setMensajes([]); }}
-              className="flex items-center gap-1.5 text-xs text-[#F0EAD8]/60 hover:text-[#F0EAD8] bg-[#C8893A]/5 px-3 py-1.5 rounded-xl transition-colors"
+              className="flex items-center gap-1.5 text-xs text-[#F5F0E1]/60 hover:text-[#F5F0E1] bg-[#D4A24E]/5 px-3 py-1.5 rounded-xl transition-colors"
             >
               <RotateCcw className="w-3.5 h-3.5" />
               Cambiar
@@ -489,12 +500,12 @@ export default function Agentes({
             <div
               className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-relaxed ${
                 msg.rol === 'usuario'
-                  ? 'bg-[#C8893A] text-[#F0EAD8] whitespace-pre-wrap'
-                  : 'card-panel text-[#F0EAD8]/90'
+                  ? 'bg-[#D4A24E] text-[#F5F0E1] whitespace-pre-wrap'
+                  : 'card-panel text-[#F5F0E1]/90'
               }`}
             >
               {msg.rol === 'agente' ? (
-                <div className="prose prose-invert prose-sm max-w-none prose-p:my-1.5 prose-p:leading-relaxed prose-headings:text-[#F0EAD8] prose-headings:font-semibold prose-headings:mt-3 prose-headings:mb-1.5 prose-li:my-0.5 prose-li:text-[#F0EAD8]/80 prose-strong:text-[#F0EAD8] prose-strong:font-semibold prose-code:text-[#C8893A] prose-code:bg-[#C8893A]/10 prose-code:px-1 prose-code:rounded prose-hr:border-[rgba(200,137,58,0.2)]">
+                <div className="prose prose-invert prose-sm max-w-none prose-p:my-1.5 prose-p:leading-relaxed prose-headings:text-[#F5F0E1] prose-headings:font-semibold prose-headings:mt-3 prose-headings:mb-1.5 prose-li:my-0.5 prose-li:text-[#F5F0E1]/80 prose-strong:text-[#F5F0E1] prose-strong:font-semibold prose-code:text-[#D4A24E] prose-code:bg-[#D4A24E]/10 prose-code:px-1 prose-code:rounded prose-hr:border-[rgba(212,162,78,0.2)]">
                   <Markdown>{msg.contenido}</Markdown>
                 </div>
               ) : (
@@ -505,7 +516,7 @@ export default function Agentes({
         ))}
         {cargando && (
           <div className="flex justify-start">
-            <div className="card-panel rounded-2xl px-4 py-3 flex items-center gap-2 text-[#F0EAD8]/60 text-sm">
+            <div className="card-panel rounded-2xl px-4 py-3 flex items-center gap-2 text-[#F5F0E1]/60 text-sm">
               <Loader2 className="w-4 h-4 animate-spin" />
               Pensando...
             </div>
@@ -520,7 +531,7 @@ export default function Agentes({
             <button
               key={s}
               onClick={() => enviarMensaje(s)}
-              className="text-xs bg-[#C8893A]/5 border border-[rgba(200,137,58,0.2)] text-[#F0EAD8]/60 px-3 py-1.5 rounded-xl hover:bg-[#C8893A]/10 hover:text-[#F0EAD8] transition-colors"
+              className="text-xs bg-[#D4A24E]/5 border border-[rgba(212,162,78,0.2)] text-[#F5F0E1]/60 px-3 py-1.5 rounded-xl hover:bg-[#D4A24E]/10 hover:text-[#F5F0E1] transition-colors"
             >
               {s}
             </button>
@@ -541,14 +552,14 @@ export default function Agentes({
           }}
           placeholder="Escribí tu respuesta..."
           rows={2}
-          className="flex-1 bg-[#C8893A]/5 border border-[rgba(200,137,58,0.2)] rounded-xl px-4 py-3 text-[#F0EAD8] text-sm resize-none focus:border-[#C8893A]/50 focus:ring-1 focus:ring-[#C8893A]/50 transition-all"
+          className="flex-1 bg-[#D4A24E]/5 border border-[rgba(212,162,78,0.2)] rounded-xl px-4 py-3 text-[#F5F0E1] text-sm resize-none focus:border-[#D4A24E]/50 focus:ring-1 focus:ring-[#D4A24E]/50 transition-all"
         />
         <button
           onClick={() => enviarMensaje(inputUsuario)}
           disabled={cargando || !inputUsuario.trim()}
-          className="shrink-0 w-10 h-10 rounded-xl bg-[#C8893A] hover:bg-[#D9A04E] disabled:opacity-40 flex items-center justify-center transition-colors"
+          className="shrink-0 w-10 h-10 rounded-xl bg-[#D4A24E] hover:bg-[#E2B865] disabled:opacity-40 flex items-center justify-center transition-colors"
         >
-          <Send className="w-4 h-4 text-[#F0EAD8]" />
+          <Send className="w-4 h-4 text-[#F5F0E1]" />
         </button>
       </div>
     </div>

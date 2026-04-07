@@ -23,11 +23,23 @@ export interface Herramienta {
   grupo: GrupoHerramienta;
   titulo: string;
   descripcion: string;
+  /** @deprecated Use iconName + HERRAMIENTA_ICON_MAP instead */
   emoji: string;
   inputs: CampoInput[];
   promptTemplate: (inputs: Record<string, string>, perfil: Partial<ProfileV2>) => string;
   outputLabel: string;
 }
+
+/** Maps emoji strings to lucide icon names for herramientas */
+export const EMOJI_TO_ICON: Record<string, string> = {
+  '🌱': 'Sprout', '💌': 'Mail', '📖': 'BookOpen', '🔄': 'RefreshCw',
+  '💰': 'DollarSign', '🔬': 'Microscope', '🎯': 'Target', '💡': 'Lightbulb',
+  '📐': 'Ruler', '💲': 'DollarSign', '📱': 'Smartphone', '🎬': 'Clapperboard',
+  '📅': 'CalendarDays', '📸': 'Camera', '✉️': 'Mail', '🤖': 'Bot',
+  '🌐': 'Globe', '📞': 'Phone', '📣': 'Megaphone', '🔺': 'Triangle',
+  '⚙️': 'Cog', '🏗️': 'Building2', '🤝': 'Handshake', '🎨': 'Palette',
+  '📊': 'BarChart3', '🌅': 'Sunrise', '👤': 'UserCircle',
+};
 
 // ─── Helpers de prompt ────────────────────────────────────────────────────────
 

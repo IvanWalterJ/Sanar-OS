@@ -103,9 +103,9 @@ export default function Oferta() {
       
       const styledVariants = generatedVariants.map((v: any) => {
         if (v.id === 'conservadora') {
-          return { ...v, color: 'border-[#C8893A]/30 hover:border-[#C8893A]', badge: 'text-[#C8893A] bg-[#C8893A]/10' };
+          return { ...v, color: 'border-[#D4A24E]/30 hover:border-[#D4A24E]', badge: 'text-[#D4A24E] bg-[#D4A24E]/10' };
         } else if (v.id === 'media') {
-          return { ...v, color: 'border-[#C8893A]/50 shadow-[0_0_20px_rgba(200,137,58,0.15)]', badge: 'text-[#C8893A] bg-[#C8893A]/10', recommended: true };
+          return { ...v, color: 'border-[#D4A24E]/50 shadow-[0_0_20px_rgba(212,162,78,0.15)]', badge: 'text-[#D4A24E] bg-[#D4A24E]/10', recommended: true };
         } else {
           return { ...v, color: 'border-emerald-500/30 hover:border-[#2DD4A0]', badge: 'text-[#2DD4A0] bg-[#2DD4A0]/10' };
         }
@@ -150,7 +150,7 @@ export default function Oferta() {
 
       Reglas de Diseño y Estructura (CRÍTICO):
       - Devuelve SOLO código HTML válido, sin markdown (\`\`\`html).
-      - Tema Oscuro Premium: Fondo principal \`bg-[#080808]\`, paneles con glassmorphism (\`bg-[#C8893A]/5 backdrop-blur-xl border border-[rgba(200,137,58,0.2)] rounded-2xl\`).
+      - Tema Oscuro Premium: Fondo principal \`bg-[#080808]\`, paneles con glassmorphism (\`bg-[#D4A24E]/5 backdrop-blur-xl border border-[rgba(212,162,78,0.2)] rounded-2xl\`).
       - Tipografía: Importa de Google Fonts (Inter para cuerpo, Playfair Display para títulos).
       - Acentos: Usa gradientes sutiles (ej. \`bg-gradient-to-r from-blue-500 to-purple-600\`) para botones y textos destacados.
       - Iconos: Usa SVGs limpios o Feather icons via CDN.
@@ -221,7 +221,7 @@ export default function Oferta() {
                 <div className="absolute inset-0 rounded-full border-t-2 border-blue-500 animate-spin" />
                 <div className="absolute inset-2 rounded-full border-r-2 border-purple-500 animate-spin" style={{ animationDirection: 'reverse', animationDuration: '1.5s' }} />
                 <div className="absolute inset-0 flex items-center justify-center">
-                  <Sparkles className="w-8 h-8 text-[#F0EAD8] animate-pulse" />
+                  <Sparkles className="w-8 h-8 text-[#F5F0E1] animate-pulse" />
                 </div>
               </div>
               
@@ -233,49 +233,49 @@ export default function Oferta() {
                     animate={{ y: 0, opacity: 1 }}
                     exit={{ y: -20, opacity: 0 }}
                     transition={{ duration: 0.5 }}
-                    className="text-xl font-medium text-[#F0EAD8] absolute inset-0 flex items-center justify-center"
+                    className="text-xl font-medium text-[#F5F0E1] absolute inset-0 flex items-center justify-center"
                   >
                     {loadingPhrases[loadingPhraseIndex]}
                   </motion.h3>
                 </AnimatePresence>
               </div>
-              <p className="text-sm text-[#F0EAD8]/60 mt-4">La Inteligencia Artificial está trabajando. Esto puede tomar unos segundos.</p>
+              <p className="text-sm text-[#F5F0E1]/60 mt-4">La Inteligencia Artificial está trabajando. Esto puede tomar unos segundos.</p>
             </div>
           </motion.div>
         )}
       </AnimatePresence>
 
       <div>
-        <h1 className="text-3xl font-light tracking-tight text-[#F0EAD8] mb-2">Generador de Oferta Premium</h1>
-        <p className="text-[#F0EAD8]/60">Diseñá tu programa high-ticket con Inteligencia Artificial</p>
+        <h1 className="text-3xl font-light tracking-tight text-[#F5F0E1] mb-2">Generador de Oferta Premium</h1>
+        <p className="text-[#F5F0E1]/60">Diseñá tu programa high-ticket con Inteligencia Artificial</p>
       </div>
 
       {step === 'input' && (
         <div className="card-panel rounded-2xl p-8 max-w-3xl mx-auto w-full mt-8">
           <div className="flex items-center gap-4 mb-8">
-            <div className="w-12 h-12 rounded-xl bg-[#C8893A] flex items-center justify-center shadow-lg shadow-[#C8893A]/20">
-              <Sparkles className="w-6 h-6 text-[#F0EAD8]" />
+            <div className="w-12 h-12 rounded-xl bg-[#D4A24E] flex items-center justify-center shadow-lg shadow-[#D4A24E]/20">
+              <Sparkles className="w-6 h-6 text-[#F5F0E1]" />
             </div>
             <div>
-              <h2 className="text-xl font-medium text-[#F0EAD8]">Describí qué querés ofrecer</h2>
-              <p className="text-sm text-[#F0EAD8]/60">Cuanto más específico, mejor será la oferta generada.</p>
+              <h2 className="text-xl font-medium text-[#F5F0E1]">Describí qué querés ofrecer</h2>
+              <p className="text-sm text-[#F5F0E1]/60">Cuanto más específico, mejor será la oferta generada.</p>
             </div>
           </div>
 
           <div className="space-y-6">
             <div>
-              <label className="block text-sm font-medium text-[#F0EAD8]/80 mb-2">
+              <label className="block text-sm font-medium text-[#F5F0E1]/80 mb-2">
                 ¿Qué problema resolvés y a quién le ofrecés esto?
               </label>
               <textarea
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="Ej: Soy nutricionista especializada en trastornos hormonales en mujeres de 35-50 años. Quiero hacer un programa de 8 semanas online donde las acompañe a regular su tiroides y mejorar su energía sin depender de medicación..."
-                className="w-full h-40 bg-black/20 border border-[rgba(200,137,58,0.2)] rounded-xl p-4 text-sm text-[#F0EAD8] placeholder-[#F0EAD8]/20 focus:outline-none focus:border-[#C8893A]/50 focus:ring-1 focus:ring-[#C8893A]/50 transition-all resize-none"
+                className="w-full h-40 bg-black/20 border border-[rgba(212,162,78,0.2)] rounded-xl p-4 text-sm text-[#F5F0E1] placeholder-[#F5F0E1]/20 focus:outline-none focus:border-[#D4A24E]/50 focus:ring-1 focus:ring-[#D4A24E]/50 transition-all resize-none"
               />
               <div className="flex justify-between items-center mt-2">
-                <span className="text-xs text-[#F0EAD8]/40">Mínimo 50 caracteres</span>
-                <span className={`text-xs ${description.length >= 50 ? 'text-[#2DD4A0]' : 'text-[#F0EAD8]/40'}`}>
+                <span className="text-xs text-[#F5F0E1]/40">Mínimo 50 caracteres</span>
+                <span className={`text-xs ${description.length >= 50 ? 'text-[#2DD4A0]' : 'text-[#F5F0E1]/40'}`}>
                   {description.length} caracteres
                 </span>
               </div>
@@ -284,7 +284,7 @@ export default function Oferta() {
             <button
               onClick={handleGenerateVariants}
               disabled={description.length < 50 || isGenerating}
-              className="w-full py-4 rounded-xl bg-[#C8893A] hover:bg-[#D9A04E] text-[#F0EAD8] font-medium flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-[#C8893A]/20"
+              className="w-full py-4 rounded-xl bg-[#D4A24E] hover:bg-[#E2B865] text-[#F5F0E1] font-medium flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-[#D4A24E]/20"
             >
               <Target className="w-5 h-5" />
               <span>Generar 3 variantes de oferta con IA</span>
@@ -298,12 +298,12 @@ export default function Oferta() {
           <div className="flex items-center justify-between">
             <button 
               onClick={() => setStep('input')}
-              className="flex items-center gap-2 text-sm text-[#F0EAD8]/60 hover:text-[#F0EAD8] transition-colors"
+              className="flex items-center gap-2 text-sm text-[#F5F0E1]/60 hover:text-[#F5F0E1] transition-colors"
             >
               <ChevronLeft className="w-4 h-4" /> Volver a editar
             </button>
-            <div className="card-panel px-4 py-2 rounded-lg border-[#C8893A]/30">
-              <p className="text-sm text-[#C8893A] flex items-center gap-2">
+            <div className="card-panel px-4 py-2 rounded-lg border-[#D4A24E]/30">
+              <p className="text-sm text-[#D4A24E] flex items-center gap-2">
                 <Sparkles className="w-4 h-4" /> IA recomienda la opción "Media"
               </p>
             </div>
@@ -315,34 +315,34 @@ export default function Oferta() {
                 key={variant.id}
                 onClick={() => setSelectedVariant(variant.id)}
                 className={`card-panel rounded-2xl p-6 flex flex-col cursor-pointer transition-all duration-300 relative overflow-hidden ${variant.color} ${
-                  selectedVariant === variant.id ? 'ring-2 ring-[#C8893A]/50 bg-[#C8893A]/5' : 'hover:bg-[#241A0C]/50'
+                  selectedVariant === variant.id ? 'ring-2 ring-[#D4A24E]/50 bg-[#D4A24E]/5' : 'hover:bg-[#241A0C]/50'
                 }`}
               >
                 {variant.recommended && (
-                  <div className="absolute top-0 inset-x-0 h-1 bg-[#C8893A]" />
+                  <div className="absolute top-0 inset-x-0 h-1 bg-[#D4A24E]" />
                 )}
                 
                 <div className="mb-6">
                   <span className={`text-xs font-medium px-3 py-1 rounded-full ${variant.badge}`}>
                     {variant.id === 'conservadora' ? 'Opción Conservadora' : variant.id === 'media' ? 'Opción Media' : 'Opción Ambiciosa'}
                   </span>
-                  <h3 className="text-xl font-medium text-[#F0EAD8] mt-4 mb-1">{variant.name}</h3>
-                  <p className="text-sm text-[#F0EAD8]/60 h-10">{variant.subtitle}</p>
+                  <h3 className="text-xl font-medium text-[#F5F0E1] mt-4 mb-1">{variant.name}</h3>
+                  <p className="text-sm text-[#F5F0E1]/60 h-10">{variant.subtitle}</p>
                 </div>
 
-                <div className="mb-6 pb-6 border-b border-[rgba(200,137,58,0.2)]">
+                <div className="mb-6 pb-6 border-b border-[rgba(212,162,78,0.2)]">
                   <div className="flex items-baseline gap-1">
-                    <span className="text-3xl font-light text-[#F0EAD8]">${variant.price}</span>
-                    <span className="text-sm text-[#F0EAD8]/40">USD</span>
+                    <span className="text-3xl font-light text-[#F5F0E1]">${variant.price}</span>
+                    <span className="text-sm text-[#F5F0E1]/40">USD</span>
                   </div>
-                  <p className="text-xs text-[#F0EAD8]/40 mt-1">{variant.duration} semanas de duración</p>
+                  <p className="text-xs text-[#F5F0E1]/40 mt-1">{variant.duration} semanas de duración</p>
                 </div>
 
                 <div className="space-y-3 mb-8 flex-1">
-                  <p className="text-xs font-medium text-[#F0EAD8]/80 uppercase tracking-wider">Incluye:</p>
+                  <p className="text-xs font-medium text-[#F5F0E1]/80 uppercase tracking-wider">Incluye:</p>
                   <ul className="space-y-2">
                     {variant.includes.map((item: string, i: number) => (
-                      <li key={i} className="flex items-start gap-2 text-sm text-[#F0EAD8]/60">
+                      <li key={i} className="flex items-start gap-2 text-sm text-[#F5F0E1]/60">
                         <CheckCircle2 className="w-4 h-4 text-[#2DD4A0] shrink-0 mt-0.5" />
                         <span>{item}</span>
                       </li>
@@ -351,9 +351,9 @@ export default function Oferta() {
                 </div>
 
                 <div className="mt-auto">
-                  <div className="flex items-center justify-between pt-4 border-t border-[rgba(200,137,58,0.2)] mb-4">
-                    <span className="text-xs text-[#F0EAD8]/40">Viabilidad de mercado</span>
-                    <span className={`text-sm font-medium ${variant.score > 80 ? 'text-[#2DD4A0]' : 'text-[#C8893A]'}`}>
+                  <div className="flex items-center justify-between pt-4 border-t border-[rgba(212,162,78,0.2)] mb-4">
+                    <span className="text-xs text-[#F5F0E1]/40">Viabilidad de mercado</span>
+                    <span className={`text-sm font-medium ${variant.score > 80 ? 'text-[#2DD4A0]' : 'text-[#D4A24E]'}`}>
                       {variant.score}/100
                     </span>
                   </div>
@@ -364,7 +364,7 @@ export default function Oferta() {
                       handleGenerateLanding(variant);
                     }}
                     disabled={isGenerating}
-                    className="relative w-full py-3 px-4 rounded-xl bg-[#C8893A] text-[#F0EAD8] font-medium flex items-center justify-center gap-2 overflow-hidden group transition-all hover:scale-[1.02] hover:shadow-[0_0_20px_rgba(200,137,58,0.4)] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 disabled:hover:shadow-none"
+                    className="relative w-full py-3 px-4 rounded-xl bg-[#D4A24E] text-[#F5F0E1] font-medium flex items-center justify-center gap-2 overflow-hidden group transition-all hover:scale-[1.02] hover:shadow-[0_0_20px_rgba(212,162,78,0.4)] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 disabled:hover:shadow-none"
                   >
                     <div className="absolute inset-0 flex h-full w-full justify-center [transform:skew(-12deg)_translateX(-150%)] group-hover:duration-1000 group-hover:[transform:skew(-12deg)_translateX(150%)]">
                       <div className="relative h-full w-8 bg-white/30" />
@@ -384,12 +384,12 @@ export default function Oferta() {
           <div className="flex items-center justify-between mb-6">
             <button 
               onClick={() => setStep('variants')}
-              className="flex items-center gap-2 text-sm text-[#F0EAD8]/60 hover:text-[#F0EAD8] transition-colors"
+              className="flex items-center gap-2 text-sm text-[#F5F0E1]/60 hover:text-[#F5F0E1] transition-colors"
             >
               <ChevronLeft className="w-4 h-4" /> Volver a variantes
             </button>
             <div className="flex gap-3">
-              <button onClick={downloadHtml} className="px-4 py-2 rounded-lg card-panel text-sm text-[#F0EAD8] hover:bg-[#C8893A]/10 transition-colors flex items-center gap-2">
+              <button onClick={downloadHtml} className="px-4 py-2 rounded-lg card-panel text-sm text-[#F5F0E1] hover:bg-[#D4A24E]/10 transition-colors flex items-center gap-2">
                 <Download className="w-4 h-4" /> Descargar HTML
               </button>
               <button
@@ -398,7 +398,7 @@ export default function Oferta() {
                   setCopied(true);
                   setTimeout(() => setCopied(false), 2000);
                 }}
-                className="px-4 py-2 rounded-lg bg-[#C8893A] hover:bg-[#C8893A] text-sm text-[#F0EAD8] transition-colors flex items-center gap-2 shadow-lg shadow-[#C8893A]/20"
+                className="px-4 py-2 rounded-lg bg-[#D4A24E] hover:bg-[#D4A24E] text-sm text-[#F5F0E1] transition-colors flex items-center gap-2 shadow-lg shadow-[#D4A24E]/20"
               >
                 {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
                 {copied ? 'Copiado!' : 'Copiar HTML'}
@@ -406,14 +406,14 @@ export default function Oferta() {
             </div>
           </div>
 
-          <div className="card-panel rounded-2xl overflow-hidden flex flex-col border-[rgba(200,137,58,0.3)]">
-            <div className="h-10 bg-black/40 border-b border-[rgba(200,137,58,0.2)] flex items-center px-4 gap-2 shrink-0">
+          <div className="card-panel rounded-2xl overflow-hidden flex flex-col border-[rgba(212,162,78,0.3)]">
+            <div className="h-10 bg-black/40 border-b border-[rgba(212,162,78,0.2)] flex items-center px-4 gap-2 shrink-0">
               <div className="flex gap-1.5">
                 <div className="w-3 h-3 rounded-full bg-[#E85555]/80" />
                 <div className="w-3 h-3 rounded-full bg-yellow-500/80" />
                 <div className="w-3 h-3 rounded-full bg-[#2DD4A0]/80" />
               </div>
-              <div className="mx-auto px-24 py-1 rounded-md bg-[#C8893A]/5 text-xs text-[#F0EAD8]/60 font-mono flex items-center gap-2">
+              <div className="mx-auto px-24 py-1 rounded-md bg-[#D4A24E]/5 text-xs text-[#F5F0E1]/60 font-mono flex items-center gap-2">
                 <Lock className="w-3 h-3" /> tu-clinica-digital.sanare.os
               </div>
             </div>

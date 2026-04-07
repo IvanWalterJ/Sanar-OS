@@ -41,11 +41,13 @@ export interface RoadmapPilar {
   metodo_letra?: string;
   hito_mensaje?: string;
   hito_tipo?: 'milestone' | 'urgent' | 'checkpoint';
+  /** Lucide icon name for this pilar */
+  icon: string;
   // Backward compat aliases (para transición gradual)
   /** @deprecated Usar id */
   numero: number;
-  /** @deprecated Usar numero_orden */
-  emoji: string;
+  /** @deprecated Usar icon */
+  emoji?: string;
   /** @deprecated Usar pilar_prerequisito + completar_anterior */
   estrellas_requeridas?: number;
   /** @deprecated */
@@ -64,8 +66,9 @@ export const SEED_ROADMAP_V3: RoadmapPilar[] = [
     numero_orden: 0,
     titulo: 'Onboarding',
     subtitulo: 'Bienvenida y ADN prototipo beta',
-    color: '#C8893A',
+    color: '#D4A24E',
     numero: 0,
+    icon: 'Sprout',
     emoji: '🌱',
     desbloqueo: 'auto',
     fase: 0,
@@ -108,8 +111,9 @@ export const SEED_ROADMAP_V3: RoadmapPilar[] = [
     numero_orden: 1,
     titulo: 'Historia',
     subtitulo: 'Tu narrativa personal en 3 formatos',
-    color: '#C8893A',
+    color: '#D4A24E',
     numero: 1,
+    icon: 'BookOpen',
     emoji: '📖',
     estrellas_requeridas: 1,
     desbloqueo: 'completar_anterior',
@@ -175,8 +179,9 @@ export const SEED_ROADMAP_V3: RoadmapPilar[] = [
     numero_orden: 2,
     titulo: 'Propósito',
     subtitulo: 'El propósito como filtro de decisiones',
-    color: '#C8893A',
+    color: '#D4A24E',
     numero: 2,
+    icon: 'Target',
     emoji: '🎯',
     estrellas_requeridas: 3,
     desbloqueo: 'completar_anterior',
@@ -242,8 +247,9 @@ export const SEED_ROADMAP_V3: RoadmapPilar[] = [
     numero_orden: 3,
     titulo: 'Legado',
     subtitulo: 'Legado vs. éxito financiero',
-    color: '#C8893A',
+    color: '#D4A24E',
     numero: 3,
+    icon: 'Sunrise',
     emoji: '🌅',
     estrellas_requeridas: 3,
     desbloqueo: 'completar_anterior',
@@ -315,8 +321,9 @@ export const SEED_ROADMAP_V3: RoadmapPilar[] = [
     numero_orden: 4,
     titulo: 'Avatar',
     subtitulo: 'Tu paciente ideal desde datos reales',
-    color: '#C8893A',
+    color: '#D4A24E',
     numero: 4,
+    icon: 'UserCircle',
     emoji: '👤',
     estrellas_requeridas: 3,
     desbloqueo: 'completar_anterior',
@@ -382,8 +389,9 @@ export const SEED_ROADMAP_V3: RoadmapPilar[] = [
     numero_orden: 5,
     titulo: 'Nicho + USP',
     subtitulo: 'Nicho no es restricción, es amplificación',
-    color: '#C8893A',
+    color: '#D4A24E',
     numero: 5,
+    icon: 'Lightbulb',
     emoji: '💡',
     estrellas_requeridas: 3,
     desbloqueo: 'completar_anterior',
@@ -436,8 +444,9 @@ export const SEED_ROADMAP_V3: RoadmapPilar[] = [
     numero_orden: 6,
     titulo: 'Matriz A→B→C',
     subtitulo: 'Por qué el obstáculo es más importante que el dolor',
-    color: '#C8893A',
+    color: '#D4A24E',
     numero: 6,
+    icon: 'Triangle',
     emoji: '🔺',
     estrellas_requeridas: 2,
     desbloqueo: 'completar_anterior',
@@ -509,8 +518,9 @@ export const SEED_ROADMAP_V3: RoadmapPilar[] = [
     numero_orden: 7,
     titulo: 'Método',
     subtitulo: 'Tu método propio como activo diferenciador',
-    color: '#C8893A',
+    color: '#D4A24E',
     numero: 7,
+    icon: 'Cog',
     emoji: '⚙️',
     estrellas_requeridas: 3,
     desbloqueo: 'completar_anterior',
@@ -576,8 +586,9 @@ export const SEED_ROADMAP_V3: RoadmapPilar[] = [
     numero_orden: 8,
     titulo: 'Escalera de Ofertas',
     subtitulo: 'Los cuatro niveles de acceso a tu trabajo',
-    color: '#C8893A',
+    color: '#D4A24E',
     numero: 8,
+    icon: 'Building2',
     emoji: '🏗️',
     estrellas_requeridas: 3,
     es_hito: true,
@@ -650,8 +661,9 @@ export const SEED_ROADMAP_V3: RoadmapPilar[] = [
     numero_orden: 9,
     titulo: 'Marketing',
     subtitulo: 'El embudo mínimo viable',
-    color: '#C8893A',
+    color: '#D4A24E',
     numero: 9,
+    icon: 'Megaphone',
     emoji: '📣',
     estrellas_requeridas: 3,
     desbloqueo: 'completar_anterior',
@@ -728,8 +740,9 @@ export const SEED_ROADMAP_V3: RoadmapPilar[] = [
     numero_orden: 10,
     titulo: 'Ventas',
     subtitulo: 'No estás vendiendo, estás evaluando',
-    color: '#C8893A',
+    color: '#D4A24E',
     numero: 9,
+    icon: 'Phone',
     emoji: '📞',
     estrellas_requeridas: 4,
     desbloqueo: 'completar_anterior',
@@ -793,8 +806,9 @@ export const SEED_ROADMAP_V3: RoadmapPilar[] = [
     numero_orden: 11,
     titulo: 'Servicio',
     subtitulo: 'Automatizar la entrega sin perder el toque personal',
-    color: '#C8893A',
+    color: '#D4A24E',
     numero: 9,
+    icon: 'Handshake',
     emoji: '🤝',
     estrellas_requeridas: 3,
     desbloqueo: 'completar_anterior',
@@ -851,8 +865,9 @@ export const SEED_ROADMAP_V3: RoadmapPilar[] = [
     numero_orden: 12,
     titulo: 'Identidad Visual',
     subtitulo: 'El sistema visual que expresa quién sos',
-    color: '#C8893A',
+    color: '#D4A24E',
     numero: 10,
+    icon: 'Palette',
     emoji: '🎨',
     estrellas_requeridas: 2,
     desbloqueo: 'completar_anterior',
@@ -908,8 +923,9 @@ export const SEED_ROADMAP_V3: RoadmapPilar[] = [
     numero_orden: 13,
     titulo: 'Análisis y Optimización',
     subtitulo: 'Retrospectiva y plan de ajuste',
-    color: '#C8893A',
+    color: '#D4A24E',
     numero: 11,
+    icon: 'BarChart3',
     emoji: '📊',
     estrellas_requeridas: 2,
     desbloqueo: 'completar_anterior',
@@ -994,11 +1010,11 @@ export function colorEstadoPilar(
 ): string {
   switch (estado) {
     case 'completado':
-      return 'border-l-[3px] border-l-[#2DD4A0] bg-[#1A1410] border border-[rgba(200,137,58,0.2)]';
+      return 'border-l-[3px] border-l-[#2DD4A0] bg-[#1A1410] border border-[rgba(212,162,78,0.2)]';
     case 'en_progreso':
-      return 'border-l-[3px] border-l-[#C8893A] bg-[#1A1410] border border-[rgba(200,137,58,0.2)]';
+      return 'border-l-[3px] border-l-[#D4A24E] bg-[#1A1410] border border-[rgba(212,162,78,0.2)]';
     case 'bloqueado':
-      return 'opacity-40 cursor-not-allowed bg-[#1A1410] border border-[rgba(200,137,58,0.1)]';
+      return 'opacity-40 cursor-not-allowed bg-[#1A1410] border border-[rgba(212,162,78,0.1)]';
   }
 }
 

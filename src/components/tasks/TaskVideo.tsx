@@ -27,7 +27,7 @@ export default function TaskVideo({ meta, onComplete, isCompleted }: TaskVideoPr
       {/* Video Title */}
       <div>
         <div className="flex items-center gap-2 mb-2">
-          <span className="text-[9px] uppercase font-bold px-2 py-0.5 rounded-full bg-[#C8893A]/15 text-[#C8893A] border border-[#C8893A]/25 tracking-wider">
+          <span className="text-[9px] uppercase font-bold px-2 py-0.5 rounded-full bg-[#D4A24E]/15 text-[#D4A24E] border border-[#D4A24E]/25 tracking-wider">
             VIDEO
           </span>
           {watched && (
@@ -36,14 +36,14 @@ export default function TaskVideo({ meta, onComplete, isCompleted }: TaskVideoPr
             </span>
           )}
         </div>
-        <h3 className="text-lg font-medium text-[#F0EAD8]" style={{ fontFamily: 'var(--font-display)', fontStyle: 'italic' }}>
+        <h3 className="text-lg font-medium text-[#F5F0E1]" style={{ fontFamily: 'var(--font-display)', fontStyle: 'italic' }}>
           {meta.titulo}
         </h3>
-        <p className="text-sm text-[#F0EAD8]/60 mt-1">{meta.descripcion}</p>
+        <p className="text-sm text-[#F5F0E1]/60 mt-1">{meta.descripcion}</p>
       </div>
 
       {/* YouTube Embed */}
-      <div className="relative w-full aspect-video rounded-xl overflow-hidden border border-[rgba(200,137,58,0.2)] bg-black">
+      <div className="relative w-full aspect-video rounded-xl overflow-hidden border border-[rgba(212,162,78,0.2)] bg-black">
         {meta.video_youtube_id ? (
           <iframe
             src={getYoutubeEmbedUrl(videoId)}
@@ -54,16 +54,16 @@ export default function TaskVideo({ meta, onComplete, isCompleted }: TaskVideoPr
           />
         ) : (
           <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#1A1410]">
-            <Play className="w-12 h-12 text-[#C8893A]/50 mb-3" />
-            <p className="text-sm text-[#F0EAD8]/40">Video pendiente de configuración</p>
-            <p className="text-xs text-[#F0EAD8]/25 mt-1">El ID de YouTube se cargará próximamente</p>
+            <Play className="w-12 h-12 text-[#D4A24E]/50 mb-3" />
+            <p className="text-sm text-[#F5F0E1]/40">Video pendiente de configuración</p>
+            <p className="text-xs text-[#F5F0E1]/25 mt-1">El ID de YouTube se cargará próximamente</p>
           </div>
         )}
       </div>
 
       {/* Mark as watched */}
       <div className="flex items-center justify-between">
-        <p className="text-xs text-[#F0EAD8]/40">
+        <p className="text-xs text-[#F5F0E1]/40">
           {meta.tiempo_estimado || '10–15 min'}
         </p>
 

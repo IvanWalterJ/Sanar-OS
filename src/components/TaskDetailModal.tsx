@@ -59,17 +59,17 @@ export default function TaskDetailModal({
     >
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
 
-      <div className="relative z-10 w-full max-w-lg bg-[#1A1410] border border-[rgba(200,137,58,0.2)] rounded-2xl shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+      <div className="relative z-10 w-full max-w-lg bg-[#1A1410] border border-[rgba(212,162,78,0.2)] rounded-2xl shadow-2xl animate-in fade-in zoom-in-95 duration-200">
         {/* Header */}
-        <div className="flex items-start justify-between p-6 border-b border-[rgba(200,137,58,0.1)]">
+        <div className="flex items-start justify-between p-6 border-b border-[rgba(212,162,78,0.1)]">
           <div className="flex-1 pr-4">
             {tarea.pilarTitulo && (
-              <p className="text-[10px] text-[#C8893A] uppercase tracking-widest font-bold mb-2">
+              <p className="text-[10px] text-[#D4A24E] uppercase tracking-widest font-bold mb-2">
                 Pilar {tarea.pilarNumero} — {tarea.pilarTitulo}
               </p>
             )}
             <div className="flex items-center gap-2">
-              <h2 className="text-lg font-semibold text-[#F0EAD8] leading-snug">{tarea.titulo}</h2>
+              <h2 className="text-lg font-semibold text-[#F5F0E1] leading-snug">{tarea.titulo}</h2>
               {tieneOutputGuardado && (
                 <span title="Documento guardado">
                   <FileText className="w-4 h-4 text-[#2DD4A0] shrink-0" />
@@ -77,14 +77,14 @@ export default function TaskDetailModal({
               )}
             </div>
           </div>
-          <button onClick={onClose} className="shrink-0 p-1.5 rounded-lg text-[#F0EAD8]/40 hover:text-[#F0EAD8] hover:bg-[#C8893A]/10 transition-colors">
+          <button onClick={onClose} className="shrink-0 p-1.5 rounded-lg text-[#F5F0E1]/40 hover:text-[#F5F0E1] hover:bg-[#D4A24E]/10 transition-colors">
             <X className="w-4 h-4" />
           </button>
         </div>
 
         {/* Body */}
         <div className="p-6 space-y-5">
-          <p className="text-sm text-[#F0EAD8]/80 leading-relaxed">{tarea.descripcion}</p>
+          <p className="text-sm text-[#F5F0E1]/80 leading-relaxed">{tarea.descripcion}</p>
 
           {/* Preview del output guardado */}
           {tieneOutputGuardado && (
@@ -92,7 +92,7 @@ export default function TaskDetailModal({
               <p className="text-[10px] text-[#2DD4A0] uppercase tracking-widest font-bold mb-2 flex items-center gap-1.5">
                 <CheckCircle2 className="w-3.5 h-3.5" /> Documento guardado
               </p>
-              <p className="text-xs text-[#F0EAD8]/50 line-clamp-3 leading-relaxed whitespace-pre-wrap font-mono">
+              <p className="text-xs text-[#F5F0E1]/50 line-clamp-3 leading-relaxed whitespace-pre-wrap font-mono">
                 {outputExistente}
               </p>
             </div>
@@ -100,18 +100,18 @@ export default function TaskDetailModal({
 
           {/* Chips de info */}
           <div className="flex flex-wrap gap-2">
-            <div className="flex items-center gap-1.5 text-[11px] text-[#F0EAD8]/50 bg-[#C8893A]/5 rounded-lg px-3 py-1.5">
+            <div className="flex items-center gap-1.5 text-[11px] text-[#F5F0E1]/50 bg-[#D4A24E]/5 rounded-lg px-3 py-1.5">
               <Clock className="w-3.5 h-3.5" />
               <span>{tarea.tiempo_estimado || '15–30 min'}</span>
             </div>
             {tarea.es_estrella && (
-              <div className="flex items-center gap-1.5 text-[11px] text-[#C8893A] bg-[#C8893A]/10 border border-[#C8893A]/20 rounded-lg px-3 py-1.5">
-                <Star className="w-3.5 h-3.5 fill-[#C8893A]" />
+              <div className="flex items-center gap-1.5 text-[11px] text-[#D4A24E] bg-[#D4A24E]/10 border border-[#D4A24E]/20 rounded-lg px-3 py-1.5">
+                <Star className="w-3.5 h-3.5 fill-[#D4A24E]" />
                 <span>Tarea estrella</span>
               </div>
             )}
             {tarea.herramienta_id && (
-              <div className="flex items-center gap-1.5 text-[11px] text-[#C8893A] bg-[#C8893A]/10 border border-[#C8893A]/20 rounded-lg px-3 py-1.5">
+              <div className="flex items-center gap-1.5 text-[11px] text-[#D4A24E] bg-[#D4A24E]/10 border border-[#D4A24E]/20 rounded-lg px-3 py-1.5">
                 <Wrench className="w-3.5 h-3.5" />
                 <span>Herramienta {tarea.herramienta_id}</span>
               </div>
@@ -126,15 +126,15 @@ export default function TaskDetailModal({
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between p-6 border-t border-[rgba(200,137,58,0.1)] gap-3">
-          <button onClick={onClose} className="px-4 py-2 text-sm text-[#F0EAD8]/50 hover:text-[#F0EAD8] transition-colors">
+        <div className="flex items-center justify-between p-6 border-t border-[rgba(212,162,78,0.1)] gap-3">
+          <button onClick={onClose} className="px-4 py-2 text-sm text-[#F5F0E1]/50 hover:text-[#F5F0E1] transition-colors">
             Cerrar
           </button>
 
           {canUseToolInline ? (
             <button
               onClick={() => setShowWorkModal(true)}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#C8893A] hover:bg-[#D9A04E] text-[#0E0B07] text-sm font-medium transition-colors shadow-lg shadow-[#C8893A]/20"
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#D4A24E] hover:bg-[#E2B865] text-[#0A0804] text-sm font-medium transition-colors shadow-lg shadow-[#D4A24E]/20"
             >
               {tieneOutputGuardado ? (
                 <><FileText className="w-4 h-4" /> Ver / Editar documento</>
@@ -146,7 +146,7 @@ export default function TaskDetailModal({
           ) : destinoPage ? (
             <button
               onClick={() => onNavigate(destinoPage)}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#C8893A] hover:bg-[#D9A04E] text-[#0E0B07] text-sm font-medium transition-colors shadow-lg shadow-[#C8893A]/20"
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#D4A24E] hover:bg-[#E2B865] text-[#0A0804] text-sm font-medium transition-colors shadow-lg shadow-[#D4A24E]/20"
             >
               {tarea.agente_id ? 'Ir a Agentes IA' : 'Ver en Hoja de Ruta'}
               <ArrowRight className="w-4 h-4" />
@@ -154,7 +154,7 @@ export default function TaskDetailModal({
           ) : (
             <button
               onClick={() => onNavigate('roadmap')}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#C8893A]/15 hover:bg-[#C8893A]/25 text-[#F0EAD8] text-sm font-medium transition-colors"
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#D4A24E]/15 hover:bg-[#D4A24E]/25 text-[#F5F0E1] text-sm font-medium transition-colors"
             >
               Ver en Hoja de Ruta <ArrowRight className="w-4 h-4" />
             </button>

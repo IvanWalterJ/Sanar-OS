@@ -7,7 +7,15 @@
  * Notificaciones de celebración personalizadas
  */
 import React, { useEffect, useState } from 'react';
-import { Trophy, Star, Zap, Lock } from 'lucide-react';
+import {
+  Trophy, Star, Zap, Lock, Sprout, Target, Radio, Rocket, CheckCircle2, PartyPopper,
+  BookOpen, Sunrise, UserCircle, Lightbulb, Triangle, Cog, Building2, Megaphone, Phone, Handshake, Palette, BarChart3,
+} from 'lucide-react';
+
+const PILAR_ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
+  Sprout, BookOpen, Target, Sunrise, UserCircle, Lightbulb, Triangle, Cog,
+  Building2, Megaphone, Phone, Handshake, Palette, BarChart3,
+};
 import { NIVEL_NOMBRES, type NivelNombre } from '../lib/supabase';
 import { calcularNivel, SEED_ROADMAP_V2 } from '../lib/roadmapSeed';
 
@@ -28,7 +36,7 @@ export interface ProgresoGamificacion {
 interface BadgePilar {
   numero: number;
   titulo: string;
-  emoji: string;
+  icon: string;
   color: string;
   desbloqueado: boolean;
   completado: boolean;
@@ -42,7 +50,7 @@ const NIVELES: {
   nombre: NivelNombre;
   descripcion: string;
   color: string;
-  emoji: string;
+  icon: React.ComponentType<{ className?: string }>;
   pilaresRequeridos: number[];
 }[] = [
   {
@@ -50,7 +58,7 @@ const NIVELES: {
     nombre: 'El Sanador Despierto',
     descripcion: 'Tomaste la decisión. Sabés que hay otra forma de ejercer tu profesión.',
     color: 'emerald',
-    emoji: '🌱',
+    icon: Sprout,
     pilaresRequeridos: [0, 1],
   },
   {
@@ -58,7 +66,7 @@ const NIVELES: {
     nombre: 'El Especialista Claro',
     descripcion: 'Conocés tu nicho, tu avatar y tu propuesta de valor con claridad quirúrgica.',
     color: 'blue',
-    emoji: '🎯',
+    icon: Target,
     pilaresRequeridos: [2, 3],
   },
   {
@@ -66,7 +74,7 @@ const NIVELES: {
     nombre: 'El Creador de Presencia',
     descripcion: 'Tu clínica digital está viva. Publicás, captás y estás en el mercado.',
     color: 'cyan',
-    emoji: '📡',
+    icon: Radio,
     pilaresRequeridos: [4, 5],
   },
   {
@@ -74,7 +82,7 @@ const NIVELES: {
     nombre: 'El Arquitecto de Ventas',
     descripcion: 'Tu embudo funciona, tus campañas generan leads y cerrás ventas.',
     color: 'orange',
-    emoji: '🚀',
+    icon: Rocket,
     pilaresRequeridos: [6, 7],
   },
   {
@@ -82,7 +90,7 @@ const NIVELES: {
     nombre: 'El Emprendedor Libre',
     descripcion: 'Optimizaste, escalaste y tenés el plan para el siguiente nivel.',
     color: 'rose',
-    emoji: '⚡',
+    icon: Zap,
     pilaresRequeridos: [8],
   },
 ];
@@ -103,31 +111,31 @@ export function TarjetaNivel({
     <div className={`bg-${cfg.color}-500/10 border border-${cfg.color}-500/25 rounded-2xl p-5 space-y-3`}>
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <span className="text-3xl">{cfg.emoji}</span>
+          <cfg.icon className="w-8 h-8 text-[#D4A24E]" />
           <div>
-            <p className="text-[10px] text-[#F0EAD8]/40 uppercase tracking-wider">Nivel {nivelActual} de 5</p>
+            <p className="text-[10px] text-[#F5F0E1]/40 uppercase tracking-wider">Nivel {nivelActual} de 5</p>
             <h3 className={`text-base font-medium text-${cfg.color}-300`}>{cfg.nombre}</h3>
           </div>
         </div>
         <div className="text-right">
-          <p className="text-xs text-[#F0EAD8]/40">Día</p>
-          <p className="text-lg font-light text-[#F0EAD8]">{diasEnPrograma}</p>
-          <p className="text-[10px] text-[#F0EAD8]/30">de 90</p>
+          <p className="text-xs text-[#F5F0E1]/40">Día</p>
+          <p className="text-lg font-light text-[#F5F0E1]">{diasEnPrograma}</p>
+          <p className="text-[10px] text-[#F5F0E1]/30">de 90</p>
         </div>
       </div>
-      <p className="text-xs text-[#F0EAD8]/60">{cfg.descripcion}</p>
+      <p className="text-xs text-[#F5F0E1]/60">{cfg.descripcion}</p>
       {siguiente && (
         <div className="flex items-center gap-2 pt-1">
-          <Lock className="w-3 h-3 text-[#F0EAD8]/30" />
-          <p className="text-[10px] text-[#F0EAD8]/40">
-            Próximo: <span className="text-[#F0EAD8]/60">{siguiente.nombre}</span>
+          <Lock className="w-3 h-3 text-[#F5F0E1]/30" />
+          <p className="text-[10px] text-[#F5F0E1]/40">
+            Próximo: <span className="text-[#F5F0E1]/60">{siguiente.nombre}</span>
           </p>
         </div>
       )}
       {nivelActual === 5 && (
-        <div className="flex items-center gap-2 bg-[#C8893A]/10 border border-[#C8893A]/20 rounded-xl px-3 py-2">
-          <Trophy className="w-4 h-4 text-[#C8893A]" />
-          <p className="text-xs text-[#C8893A] font-medium">¡Completaste el Método CLÍNICA!</p>
+        <div className="flex items-center gap-2 bg-[#D4A24E]/10 border border-[#D4A24E]/20 rounded-xl px-3 py-2">
+          <Trophy className="w-4 h-4 text-[#D4A24E]" />
+          <p className="text-xs text-[#D4A24E] font-medium">¡Completaste el Método CLÍNICA!</p>
         </div>
       )}
     </div>
@@ -149,7 +157,7 @@ export function GridBadgesPilares({
     return {
       numero: pilar.numero,
       titulo: pilar.titulo,
-      emoji: pilar.emoji,
+      icon: pilar.icon,
       color: pilar.color,
       desbloqueado: desbloqueadosPorPilar[pilar.numero] ?? false,
       completado: completadas >= total && total > 0,
@@ -166,25 +174,25 @@ export function GridBadgesPilares({
             badge.completado
               ? `bg-${badge.color}-500/20 border-${badge.color}-500/40`
               : badge.desbloqueado
-              ? 'bg-[#C8893A]/5 border-[rgba(200,137,58,0.2)]'
-              : 'bg-[#C8893A]/2 border-[rgba(200,137,58,0.1)] opacity-40'
+              ? 'bg-[#D4A24E]/5 border-[rgba(212,162,78,0.2)]'
+              : 'bg-[#D4A24E]/2 border-[rgba(212,162,78,0.1)] opacity-40'
           }`}
         >
           {/* Badge de completado */}
           {badge.completado && (
             <div className={`absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-${badge.color}-500 flex items-center justify-center`}>
-              <Star className="w-3 h-3 text-[#F0EAD8] fill-white" />
+              <Star className="w-3 h-3 text-[#F5F0E1] fill-white" />
             </div>
           )}
 
-          <span className="text-xl">{badge.emoji}</span>
-          <p className="text-[10px] text-[#F0EAD8]/60 text-center leading-tight font-medium">
+          {(() => { const IconComp = PILAR_ICON_MAP[badge.icon]; return IconComp ? <IconComp className="w-5 h-5 text-[#D4A24E]" /> : null; })()}
+          <p className="text-[10px] text-[#F5F0E1]/60 text-center leading-tight font-medium">
             {badge.titulo}
           </p>
 
           {/* Mini barra */}
           {badge.desbloqueado && (
-            <div className="w-full h-1 bg-[#C8893A]/10 rounded-full overflow-hidden">
+            <div className="w-full h-1 bg-[#D4A24E]/10 rounded-full overflow-hidden">
               <div
                 className={`h-full bg-${badge.color}-500 rounded-full transition-all`}
                 style={{ width: `${badge.pct}%` }}
@@ -192,7 +200,7 @@ export function GridBadgesPilares({
             </div>
           )}
           {!badge.desbloqueado && (
-            <Lock className="w-3 h-3 text-[#F0EAD8]/30" />
+            <Lock className="w-3 h-3 text-[#F5F0E1]/30" />
           )}
         </div>
       ))}
@@ -250,8 +258,8 @@ export function ToastCelebracion({
     <div
       className={`fixed top-6 right-6 z-50 max-w-sm rounded-2xl shadow-2xl p-4 animate-in slide-in-from-right duration-300 ${
         isVenta
-          ? 'bg-[#C8893A]/20 border border-[#C8893A]/40 backdrop-blur-xl'
-          : 'bg-[#C8893A]/20 border border-[#C8893A]/30 backdrop-blur-xl'
+          ? 'bg-[#D4A24E]/20 border border-[#D4A24E]/40 backdrop-blur-xl'
+          : 'bg-[#D4A24E]/20 border border-[#D4A24E]/30 backdrop-blur-xl'
       }`}
     >
       <div className="flex items-start gap-3">
@@ -259,11 +267,11 @@ export function ToastCelebracion({
           {payload.tipo === 'primera_venta' ? '🎉' : payload.tipo === 'nivel' ? '⚡' : '✅'}
         </span>
         <div>
-          <p className={`text-sm font-medium ${isVenta ? 'text-[#C8893A]' : 'text-[#F0EAD8]'}`}>
+          <p className={`text-sm font-medium ${isVenta ? 'text-[#D4A24E]' : 'text-[#F5F0E1]'}`}>
             {mensaje}
           </p>
         </div>
-        <button onClick={onClose} className="shrink-0 text-[#F0EAD8]/60 hover:text-[#F0EAD8] text-lg leading-none ml-1">
+        <button onClick={onClose} className="shrink-0 text-[#F5F0E1]/60 hover:text-[#F5F0E1] text-lg leading-none ml-1">
           ×
         </button>
       </div>
@@ -285,18 +293,18 @@ export function PanelGamificacion({ progreso }: { progreso: ProgresoGamificacion
       <TarjetaNivel nivelActual={nivel} diasEnPrograma={progreso.diasEnPrograma} />
 
       <div className="card-panel p-5 rounded-2xl space-y-4">
-        <h3 className="text-xs font-medium text-[#F0EAD8]/60 uppercase tracking-wider flex items-center gap-2">
-          <Zap className="w-3.5 h-3.5 text-[#C8893A]" />
+        <h3 className="text-xs font-medium text-[#F5F0E1]/60 uppercase tracking-wider flex items-center gap-2">
+          <Zap className="w-3.5 h-3.5 text-[#D4A24E]" />
           Progreso global
         </h3>
         <div className="space-y-1.5">
-          <div className="flex justify-between text-xs text-[#F0EAD8]/40">
+          <div className="flex justify-between text-xs text-[#F5F0E1]/40">
             <span>{progreso.metasCompletadasTotal} de {progreso.metasTotalPrograma} metas</span>
-            <span className="font-medium text-[#F0EAD8]">{progreso.progresoPorcentaje}%</span>
+            <span className="font-medium text-[#F5F0E1]">{progreso.progresoPorcentaje}%</span>
           </div>
-          <div className="h-2 bg-[#C8893A]/5 rounded-full overflow-hidden">
+          <div className="h-2 bg-[#D4A24E]/5 rounded-full overflow-hidden">
             <div
-              className="h-full bg-[#C8893A] rounded-full transition-all duration-1000"
+              className="h-full bg-[#D4A24E] rounded-full transition-all duration-1000"
               style={{ width: `${progreso.progresoPorcentaje}%` }}
             />
           </div>

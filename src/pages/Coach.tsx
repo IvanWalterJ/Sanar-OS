@@ -128,15 +128,15 @@ export default function Coach({ userId }: { userId?: string }) {
   const userInitial = (profile.nombre || 'U').charAt(0).toUpperCase();
 
   return (
-    <div className="h-[calc(100vh-8rem)] flex flex-col card-panel rounded-2xl overflow-hidden animate-in fade-in duration-500 border border-[#C8893A]/10">
-      <div className="p-5 border-b border-[rgba(200,137,58,0.15)] bg-[#C8893A]/[0.03] flex items-center justify-between">
+    <div className="h-[calc(100vh-8rem)] flex flex-col card-panel rounded-2xl overflow-hidden animate-in fade-in duration-500 border border-[#D4A24E]/10">
+      <div className="p-5 border-b border-[rgba(212,162,78,0.15)] bg-[#D4A24E]/[0.03] flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <div className="w-10 h-10 rounded-xl bg-[#C8893A]/20 flex items-center justify-center border border-[#C8893A]/30">
-            <Bot className="w-5 h-5 text-[#C8893A]" />
+          <div className="w-10 h-10 rounded-xl bg-[#D4A24E]/20 flex items-center justify-center border border-[#D4A24E]/30">
+            <Bot className="w-5 h-5 text-[#D4A24E]" />
           </div>
           <div>
-            <h2 className="text-sm font-semibold text-[#F0EAD8] tracking-widest uppercase mb-0.5">Coach IA</h2>
-            <p className="text-[10px] text-[#F0EAD8]/50 font-bold uppercase tracking-wider flex items-center gap-1.5">
+            <h2 className="text-sm font-semibold text-[#F5F0E1] tracking-widest uppercase mb-0.5">Coach IA</h2>
+            <p className="text-[10px] text-[#F5F0E1]/50 font-bold uppercase tracking-wider flex items-center gap-1.5">
               <Sparkles className="w-3 h-3 text-[#2DD4A0]" /> Conoce tu ADN completo
             </p>
           </div>
@@ -144,7 +144,7 @@ export default function Coach({ userId }: { userId?: string }) {
         <button
           onClick={resetConversation}
           title="Reiniciar conversación"
-          className="w-8 h-8 rounded-lg hover:bg-[#C8893A]/10 flex items-center justify-center text-[#F0EAD8]/40 hover:text-[#F0EAD8] transition-colors"
+          className="w-8 h-8 rounded-lg hover:bg-[#D4A24E]/10 flex items-center justify-center text-[#F5F0E1]/40 hover:text-[#F5F0E1] transition-colors"
         >
           <RefreshCw className="w-4 h-4" />
         </button>
@@ -155,32 +155,32 @@ export default function Coach({ userId }: { userId?: string }) {
           <div key={i} className={`flex gap-4 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
             <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 border overflow-hidden ${
               msg.role === 'assistant'
-                ? 'bg-[#C8893A]/20 text-[#C8893A] border-[#C8893A]/30'
-                : 'bg-[#F0EAD8]/5 text-[#F0EAD8]/60 border-[#F0EAD8]/10'
+                ? 'bg-[#D4A24E]/20 text-[#D4A24E] border-[#D4A24E]/30'
+                : 'bg-[#F5F0E1]/5 text-[#F5F0E1]/60 border-[#F5F0E1]/10'
             }`}>
               {msg.role === 'assistant'
                 ? <Bot className="w-4 h-4" />
                 : (avatarUrl
                     ? <img src={avatarUrl} alt="" className="w-full h-full object-cover" />
-                    : <span className="text-xs font-bold text-[#F0EAD8]">{userInitial}</span>
+                    : <span className="text-xs font-bold text-[#F5F0E1]">{userInitial}</span>
                   )
               }
             </div>
 
             <div className={`max-w-[85%] rounded-2xl p-5 ${
               msg.role === 'user'
-                ? 'bg-[#C8893A] text-[#0E0B07] rounded-tr-sm shadow-lg'
-                : 'card-panel bg-[#1A1410] text-[#F0EAD8]/90 rounded-tl-sm border border-[rgba(200,137,58,0.15)]'
+                ? 'bg-[#D4A24E] text-[#0A0804] rounded-tr-sm shadow-lg'
+                : 'card-panel bg-[#1A1410] text-[#F5F0E1]/90 rounded-tl-sm border border-[rgba(212,162,78,0.15)]'
             }`}>
               {msg.role === 'user' ? (
                 <p className="text-[13px] leading-relaxed whitespace-pre-wrap">{msg.content}</p>
               ) : (
-                <div className="text-[13px] leading-relaxed prose prose-invert max-w-none prose-p:leading-relaxed prose-pre:bg-black/50 prose-li:my-1 prose-a:text-[#C8893A]">
+                <div className="text-[13px] leading-relaxed prose prose-invert max-w-none prose-p:leading-relaxed prose-pre:bg-black/50 prose-li:my-1 prose-a:text-[#D4A24E]">
                   {msg.content ? <Markdown>{msg.content}</Markdown> : (
                     <span className="flex gap-1.5 items-center py-1">
-                      <span className="w-1.5 h-1.5 rounded-full bg-[#C8893A] animate-bounce" style={{ animationDelay: '0ms' }} />
-                      <span className="w-1.5 h-1.5 rounded-full bg-[#C8893A] animate-bounce" style={{ animationDelay: '150ms' }} />
-                      <span className="w-1.5 h-1.5 rounded-full bg-[#C8893A] animate-bounce" style={{ animationDelay: '300ms' }} />
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#D4A24E] animate-bounce" style={{ animationDelay: '0ms' }} />
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#D4A24E] animate-bounce" style={{ animationDelay: '150ms' }} />
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#D4A24E] animate-bounce" style={{ animationDelay: '300ms' }} />
                     </span>
                   )}
                 </div>
@@ -190,7 +190,7 @@ export default function Coach({ userId }: { userId?: string }) {
         ))}
       </div>
 
-      <div className="p-4 border-t border-[rgba(200,137,58,0.15)] bg-black/20">
+      <div className="p-4 border-t border-[rgba(212,162,78,0.15)] bg-black/20">
         {messages.length < 5 && (
           <div className="flex flex-wrap gap-2 mb-4">
             {SUGGESTIONS.map((s, i) => (
@@ -198,9 +198,9 @@ export default function Coach({ userId }: { userId?: string }) {
                 key={i}
                 onClick={() => handleSend(s)}
                 disabled={isTyping}
-                className="px-3 py-1.5 rounded-full border border-[rgba(200,137,58,0.2)] bg-[#C8893A]/5 hover:bg-[#C8893A]/10 text-xs text-[#F0EAD8]/70 font-medium transition-colors disabled:opacity-50 flex items-center gap-1.5"
+                className="px-3 py-1.5 rounded-full border border-[rgba(212,162,78,0.2)] bg-[#D4A24E]/5 hover:bg-[#D4A24E]/10 text-xs text-[#F5F0E1]/70 font-medium transition-colors disabled:opacity-50 flex items-center gap-1.5"
               >
-                <Zap className="w-3 h-3 text-[#C8893A]" /> {s}
+                <Zap className="w-3 h-3 text-[#D4A24E]" /> {s}
               </button>
             ))}
           </div>
@@ -213,12 +213,12 @@ export default function Coach({ userId }: { userId?: string }) {
             onChange={(e) => setInput(e.target.value)}
             disabled={isTyping}
             placeholder={isTyping ? "Tu coach está conectando ideas..." : "Mencioná tu duda técnica o bloqueo..."}
-            className="w-full bg-[#F0EAD8]/5 border border-[rgba(200,137,58,0.2)] rounded-xl py-3.5 pl-4 pr-12 text-sm text-[#F0EAD8] placeholder-[#F0EAD8]/30 focus:outline-none focus:border-[#C8893A]/50 focus:ring-1 focus:ring-[#C8893A]/50 transition-all disabled:opacity-50 shadow-inner"
+            className="w-full bg-[#F5F0E1]/5 border border-[rgba(212,162,78,0.2)] rounded-xl py-3.5 pl-4 pr-12 text-sm text-[#F5F0E1] placeholder-[#F5F0E1]/30 focus:outline-none focus:border-[#D4A24E]/50 focus:ring-1 focus:ring-[#D4A24E]/50 transition-all disabled:opacity-50 shadow-inner"
           />
           <button
             type="submit"
             disabled={!input.trim() || isTyping}
-            className="absolute right-2 w-9 h-9 rounded-lg bg-[#C8893A] hover:bg-[#D9A04E] disabled:opacity-50 flex items-center justify-center text-[#0E0B07] transition-colors"
+            className="absolute right-2 w-9 h-9 rounded-lg bg-[#D4A24E] hover:bg-[#E2B865] disabled:opacity-50 flex items-center justify-center text-[#0A0804] transition-colors"
           >
             <Send className="w-4 h-4 ml-1" />
           </button>

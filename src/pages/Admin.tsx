@@ -7,8 +7,16 @@ import {
   TrendingUp, TrendingDown, Sparkles, Bot,
   Hash, Trophy, Lock, Shield,
   CheckCheck, AlertTriangle, Image, Mic, Settings, Camera,
-  Video, Trash2, Youtube, Play, ChevronDown, FileText
+  Video, Trash2, Youtube, Play, ChevronDown, FileText,
+  Globe, Flame, Star, DollarSign, Pencil,
+  Sprout, Target, Sunrise, UserCircle, Lightbulb, Triangle,
+  Cog, Building2, Megaphone, Phone, Handshake, Palette, BarChart3,
 } from 'lucide-react';
+
+const ADMIN_PILAR_ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
+  Sprout, BookOpen, Target, Sunrise, UserCircle, Lightbulb, Triangle, Cog,
+  Building2, Megaphone, Phone, Handshake, Palette, BarChart3,
+};
 import { supabase, type Profile, type Mensaje, type AdminNote, type UserStatus, isSupabaseReady } from '../lib/supabase';
 import { SEED_ROADMAP_V2 } from '../lib/roadmapSeed';
 import { GoogleGenAI } from '@google/genai';
@@ -42,10 +50,10 @@ type MainTab = 'dashboard' | 'comunidad' | 'victorias' | 'consultas' | 'metricas
 type DetalleTab = 'resumen' | 'diario' | 'metricas' | 'mensajes' | 'notas';
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; border: string }> = {
-  ONBOARDING: { label: 'Onboarding', color: 'text-[#C8893A]', bg: 'bg-[#C8893A]/10', border: 'border-blue-500/20' },
+  ONBOARDING: { label: 'Onboarding', color: 'text-[#D4A24E]', bg: 'bg-[#D4A24E]/10', border: 'border-blue-500/20' },
   ACTIVE:     { label: 'Activo',     color: 'text-[#2DD4A0]', bg: 'bg-[#2DD4A0]/10', border: 'border-emerald-500/20' },
-  PAUSED:     { label: 'Pausado',    color: 'text-[#C8893A]', bg: 'bg-amber-500/10', border: 'border-amber-500/20' },
-  COMPLETED:  { label: 'Completado', color: 'text-[#C8893A]', bg: 'bg-[#C8893A]/10', border: 'border-[#C8893A]/20' },
+  PAUSED:     { label: 'Pausado',    color: 'text-[#D4A24E]', bg: 'bg-amber-500/10', border: 'border-amber-500/20' },
+  COMPLETED:  { label: 'Completado', color: 'text-[#D4A24E]', bg: 'bg-[#D4A24E]/10', border: 'border-[#D4A24E]/20' },
   CHURNED:    { label: 'Inactivo',   color: 'text-[#E85555]', bg: 'bg-[#E85555]/10', border: 'border-red-500/20' },
 };
 
@@ -73,9 +81,9 @@ function getYoutubeId(url: string): string | null {
 
 const SEMAFORO_CONFIG = {
   verde: { class: 'bg-[#2DD4A0] shadow-[0_0_8px_rgba(16,185,129,0.4)]', label: 'En ritmo', text: 'text-[#2DD4A0]' },
-  amarillo: { class: 'bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.4)]', label: 'Atención', text: 'text-[#C8893A]' },
+  amarillo: { class: 'bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.4)]', label: 'Atención', text: 'text-[#D4A24E]' },
   rojo: { class: 'bg-[#E85555] shadow-[0_0_8px_rgba(239,68,68,0.4)]', label: 'Necesita ayuda', text: 'text-[#E85555]' },
-  gris: { class: 'bg-gray-600', label: 'Sin datos', text: 'text-[#F0EAD8]/60' },
+  gris: { class: 'bg-gray-600', label: 'Sin datos', text: 'text-[#F5F0E1]/60' },
 };
 
 function calcDias(fecha_inicio: string): { dia: number; semana: number } {
@@ -170,32 +178,32 @@ function GlobalChat({ canal, adminProfile }: { canal: string, adminProfile: Prof
   const titleInfo = getTitle();
 
   return (
-    <div className="flex flex-col h-full min-h-0 bg-[#241A0C]/30 border border-[rgba(200,137,58,0.12)] rounded-2xl overflow-hidden">
+    <div className="flex flex-col h-full min-h-0 bg-[#241A0C]/30 border border-[rgba(212,162,78,0.12)] rounded-2xl overflow-hidden">
       {/* Hidden file inputs */}
       <input ref={imageInputRef} type="file" accept="image/*" className="hidden"
         onChange={e => { const f = e.target.files?.[0]; if (f) handleUploadFile(f, 'imagen'); e.target.value = ''; }} />
       <input ref={audioInputRef} type="file" accept="audio/*" className="hidden"
         onChange={e => { const f = e.target.files?.[0]; if (f) handleUploadFile(f, 'audio'); e.target.value = ''; }} />
 
-      <div className="p-6 border-b border-[rgba(200,137,58,0.12)] shrink-0 bg-[#241A0C]/20">
+      <div className="p-6 border-b border-[rgba(212,162,78,0.12)] shrink-0 bg-[#241A0C]/20">
         <div className="flex items-center gap-3 mb-1">
-          <div className="w-10 h-10 rounded-xl bg-[#C8893A]/20 border border-[#C8893A]/30 flex items-center justify-center">
-            <titleInfo.i className="w-5 h-5 text-[#C8893A]" />
+          <div className="w-10 h-10 rounded-xl bg-[#D4A24E]/20 border border-[#D4A24E]/30 flex items-center justify-center">
+            <titleInfo.i className="w-5 h-5 text-[#D4A24E]" />
           </div>
           <div>
-            <h2 className="text-xl font-medium text-[#F0EAD8] tracking-tight">{titleInfo.t}</h2>
-            <p className="text-sm text-[#F0EAD8]/40">{titleInfo.d}</p>
+            <h2 className="text-xl font-medium text-[#F5F0E1] tracking-tight">{titleInfo.t}</h2>
+            <p className="text-sm text-[#F5F0E1]/40">{titleInfo.d}</p>
           </div>
         </div>
       </div>
 
       <div className="flex-1 overflow-y-auto p-6 scrollbar-hide space-y-4">
         {loading ? (
-          <div className="flex justify-center py-10"><Loader2 className="w-6 h-6 text-[#C8893A] animate-spin" /></div>
+          <div className="flex justify-center py-10"><Loader2 className="w-6 h-6 text-[#D4A24E] animate-spin" /></div>
         ) : messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center">
             <titleInfo.i className="w-12 h-12 text-gray-800 mb-4" />
-            <p className="text-[#F0EAD8]/40">Este canal aún está vacío.</p>
+            <p className="text-[#F5F0E1]/40">Este canal aún está vacío.</p>
           </div>
         ) : (
           messages.map((m) => {
@@ -207,25 +215,25 @@ function GlobalChat({ canal, adminProfile }: { canal: string, adminProfile: Prof
               <div key={m.id} className={`flex gap-2.5 items-end max-w-[85%] ${isMe ? 'ml-auto flex-row-reverse' : ''}`}>
                 {/* Avatar */}
                 {isMe && adminAvatarUrl ? (
-                  <div className="w-8 h-8 rounded-full shrink-0 overflow-hidden border border-[#C8893A]/30">
+                  <div className="w-8 h-8 rounded-full shrink-0 overflow-hidden border border-[#D4A24E]/30">
                     <img src={adminAvatarUrl} alt={senderName} className="w-full h-full object-cover" />
                   </div>
                 ) : (
                   <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 border ${
-                    isAdmin ? 'bg-[#C8893A]/20 border-[#C8893A]/30 text-[#C8893A]'
-                             : 'bg-[#C8893A]/10 border-[rgba(200,137,58,0.2)] text-[#F0EAD8]'
+                    isAdmin ? 'bg-[#D4A24E]/20 border-[#D4A24E]/30 text-[#D4A24E]'
+                             : 'bg-[#D4A24E]/10 border-[rgba(212,162,78,0.2)] text-[#F5F0E1]'
                   }`}>
                     {isAdmin ? <Shield className="w-3.5 h-3.5" /> : initial}
                   </div>
                 )}
                 <div className="flex flex-col gap-1">
-                  <span className={`text-[10px] font-semibold px-1 ${isAdmin ? 'text-[#C8893A]' : 'text-[#F0EAD8]/40'} ${isMe ? 'text-right' : ''}`}>
+                  <span className={`text-[10px] font-semibold px-1 ${isAdmin ? 'text-[#D4A24E]' : 'text-[#F5F0E1]/40'} ${isMe ? 'text-right' : ''}`}>
                     {senderName}{isAdmin ? ' · Coach' : ''}
                   </span>
                   <div className={`px-4 py-3 rounded-2xl text-sm leading-relaxed ${
-                    isMe ? 'bg-[#C8893A]/25 text-[#F0EAD8] border border-[#C8893A]/20 rounded-tr-sm'
-                         : isAdmin ? 'bg-[#C8893A]/20 text-[#C8893A] border border-[#C8893A]/20 rounded-tl-sm'
-                         : 'bg-[#241A0C]/60 text-[#F0EAD8]/90 border border-[rgba(200,137,58,0.12)] rounded-tl-sm'
+                    isMe ? 'bg-[#D4A24E]/25 text-[#F5F0E1] border border-[#D4A24E]/20 rounded-tr-sm'
+                         : isAdmin ? 'bg-[#D4A24E]/20 text-[#D4A24E] border border-[#D4A24E]/20 rounded-tl-sm'
+                         : 'bg-[#241A0C]/60 text-[#F5F0E1]/90 border border-[rgba(212,162,78,0.12)] rounded-tl-sm'
                   }`}>
                     {m.tipo_archivo === 'imagen' && m.archivo_url && (
                       <img src={m.archivo_url} alt="imagen" className="max-w-xs rounded-xl mb-2 cursor-pointer hover:opacity-90"
@@ -247,18 +255,18 @@ function GlobalChat({ canal, adminProfile }: { canal: string, adminProfile: Prof
         <div ref={messagesEndRef} />
       </div>
 
-      <div className="p-4 border-t border-[rgba(200,137,58,0.12)] shrink-0 bg-[#241A0C]/20">
+      <div className="p-4 border-t border-[rgba(212,162,78,0.12)] shrink-0 bg-[#241A0C]/20">
         <div className="flex gap-2 items-end">
           {/* Attach buttons */}
           <div className="flex flex-col gap-1 shrink-0">
             <button type="button" onClick={() => imageInputRef.current?.click()} disabled={uploading}
               title="Subir imagen"
-              className="w-10 h-10 rounded-xl bg-[#C8893A]/5 border border-[rgba(200,137,58,0.2)] hover:bg-[#C8893A]/10 flex items-center justify-center text-[#F0EAD8]/60 hover:text-[#F0EAD8] transition-colors disabled:opacity-50">
+              className="w-10 h-10 rounded-xl bg-[#D4A24E]/5 border border-[rgba(212,162,78,0.2)] hover:bg-[#D4A24E]/10 flex items-center justify-center text-[#F5F0E1]/60 hover:text-[#F5F0E1] transition-colors disabled:opacity-50">
               <Image className="w-4 h-4" />
             </button>
             <button type="button" onClick={() => audioInputRef.current?.click()} disabled={uploading}
               title="Subir audio"
-              className="w-10 h-10 rounded-xl bg-[#C8893A]/5 border border-[rgba(200,137,58,0.2)] hover:bg-[#C8893A]/10 flex items-center justify-center text-[#F0EAD8]/60 hover:text-[#F0EAD8] transition-colors disabled:opacity-50">
+              className="w-10 h-10 rounded-xl bg-[#D4A24E]/5 border border-[rgba(212,162,78,0.2)] hover:bg-[#D4A24E]/10 flex items-center justify-center text-[#F5F0E1]/60 hover:text-[#F5F0E1] transition-colors disabled:opacity-50">
               <Mic className="w-4 h-4" />
             </button>
           </div>
@@ -269,12 +277,12 @@ function GlobalChat({ canal, adminProfile }: { canal: string, adminProfile: Prof
             onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && send()}
             placeholder={uploading ? 'Subiendo archivo...' : 'Enviar mensaje al canal...'}
             disabled={enviando || uploading}
-            className="flex-1 bg-black/40 border border-[rgba(200,137,58,0.2)] rounded-xl py-3 px-5 text-sm text-[#F0EAD8] focus:outline-none focus:border-[#C8893A]/50 transition-all disabled:opacity-50"
+            className="flex-1 bg-black/40 border border-[rgba(212,162,78,0.2)] rounded-xl py-3 px-5 text-sm text-[#F5F0E1] focus:outline-none focus:border-[#D4A24E]/50 transition-all disabled:opacity-50"
           />
           <button
             onClick={send}
             disabled={!input.trim() || enviando || uploading}
-            className="w-12 h-12 rounded-xl bg-[#C8893A] hover:bg-[#C8893A] flex items-center justify-center transition-colors disabled:opacity-50 shrink-0"
+            className="w-12 h-12 rounded-xl bg-[#D4A24E] hover:bg-[#D4A24E] flex items-center justify-center transition-colors disabled:opacity-50 shrink-0"
           >
             {enviando || uploading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
           </button>
@@ -407,7 +415,7 @@ export default function Admin({ adminProfile, onSignOut }: AdminProps) {
             toast(nombre, {
               description: preview || '📎 Archivo adjunto',
               action: { label: 'Ver →', onClick: () => setMainTab(ch) },
-              icon: React.createElement(ChIcon, { className: 'w-4 h-4 text-[#C8893A]' }),
+              icon: React.createElement(ChIcon, { className: 'w-4 h-4 text-[#D4A24E]' }),
               duration: 6000,
             });
 
@@ -1070,19 +1078,19 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
   ];
 
   return (
-    <div className="flex h-screen bg-[#080808] text-[#F0EAD8] font-sans overflow-hidden selection:bg-[#C8893A]/30">
-      <div className="fixed top-[-10%] left-[-10%] w-[500px] h-[500px] bg-[#C8893A]/10 rounded-full blur-[150px] pointer-events-none" />
+    <div className="flex h-screen bg-[#080808] text-[#F5F0E1] font-sans overflow-hidden selection:bg-[#D4A24E]/30">
+      <div className="fixed top-[-10%] left-[-10%] w-[500px] h-[500px] bg-[#D4A24E]/10 rounded-full blur-[150px] pointer-events-none" />
       
       {/* ─── SIDEBAR DEL ADMIN ─────────────────────────────────────────────────────────── */}
-      <aside className="w-[280px] shrink-0 border-r border-[rgba(200,137,58,0.1)] bg-black/40 backdrop-blur-3xl flex flex-col z-20">
+      <aside className="w-[280px] shrink-0 border-r border-[rgba(212,162,78,0.1)] bg-black/40 backdrop-blur-3xl flex flex-col z-20">
         <div className="p-6">
           <div className="flex items-center gap-3 mb-8">
-            <div className="w-10 h-10 rounded-xl bg-[#C8893A] flex items-center justify-center shadow-[0_0_20px_rgba(200,137,58,0.3)]">
-              <Stethoscope className="w-5 h-5 text-[#F0EAD8]" />
+            <div className="w-10 h-10 rounded-xl bg-[#D4A24E] flex items-center justify-center shadow-[0_0_20px_rgba(212,162,78,0.3)]">
+              <Stethoscope className="w-5 h-5 text-[#F5F0E1]" />
             </div>
             <div>
-              <h1 className="text-sm font-semibold text-[#F0EAD8] tracking-wide">Tu Clínica Digital</h1>
-              <p className="text-[10px] text-[#C8893A] uppercase tracking-widest font-bold">Director</p>
+              <h1 className="text-sm font-semibold text-[#F5F0E1] tracking-wide">Tu Clínica Digital</h1>
+              <p className="text-[10px] text-[#D4A24E] uppercase tracking-widest font-bold">Director</p>
             </div>
           </div>
 
@@ -1106,14 +1114,14 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
                   }}
                   className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all group ${
                     mainTab === item.id
-                      ? 'bg-[#C8893A]/10 text-[#C8893A]'
-                      : 'text-[#F0EAD8]/60 hover:bg-[#241A0C]/60 hover:text-[#F0EAD8]'
+                      ? 'bg-[#D4A24E]/10 text-[#D4A24E]'
+                      : 'text-[#F5F0E1]/60 hover:bg-[#241A0C]/60 hover:text-[#F5F0E1]'
                   }`}
                 >
                   <item.icon className="w-4 h-4" />
                   {item.label}
                   {unread > 0 && (
-                    <span className="ml-auto min-w-[18px] h-[18px] px-1 rounded-full bg-[#C8893A] text-[#F0EAD8] text-[10px] font-bold flex items-center justify-center">
+                    <span className="ml-auto min-w-[18px] h-[18px] px-1 rounded-full bg-[#D4A24E] text-[#F5F0E1] text-[10px] font-bold flex items-center justify-center">
                       {unread}
                     </span>
                   )}
@@ -1123,27 +1131,27 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
           </nav>
         </div>
 
-        <div className="mt-auto p-6 border-t border-[rgba(200,137,58,0.1)]">
+        <div className="mt-auto p-6 border-t border-[rgba(212,162,78,0.1)]">
           <div className="flex items-center gap-3 mb-4">
-            <div className="w-9 h-9 rounded-full overflow-hidden bg-[#C8893A]/10 flex items-center justify-center text-sm font-bold border border-[rgba(200,137,58,0.3)] shrink-0">
+            <div className="w-9 h-9 rounded-full overflow-hidden bg-[#D4A24E]/10 flex items-center justify-center text-sm font-bold border border-[rgba(212,162,78,0.3)] shrink-0">
               {adminAvatar
                 ? <img src={adminAvatar} alt="Admin" className="w-full h-full object-cover" />
                 : adminProfile.nombre.charAt(0).toUpperCase()
               }
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-[#F0EAD8] truncate">{adminProfile.nombre}</p>
-              <p className="text-[10px] text-[#F0EAD8]/40 truncate">{adminProfile.especialidad || 'Director'}</p>
+              <p className="text-sm font-medium text-[#F5F0E1] truncate">{adminProfile.nombre}</p>
+              <p className="text-[10px] text-[#F5F0E1]/40 truncate">{adminProfile.especialidad || 'Director'}</p>
             </div>
             <button
               onClick={() => { setAdminDraft({ nombre: adminProfile.nombre, cargo: adminProfile.especialidad || 'Director' }); setShowAdminSettings(true); }}
-              className="w-7 h-7 rounded-lg bg-[#C8893A]/5 hover:bg-[#C8893A]/10 flex items-center justify-center text-[#F0EAD8]/40 hover:text-[#F0EAD8] transition-colors shrink-0"
+              className="w-7 h-7 rounded-lg bg-[#D4A24E]/5 hover:bg-[#D4A24E]/10 flex items-center justify-center text-[#F5F0E1]/40 hover:text-[#F5F0E1] transition-colors shrink-0"
               title="Ajustes de perfil"
             >
               <Settings className="w-3.5 h-3.5" />
             </button>
           </div>
-          <button onClick={onSignOut} className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-semibold text-[#F0EAD8]/60 hover:bg-[#C8893A]/5 hover:text-[#F0EAD8] transition-colors">
+          <button onClick={onSignOut} className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-semibold text-[#F5F0E1]/60 hover:bg-[#D4A24E]/5 hover:text-[#F5F0E1] transition-colors">
             <LogOut className="w-3.5 h-3.5" /> Salir del sistema
           </button>
         </div>
@@ -1151,8 +1159,8 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
 
       {/* ─── MAIN CONTENT ──────────────────────────────────────────────────────────────── */}
       <main className="flex-1 flex flex-col relative z-10 overflow-hidden bg-[url('https://grainy-gradients.vercel.app/noise.svg')] bg-opacity-50">
-        <header className="h-16 border-b border-[rgba(200,137,58,0.1)] flex items-center px-6 shrink-0 bg-black/20 backdrop-blur-md">
-          <h2 className="text-sm font-semibold text-[#F0EAD8]/90 capitalize tracking-wide">
+        <header className="h-16 border-b border-[rgba(212,162,78,0.1)] flex items-center px-6 shrink-0 bg-black/20 backdrop-blur-md">
+          <h2 className="text-sm font-semibold text-[#F5F0E1]/90 capitalize tracking-wide">
             {mainTab === 'dashboard' ? 'Panel de Control - Clientes'
               : mainTab === 'metricas_globales' ? 'Métricas Globales del Programa'
               : mainTab === 'mensajes_privados' ? 'Mensajes Privados'
@@ -1170,11 +1178,11 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
                   onClick={() => setFiltroMetricasId(null)}
                   className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all border ${
                     filtroMetricasId === null
-                      ? 'bg-[#C8893A]/20 border-[#C8893A]/50 text-[#C8893A]'
-                      : 'bg-[#241A0C]/50 border-[rgba(200,137,58,0.14)] text-[#F0EAD8]/60 hover:text-[#F0EAD8] hover:bg-[#C8893A]/6'
+                      ? 'bg-[#D4A24E]/20 border-[#D4A24E]/50 text-[#D4A24E]'
+                      : 'bg-[#241A0C]/50 border-[rgba(212,162,78,0.14)] text-[#F5F0E1]/60 hover:text-[#F5F0E1] hover:bg-[#D4A24E]/6'
                   }`}
                 >
-                  🌐 Global ({clientes.length})
+                  <Globe className="w-4 h-4 inline" /> Global ({clientes.length})
                 </button>
                 {clientes.map(c => (
                   <button
@@ -1182,8 +1190,8 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
                     onClick={() => setFiltroMetricasId(c.id)}
                     className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all border ${
                       filtroMetricasId === c.id
-                        ? 'bg-[#C8893A]/20 border-[#C8893A]/50 text-[#C8893A]'
-                        : 'bg-[#241A0C]/50 border-[rgba(200,137,58,0.14)] text-[#F0EAD8]/60 hover:text-[#F0EAD8] hover:bg-[#C8893A]/6'
+                        ? 'bg-[#D4A24E]/20 border-[#D4A24E]/50 text-[#D4A24E]'
+                        : 'bg-[#241A0C]/50 border-[rgba(212,162,78,0.14)] text-[#F5F0E1]/60 hover:text-[#F5F0E1] hover:bg-[#D4A24E]/6'
                     }`}
                   >
                     <span className={`w-2 h-2 rounded-full ${SEMAFORO_CONFIG[c.semaforo].class}`} />
@@ -1192,7 +1200,7 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
                 ))}
                 <button
                   onClick={() => { setMetricasGlobales(null); cargarMetricasGlobales(); cargarClientes(); }}
-                  className="ml-auto flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#241A0C]/50 border border-[rgba(200,137,58,0.14)] text-xs text-[#F0EAD8]/40 hover:text-[#F0EAD8] transition-colors"
+                  className="ml-auto flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#241A0C]/50 border border-[rgba(212,162,78,0.14)] text-xs text-[#F5F0E1]/40 hover:text-[#F5F0E1] transition-colors"
                 >
                   <Loader2 className="w-3.5 h-3.5" /> Actualizar
                 </button>
@@ -1206,17 +1214,17 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
                     {[
                       {
                         label: 'Profesionales activos', value: clientes.length,
-                        icon: Users, color: 'text-[#C8893A]', glow: 'shadow-[#C8893A]/20',
-                        bg: 'from-[#C8893A]/15 to-indigo-600/5', border: 'border-[#C8893A]/20',
+                        icon: Users, color: 'text-[#D4A24E]', glow: 'shadow-[#D4A24E]/20',
+                        bg: 'from-[#D4A24E]/15 to-indigo-600/5', border: 'border-[#D4A24E]/20',
                       },
                       {
-                        label: 'En ritmo 🟢', value: clientes.filter(c => c.semaforo === 'verde').length,
+                        label: 'En ritmo', value: clientes.filter(c => c.semaforo === 'verde').length,
                         icon: CheckCheck, color: 'text-[#2DD4A0]', glow: 'shadow-emerald-500/20',
                         bg: 'from-emerald-600/15 to-emerald-600/5', border: 'border-emerald-500/20',
                       },
                       {
                         label: 'Necesitan atención', value: clientes.filter(c => c.semaforo === 'rojo' || c.semaforo === 'amarillo').length,
-                        icon: AlertTriangle, color: 'text-[#C8893A]', glow: 'shadow-amber-500/20',
+                        icon: AlertTriangle, color: 'text-[#D4A24E]', glow: 'shadow-amber-500/20',
                         bg: 'from-amber-600/15 to-amber-600/5', border: 'border-amber-500/20',
                       },
                       {
@@ -1231,22 +1239,22 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
                       <div key={i} className={`bg-gradient-to-b ${s.bg} border ${s.border} rounded-2xl p-5 shadow-lg ${s.glow}`}>
                         <s.icon className={`w-5 h-5 ${s.color} mb-3`} />
                         <p className={`text-3xl font-light ${s.color} mb-1`}>{s.value}</p>
-                        <p className="text-xs text-[#F0EAD8]/40 font-semibold uppercase tracking-wider">{s.label}</p>
+                        <p className="text-xs text-[#F5F0E1]/40 font-semibold uppercase tracking-wider">{s.label}</p>
                       </div>
                     ))}
                   </div>
 
                   {/* Tabla de progreso por cliente */}
-                  <div className="bg-[#241A0C]/30 border border-[rgba(200,137,58,0.12)] rounded-2xl overflow-hidden">
-                    <div className="px-6 py-4 border-b border-[rgba(200,137,58,0.1)] flex items-center justify-between">
-                      <h3 className="text-xs font-bold uppercase tracking-widest text-[#F0EAD8]/60 flex items-center gap-2">
-                        <BarChart2 className="w-3.5 h-3.5 text-[#C8893A]" /> Progreso individual
+                  <div className="bg-[#241A0C]/30 border border-[rgba(212,162,78,0.12)] rounded-2xl overflow-hidden">
+                    <div className="px-6 py-4 border-b border-[rgba(212,162,78,0.1)] flex items-center justify-between">
+                      <h3 className="text-xs font-bold uppercase tracking-widest text-[#F5F0E1]/60 flex items-center gap-2">
+                        <BarChart2 className="w-3.5 h-3.5 text-[#D4A24E]" /> Progreso individual
                       </h3>
-                      <span className="text-[10px] text-[#F0EAD8]/30 uppercase tracking-wider">Click en una fila para ver detalle</span>
+                      <span className="text-[10px] text-[#F5F0E1]/30 uppercase tracking-wider">Click en una fila para ver detalle</span>
                     </div>
                     <div className="divide-y divide-white/[0.04]">
                       {clientes.length === 0 ? (
-                        <p className="text-[#F0EAD8]/30 text-sm text-center py-10">Sin datos de clientes</p>
+                        <p className="text-[#F5F0E1]/30 text-sm text-center py-10">Sin datos de clientes</p>
                       ) : clientes.map(c => {
                         const pct = c.tareas_total > 0
                           ? Math.round((c.tareas_completadas / c.tareas_total) * 100)
@@ -1263,15 +1271,15 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
                           >
                             <div className={`w-2 h-2 rounded-full shrink-0 ${SEMAFORO_CONFIG[c.semaforo].class}`} />
                             <div className="w-32 shrink-0">
-                              <p className="text-sm font-semibold text-[#F0EAD8] group-hover:text-[#C8893A] transition-colors truncate">{c.nombre}</p>
-                              <p className="text-[10px] text-[#F0EAD8]/40">Día {c.dia_programa}/90</p>
+                              <p className="text-sm font-semibold text-[#F5F0E1] group-hover:text-[#D4A24E] transition-colors truncate">{c.nombre}</p>
+                              <p className="text-[10px] text-[#F5F0E1]/40">Día {c.dia_programa}/90</p>
                             </div>
                             <div className="flex-1">
                               <div className="flex items-center justify-between mb-1">
-                                <span className="text-[10px] text-[#F0EAD8]/40">Pilar {Math.max(0, pilarActual)}</span>
-                                <span className="text-xs font-bold text-[#F0EAD8]">{pct}%</span>
+                                <span className="text-[10px] text-[#F5F0E1]/40">Pilar {Math.max(0, pilarActual)}</span>
+                                <span className="text-xs font-bold text-[#F5F0E1]">{pct}%</span>
                               </div>
-                              <div className="h-2 bg-[#C8893A]/5 rounded-full overflow-hidden">
+                              <div className="h-2 bg-[#D4A24E]/5 rounded-full overflow-hidden">
                                 <div
                                   className="h-full rounded-full transition-all"
                                   style={{
@@ -1284,10 +1292,10 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
                               </div>
                             </div>
                             <div className="flex items-center gap-5 shrink-0">
-                              {c.racha_diario > 0 && <div className="text-center"><p className="text-sm font-bold text-[#C8893A]">🔥 {c.racha_diario}</p><p className="text-[9px] text-[#F0EAD8]/30 uppercase">Racha</p></div>}
-                              <div className="text-center"><p className={`text-sm font-bold ${c.ventas_count > 0 ? 'text-[#2DD4A0]' : 'text-[#F0EAD8]/30'}`}>{c.ventas_count}</p><p className="text-[9px] text-[#F0EAD8]/30 uppercase">Ventas</p></div>
-                              <div className="text-center"><p className="text-sm font-semibold text-[#F0EAD8]/80">{c.tareas_completadas}<span className="text-[#F0EAD8]/30 font-normal">/{c.tareas_total}</span></p><p className="text-[9px] text-[#F0EAD8]/30 uppercase">Tareas</p></div>
-                              <ChevronRight className="w-4 h-4 text-gray-700 group-hover:text-[#C8893A] transition-colors" />
+                              {c.racha_diario > 0 && <div className="text-center"><p className="text-sm font-bold text-[#D4A24E] flex items-center gap-0.5"><Flame className="w-3.5 h-3.5" /> {c.racha_diario}</p><p className="text-[9px] text-[#F5F0E1]/30 uppercase">Racha</p></div>}
+                              <div className="text-center"><p className={`text-sm font-bold ${c.ventas_count > 0 ? 'text-[#2DD4A0]' : 'text-[#F5F0E1]/30'}`}>{c.ventas_count}</p><p className="text-[9px] text-[#F5F0E1]/30 uppercase">Ventas</p></div>
+                              <div className="text-center"><p className="text-sm font-semibold text-[#F5F0E1]/80">{c.tareas_completadas}<span className="text-[#F5F0E1]/30 font-normal">/{c.tareas_total}</span></p><p className="text-[9px] text-[#F5F0E1]/30 uppercase">Tareas</p></div>
+                              <ChevronRight className="w-4 h-4 text-gray-700 group-hover:text-[#D4A24E] transition-colors" />
                             </div>
                           </button>
                         );
@@ -1298,15 +1306,15 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
                   {/* Estado garantía */}
                   <div className="grid grid-cols-3 gap-4">
                     {[
-                      { label: 'En camino al resultado', icon: '✅', count: clientes.filter(c => c.estado_garantia === 'en_camino').length, color: 'text-[#2DD4A0]', border: 'border-emerald-500/20', bg: 'bg-[#2DD4A0]/5' },
-                      { label: 'En riesgo de garantía', icon: '⚠️', count: clientes.filter(c => c.estado_garantia === 'en_riesgo').length, color: 'text-[#C8893A]', border: 'border-amber-500/20', bg: 'bg-amber-500/5' },
-                      { label: 'Garantía activada', icon: '🛡️', count: clientes.filter(c => c.estado_garantia === 'activada').length, color: 'text-[#E85555]', border: 'border-red-500/20', bg: 'bg-[#E85555]/5' },
+                      { label: 'En camino al resultado', IconComp: CheckCircle2, count: clientes.filter(c => c.estado_garantia === 'en_camino').length, color: 'text-[#2DD4A0]', border: 'border-emerald-500/20', bg: 'bg-[#2DD4A0]/5' },
+                      { label: 'En riesgo de garantia', IconComp: AlertTriangle, count: clientes.filter(c => c.estado_garantia === 'en_riesgo').length, color: 'text-[#D4A24E]', border: 'border-amber-500/20', bg: 'bg-amber-500/5' },
+                      { label: 'Garantia activada', IconComp: Shield, count: clientes.filter(c => c.estado_garantia === 'activada').length, color: 'text-[#E85555]', border: 'border-red-500/20', bg: 'bg-[#E85555]/5' },
                     ].map((s, i) => (
                       <div key={i} className={`${s.bg} border ${s.border} rounded-2xl p-5 flex items-center gap-4`}>
-                        <span className="text-3xl">{s.icon}</span>
+                        <s.IconComp className={`w-8 h-8 ${s.color}`} />
                         <div>
                           <p className={`text-3xl font-light ${s.color} mb-0.5`}>{s.count}</p>
-                          <p className="text-xs text-[#F0EAD8]/60 font-medium">{s.label}</p>
+                          <p className="text-xs text-[#F5F0E1]/60 font-medium">{s.label}</p>
                         </div>
                       </div>
                     ))}
@@ -1323,13 +1331,13 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
                   return (
                     <div className="space-y-5">
                       {/* Header del cliente */}
-                      <div className="flex items-center gap-4 bg-[#C8893A]/10 border border-[#C8893A]/20 rounded-2xl p-5">
-                        <div className="w-14 h-14 rounded-2xl bg-[#C8893A]/30 border border-[#C8893A]/30 flex items-center justify-center text-xl font-bold text-[#F0EAD8]">
+                      <div className="flex items-center gap-4 bg-[#D4A24E]/10 border border-[#D4A24E]/20 rounded-2xl p-5">
+                        <div className="w-14 h-14 rounded-2xl bg-[#D4A24E]/30 border border-[#D4A24E]/30 flex items-center justify-center text-xl font-bold text-[#F5F0E1]">
                           {c.nombre.charAt(0)}
                         </div>
                         <div className="flex-1">
-                          <h3 className="text-xl font-semibold text-[#F0EAD8]">{c.nombre}</h3>
-                          <p className="text-sm text-[#F0EAD8]/60">{c.especialidad || 'Profesional de la salud'} · {c.email}</p>
+                          <h3 className="text-xl font-semibold text-[#F5F0E1]">{c.nombre}</h3>
+                          <p className="text-sm text-[#F5F0E1]/60">{c.especialidad || 'Profesional de la salud'} · {c.email}</p>
                         </div>
                         <div className="flex items-center gap-2 shrink-0">
                           <span className={`w-2.5 h-2.5 rounded-full ${SEMAFORO_CONFIG[c.semaforo].class}`} />
@@ -1340,25 +1348,25 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
                       {/* KPIs individuales */}
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                         {[
-                          { label: 'Día del programa', value: `${c.dia_programa}/90`, color: 'text-[#C8893A]', icon: Calendar },
+                          { label: 'Día del programa', value: `${c.dia_programa}/90`, color: 'text-[#D4A24E]', icon: Calendar },
                           { label: 'Tareas completadas', value: `${c.tareas_completadas}/${c.tareas_total}`, color: 'text-violet-400', icon: CheckCircle2 },
-                          { label: 'Racha diario', value: c.racha_diario > 0 ? `🔥 ${c.racha_diario} días` : '—', color: 'text-[#C8893A]', icon: TrendingUp },
+                          { label: 'Racha diario', value: c.racha_diario > 0 ? `${c.racha_diario} dias` : '—', color: 'text-[#D4A24E]', icon: TrendingUp },
                           { label: 'Ventas registradas', value: c.ventas_count, color: 'text-[#2DD4A0]', icon: TrendingUp },
                         ].map((s, i) => (
-                          <div key={i} className="bg-[#241A0C]/50 border border-[rgba(200,137,58,0.14)] rounded-2xl p-4">
+                          <div key={i} className="bg-[#241A0C]/50 border border-[rgba(212,162,78,0.14)] rounded-2xl p-4">
                             <p className={`text-2xl font-light ${s.color} mb-1`}>{s.value}</p>
-                            <p className="text-[10px] text-[#F0EAD8]/40 uppercase tracking-wider font-semibold">{s.label}</p>
+                            <p className="text-[10px] text-[#F5F0E1]/40 uppercase tracking-wider font-semibold">{s.label}</p>
                           </div>
                         ))}
                       </div>
 
                       {/* Barra de progreso total */}
-                      <div className="bg-[#241A0C]/30 border border-[rgba(200,137,58,0.12)] rounded-2xl p-5">
+                      <div className="bg-[#241A0C]/30 border border-[rgba(212,162,78,0.12)] rounded-2xl p-5">
                         <div className="flex items-center justify-between mb-3">
-                          <p className="text-xs font-bold uppercase tracking-widest text-[#F0EAD8]/60">Progreso en el programa</p>
-                          <p className="text-2xl font-light text-[#F0EAD8]">{pct}%</p>
+                          <p className="text-xs font-bold uppercase tracking-widest text-[#F5F0E1]/60">Progreso en el programa</p>
+                          <p className="text-2xl font-light text-[#F5F0E1]">{pct}%</p>
                         </div>
-                        <div className="h-3 bg-[#C8893A]/5 rounded-full overflow-hidden mb-2">
+                        <div className="h-3 bg-[#D4A24E]/5 rounded-full overflow-hidden mb-2">
                           <div
                             className="h-full rounded-full transition-all duration-700"
                             style={{
@@ -1367,7 +1375,7 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
                             }}
                           />
                         </div>
-                        <div className="flex justify-between text-[10px] text-[#F0EAD8]/30">
+                        <div className="flex justify-between text-[10px] text-[#F5F0E1]/30">
                           <span>Inicio</span>
                           <span>{c.tareas_completadas} de {c.tareas_total} tareas · Día {c.dia_programa} de 90</span>
                           <span>Meta</span>
@@ -1375,12 +1383,12 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
                       </div>
 
                       {/* Progreso por pilar — acordeón expandible */}
-                      <div className="bg-[#241A0C]/30 border border-[rgba(200,137,58,0.12)] rounded-2xl overflow-hidden">
+                      <div className="bg-[#241A0C]/30 border border-[rgba(212,162,78,0.12)] rounded-2xl overflow-hidden">
                         <div className="px-5 pt-5 pb-3 flex items-center justify-between">
-                          <h3 className="text-xs font-bold uppercase tracking-widest text-[#F0EAD8]/60 flex items-center gap-2">
-                            <BarChart2 className="w-3.5 h-3.5 text-[#C8893A]" /> Estimación por pilar
+                          <h3 className="text-xs font-bold uppercase tracking-widest text-[#F5F0E1]/60 flex items-center gap-2">
+                            <BarChart2 className="w-3.5 h-3.5 text-[#D4A24E]" /> Estimación por pilar
                           </h3>
-                          {metricasTareasLoading && <Loader2 className="w-3.5 h-3.5 text-[#C8893A] animate-spin" />}
+                          {metricasTareasLoading && <Loader2 className="w-3.5 h-3.5 text-[#D4A24E] animate-spin" />}
                         </div>
                         <div className="divide-y divide-white/[0.04]">
                           {SEED_ROADMAP_V2.map(pilar => {
@@ -1393,12 +1401,12 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
                                 );
                             const pctPilar = metasPilar > 0 ? Math.round((completadasReales / metasPilar) * 100) : 0;
                             const colores: Record<number, { bar: string; badge: string; text: string; bg: string }> = {
-                              0: { bar: '#6366f1', badge: 'bg-[#C8893A]/10 text-[#C8893A]', text: 'text-[#C8893A]', bg: 'bg-[#C8893A]/5' },
+                              0: { bar: '#6366f1', badge: 'bg-[#D4A24E]/10 text-[#D4A24E]', text: 'text-[#D4A24E]', bg: 'bg-[#D4A24E]/5' },
                               1: { bar: '#8b5cf6', badge: 'bg-violet-500/10 text-violet-400', text: 'text-violet-400', bg: 'bg-violet-500/5' },
-                              2: { bar: '#3b82f6', badge: 'bg-[#C8893A]/10 text-[#C8893A]', text: 'text-[#C8893A]', bg: 'bg-[#C8893A]/5' },
+                              2: { bar: '#3b82f6', badge: 'bg-[#D4A24E]/10 text-[#D4A24E]', text: 'text-[#D4A24E]', bg: 'bg-[#D4A24E]/5' },
                               3: { bar: '#06b6d4', badge: 'bg-cyan-500/10 text-cyan-400', text: 'text-cyan-400', bg: 'bg-cyan-500/5' },
                               4: { bar: '#10b981', badge: 'bg-[#2DD4A0]/10 text-[#2DD4A0]', text: 'text-[#2DD4A0]', bg: 'bg-[#2DD4A0]/5' },
-                              5: { bar: '#f59e0b', badge: 'bg-amber-500/10 text-[#C8893A]', text: 'text-[#C8893A]', bg: 'bg-amber-500/5' },
+                              5: { bar: '#f59e0b', badge: 'bg-amber-500/10 text-[#D4A24E]', text: 'text-[#D4A24E]', bg: 'bg-amber-500/5' },
                               6: { bar: '#f97316', badge: 'bg-orange-500/10 text-orange-400', text: 'text-orange-400', bg: 'bg-orange-500/5' },
                               7: { bar: '#f43f5e', badge: 'bg-rose-500/10 text-rose-400', text: 'text-rose-400', bg: 'bg-rose-500/5' },
                               8: { bar: '#ec4899', badge: 'bg-pink-500/10 text-pink-400', text: 'text-pink-400', bg: 'bg-pink-500/5' },
@@ -1419,15 +1427,15 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
                                     completadasReales > 0 ? 'hover:bg-[#241A0C]/30 cursor-pointer' : 'cursor-default'
                                   }`}
                                 >
-                                  <span className="text-base w-7 text-center shrink-0">{pilar.emoji}</span>
-                                  <span className="text-xs text-[#F0EAD8]/80 w-36 truncate shrink-0 font-medium">{pilar.titulo}</span>
-                                  <div className="flex-1 h-1.5 bg-[#C8893A]/5 rounded-full overflow-hidden">
+                                  {(() => { const IC = ADMIN_PILAR_ICON_MAP[pilar.icon]; return IC ? <IC className="w-5 h-5 text-[#D4A24E] shrink-0" /> : <span className="w-5 h-5 shrink-0" />; })()}
+                                  <span className="text-xs text-[#F5F0E1]/80 w-36 truncate shrink-0 font-medium">{pilar.titulo}</span>
+                                  <div className="flex-1 h-1.5 bg-[#D4A24E]/5 rounded-full overflow-hidden">
                                     <div
                                       className="h-full rounded-full transition-all duration-500"
                                       style={{ width: `${pctPilar}%`, backgroundColor: col.bar }}
                                     />
                                   </div>
-                                  <span className="text-xs text-[#F0EAD8]/40 w-10 text-right shrink-0">{completadasReales}/{metasPilar}</span>
+                                  <span className="text-xs text-[#F5F0E1]/40 w-10 text-right shrink-0">{completadasReales}/{metasPilar}</span>
                                   {completadasReales > 0 && (
                                     <ChevronDown className={`w-3.5 h-3.5 shrink-0 transition-transform ${col.text} ${expandido ? 'rotate-180' : ''}`} />
                                   )}
@@ -1451,34 +1459,34 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
                                           key={meta.codigo}
                                           type="button"
                                           onClick={() => abrirTareaModal(meta, tareaData, rawOutput, c.nombre)}
-                                          className="w-full text-left bg-black/20 border border-[rgba(200,137,58,0.12)] rounded-xl overflow-hidden hover:border-[rgba(200,137,58,0.3)] hover:bg-[#241A0C]/50 transition-all group"
+                                          className="w-full text-left bg-black/20 border border-[rgba(212,162,78,0.12)] rounded-xl overflow-hidden hover:border-[rgba(212,162,78,0.3)] hover:bg-[#241A0C]/50 transition-all group"
                                         >
                                           <div className="flex items-center gap-3 p-3.5">
                                             <CheckCircle2 className={`w-4 h-4 shrink-0 ${col.text}`} />
                                             <div className="flex-1 min-w-0">
                                               <div className="flex items-center gap-2 flex-wrap">
                                                 <span className={`text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded ${col.badge}`}>{meta.codigo}</span>
-                                                {meta.es_estrella && <span className="text-[10px] text-[#C8893A]">★</span>}
+                                                {meta.es_estrella && <Star className="w-3 h-3 text-[#D4A24E] fill-[#D4A24E]" />}
                                                 {tareaData.fecha_completada && (
-                                                  <span className="text-[10px] text-[#F0EAD8]/30">
+                                                  <span className="text-[10px] text-[#F5F0E1]/30">
                                                     {new Date(tareaData.fecha_completada).toLocaleDateString('es-AR', { day: 'numeric', month: 'short' })}
                                                   </span>
                                                 )}
                                               </div>
-                                              <p className="text-sm font-semibold text-[#F0EAD8] mt-0.5 truncate">{meta.titulo}</p>
+                                              <p className="text-sm font-semibold text-[#F5F0E1] mt-0.5 truncate">{meta.titulo}</p>
                                             </div>
                                             <div className="flex items-center gap-2 shrink-0">
                                               {hasOutput && (
-                                                <span className="text-[10px] text-[#C8893A] bg-[#C8893A]/10 px-2 py-0.5 rounded-full">Con output</span>
+                                                <span className="text-[10px] text-[#D4A24E] bg-[#D4A24E]/10 px-2 py-0.5 rounded-full">Con output</span>
                                               )}
-                                              <ChevronRight className="w-3.5 h-3.5 text-[#F0EAD8]/30 group-hover:text-[#F0EAD8]/60 transition-colors" />
+                                              <ChevronRight className="w-3.5 h-3.5 text-[#F5F0E1]/30 group-hover:text-[#F5F0E1]/60 transition-colors" />
                                             </div>
                                           </div>
                                         </button>
                                       );
                                     })}
                                     {tareasCompletadasPilar.length === 0 && (
-                                      <p className="text-xs text-[#F0EAD8]/30 py-2">Sin datos detallados disponibles aún.</p>
+                                      <p className="text-xs text-[#F5F0E1]/30 py-2">Sin datos detallados disponibles aún.</p>
                                     )}
                                   </div>
                                 )}
@@ -1490,7 +1498,7 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
 
                       <button
                         onClick={() => { setSelectedCliente(c); setMainTab('dashboard'); setDetalleTab('resumen'); }}
-                        className="w-full py-3 rounded-xl bg-[#C8893A]/10 border border-[#C8893A]/20 text-[#C8893A] text-sm font-semibold hover:bg-[#C8893A]/20 transition-colors"
+                        className="w-full py-3 rounded-xl bg-[#D4A24E]/10 border border-[#D4A24E]/20 text-[#D4A24E] text-sm font-semibold hover:bg-[#D4A24E]/20 transition-colors"
                       >
                         Ver perfil completo con diario, métricas y mensajes →
                       </button>
@@ -1503,29 +1511,29 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
             /* ── MENSAJES PRIVADOS (WhatsApp style) ── */
             <div className="flex flex-1 min-h-0 overflow-hidden">
               {/* Left: client list */}
-              <div className="w-[300px] shrink-0 border-r border-[rgba(200,137,58,0.12)] flex flex-col bg-black/20">
-                <div className="p-4 border-b border-[rgba(200,137,58,0.12)]">
-                  <p className="text-[11px] font-bold uppercase tracking-widest text-[#F0EAD8]/40">Conversaciones ({clientes.length})</p>
+              <div className="w-[300px] shrink-0 border-r border-[rgba(212,162,78,0.12)] flex flex-col bg-black/20">
+                <div className="p-4 border-b border-[rgba(212,162,78,0.12)]">
+                  <p className="text-[11px] font-bold uppercase tracking-widest text-[#F5F0E1]/40">Conversaciones ({clientes.length})</p>
                 </div>
                 <div className="flex-1 overflow-y-auto scrollbar-hide">
                   {loading ? (
-                    <div className="flex justify-center py-10"><Loader2 className="w-5 h-5 text-[#C8893A] animate-spin" /></div>
+                    <div className="flex justify-center py-10"><Loader2 className="w-5 h-5 text-[#D4A24E] animate-spin" /></div>
                   ) : clientes.map(c => (
                     <button
                       key={c.id}
                       onClick={() => { setChatCliente(c); cargarChatMessages(c.id); }}
-                      className={`w-full text-left px-4 py-3.5 border-b border-[rgba(200,137,58,0.08)] transition-all flex items-center gap-3 ${
-                        chatCliente?.id === c.id ? 'bg-[#C8893A]/10' : 'hover:bg-[#241A0C]/50'
+                      className={`w-full text-left px-4 py-3.5 border-b border-[rgba(212,162,78,0.08)] transition-all flex items-center gap-3 ${
+                        chatCliente?.id === c.id ? 'bg-[#D4A24E]/10' : 'hover:bg-[#241A0C]/50'
                       }`}
                     >
                       <div className={`w-10 h-10 rounded-full shrink-0 flex items-center justify-center text-sm font-bold border ${
-                        chatCliente?.id === c.id ? 'bg-[#C8893A]/20 border-[#C8893A]/30 text-[#C8893A]' : 'bg-[#C8893A]/5 border-[rgba(200,137,58,0.2)] text-[#F0EAD8]'
+                        chatCliente?.id === c.id ? 'bg-[#D4A24E]/20 border-[#D4A24E]/30 text-[#D4A24E]' : 'bg-[#D4A24E]/5 border-[rgba(212,162,78,0.2)] text-[#F5F0E1]'
                       }`}>
                         {c.nombre.charAt(0).toUpperCase()}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-[#F0EAD8] truncate">{c.nombre}</p>
-                        <p className="text-[10px] text-[#F0EAD8]/40 truncate">{c.especialidad || 'Sin especialidad'}</p>
+                        <p className="text-sm font-medium text-[#F5F0E1] truncate">{c.nombre}</p>
+                        <p className="text-[10px] text-[#F5F0E1]/40 truncate">{c.especialidad || 'Sin especialidad'}</p>
                       </div>
                       <div className={`w-2 h-2 rounded-full shrink-0 ${SEMAFORO_CONFIG[c.semaforo].class}`} />
                     </button>
@@ -1537,40 +1545,40 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
               {chatCliente ? (
                 <div className="flex-1 flex flex-col min-w-0 bg-[#080808]">
                   {/* Chat header */}
-                  <div className="h-16 border-b border-[rgba(200,137,58,0.12)] flex items-center gap-3 px-6 shrink-0 bg-black/20">
-                    <div className="w-9 h-9 rounded-full bg-[#C8893A]/20 border border-[#C8893A]/30 flex items-center justify-center text-sm font-bold text-[#C8893A]">
+                  <div className="h-16 border-b border-[rgba(212,162,78,0.12)] flex items-center gap-3 px-6 shrink-0 bg-black/20">
+                    <div className="w-9 h-9 rounded-full bg-[#D4A24E]/20 border border-[#D4A24E]/30 flex items-center justify-center text-sm font-bold text-[#D4A24E]">
                       {chatCliente.nombre.charAt(0).toUpperCase()}
                     </div>
                     <div>
-                      <p className="text-sm font-semibold text-[#F0EAD8]">{chatCliente.nombre}</p>
-                      <p className="text-[10px] text-[#F0EAD8]/40">{chatCliente.especialidad || 'Día ' + chatCliente.dia_programa + '/90'}</p>
+                      <p className="text-sm font-semibold text-[#F5F0E1]">{chatCliente.nombre}</p>
+                      <p className="text-[10px] text-[#F5F0E1]/40">{chatCliente.especialidad || 'Día ' + chatCliente.dia_programa + '/90'}</p>
                     </div>
                   </div>
                   {/* Messages */}
                   <div className="flex-1 overflow-y-auto p-5 scrollbar-hide space-y-3">
                     {chatLoading ? (
-                      <div className="flex justify-center py-10"><Loader2 className="w-6 h-6 text-[#C8893A] animate-spin" /></div>
+                      <div className="flex justify-center py-10"><Loader2 className="w-6 h-6 text-[#D4A24E] animate-spin" /></div>
                     ) : chatMessages.length === 0 ? (
                       <div className="flex flex-col items-center justify-center h-full text-center">
                         <MessageSquare className="w-10 h-10 text-gray-800 mb-4" />
-                        <p className="text-[#F0EAD8]/40 text-sm">Comenzá la conversación con {chatCliente.nombre}</p>
+                        <p className="text-[#F5F0E1]/40 text-sm">Comenzá la conversación con {chatCliente.nombre}</p>
                       </div>
                     ) : chatMessages.map(m => {
                       const isMe = m.emisor_id === adminProfile.id;
                       const senderName = isMe ? adminProfile.nombre : chatCliente.nombre;
                       return (
                         <div key={m.id} className={`flex gap-2.5 items-end max-w-[85%] ${isMe ? 'ml-auto flex-row-reverse' : ''}`}>
-                          <div className={`w-7 h-7 rounded-full shrink-0 flex items-center justify-center text-xs font-bold border overflow-hidden ${isMe ? 'bg-[#C8893A]/20 border-[#C8893A]/30' : 'bg-[#C8893A]/10 border-[rgba(200,137,58,0.2)]'}`}>
+                          <div className={`w-7 h-7 rounded-full shrink-0 flex items-center justify-center text-xs font-bold border overflow-hidden ${isMe ? 'bg-[#D4A24E]/20 border-[#D4A24E]/30' : 'bg-[#D4A24E]/10 border-[rgba(212,162,78,0.2)]'}`}>
                             {isMe
-                              ? (adminAvatar ? <img src={adminAvatar} alt="" className="w-full h-full object-cover" /> : <Shield className="w-3.5 h-3.5 text-[#C8893A]" />)
+                              ? (adminAvatar ? <img src={adminAvatar} alt="" className="w-full h-full object-cover" /> : <Shield className="w-3.5 h-3.5 text-[#D4A24E]" />)
                               : senderName.charAt(0).toUpperCase()
                             }
                           </div>
                           <div className="flex flex-col gap-1">
-                            <span className={`text-[10px] font-semibold text-[#F0EAD8]/40 px-1 ${isMe ? 'text-right' : ''}`}>{senderName}</span>
+                            <span className={`text-[10px] font-semibold text-[#F5F0E1]/40 px-1 ${isMe ? 'text-right' : ''}`}>{senderName}</span>
                             <div className={`px-4 py-3 rounded-2xl text-sm leading-relaxed ${
-                              isMe ? 'bg-[#C8893A]/25 text-[#F0EAD8] border border-[#C8893A]/20 rounded-tr-sm'
-                                   : 'bg-[#241A0C]/60 text-[#F0EAD8]/90 border border-[rgba(200,137,58,0.12)] rounded-tl-sm'
+                              isMe ? 'bg-[#D4A24E]/25 text-[#F5F0E1] border border-[#D4A24E]/20 rounded-tr-sm'
+                                   : 'bg-[#241A0C]/60 text-[#F5F0E1]/90 border border-[rgba(212,162,78,0.12)] rounded-tl-sm'
                             }`}>
                               <p>{m.contenido}</p>
                               <p className={`text-[10px] mt-1.5 opacity-40 ${isMe ? 'text-right' : ''}`}>
@@ -1584,7 +1592,7 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
                     <div ref={chatEndRef} />
                   </div>
                   {/* Input */}
-                  <div className="p-4 border-t border-[rgba(200,137,58,0.12)] shrink-0 bg-[#241A0C]/20">
+                  <div className="p-4 border-t border-[rgba(212,162,78,0.12)] shrink-0 bg-[#241A0C]/20">
                     <div className="flex gap-2">
                       <input
                         type="text"
@@ -1593,12 +1601,12 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
                         onKeyDown={e => e.key === 'Enter' && !e.shiftKey && enviarChatMsg()}
                         placeholder={`Mensaje a ${chatCliente.nombre}...`}
                         disabled={chatEnviando}
-                        className="flex-1 bg-black/40 border border-[rgba(200,137,58,0.2)] rounded-xl py-3 px-5 text-sm text-[#F0EAD8] focus:outline-none focus:border-[#C8893A]/50 transition-all"
+                        className="flex-1 bg-black/40 border border-[rgba(212,162,78,0.2)] rounded-xl py-3 px-5 text-sm text-[#F5F0E1] focus:outline-none focus:border-[#D4A24E]/50 transition-all"
                       />
                       <button
                         onClick={enviarChatMsg}
                         disabled={!chatInput.trim() || chatEnviando}
-                        className="w-12 h-12 rounded-xl bg-[#C8893A] hover:bg-[#D9A04E] disabled:opacity-50 flex items-center justify-center transition-colors shadow-lg shadow-[#C8893A]/20"
+                        className="w-12 h-12 rounded-xl bg-[#D4A24E] hover:bg-[#E2B865] disabled:opacity-50 flex items-center justify-center transition-colors shadow-lg shadow-[#D4A24E]/20"
                       >
                         {chatEnviando ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
                       </button>
@@ -1609,7 +1617,7 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
                 <div className="flex-1 flex items-center justify-center text-center">
                   <div>
                     <MessageSquare className="w-12 h-12 text-gray-800 mx-auto mb-4" />
-                    <p className="text-[#F0EAD8]/40 text-sm">Seleccioná un cliente para chatear</p>
+                    <p className="text-[#F5F0E1]/40 text-sm">Seleccioná un cliente para chatear</p>
                   </div>
                 </div>
               )}
@@ -1620,12 +1628,12 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
               {/* Header */}
               <div className="flex items-center justify-between">
                 <div>
-                  <h2 className="text-2xl font-light text-[#F0EAD8] tracking-tight">Videos del Programa</h2>
-                  <p className="text-sm text-[#F0EAD8]/40 mt-1">Agregá videos de YouTube por pilar. Se muestran automáticamente en la Biblioteca de tus clientes.</p>
+                  <h2 className="text-2xl font-light text-[#F5F0E1] tracking-tight">Videos del Programa</h2>
+                  <p className="text-sm text-[#F5F0E1]/40 mt-1">Agregá videos de YouTube por pilar. Se muestran automáticamente en la Biblioteca de tus clientes.</p>
                 </div>
                 <button
                   onClick={() => { setVideoForm({ grupo: 'A', titulo: '', descripcion: '', youtubeUrl: '', duracion: '' }); setShowAddVideo(true); }}
-                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#E85555] hover:bg-[#E85555] text-[#F0EAD8] text-sm font-semibold transition-all shadow-lg shadow-[#C8893A]/20"
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#E85555] hover:bg-[#E85555] text-[#F5F0E1] text-sm font-semibold transition-all shadow-lg shadow-[#D4A24E]/20"
                 >
                   <Plus className="w-4 h-4" /> Agregar Video
                 </button>
@@ -1635,15 +1643,15 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
               {PILARES.map(p => {
                 const vids = adminVideos.filter(v => v.grupo === p.id);
                 return (
-                  <div key={p.id} className="bg-[#241A0C]/30 border border-[rgba(200,137,58,0.12)] rounded-2xl overflow-hidden">
-                    <div className="px-5 py-3 border-b border-[rgba(200,137,58,0.12)] flex items-center justify-between">
-                      <p className="text-sm font-semibold text-[#F0EAD8]">{p.label}</p>
-                      <span className="text-[10px] bg-[#C8893A]/5 px-2 py-0.5 rounded-full text-[#F0EAD8]/40">{vids.length} videos</span>
+                  <div key={p.id} className="bg-[#241A0C]/30 border border-[rgba(212,162,78,0.12)] rounded-2xl overflow-hidden">
+                    <div className="px-5 py-3 border-b border-[rgba(212,162,78,0.12)] flex items-center justify-between">
+                      <p className="text-sm font-semibold text-[#F5F0E1]">{p.label}</p>
+                      <span className="text-[10px] bg-[#D4A24E]/5 px-2 py-0.5 rounded-full text-[#F5F0E1]/40">{vids.length} videos</span>
                     </div>
                     {videosLoading ? (
                       <div className="flex justify-center py-10"><Loader2 className="w-6 h-6 text-[#E85555] animate-spin" /></div>
                     ) : vids.length === 0 ? (
-                      <div className="px-5 py-4 text-sm text-[#F0EAD8]/30">Sin videos en este pilar todavía.</div>
+                      <div className="px-5 py-4 text-sm text-[#F5F0E1]/30">Sin videos en este pilar todavía.</div>
                     ) : (
                       <div className="divide-y divide-white/[0.04]">
                         {vids.map(v => {
@@ -1658,10 +1666,10 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
                                 )}
                               </div>
                               <div className="flex-1 min-w-0">
-                                <p className="text-sm font-medium text-[#F0EAD8] truncate">{v.titulo}</p>
-                                <p className="text-xs text-[#F0EAD8]/40 truncate">{v.descripcion}</p>
+                                <p className="text-sm font-medium text-[#F5F0E1] truncate">{v.titulo}</p>
+                                <p className="text-xs text-[#F5F0E1]/40 truncate">{v.descripcion}</p>
                               </div>
-                              {v.duracion && <span className="text-[10px] text-[#F0EAD8]/40 shrink-0">{v.duracion}</span>}
+                              {v.duracion && <span className="text-[10px] text-[#F5F0E1]/40 shrink-0">{v.duracion}</span>}
                                 <div className="flex items-center gap-2">
                                   <button
                                     onClick={() => {
@@ -1675,7 +1683,7 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
                                       });
                                       setShowAddVideo(true);
                                     }}
-                                    className="w-7 h-7 rounded-lg bg-[#C8893A]/5 hover:bg-[#C8893A]/10 flex items-center justify-center text-[#F0EAD8]/60 hover:text-[#F0EAD8] transition-colors shrink-0"
+                                    className="w-7 h-7 rounded-lg bg-[#D4A24E]/5 hover:bg-[#D4A24E]/10 flex items-center justify-center text-[#F5F0E1]/60 hover:text-[#F5F0E1] transition-colors shrink-0"
                                     title="Editar video"
                                   >
                                     <Settings className="w-3.5 h-3.5" />
@@ -1700,23 +1708,23 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
                 {/* Modal agregar/editar video */}
                 {showAddVideo && (
                   <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md">
-                    <div className="w-full max-w-md bg-[#1A1410] border border-[rgba(200,137,58,0.2)] rounded-3xl p-8 shadow-2xl relative overflow-hidden">
+                    <div className="w-full max-w-md bg-[#1A1410] border border-[rgba(212,162,78,0.2)] rounded-3xl p-8 shadow-2xl relative overflow-hidden">
                       <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-red-500 to-orange-500" />
                       <div className="flex items-center justify-between mb-6">
-                        <h3 className="text-xl font-semibold text-[#F0EAD8]">{videoForm.id ? 'Editar Video' : 'Nuevo Video'}</h3>
-                        <button onClick={() => setShowAddVideo(false)} className="w-8 h-8 rounded-full bg-[#C8893A]/5 flex items-center justify-center text-[#F0EAD8]/60 hover:text-[#F0EAD8] hover:bg-[#C8893A]/10 transition-colors">
+                        <h3 className="text-xl font-semibold text-[#F5F0E1]">{videoForm.id ? 'Editar Video' : 'Nuevo Video'}</h3>
+                        <button onClick={() => setShowAddVideo(false)} className="w-8 h-8 rounded-full bg-[#D4A24E]/5 flex items-center justify-center text-[#F5F0E1]/60 hover:text-[#F5F0E1] hover:bg-[#D4A24E]/10 transition-colors">
                           <X className="w-4 h-4" />
                         </button>
                       </div>
                       <div className="space-y-4">
                         <div>
-                          <label className="block text-[11px] font-bold uppercase tracking-wider text-[#F0EAD8]/60 mb-2">URL de YouTube *</label>
+                          <label className="block text-[11px] font-bold uppercase tracking-wider text-[#F5F0E1]/60 mb-2">URL de YouTube *</label>
                           <input
                             type="text"
                             value={videoForm.youtubeUrl}
                             onChange={e => setVideoForm({ ...videoForm, youtubeUrl: e.target.value })}
                             placeholder="https://youtu.be/... o https://youtube.com/watch?v=..."
-                            className="w-full bg-black/50 border border-[rgba(200,137,58,0.2)] rounded-xl px-4 py-3 text-sm text-[#F0EAD8] focus:outline-none focus:border-[#C8893A]/50 transition-colors"
+                            className="w-full bg-black/50 border border-[rgba(212,162,78,0.2)] rounded-xl px-4 py-3 text-sm text-[#F5F0E1] focus:outline-none focus:border-[#D4A24E]/50 transition-colors"
                           />
                           {videoForm.youtubeUrl && getYoutubeId(videoForm.youtubeUrl) && (
                             <img
@@ -1727,48 +1735,48 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
                           )}
                         </div>
                         <div>
-                          <label className="block text-[11px] font-bold uppercase tracking-wider text-[#F0EAD8]/60 mb-2">Pilar *</label>
+                          <label className="block text-[11px] font-bold uppercase tracking-wider text-[#F5F0E1]/60 mb-2">Pilar *</label>
                           <select
                             value={videoForm.grupo}
                             onChange={e => setVideoForm({ ...videoForm, grupo: e.target.value as AdminVideo['grupo'] })}
-                            className="w-full bg-black/50 border border-[rgba(200,137,58,0.2)] rounded-xl px-4 py-3 text-sm text-[#F0EAD8] focus:outline-none focus:border-[#C8893A]/50 transition-colors"
+                            className="w-full custom-select rounded-xl px-4 py-3"
                           >
                             {PILARES.map(p => <option key={p.id} value={p.id}>{p.label}</option>)}
                         </select>
                       </div>
                       <div>
-                        <label className="block text-[11px] font-bold uppercase tracking-wider text-[#F0EAD8]/60 mb-2">Título *</label>
+                        <label className="block text-[11px] font-bold uppercase tracking-wider text-[#F5F0E1]/60 mb-2">Título *</label>
                         <input
                           type="text"
                           value={videoForm.titulo}
                           onChange={e => setVideoForm({ ...videoForm, titulo: e.target.value })}
                           placeholder="Ej: Módulo 1 — Identidad del Fundador"
-                          className="w-full bg-black/50 border border-[rgba(200,137,58,0.2)] rounded-xl px-4 py-3 text-sm text-[#F0EAD8] focus:outline-none focus:border-[#C8893A]/50 transition-colors"
+                          className="w-full bg-black/50 border border-[rgba(212,162,78,0.2)] rounded-xl px-4 py-3 text-sm text-[#F5F0E1] focus:outline-none focus:border-[#D4A24E]/50 transition-colors"
                         />
                       </div>
                       <div>
-                        <label className="block text-[11px] font-bold uppercase tracking-wider text-[#F0EAD8]/60 mb-2">Descripción</label>
+                        <label className="block text-[11px] font-bold uppercase tracking-wider text-[#F5F0E1]/60 mb-2">Descripción</label>
                         <input
                           type="text"
                           value={videoForm.descripcion}
                           onChange={e => setVideoForm({ ...videoForm, descripcion: e.target.value })}
                           placeholder="Breve descripción del contenido"
-                          className="w-full bg-black/50 border border-[rgba(200,137,58,0.2)] rounded-xl px-4 py-3 text-sm text-[#F0EAD8] focus:outline-none focus:border-[#C8893A]/50 transition-colors"
+                          className="w-full bg-black/50 border border-[rgba(212,162,78,0.2)] rounded-xl px-4 py-3 text-sm text-[#F5F0E1] focus:outline-none focus:border-[#D4A24E]/50 transition-colors"
                         />
                       </div>
                       <div>
-                        <label className="block text-[11px] font-bold uppercase tracking-wider text-[#F0EAD8]/60 mb-2">Duración (opcional)</label>
+                        <label className="block text-[11px] font-bold uppercase tracking-wider text-[#F5F0E1]/60 mb-2">Duración (opcional)</label>
                         <input
                           type="text"
                           value={videoForm.duracion}
                           onChange={e => setVideoForm({ ...videoForm, duracion: e.target.value })}
                           placeholder="Ej: 15:30"
-                          className="w-full bg-black/50 border border-[rgba(200,137,58,0.2)] rounded-xl px-4 py-3 text-sm text-[#F0EAD8] focus:outline-none focus:border-[#C8893A]/50 transition-colors"
+                          className="w-full bg-black/50 border border-[rgba(212,162,78,0.2)] rounded-xl px-4 py-3 text-sm text-[#F5F0E1] focus:outline-none focus:border-[#D4A24E]/50 transition-colors"
                         />
                       </div>
                     </div>
                     <div className="flex gap-3 mt-6">
-                      <button onClick={() => setShowAddVideo(false)} className="flex-1 py-3 rounded-xl bg-[#C8893A]/5 text-[#F0EAD8]/60 hover:text-[#F0EAD8] text-sm font-semibold transition-colors">
+                      <button onClick={() => setShowAddVideo(false)} className="flex-1 py-3 rounded-xl bg-[#D4A24E]/5 text-[#F5F0E1]/60 hover:text-[#F5F0E1] text-sm font-semibold transition-colors">
                         Cancelar
                       </button>
                       <button
@@ -1785,7 +1793,7 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
                           });
                           setShowAddVideo(false);
                         }}
-                        className="flex-1 py-3 rounded-xl bg-[#E85555] hover:bg-[#E85555] disabled:opacity-50 text-[#F0EAD8] text-sm font-bold transition-all flex items-center justify-center gap-2"
+                        className="flex-1 py-3 rounded-xl bg-[#E85555] hover:bg-[#E85555] disabled:opacity-50 text-[#F5F0E1] text-sm font-bold transition-all flex items-center justify-center gap-2"
                       >
                         {videoForm.id ? 'Guardar Cambios' : <><Plus className="w-4 h-4" /> Agregar Video</>}
                       </button>
@@ -1803,15 +1811,15 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
               {/* Stats row */}
               <div className="grid grid-cols-4 gap-4 mb-6">
                 {[
-                  { label: 'Clientes activos', value: clientes.length, icon: Users, color: 'text-[#C8893A]', border: 'border-[#C8893A]/25', bg: 'from-indigo-600/20 to-indigo-600/5' },
-                  { label: 'En ritmo 🟢', value: clientes.filter(c => c.semaforo === 'verde').length, icon: CheckCheck, color: 'text-emerald-300', border: 'border-emerald-500/25', bg: 'from-emerald-600/20 to-emerald-600/5' },
+                  { label: 'Clientes activos', value: clientes.length, icon: Users, color: 'text-[#D4A24E]', border: 'border-[#D4A24E]/25', bg: 'from-indigo-600/20 to-indigo-600/5' },
+                  { label: 'En ritmo', value: clientes.filter(c => c.semaforo === 'verde').length, icon: CheckCheck, color: 'text-emerald-300', border: 'border-emerald-500/25', bg: 'from-emerald-600/20 to-emerald-600/5' },
                   { label: 'Necesitan atención', value: clientes.filter(c => c.semaforo === 'rojo' || c.semaforo === 'amarillo').length, icon: AlertTriangle, color: 'text-amber-300', border: 'border-amber-500/25', bg: 'from-amber-600/20 to-amber-600/5' },
                   { label: 'Progreso promedio', value: clientes.length ? `${Math.round(clientes.reduce((acc, c) => acc + (c.tareas_total > 0 ? (c.tareas_completadas / c.tareas_total) * 100 : (c.progreso_porcentaje ?? 0)), 0) / clientes.length)}%` : '—', icon: TrendingUp, color: 'text-violet-300', border: 'border-violet-500/25', bg: 'from-violet-600/20 to-violet-600/5' },
                 ].map((stat, i) => (
                   <div key={i} className={`bg-gradient-to-b ${stat.bg} border ${stat.border} rounded-2xl p-5 relative overflow-hidden`}>
                     <stat.icon className={`w-5 h-5 ${stat.color} mb-3 opacity-70`} />
                     <p className={`text-3xl font-light ${stat.color} mb-1 tracking-tight`}>{stat.value}</p>
-                    <p className="text-xs text-[#F0EAD8]/40 uppercase tracking-wider font-semibold">{stat.label}</p>
+                    <p className="text-xs text-[#F5F0E1]/40 uppercase tracking-wider font-semibold">{stat.label}</p>
                   </div>
                 ))}
               </div>
@@ -1821,12 +1829,12 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
                 {/* Lista de clientes */}
                 <div className={`shrink-0 flex flex-col transition-all duration-300 ${selectedCliente ? 'w-[280px]' : 'w-full max-w-2xl mx-auto'}`}>
                   <div className="flex items-center justify-between mb-3">
-                    <h2 className="text-[11px] font-bold uppercase tracking-widest text-[#F0EAD8]/40">
+                    <h2 className="text-[11px] font-bold uppercase tracking-widest text-[#F5F0E1]/40">
                       Directorio ({filtroStatus === 'ALL' ? clientes.length : clientes.filter(c => c.status === filtroStatus || (!c.status && filtroStatus === 'ACTIVE')).length})
                     </h2>
                     <button
                       onClick={() => setShowNuevoCliente(true)}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#C8893A] hover:bg-[#D9A04E] text-[#F0EAD8] text-xs font-semibold shadow-lg shadow-[#C8893A]/20 transition-all"
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#D4A24E] hover:bg-[#E2B865] text-[#F5F0E1] text-xs font-semibold shadow-lg shadow-[#D4A24E]/20 transition-all"
                     >
                       <Plus className="w-3.5 h-3.5" /> Nuevo
                     </button>
@@ -1839,8 +1847,8 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
                         onClick={() => setFiltroStatus(s)}
                         className={`px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-colors ${
                           filtroStatus === s
-                            ? s === 'ALL' ? 'bg-[#C8893A]/10 text-[#F0EAD8]' : `${STATUS_CONFIG[s]?.bg} ${STATUS_CONFIG[s]?.color} border ${STATUS_CONFIG[s]?.border}`
-                            : 'bg-[#C8893A]/5 text-[#F0EAD8]/40 hover:text-[#F0EAD8]/80'
+                            ? s === 'ALL' ? 'bg-[#D4A24E]/10 text-[#F5F0E1]' : `${STATUS_CONFIG[s]?.bg} ${STATUS_CONFIG[s]?.color} border ${STATUS_CONFIG[s]?.border}`
+                            : 'bg-[#D4A24E]/5 text-[#F5F0E1]/40 hover:text-[#F5F0E1]/80'
                         }`}
                       >
                         {s === 'ALL' ? 'Todos' : STATUS_CONFIG[s]?.label}
@@ -1849,11 +1857,11 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
                   </div>
 
                   {loading ? (
-                    <div className="flex items-center justify-center py-16"><Loader2 className="w-5 h-5 text-[#C8893A] animate-spin" /></div>
+                    <div className="flex items-center justify-center py-16"><Loader2 className="w-5 h-5 text-[#D4A24E] animate-spin" /></div>
                   ) : clientes.length === 0 ? (
-                    <div className="text-center py-16 bg-[#241A0C]/30 rounded-3xl border border-[rgba(200,137,58,0.1)] border-dashed">
+                    <div className="text-center py-16 bg-[#241A0C]/30 rounded-3xl border border-[rgba(212,162,78,0.1)] border-dashed">
                       <Users className="w-8 h-8 text-gray-700 mx-auto mb-3" />
-                      <p className="text-[#F0EAD8]/40 text-sm">Sin clientes aún</p>
+                      <p className="text-[#F5F0E1]/40 text-sm">Sin clientes aún</p>
                     </div>
                   ) : (
                     <div className="space-y-2 overflow-y-auto scrollbar-hide pr-2">
@@ -1863,41 +1871,41 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
                           onClick={() => { setSelectedCliente(cliente); setDetalleTab('resumen'); setIaRecomendacion(''); }}
                           className={`w-full text-left p-4 rounded-2xl border transition-all relative overflow-hidden ${
                             selectedCliente?.id === cliente.id
-                              ? 'bg-[#C8893A]/10 border-[#C8893A]/30'
-                              : 'bg-[#241A0C]/30 border-[rgba(200,137,58,0.1)] hover:bg-[#C8893A]/5 hover:border-[rgba(200,137,58,0.2)]'
+                              ? 'bg-[#D4A24E]/10 border-[#D4A24E]/30'
+                              : 'bg-[#241A0C]/30 border-[rgba(212,162,78,0.1)] hover:bg-[#D4A24E]/5 hover:border-[rgba(212,162,78,0.2)]'
                           }`}
                         >
                           <div className={`absolute left-0 top-0 bottom-0 w-1 ${SEMAFORO_CONFIG[cliente.semaforo].class} opacity-80`} />
                           <div className="flex items-center gap-3 pl-2">
-                            <div className="w-10 h-10 rounded-full bg-[#C8893A]/5 border border-[rgba(200,137,58,0.2)] flex items-center justify-center text-xs font-bold text-[#F0EAD8] shrink-0">
+                            <div className="w-10 h-10 rounded-full bg-[#D4A24E]/5 border border-[rgba(212,162,78,0.2)] flex items-center justify-center text-xs font-bold text-[#F5F0E1] shrink-0">
                               {cliente.nombre.charAt(0).toUpperCase()}
                             </div>
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2 mb-0.5">
-                                <h3 className="text-sm font-semibold text-[#F0EAD8] truncate">{cliente.nombre}</h3>
+                                <h3 className="text-sm font-semibold text-[#F5F0E1] truncate">{cliente.nombre}</h3>
                                 {cliente.plan === 'DFY' && (
-                                  <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-[#C8893A]/20 text-[#C8893A] border border-[#C8893A]/20 shrink-0">DFY</span>
+                                  <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-[#D4A24E]/20 text-[#D4A24E] border border-[#D4A24E]/20 shrink-0">DFY</span>
                                 )}
                               </div>
-                              <p className="text-[10px] text-[#F0EAD8]/60">
+                              <p className="text-[10px] text-[#F5F0E1]/60">
                                 Día {cliente.dia_programa}/90 · <span className={SEMAFORO_CONFIG[cliente.semaforo].text}>{SEMAFORO_CONFIG[cliente.semaforo].label}</span>
                               </p>
                               <div className="flex items-center gap-2 mt-1">
                                 {cliente.racha_diario > 0 && (
-                                  <span className="text-[9px] text-[#C8893A]/80 font-medium">🔥 {cliente.racha_diario}d</span>
+                                  <span className="text-[9px] text-[#D4A24E]/80 font-medium flex items-center gap-0.5"><Flame className="w-3 h-3" /> {cliente.racha_diario}d</span>
                                 )}
                                 {cliente.ventas_count > 0 && (
-                                  <span className="text-[9px] text-[#2DD4A0]/80 font-medium">💰 {cliente.ventas_count} venta{cliente.ventas_count !== 1 ? 's' : ''}</span>
+                                  <span className="text-[9px] text-[#2DD4A0]/80 font-medium flex items-center gap-0.5"><DollarSign className="w-3 h-3" /> {cliente.ventas_count} venta{cliente.ventas_count !== 1 ? 's' : ''}</span>
                                 )}
                                 {cliente.estado_garantia === 'activada' && (
-                                  <span className="text-[9px] text-[#E85555]/80 font-bold">⚠ Garantía</span>
+                                  <span className="text-[9px] text-[#E85555]/80 font-bold flex items-center gap-0.5"><AlertTriangle className="w-3 h-3" /> Garantia</span>
                                 )}
                                 {cliente.estado_garantia === 'en_riesgo' && (
-                                  <span className="text-[9px] text-[#C8893A]/80 font-bold">⚠ En riesgo</span>
+                                  <span className="text-[9px] text-[#D4A24E]/80 font-bold flex items-center gap-0.5"><AlertTriangle className="w-3 h-3" /> En riesgo</span>
                                 )}
                               </div>
                             </div>
-                            <ChevronRight className="w-4 h-4 text-[#F0EAD8]/30 shrink-0" />
+                            <ChevronRight className="w-4 h-4 text-[#F5F0E1]/30 shrink-0" />
                           </div>
                         </button>
                       ))}
@@ -1907,22 +1915,22 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
 
                 {/* Panel de detalle */}
                 {selectedCliente ? (
-                  <div className="flex-1 bg-[#080808] border border-[rgba(200,137,58,0.16)] rounded-2xl overflow-hidden flex flex-col shadow-2xl relative">
+                  <div className="flex-1 bg-[#080808] border border-[rgba(212,162,78,0.16)] rounded-2xl overflow-hidden flex flex-col shadow-2xl relative">
                     {/* Header Pestaña Detalle */}
                     <div className="absolute top-0 right-0 p-4">
-                      <button onClick={() => setSelectedCliente(null)} className="p-2 rounded-full bg-black/40 text-[#F0EAD8]/60 hover:text-[#F0EAD8] hover:bg-[#C8893A]/10 transition-colors backdrop-blur-md">
+                      <button onClick={() => setSelectedCliente(null)} className="p-2 rounded-full bg-black/40 text-[#F5F0E1]/60 hover:text-[#F5F0E1] hover:bg-[#D4A24E]/10 transition-colors backdrop-blur-md">
                         <X className="w-4 h-4" />
                       </button>
                     </div>
                     
-                    <div className="p-8 border-b border-[rgba(200,137,58,0.1)] flex items-center gap-5 shrink-0 bg-[#241A0C]/30">
-                      <div className="w-16 h-16 rounded-2xl bg-[#C8893A]/20 border border-[#C8893A]/30 flex items-center justify-center text-xl font-bold text-[#C8893A] shadow-inner">
+                    <div className="p-8 border-b border-[rgba(212,162,78,0.1)] flex items-center gap-5 shrink-0 bg-[#241A0C]/30">
+                      <div className="w-16 h-16 rounded-2xl bg-[#D4A24E]/20 border border-[#D4A24E]/30 flex items-center justify-center text-xl font-bold text-[#D4A24E] shadow-inner">
                         {selectedCliente.nombre.charAt(0).toUpperCase()}
                       </div>
                       <div>
                         <div className="flex items-center gap-3 mb-1.5 flex-wrap">
-                          <h3 className="text-2xl font-light text-[#F0EAD8] tracking-tight">{selectedCliente.nombre}</h3>
-                          <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider ${selectedCliente.plan === 'DFY' ? 'bg-[#C8893A]/20 text-[#C8893A] border border-[#C8893A]/30' : selectedCliente.plan === 'IMPLEMENTACION' ? 'bg-[#2DD4A0]/20 text-[#2DD4A0] border border-emerald-500/30' : 'bg-[#C8893A]/20 text-[#C8893A] border border-[#C8893A]/30'}`}>
+                          <h3 className="text-2xl font-light text-[#F5F0E1] tracking-tight">{selectedCliente.nombre}</h3>
+                          <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider ${selectedCliente.plan === 'DFY' ? 'bg-[#D4A24E]/20 text-[#D4A24E] border border-[#D4A24E]/30' : selectedCliente.plan === 'IMPLEMENTACION' ? 'bg-[#2DD4A0]/20 text-[#2DD4A0] border border-emerald-500/30' : 'bg-[#D4A24E]/20 text-[#D4A24E] border border-[#D4A24E]/30'}`}>
                             {selectedCliente.plan}
                           </span>
                           {/* Status badge + quick change */}
@@ -1947,32 +1955,32 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
                                 <option key={val} value={val}>{cfg.label}</option>
                               ))}
                             </select>
-                            <span className="text-[9px] text-[#F0EAD8]/30 group-hover:text-[#F0EAD8]/60 transition-colors" title="Click en el badge para cambiar">✎</span>
+                            <span title="Click en el badge para cambiar"><Pencil className="w-3 h-3 text-[#F5F0E1]/30 group-hover:text-[#F5F0E1]/60 transition-colors" /></span>
                           </div>
                         </div>
-                        <p className="text-xs text-[#F0EAD8]/60 flex items-center gap-2">
-                          <Lock className="w-3 h-3 text-[#F0EAD8]/30" /> {selectedCliente.email}
+                        <p className="text-xs text-[#F5F0E1]/60 flex items-center gap-2">
+                          <Lock className="w-3 h-3 text-[#F5F0E1]/30" /> {selectedCliente.email}
                           {selectedCliente.especialidad && <><span>·</span> {selectedCliente.especialidad}</>}
                         </p>
                       </div>
                     </div>
 
                     {/* Tabs nav */}
-                    <div className="flex border-b border-[rgba(200,137,58,0.1)] px-6 shrink-0 bg-black/20">
+                    <div className="flex border-b border-[rgba(212,162,78,0.1)] px-6 shrink-0 bg-black/20">
                       {detailTabs.map(tab => (
                         <button
                           key={tab.id}
                           onClick={() => setDetalleTab(tab.id)}
                           className={`flex items-center gap-2 px-4 py-4 text-xs font-semibold uppercase tracking-wider transition-all relative ${
                             detalleTab === tab.id
-                              ? 'text-[#C8893A]'
-                              : 'text-[#F0EAD8]/40 hover:text-[#F0EAD8]/80'
+                              ? 'text-[#D4A24E]'
+                              : 'text-[#F5F0E1]/40 hover:text-[#F5F0E1]/80'
                           }`}
                         >
                           <tab.icon className="w-3.5 h-3.5" />
                           {tab.label}
                           {detalleTab === tab.id && (
-                            <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#C8893A] rounded-t-full shadow-[0_0_10px_rgba(200,137,58,0.5)]" />
+                            <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#D4A24E] rounded-t-full shadow-[0_0_10px_rgba(212,162,78,0.5)]" />
                           )}
                         </button>
                       ))}
@@ -1981,7 +1989,7 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
                     {/* Content */}
                     <div className="flex-1 overflow-y-auto p-6 scrollbar-hide bg-black/10">
                       {detalleLoading ? (
-                        <div className="flex items-center justify-center h-full"><Loader2 className="w-6 h-6 text-[#C8893A] animate-spin" /></div>
+                        <div className="flex items-center justify-center h-full"><Loader2 className="w-6 h-6 text-[#D4A24E] animate-spin" /></div>
                       ) : (
                         <>
                           {/* ── RESUMEN ── */}
@@ -1989,96 +1997,96 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
                             <div className="space-y-6">
                               {/* v2.0 Status Bar */}
                               <div className="grid grid-cols-4 gap-3">
-                                <div className="bg-[#241A0C]/30 border border-[rgba(200,137,58,0.1)] rounded-2xl p-4 text-center">
-                                  <p className="text-2xl font-light text-[#F0EAD8]">{selectedCliente.dia_programa}</p>
-                                  <p className="text-[10px] text-[#F0EAD8]/40 uppercase tracking-wider mt-1">Día / 90</p>
+                                <div className="bg-[#241A0C]/30 border border-[rgba(212,162,78,0.1)] rounded-2xl p-4 text-center">
+                                  <p className="text-2xl font-light text-[#F5F0E1]">{selectedCliente.dia_programa}</p>
+                                  <p className="text-[10px] text-[#F5F0E1]/40 uppercase tracking-wider mt-1">Día / 90</p>
                                 </div>
-                                <div className="bg-[#241A0C]/30 border border-[rgba(200,137,58,0.1)] rounded-2xl p-4 text-center">
-                                  <p className="text-2xl font-light text-[#C8893A]">🔥 {selectedCliente.racha_diario}</p>
-                                  <p className="text-[10px] text-[#F0EAD8]/40 uppercase tracking-wider mt-1">Racha diario</p>
+                                <div className="bg-[#241A0C]/30 border border-[rgba(212,162,78,0.1)] rounded-2xl p-4 text-center">
+                                  <p className="text-2xl font-light text-[#D4A24E] flex items-center justify-center gap-1"><Flame className="w-5 h-5" /> {selectedCliente.racha_diario}</p>
+                                  <p className="text-[10px] text-[#F5F0E1]/40 uppercase tracking-wider mt-1">Racha diario</p>
                                 </div>
-                                <div className="bg-[#241A0C]/30 border border-[rgba(200,137,58,0.1)] rounded-2xl p-4 text-center">
+                                <div className="bg-[#241A0C]/30 border border-[rgba(212,162,78,0.1)] rounded-2xl p-4 text-center">
                                   <p className="text-2xl font-light text-[#2DD4A0]">{selectedCliente.ventas_count}</p>
-                                  <p className="text-[10px] text-[#F0EAD8]/40 uppercase tracking-wider mt-1">Ventas reales</p>
+                                  <p className="text-[10px] text-[#F5F0E1]/40 uppercase tracking-wider mt-1">Ventas reales</p>
                                 </div>
                                 <div className={`rounded-2xl p-4 text-center border ${
                                   selectedCliente.estado_garantia === 'activada' ? 'bg-[#E85555]/10 border-red-500/30' :
                                   selectedCliente.estado_garantia === 'en_riesgo' ? 'bg-amber-500/10 border-amber-500/30' :
-                                  'bg-[#241A0C]/30 border-[rgba(200,137,58,0.1)]'
+                                  'bg-[#241A0C]/30 border-[rgba(212,162,78,0.1)]'
                                 }`}>
                                   <Shield className={`w-6 h-6 mx-auto mb-1 ${
                                     selectedCliente.estado_garantia === 'activada' ? 'text-[#E85555]' :
-                                    selectedCliente.estado_garantia === 'en_riesgo' ? 'text-[#C8893A]' : 'text-[#F0EAD8]/30'
+                                    selectedCliente.estado_garantia === 'en_riesgo' ? 'text-[#D4A24E]' : 'text-[#F5F0E1]/30'
                                   }`} />
                                   <p className={`text-[10px] uppercase tracking-wider font-bold ${
                                     selectedCliente.estado_garantia === 'activada' ? 'text-[#E85555]' :
-                                    selectedCliente.estado_garantia === 'en_riesgo' ? 'text-[#C8893A]' : 'text-[#F0EAD8]/40'
+                                    selectedCliente.estado_garantia === 'en_riesgo' ? 'text-[#D4A24E]' : 'text-[#F5F0E1]/40'
                                   }`}>{selectedCliente.estado_garantia === 'activada' ? 'Garantía' : selectedCliente.estado_garantia === 'en_riesgo' ? 'En riesgo' : 'En camino'}</p>
                                 </div>
                               </div>
 
                               <div className="grid grid-cols-2 gap-4">
-                                <div className="bg-[#241A0C]/30 border border-[rgba(200,137,58,0.1)] rounded-2xl p-5">
-                                  <p className="text-[10px] text-[#F0EAD8]/40 uppercase tracking-widest mb-1 font-bold">Progreso de Tareas</p>
+                                <div className="bg-[#241A0C]/30 border border-[rgba(212,162,78,0.1)] rounded-2xl p-5">
+                                  <p className="text-[10px] text-[#F5F0E1]/40 uppercase tracking-widest mb-1 font-bold">Progreso de Tareas</p>
                                   <div className="flex items-end gap-2 mb-3">
-                                    <p className="text-3xl font-light text-[#F0EAD8]">{selectedCliente.tareas_completadas}</p>
-                                    <p className="text-sm text-[#F0EAD8]/40 mb-1">/ {selectedCliente.tareas_total}</p>
+                                    <p className="text-3xl font-light text-[#F5F0E1]">{selectedCliente.tareas_completadas}</p>
+                                    <p className="text-sm text-[#F5F0E1]/40 mb-1">/ {selectedCliente.tareas_total}</p>
                                   </div>
-                                  <div className="h-2 bg-[#C8893A]/5 rounded-full overflow-hidden">
-                                    <div className="h-full bg-[#C8893A] rounded-full" style={{ width: `${selectedCliente.tareas_total > 0 ? Math.round((selectedCliente.tareas_completadas / selectedCliente.tareas_total) * 100) : 0}%` }} />
+                                  <div className="h-2 bg-[#D4A24E]/5 rounded-full overflow-hidden">
+                                    <div className="h-full bg-[#D4A24E] rounded-full" style={{ width: `${selectedCliente.tareas_total > 0 ? Math.round((selectedCliente.tareas_completadas / selectedCliente.tareas_total) * 100) : 0}%` }} />
                                   </div>
                                 </div>
-                                <div className="bg-[#241A0C]/30 border border-[rgba(200,137,58,0.1)] rounded-2xl p-5">
-                                  <p className="text-[10px] text-[#F0EAD8]/40 uppercase tracking-widest mb-2 font-bold">Último Diario</p>
+                                <div className="bg-[#241A0C]/30 border border-[rgba(212,162,78,0.1)] rounded-2xl p-5">
+                                  <p className="text-[10px] text-[#F5F0E1]/40 uppercase tracking-widest mb-2 font-bold">Último Diario</p>
                                   {detalleDiario[0] ? (
                                     <>
-                                      <p className="text-xs text-[#F0EAD8]/40 mb-2">{new Date(detalleDiario[0].fecha + 'T12:00:00').toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
+                                      <p className="text-xs text-[#F5F0E1]/40 mb-2">{new Date(detalleDiario[0].fecha + 'T12:00:00').toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
                                       {detalleDiario[0].respuestas?.q3 && (
                                         <div className="flex items-center gap-1.5 mb-2">
-                                          <span className="text-[10px] text-[#F0EAD8]/40 uppercase font-bold">Energía</span>
+                                          <span className="text-[10px] text-[#F5F0E1]/40 uppercase font-bold">Energía</span>
                                           <div className="flex gap-0.5">
                                             {Array.from({ length: 10 }).map((_, i) => (
-                                              <div key={i} className={`w-2 h-2 rounded-sm ${i < Number(detalleDiario[0].respuestas.q3) ? 'bg-amber-400' : 'bg-[#C8893A]/10'}`} />
+                                              <div key={i} className={`w-2 h-2 rounded-sm ${i < Number(detalleDiario[0].respuestas.q3) ? 'bg-amber-400' : 'bg-[#D4A24E]/10'}`} />
                                             ))}
                                           </div>
-                                          <span className="text-[10px] text-[#C8893A] font-bold">{detalleDiario[0].respuestas.q3}/10</span>
+                                          <span className="text-[10px] text-[#D4A24E] font-bold">{detalleDiario[0].respuestas.q3}/10</span>
                                         </div>
                                       )}
                                       {detalleDiario[0].respuestas?.q4 && (
-                                        <p className="text-xs text-[#F0EAD8]/80 line-clamp-2"><span className="text-[#2DD4A0] font-bold">Acción: </span>{detalleDiario[0].respuestas.q4}</p>
+                                        <p className="text-xs text-[#F5F0E1]/80 line-clamp-2"><span className="text-[#2DD4A0] font-bold">Acción: </span>{detalleDiario[0].respuestas.q4}</p>
                                       )}
                                       {detalleDiario[0].respuestas?.q2 && (
-                                        <p className="text-xs text-[#F0EAD8]/60 mt-1 line-clamp-1"><span className="text-[#C8893A] font-bold">Freno: </span>{detalleDiario[0].respuestas.q2}</p>
+                                        <p className="text-xs text-[#F5F0E1]/60 mt-1 line-clamp-1"><span className="text-[#D4A24E] font-bold">Freno: </span>{detalleDiario[0].respuestas.q2}</p>
                                       )}
                                     </>
-                                  ) : <p className="text-xs text-[#F0EAD8]/30">Sin entradas de diario aún</p>}
+                                  ) : <p className="text-xs text-[#F5F0E1]/30">Sin entradas de diario aún</p>}
                                 </div>
                               </div>
 
-                              <div className="bg-[#C8893A]/5 border border-[#C8893A]/20 rounded-2xl p-6 relative overflow-hidden">
-                                <Bot className="absolute -right-6 -bottom-6 w-32 h-32 text-[#F0EAD8]0/10" />
+                              <div className="bg-[#D4A24E]/5 border border-[#D4A24E]/20 rounded-2xl p-6 relative overflow-hidden">
+                                <Bot className="absolute -right-6 -bottom-6 w-32 h-32 text-[#F5F0E1]0/10" />
                                 <div className="relative z-10">
                                   <div className="flex items-center justify-between mb-4">
                                     <div className="flex items-center gap-2">
-                                      <div className="w-8 h-8 rounded-lg bg-[#C8893A]/20 flex items-center justify-center">
-                                        <Bot className="w-4 h-4 text-[#C8893A]" />
+                                      <div className="w-8 h-8 rounded-lg bg-[#D4A24E]/20 flex items-center justify-center">
+                                        <Bot className="w-4 h-4 text-[#D4A24E]" />
                                       </div>
-                                      <p className="text-xs font-bold uppercase tracking-widest text-[#C8893A]">Coach AI Assistant</p>
+                                      <p className="text-xs font-bold uppercase tracking-widest text-[#D4A24E]">Coach AI Assistant</p>
                                     </div>
                                     <button
                                       onClick={generarRecomendacion} disabled={iaLoading}
-                                      className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#C8893A] text-[#F0EAD8] text-xs font-bold transition-all hover:bg-[#D9A04E] disabled:opacity-50 shadow-lg shadow-[#C8893A]/20"
+                                      className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#D4A24E] text-[#F5F0E1] text-xs font-bold transition-all hover:bg-[#E2B865] disabled:opacity-50 shadow-lg shadow-[#D4A24E]/20"
                                     >
                                       {iaLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
                                       Analizar y Sugerir
                                     </button>
                                   </div>
                                   {iaRecomendacion ? (
-                                    <div className="bg-black/20 rounded-xl p-4 border border-[#C8893A]/20">
-                                      <p className="text-sm text-[#C8893A] leading-relaxed whitespace-pre-line">{iaRecomendacion}</p>
+                                    <div className="bg-black/20 rounded-xl p-4 border border-[#D4A24E]/20">
+                                      <p className="text-sm text-[#D4A24E] leading-relaxed whitespace-pre-line">{iaRecomendacion}</p>
                                     </div>
                                   ) : (
-                                    <p className="text-xs text-[#F0EAD8]/40">Haz clic en Analizar para que la IA escanee el perfil, métricas diarias y tareas pendientes de este cliente para crear recomendaciones proactivas de coaching.</p>
+                                    <p className="text-xs text-[#F5F0E1]/40">Haz clic en Analizar para que la IA escanee el perfil, métricas diarias y tareas pendientes de este cliente para crear recomendaciones proactivas de coaching.</p>
                                   )}
                                 </div>
                               </div>
@@ -2089,34 +2097,34 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
                           {detalleTab === 'diario' && (
                             <div className="space-y-4">
                               {detalleDiario.length === 0 ? (
-                                <p className="text-[#F0EAD8]/40 text-sm text-center py-12">Sin entradas de diario</p>
+                                <p className="text-[#F5F0E1]/40 text-sm text-center py-12">Sin entradas de diario</p>
                               ) : detalleDiario.map((entrada: any, i: number) => {
                                 const r = entrada.respuestas ?? {};
                                 return (
-                                  <div key={i} className="p-6 rounded-2xl bg-[#241A0C]/30 border border-[rgba(200,137,58,0.1)]">
+                                  <div key={i} className="p-6 rounded-2xl bg-[#241A0C]/30 border border-[rgba(212,162,78,0.1)]">
                                     <div className="flex items-center justify-between mb-4">
-                                      <p className="text-sm font-semibold text-[#F0EAD8] tracking-wide">
+                                      <p className="text-sm font-semibold text-[#F5F0E1] tracking-wide">
                                         {new Date(entrada.fecha + 'T12:00:00').toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
                                       </p>
                                       {r.q3 && (
                                         <div className="flex items-center gap-1.5">
-                                          <span className="text-[10px] text-[#F0EAD8]/40 uppercase font-bold">Energía</span>
+                                          <span className="text-[10px] text-[#F5F0E1]/40 uppercase font-bold">Energía</span>
                                           <div className="flex gap-0.5">
                                             {Array.from({ length: 10 }).map((_, idx) => (
-                                              <div key={idx} className={`w-2 h-2 rounded-sm ${idx < Number(r.q3) ? 'bg-amber-400' : 'bg-[#C8893A]/10'}`} />
+                                              <div key={idx} className={`w-2 h-2 rounded-sm ${idx < Number(r.q3) ? 'bg-amber-400' : 'bg-[#D4A24E]/10'}`} />
                                             ))}
                                           </div>
-                                          <span className="text-[10px] text-[#C8893A] font-bold">{r.q3}/10</span>
+                                          <span className="text-[10px] text-[#D4A24E] font-bold">{r.q3}/10</span>
                                         </div>
                                       )}
                                     </div>
                                     <div className="grid grid-cols-2 gap-4">
-                                      {r.q1 && <div className="col-span-2"><p className="text-[10px] uppercase font-bold text-[#C8893A]/70 mb-1">Cómo se sintió</p><p className="text-xs text-[#F0EAD8]/80">{r.q1}</p></div>}
-                                      {r.q4 && <div><p className="text-[10px] uppercase font-bold text-emerald-500/70 mb-1">Acción tomada</p><p className="text-xs text-[#F0EAD8]/80">{r.q4}</p></div>}
-                                      {r.q5 && <div><p className="text-[10px] uppercase font-bold text-purple-500/70 mb-1">Pensamiento dominante</p><p className="text-xs text-[#F0EAD8]/80">{r.q5}</p></div>}
-                                      {r.q2 && <div className="col-span-2"><p className="text-[10px] uppercase font-bold text-amber-500/70 mb-1">Lo que lo frenó</p><p className="text-xs text-[#F0EAD8]/80">{r.q2}</p></div>}
-                                      {r.q6 && <div><p className="text-[10px] uppercase font-bold text-pink-500/70 mb-1">Emoción predominante</p><p className="text-xs text-[#F0EAD8]/80">{r.q6}</p></div>}
-                                      {r.q7 && <div><p className="text-[10px] uppercase font-bold text-[#C8893A]/70 mb-1">Plan para mañana</p><p className="text-xs text-[#F0EAD8]/80">{r.q7}</p></div>}
+                                      {r.q1 && <div className="col-span-2"><p className="text-[10px] uppercase font-bold text-[#D4A24E]/70 mb-1">Cómo se sintió</p><p className="text-xs text-[#F5F0E1]/80">{r.q1}</p></div>}
+                                      {r.q4 && <div><p className="text-[10px] uppercase font-bold text-emerald-500/70 mb-1">Acción tomada</p><p className="text-xs text-[#F5F0E1]/80">{r.q4}</p></div>}
+                                      {r.q5 && <div><p className="text-[10px] uppercase font-bold text-purple-500/70 mb-1">Pensamiento dominante</p><p className="text-xs text-[#F5F0E1]/80">{r.q5}</p></div>}
+                                      {r.q2 && <div className="col-span-2"><p className="text-[10px] uppercase font-bold text-amber-500/70 mb-1">Lo que lo frenó</p><p className="text-xs text-[#F5F0E1]/80">{r.q2}</p></div>}
+                                      {r.q6 && <div><p className="text-[10px] uppercase font-bold text-pink-500/70 mb-1">Emoción predominante</p><p className="text-xs text-[#F5F0E1]/80">{r.q6}</p></div>}
+                                      {r.q7 && <div><p className="text-[10px] uppercase font-bold text-[#D4A24E]/70 mb-1">Plan para mañana</p><p className="text-xs text-[#F5F0E1]/80">{r.q7}</p></div>}
                                     </div>
                                   </div>
                                 );
@@ -2128,8 +2136,8 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
                           {detalleTab === 'metricas' && (
                             <div className="space-y-5">
                               {/* Progreso por pilar — siempre visible */}
-                              <div className="bg-[#241A0C]/30 border border-[rgba(200,137,58,0.1)] rounded-2xl p-5">
-                                <h3 className="text-[10px] font-bold uppercase tracking-widest text-[#F0EAD8]/60 mb-4">Progreso por Pilar</h3>
+                              <div className="bg-[#241A0C]/30 border border-[rgba(212,162,78,0.1)] rounded-2xl p-5">
+                                <h3 className="text-[10px] font-bold uppercase tracking-widest text-[#F5F0E1]/60 mb-4">Progreso por Pilar</h3>
                                 <div className="space-y-3">
                                   {SEED_ROADMAP_V2.map(pilar => {
                                     const metasPilar = pilar.metas.length;
@@ -2139,12 +2147,12 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
                                     const col = colors[pilar.numero % colors.length];
                                     return (
                                       <div key={pilar.numero} className="flex items-center gap-3">
-                                        <span className="text-base w-7 text-center shrink-0">{pilar.emoji}</span>
-                                        <span className="text-xs text-[#F0EAD8]/60 w-36 truncate shrink-0">{pilar.titulo}</span>
-                                        <div className="flex-1 h-2 bg-[#C8893A]/5 rounded-full overflow-hidden">
+                                        {(() => { const IC = ADMIN_PILAR_ICON_MAP[pilar.icon]; return IC ? <IC className="w-5 h-5 text-[#D4A24E] shrink-0" /> : <span className="w-5 h-5 shrink-0" />; })()}
+                                        <span className="text-xs text-[#F5F0E1]/60 w-36 truncate shrink-0">{pilar.titulo}</span>
+                                        <div className="flex-1 h-2 bg-[#D4A24E]/5 rounded-full overflow-hidden">
                                           <div className={`h-full bg-${col}-500 rounded-full transition-all`} style={{ width: `${pct}%` }} />
                                         </div>
-                                        <span className="text-xs text-[#F0EAD8]/60 w-10 text-right shrink-0">{completadas}/{metasPilar}</span>
+                                        <span className="text-xs text-[#F5F0E1]/60 w-10 text-right shrink-0">{completadas}/{metasPilar}</span>
                                       </div>
                                     );
                                   })}
@@ -2153,18 +2161,18 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
 
                               {/* Métricas de negocio semanales */}
                               <div>
-                                <h3 className="text-[10px] font-bold uppercase tracking-widest text-[#F0EAD8]/60 mb-3">Métricas de Negocio Semanales</h3>
+                                <h3 className="text-[10px] font-bold uppercase tracking-widest text-[#F5F0E1]/60 mb-3">Métricas de Negocio Semanales</h3>
                                 {detalleMetricas.length === 0 ? (
-                                  <div className="bg-[#241A0C]/30 border border-[rgba(200,137,58,0.1)] rounded-2xl p-6 text-center">
-                                    <p className="text-sm text-[#F0EAD8]/40">El cliente aún no cargó métricas semanales.</p>
-                                    <p className="text-xs text-[#F0EAD8]/30 mt-1">Se completan desde la sección Métricas del cliente.</p>
+                                  <div className="bg-[#241A0C]/30 border border-[rgba(212,162,78,0.1)] rounded-2xl p-6 text-center">
+                                    <p className="text-sm text-[#F5F0E1]/40">El cliente aún no cargó métricas semanales.</p>
+                                    <p className="text-xs text-[#F5F0E1]/30 mt-1">Se completan desde la sección Métricas del cliente.</p>
                                   </div>
                                 ) : detalleMetricas.slice().reverse().map((m: any, i: number) => (
-                                  <div key={i} className="p-5 rounded-2xl bg-[#241A0C]/30 border border-[rgba(200,137,58,0.1)] flex items-center justify-between mb-3">
-                                    <span className="text-xs font-semibold text-[#F0EAD8]/60 bg-[#C8893A]/5 px-2.5 py-1 rounded-lg">{m.semana}</span>
+                                  <div key={i} className="p-5 rounded-2xl bg-[#241A0C]/30 border border-[rgba(212,162,78,0.1)] flex items-center justify-between mb-3">
+                                    <span className="text-xs font-semibold text-[#F5F0E1]/60 bg-[#D4A24E]/5 px-2.5 py-1 rounded-lg">{m.semana}</span>
                                     <div className="flex gap-8">
-                                      <div className="text-center"><p className="text-[#F0EAD8] text-lg font-light">{m.leads}</p><p className="text-[10px] text-[#F0EAD8]/40 font-bold uppercase">leads</p></div>
-                                      <div className="text-center"><p className="text-[#F0EAD8] text-lg font-light">{m.conversaciones ?? 0}</p><p className="text-[10px] text-[#F0EAD8]/40 font-bold uppercase">llamadas</p></div>
+                                      <div className="text-center"><p className="text-[#F5F0E1] text-lg font-light">{m.leads}</p><p className="text-[10px] text-[#F5F0E1]/40 font-bold uppercase">leads</p></div>
+                                      <div className="text-center"><p className="text-[#F5F0E1] text-lg font-light">{m.conversaciones ?? 0}</p><p className="text-[10px] text-[#F5F0E1]/40 font-bold uppercase">llamadas</p></div>
                                       <div className="text-center"><p className="text-[#2DD4A0] text-lg font-bold">{m.ventas}</p><p className="text-[10px] text-emerald-500/50 font-bold uppercase">ventas</p></div>
                                     </div>
                                   </div>
@@ -2176,7 +2184,7 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
                           {/* ── NOTAS INTERNAS ── */}
                           {detalleTab === 'notas' && (
                             <div className="space-y-4">
-                              <p className="text-[10px] text-[#F0EAD8]/30 uppercase tracking-wider font-bold">Solo visible para admins · No la ve el cliente</p>
+                              <p className="text-[10px] text-[#F5F0E1]/30 uppercase tracking-wider font-bold">Solo visible para admins · No la ve el cliente</p>
                               {/* Input nueva nota */}
                               <div className="flex gap-2">
                                 <textarea
@@ -2185,28 +2193,28 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
                                   onKeyDown={e => { if (e.key === 'Enter' && e.ctrlKey) agregarNota(); }}
                                   placeholder="Escribí una nota interna... (Ctrl+Enter para guardar)"
                                   rows={3}
-                                  className="flex-1 bg-black/40 border border-[rgba(200,137,58,0.2)] rounded-xl py-3 px-4 text-sm text-[#F0EAD8] focus:outline-none focus:border-[#C8893A]/50 transition-all resize-none"
+                                  className="flex-1 bg-black/40 border border-[rgba(212,162,78,0.2)] rounded-xl py-3 px-4 text-sm text-[#F5F0E1] focus:outline-none focus:border-[#D4A24E]/50 transition-all resize-none"
                                 />
                                 <button
                                   onClick={agregarNota}
                                   disabled={!notaInput.trim()}
-                                  className="w-12 rounded-xl bg-[#C8893A] hover:bg-[#D9A04E] disabled:opacity-50 flex items-center justify-center transition-colors shadow-lg shadow-[#C8893A]/20 shrink-0"
+                                  className="w-12 rounded-xl bg-[#D4A24E] hover:bg-[#E2B865] disabled:opacity-50 flex items-center justify-center transition-colors shadow-lg shadow-[#D4A24E]/20 shrink-0"
                                 >
                                   <Send className="w-4 h-4" />
                                 </button>
                               </div>
                               {/* Lista de notas */}
                               {notaLoading ? (
-                                <div className="flex justify-center py-8"><Loader2 className="w-5 h-5 text-[#C8893A] animate-spin" /></div>
+                                <div className="flex justify-center py-8"><Loader2 className="w-5 h-5 text-[#D4A24E] animate-spin" /></div>
                               ) : detalleNotas.length === 0 ? (
                                 <div className="text-center py-12">
                                   <BookOpen className="w-8 h-8 text-gray-800 mx-auto mb-3" />
-                                  <p className="text-[#F0EAD8]/40 text-sm">Sin notas aún. Usá esto para documentar contexto importante del cliente.</p>
+                                  <p className="text-[#F5F0E1]/40 text-sm">Sin notas aún. Usá esto para documentar contexto importante del cliente.</p>
                                 </div>
                               ) : detalleNotas.map(nota => (
-                                <div key={nota.id} className="bg-[#241A0C]/30 border border-[rgba(200,137,58,0.12)] rounded-xl p-4">
-                                  <p className="text-sm text-[#F0EAD8]/90 leading-relaxed whitespace-pre-wrap">{nota.content}</p>
-                                  <p className="text-[10px] text-[#F0EAD8]/30 mt-2">
+                                <div key={nota.id} className="bg-[#241A0C]/30 border border-[rgba(212,162,78,0.12)] rounded-xl p-4">
+                                  <p className="text-sm text-[#F5F0E1]/90 leading-relaxed whitespace-pre-wrap">{nota.content}</p>
+                                  <p className="text-[10px] text-[#F5F0E1]/30 mt-2">
                                     {new Date(nota.created_at).toLocaleDateString('es-AR', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                                   </p>
                                 </div>
@@ -2220,7 +2228,7 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
                               {detalleMensajes.length === 0 ? (
                                 <div className="flex flex-col items-center justify-center py-16 text-center">
                                   <MessageSquare className="w-10 h-10 text-gray-800 mb-4" />
-                                  <p className="text-[#F0EAD8]/40 text-sm">Comenzá la conversación con {selectedCliente.nombre}</p>
+                                  <p className="text-[#F5F0E1]/40 text-sm">Comenzá la conversación con {selectedCliente.nombre}</p>
                                 </div>
                               ) : detalleMensajes.map(m => {
                                 const isMe = m.emisor_id === adminProfile.id;
@@ -2229,16 +2237,16 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
                                 return (
                                   <div key={m.id} className={`flex gap-2.5 items-end max-w-[88%] ${isMe ? 'ml-auto flex-row-reverse' : ''}`}>
                                     {/* Avatar */}
-                                    <div className={`w-7 h-7 rounded-full shrink-0 flex items-center justify-center text-xs font-bold border overflow-hidden ${isMe ? 'bg-[#C8893A]/20 border-[#C8893A]/30 text-[#C8893A]' : 'bg-[#C8893A]/10 border-[rgba(200,137,58,0.2)] text-[#F0EAD8]'}`}>
+                                    <div className={`w-7 h-7 rounded-full shrink-0 flex items-center justify-center text-xs font-bold border overflow-hidden ${isMe ? 'bg-[#D4A24E]/20 border-[#D4A24E]/30 text-[#D4A24E]' : 'bg-[#D4A24E]/10 border-[rgba(212,162,78,0.2)] text-[#F5F0E1]'}`}>
                                       {isMe
                                         ? (adminAvatar ? <img src={adminAvatar} alt="" className="w-full h-full object-cover" /> : <Shield className="w-3.5 h-3.5" />)
                                         : initial}
                                     </div>
                                     <div className="flex flex-col gap-1">
-                                      <span className={`text-[10px] font-semibold text-[#F0EAD8]/40 px-1 ${isMe ? 'text-right' : ''}`}>{senderName}</span>
+                                      <span className={`text-[10px] font-semibold text-[#F5F0E1]/40 px-1 ${isMe ? 'text-right' : ''}`}>{senderName}</span>
                                       <div className={`px-4 py-3 rounded-2xl text-sm leading-relaxed ${
-                                        isMe ? 'bg-[#C8893A]/25 text-[#F0EAD8] border border-[#C8893A]/20 rounded-tr-sm'
-                                             : 'bg-[#241A0C]/60 text-[#F0EAD8]/90 border border-[rgba(200,137,58,0.12)] rounded-tl-sm'
+                                        isMe ? 'bg-[#D4A24E]/25 text-[#F5F0E1] border border-[#D4A24E]/20 rounded-tr-sm'
+                                             : 'bg-[#241A0C]/60 text-[#F5F0E1]/90 border border-[rgba(212,162,78,0.12)] rounded-tl-sm'
                                       }`}>
                                         {m.contenido && <p>{m.contenido}</p>}
                                         <p className={`text-[10px] mt-1.5 opacity-40 ${isMe ? 'text-right' : ''}`}>
@@ -2258,7 +2266,7 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
 
                     {/* Chat input for private messages */}
                     {detalleTab === 'mensajes' && (
-                      <div className="p-4 border-t border-[rgba(200,137,58,0.1)] shrink-0 bg-[#241A0C]/20">
+                      <div className="p-4 border-t border-[rgba(212,162,78,0.1)] shrink-0 bg-[#241A0C]/20">
                         <div className="flex gap-2">
                           <input
                             type="text"
@@ -2267,12 +2275,12 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
                             onKeyDown={e => e.key === 'Enter' && !e.shiftKey && enviarMensajePrivado()}
                             placeholder="Escribe un mensaje privado..."
                             disabled={enviando}
-                            className="flex-1 bg-black/40 border border-[rgba(200,137,58,0.2)] rounded-xl py-3 px-5 text-sm text-[#F0EAD8] focus:outline-none focus:border-[#C8893A]/50 transition-all"
+                            className="flex-1 bg-black/40 border border-[rgba(212,162,78,0.2)] rounded-xl py-3 px-5 text-sm text-[#F5F0E1] focus:outline-none focus:border-[#D4A24E]/50 transition-all"
                           />
                           <button
                             onClick={enviarMensajePrivado}
                             disabled={!mensajeInput.trim() || enviando}
-                            className="w-12 h-12 rounded-xl bg-[#C8893A] hover:bg-[#D9A04E] disabled:opacity-50 flex items-center justify-center transition-colors shadow-lg shadow-[#C8893A]/20"
+                            className="w-12 h-12 rounded-xl bg-[#D4A24E] hover:bg-[#E2B865] disabled:opacity-50 flex items-center justify-center transition-colors shadow-lg shadow-[#D4A24E]/20"
                           >
                             {enviando ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
                           </button>
@@ -2290,11 +2298,11 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
       {/* ─── MODAL AJUSTES ADMIN ────────────────────────────────────────────────────── */}
       {showAdminSettings && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="w-full max-w-md bg-[#1A1410] border border-[rgba(200,137,58,0.2)] rounded-3xl p-8 shadow-2xl relative overflow-hidden">
-            <div className="absolute top-0 left-0 right-0 h-1 bg-[#C8893A]" />
+          <div className="w-full max-w-md bg-[#1A1410] border border-[rgba(212,162,78,0.2)] rounded-3xl p-8 shadow-2xl relative overflow-hidden">
+            <div className="absolute top-0 left-0 right-0 h-1 bg-[#D4A24E]" />
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-semibold text-[#F0EAD8]">Ajustes de Perfil Admin</h3>
-              <button onClick={() => setShowAdminSettings(false)} className="w-8 h-8 rounded-full bg-[#C8893A]/5 flex items-center justify-center text-[#F0EAD8]/60 hover:text-[#F0EAD8] hover:bg-[#C8893A]/10 transition-colors">
+              <h3 className="text-xl font-semibold text-[#F5F0E1]">Ajustes de Perfil Admin</h3>
+              <button onClick={() => setShowAdminSettings(false)} className="w-8 h-8 rounded-full bg-[#D4A24E]/5 flex items-center justify-center text-[#F5F0E1]/60 hover:text-[#F5F0E1] hover:bg-[#D4A24E]/10 transition-colors">
                 <X className="w-4 h-4" />
               </button>
             </div>
@@ -2304,52 +2312,52 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
               <input ref={adminAvatarInputRef} type="file" accept="image/*" className="hidden" onChange={handleAdminAvatarUpload} />
               <button
                 onClick={() => adminAvatarInputRef.current?.click()}
-                className="relative group w-20 h-20 rounded-full border-2 border-dashed border-[rgba(200,137,58,0.3)] hover:border-[#C8893A]/50 transition-colors overflow-hidden"
+                className="relative group w-20 h-20 rounded-full border-2 border-dashed border-[rgba(212,162,78,0.3)] hover:border-[#D4A24E]/50 transition-colors overflow-hidden"
               >
                 {adminAvatar ? (
                   <img src={adminAvatar} alt="Avatar" className="w-full h-full object-cover" />
                 ) : (
-                  <div className="w-full h-full bg-[#C8893A]/10 flex items-center justify-center text-2xl font-bold text-[#C8893A]">
+                  <div className="w-full h-full bg-[#D4A24E]/10 flex items-center justify-center text-2xl font-bold text-[#D4A24E]">
                     {(adminDraft.nombre || 'A').charAt(0).toUpperCase()}
                   </div>
                 )}
                 <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                  <Camera className="w-6 h-6 text-[#F0EAD8]" />
+                  <Camera className="w-6 h-6 text-[#F5F0E1]" />
                 </div>
               </button>
-              <p className="text-xs text-[#F0EAD8]/40">Clic para cambiar foto</p>
+              <p className="text-xs text-[#F5F0E1]/40">Clic para cambiar foto</p>
             </div>
 
             <div className="space-y-4">
               <div>
-                <label className="block text-[11px] font-bold uppercase tracking-wider text-[#F0EAD8]/60 mb-2">Nombre completo</label>
+                <label className="block text-[11px] font-bold uppercase tracking-wider text-[#F5F0E1]/60 mb-2">Nombre completo</label>
                 <input
                   type="text"
                   value={adminDraft.nombre}
                   onChange={e => setAdminDraft({ ...adminDraft, nombre: e.target.value })}
-                  className="w-full bg-black/50 border border-[rgba(200,137,58,0.2)] rounded-xl px-4 py-3 text-sm text-[#F0EAD8] focus:outline-none focus:border-[#C8893A]/50 transition-colors"
+                  className="w-full bg-black/50 border border-[rgba(212,162,78,0.2)] rounded-xl px-4 py-3 text-sm text-[#F5F0E1] focus:outline-none focus:border-[#D4A24E]/50 transition-colors"
                 />
               </div>
               <div>
-                <label className="block text-[11px] font-bold uppercase tracking-wider text-[#F0EAD8]/60 mb-2">Cargo / Título</label>
+                <label className="block text-[11px] font-bold uppercase tracking-wider text-[#F5F0E1]/60 mb-2">Cargo / Título</label>
                 <input
                   type="text"
                   value={adminDraft.cargo}
                   onChange={e => setAdminDraft({ ...adminDraft, cargo: e.target.value })}
                   placeholder="Ej: Coach Principal, Soporte Técnico..."
-                  className="w-full bg-black/50 border border-[rgba(200,137,58,0.2)] rounded-xl px-4 py-3 text-sm text-[#F0EAD8] focus:outline-none focus:border-[#C8893A]/50 transition-colors"
+                  className="w-full bg-black/50 border border-[rgba(212,162,78,0.2)] rounded-xl px-4 py-3 text-sm text-[#F5F0E1] focus:outline-none focus:border-[#D4A24E]/50 transition-colors"
                 />
               </div>
             </div>
 
             <div className="flex gap-3 mt-8">
-              <button onClick={() => setShowAdminSettings(false)} className="flex-1 py-3 rounded-xl bg-[#C8893A]/5 text-[#F0EAD8]/60 hover:text-[#F0EAD8] text-sm font-semibold transition-colors">
+              <button onClick={() => setShowAdminSettings(false)} className="flex-1 py-3 rounded-xl bg-[#D4A24E]/5 text-[#F5F0E1]/60 hover:text-[#F5F0E1] text-sm font-semibold transition-colors">
                 Cancelar
               </button>
               <button
                 onClick={guardarConfigAdmin}
                 disabled={guardandoAdmin || !adminDraft.nombre.trim()}
-                className="flex-1 py-3 rounded-xl bg-[#C8893A] hover:bg-[#C8893A] disabled:opacity-50 text-[#F0EAD8] text-sm font-bold transition-all flex items-center justify-center gap-2"
+                className="flex-1 py-3 rounded-xl bg-[#D4A24E] hover:bg-[#D4A24E] disabled:opacity-50 text-[#F5F0E1] text-sm font-bold transition-all flex items-center justify-center gap-2"
               >
                 {guardandoAdmin ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Guardar Cambios'}
               </button>
@@ -2361,38 +2369,38 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
       {/* ─── MODAL NUEVO CLIENTE (CON CONTRASEÑA DIRECTA) ────────────────────────── */}
       {showNuevoCliente && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md">
-          <div className="w-full max-w-md bg-[#1A1410] border border-[rgba(200,137,58,0.2)] rounded-3xl p-8 shadow-2xl relative overflow-hidden">
-            <div className="absolute top-0 left-0 right-0 h-1 bg-[#C8893A]" />
+          <div className="w-full max-w-md bg-[#1A1410] border border-[rgba(212,162,78,0.2)] rounded-3xl p-8 shadow-2xl relative overflow-hidden">
+            <div className="absolute top-0 left-0 right-0 h-1 bg-[#D4A24E]" />
             <div className="flex items-center justify-between mb-8">
               <div>
-                <h3 className="text-xl font-semibold text-[#F0EAD8] tracking-tight">Nuevo Estudiante</h3>
-                <p className="text-xs text-[#F0EAD8]/40 mt-1">Ingresa sus datos para la academia</p>
+                <h3 className="text-xl font-semibold text-[#F5F0E1] tracking-tight">Nuevo Estudiante</h3>
+                <p className="text-xs text-[#F5F0E1]/40 mt-1">Ingresa sus datos para la academia</p>
               </div>
-              <button onClick={() => setShowNuevoCliente(false)} className="w-8 h-8 rounded-full bg-[#C8893A]/5 flex items-center justify-center text-[#F0EAD8]/60 hover:text-[#F0EAD8] hover:bg-[#C8893A]/10 transition-colors">
+              <button onClick={() => setShowNuevoCliente(false)} className="w-8 h-8 rounded-full bg-[#D4A24E]/5 flex items-center justify-center text-[#F5F0E1]/60 hover:text-[#F5F0E1] hover:bg-[#D4A24E]/10 transition-colors">
                 <X className="w-4 h-4" />
               </button>
             </div>
 
             <div className="space-y-4">
               <div>
-                <label className="block text-[11px] font-bold uppercase tracking-wider text-[#F0EAD8]/60 mb-2">Nombre completo *</label>
-                <input type="text" value={nuevoForm.nombre} onChange={e => setNuevoForm({ ...nuevoForm, nombre: e.target.value })} placeholder="Ej: Dra. María González" className="w-full bg-black/50 border border-[rgba(200,137,58,0.2)] rounded-xl px-4 py-3 text-sm text-[#F0EAD8] focus:outline-none focus:border-[#C8893A]/50 transition-colors" />
+                <label className="block text-[11px] font-bold uppercase tracking-wider text-[#F5F0E1]/60 mb-2">Nombre completo *</label>
+                <input type="text" value={nuevoForm.nombre} onChange={e => setNuevoForm({ ...nuevoForm, nombre: e.target.value })} placeholder="Ej: Dra. María González" className="w-full bg-black/50 border border-[rgba(212,162,78,0.2)] rounded-xl px-4 py-3 text-sm text-[#F5F0E1] focus:outline-none focus:border-[#D4A24E]/50 transition-colors" />
               </div>
               <div>
-                <label className="block text-[11px] font-bold uppercase tracking-wider text-[#F0EAD8]/60 mb-2">Email *</label>
-                <input type="email" value={nuevoForm.email} onChange={e => setNuevoForm({ ...nuevoForm, email: e.target.value })} placeholder="maria@ejemplo.com" className="w-full bg-black/50 border border-[rgba(200,137,58,0.2)] rounded-xl px-4 py-3 text-sm text-[#F0EAD8] focus:outline-none focus:border-[#C8893A]/50 transition-colors" />
+                <label className="block text-[11px] font-bold uppercase tracking-wider text-[#F5F0E1]/60 mb-2">Email *</label>
+                <input type="email" value={nuevoForm.email} onChange={e => setNuevoForm({ ...nuevoForm, email: e.target.value })} placeholder="maria@ejemplo.com" className="w-full bg-black/50 border border-[rgba(212,162,78,0.2)] rounded-xl px-4 py-3 text-sm text-[#F5F0E1] focus:outline-none focus:border-[#D4A24E]/50 transition-colors" />
               </div>
               <div>
                 <label className="block text-[11px] font-bold uppercase tracking-wider text-[#2DD4A0]/80 mb-2">Contraseña inicial *</label>
                 <input type="text" value={nuevoForm.password} onChange={e => setNuevoForm({ ...nuevoForm, password: e.target.value })} placeholder="Ej: Maria123!" className="w-full bg-[#2DD4A0]/5 border border-emerald-500/20 rounded-xl px-4 py-3 text-sm text-emerald-100 placeholder-emerald-900/50 focus:outline-none focus:border-emerald-500/50 transition-colors" />
               </div>
               <div>
-                <label className="block text-[11px] font-bold uppercase tracking-wider text-[#F0EAD8]/60 mb-2">Especialidad</label>
-                <input type="text" value={nuevoForm.especialidad} onChange={e => setNuevoForm({ ...nuevoForm, especialidad: e.target.value })} placeholder="Ej: Nutricionista" className="w-full bg-black/50 border border-[rgba(200,137,58,0.2)] rounded-xl px-4 py-3 text-sm text-[#F0EAD8] focus:outline-none focus:border-[#C8893A]/50 transition-colors" />
+                <label className="block text-[11px] font-bold uppercase tracking-wider text-[#F5F0E1]/60 mb-2">Especialidad</label>
+                <input type="text" value={nuevoForm.especialidad} onChange={e => setNuevoForm({ ...nuevoForm, especialidad: e.target.value })} placeholder="Ej: Nutricionista" className="w-full bg-black/50 border border-[rgba(212,162,78,0.2)] rounded-xl px-4 py-3 text-sm text-[#F5F0E1] focus:outline-none focus:border-[#D4A24E]/50 transition-colors" />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-[11px] font-bold uppercase tracking-wider text-[#F0EAD8]/60 mb-2">Plan</label>
+                  <label className="block text-[11px] font-bold uppercase tracking-wider text-[#F5F0E1]/60 mb-2">Plan</label>
                   <CustomSelect
                     value={nuevoForm.plan}
                     onChange={(val) => setNuevoForm({ ...nuevoForm, plan: val as 'DWY' | 'DFY' | 'IMPLEMENTACION' })}
@@ -2404,12 +2412,12 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
                   />
                 </div>
                 <div>
-                  <label className="block text-[11px] font-bold uppercase tracking-wider text-[#F0EAD8]/60 mb-2">Inicio</label>
-                  <input type="date" value={nuevoForm.fecha_inicio} onChange={e => setNuevoForm({ ...nuevoForm, fecha_inicio: e.target.value })} className="w-full bg-black/50 border border-[rgba(200,137,58,0.2)] rounded-xl px-4 py-3 text-sm text-[#F0EAD8] focus:outline-none focus:border-[#C8893A]/50 transition-colors" />
+                  <label className="block text-[11px] font-bold uppercase tracking-wider text-[#F5F0E1]/60 mb-2">Inicio</label>
+                  <input type="date" value={nuevoForm.fecha_inicio} onChange={e => setNuevoForm({ ...nuevoForm, fecha_inicio: e.target.value })} className="w-full bg-black/50 border border-[rgba(212,162,78,0.2)] rounded-xl px-4 py-3 text-sm text-[#F5F0E1] focus:outline-none focus:border-[#D4A24E]/50 transition-colors" />
                 </div>
               </div>
               <div>
-                <label className="block text-[11px] font-bold uppercase tracking-wider text-[#F0EAD8]/60 mb-2">Estado inicial</label>
+                <label className="block text-[11px] font-bold uppercase tracking-wider text-[#F5F0E1]/60 mb-2">Estado inicial</label>
                 <CustomSelect
                   value={nuevoForm.status}
                   onChange={(val) => setNuevoForm({ ...nuevoForm, status: val as UserStatus })}
@@ -2422,7 +2430,7 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
             </div>
 
             <div className="flex gap-3 mt-8">
-              <button onClick={crearClienteLocal} disabled={creando || !nuevoForm.email || !nuevoForm.nombre || !nuevoForm.password} className="flex-1 py-3.5 rounded-xl bg-[#C8893A] hover:bg-[#C8893A] disabled:opacity-50 text-[#F0EAD8] text-sm font-bold shadow-xl shadow-[#C8893A]/20 transition-all flex items-center justify-center gap-2">
+              <button onClick={crearClienteLocal} disabled={creando || !nuevoForm.email || !nuevoForm.nombre || !nuevoForm.password} className="flex-1 py-3.5 rounded-xl bg-[#D4A24E] hover:bg-[#D4A24E] disabled:opacity-50 text-[#F5F0E1] text-sm font-bold shadow-xl shadow-[#D4A24E]/20 transition-all flex items-center justify-center gap-2">
                 {creando ? <><Loader2 className="w-4 h-4 animate-spin" /> Creando cuenta...</> : 'Crear Cuenta Activa'}
               </button>
             </div>
@@ -2437,29 +2445,29 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
           onClick={() => setTareaModal(null)}
         >
           <div
-            className="w-full max-w-2xl max-h-[90vh] bg-[#1A1410] border border-[rgba(200,137,58,0.2)] rounded-3xl shadow-2xl flex flex-col overflow-hidden"
+            className="w-full max-w-2xl max-h-[90vh] bg-[#1A1410] border border-[rgba(212,162,78,0.2)] rounded-3xl shadow-2xl flex flex-col overflow-hidden"
             onClick={e => e.stopPropagation()}
           >
             {/* Header */}
-            <div className="flex items-start gap-4 p-6 border-b border-[rgba(200,137,58,0.12)]">
+            <div className="flex items-start gap-4 p-6 border-b border-[rgba(212,162,78,0.12)]">
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap mb-1">
-                  <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-[#C8893A]/15 text-[#C8893A] border border-[#C8893A]/20">
+                  <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-[#D4A24E]/15 text-[#D4A24E] border border-[#D4A24E]/20">
                     {tareaModal.meta.codigo}
                   </span>
-                  {tareaModal.meta.es_estrella && <span className="text-[#C8893A] text-sm">★ Tarea estrella</span>}
+                  {tareaModal.meta.es_estrella && <span className="text-[#D4A24E] text-sm flex items-center gap-1"><Star className="w-3.5 h-3.5 fill-[#D4A24E]" /> Tarea estrella</span>}
                   {tareaModal.tareaData?.fecha_completada && (
-                    <span className="text-[11px] text-[#F0EAD8]/40">
+                    <span className="text-[11px] text-[#F5F0E1]/40">
                       Completada el {new Date(tareaModal.tareaData.fecha_completada).toLocaleDateString('es-AR', { day: 'numeric', month: 'long', year: 'numeric' })}
                     </span>
                   )}
                 </div>
-                <h2 className="text-lg font-semibold text-[#F0EAD8]">{tareaModal.meta.titulo}</h2>
-                <p className="text-xs text-[#F0EAD8]/40 mt-1 leading-relaxed">{tareaModal.meta.descripcion}</p>
+                <h2 className="text-lg font-semibold text-[#F5F0E1]">{tareaModal.meta.titulo}</h2>
+                <p className="text-xs text-[#F5F0E1]/40 mt-1 leading-relaxed">{tareaModal.meta.descripcion}</p>
               </div>
               <button
                 onClick={() => setTareaModal(null)}
-                className="p-2 rounded-xl hover:bg-[#C8893A]/10 text-[#F0EAD8]/40 hover:text-[#F0EAD8] transition-colors shrink-0"
+                className="p-2 rounded-xl hover:bg-[#D4A24E]/10 text-[#F5F0E1]/40 hover:text-[#F5F0E1] transition-colors shrink-0"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -2467,20 +2475,20 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
 
             <div className="flex-1 overflow-y-auto scrollbar-hide p-6 space-y-4">
               {/* Resumen Paolis */}
-              <div className="bg-[#C8893A]/5 border border-[#C8893A]/20 rounded-2xl p-4">
+              <div className="bg-[#D4A24E]/5 border border-[#D4A24E]/20 rounded-2xl p-4">
                 <div className="flex items-center gap-2 mb-2">
-                  <Bot className="w-4 h-4 text-[#C8893A]" />
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-[#C8893A]">Resumen para Paolis</span>
+                  <Bot className="w-4 h-4 text-[#D4A24E]" />
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-[#D4A24E]">Resumen para Paolis</span>
                 </div>
                 {tareaResumenLoading ? (
                   <div className="flex items-center gap-2 py-2">
-                    <Loader2 className="w-4 h-4 text-[#C8893A] animate-spin" />
-                    <span className="text-sm text-[#F0EAD8]/60">Analizando el output de {tareaModal.clienteNombre}...</span>
+                    <Loader2 className="w-4 h-4 text-[#D4A24E] animate-spin" />
+                    <span className="text-sm text-[#F5F0E1]/60">Analizando el output de {tareaModal.clienteNombre}...</span>
                   </div>
                 ) : tareaResumen ? (
-                  <p className="text-sm text-[#F0EAD8]/90 leading-relaxed">{tareaResumen}</p>
+                  <p className="text-sm text-[#F5F0E1]/90 leading-relaxed">{tareaResumen}</p>
                 ) : (
-                  <p className="text-sm text-[#F0EAD8]/40 italic">
+                  <p className="text-sm text-[#F5F0E1]/40 italic">
                     {tareaModal.output ? 'No se pudo generar el resumen automático.' : 'Esta tarea no tiene output guardado — fue marcada como completada manualmente.'}
                   </p>
                 )}
@@ -2490,11 +2498,11 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
               {tareaModal.output ? (
                 <div>
                   <div className="flex items-center gap-2 mb-3">
-                    <FileText className="w-3.5 h-3.5 text-[#F0EAD8]/40" />
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-[#F0EAD8]/40">Output generado por el cliente</span>
+                    <FileText className="w-3.5 h-3.5 text-[#F5F0E1]/40" />
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-[#F5F0E1]/40">Output generado por el cliente</span>
                   </div>
-                  <div className="bg-black/30 border border-[rgba(200,137,58,0.12)] rounded-2xl p-5">
-                    <div className="prose prose-invert prose-sm max-w-none prose-p:my-2 prose-headings:text-[#F0EAD8] prose-headings:font-semibold prose-strong:text-[#C8893A] prose-li:text-[#F0EAD8]/80">
+                  <div className="bg-black/30 border border-[rgba(212,162,78,0.12)] rounded-2xl p-5">
+                    <div className="prose prose-invert prose-sm max-w-none prose-p:my-2 prose-headings:text-[#F5F0E1] prose-headings:font-semibold prose-strong:text-[#D4A24E] prose-li:text-[#F5F0E1]/80">
                       <Markdown>{tareaModal.output}</Markdown>
                     </div>
                   </div>
@@ -2502,7 +2510,7 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
               ) : (
                 <div className="flex flex-col items-center justify-center py-8 text-center">
                   <Circle className="w-8 h-8 text-gray-700 mb-3" />
-                  <p className="text-sm text-[#F0EAD8]/40">Sin output guardado</p>
+                  <p className="text-sm text-[#F5F0E1]/40">Sin output guardado</p>
                   <p className="text-xs text-gray-700 mt-1">El cliente completó esta tarea pero no hay contenido generado por IA asociado.</p>
                 </div>
               )}

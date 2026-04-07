@@ -41,10 +41,10 @@ function saveMetricsLocal(data: MetricaSemanaV2[]) {
 
 function KPICard({ label, value, sub, highlight }: { label: string; value: string; sub?: string; highlight?: boolean }) {
   return (
-    <div className={`card-panel p-4 rounded-2xl ${highlight ? 'border-[#C8893A]/30' : 'border-[rgba(200,137,58,0.1)]'}`}>
-      <p className="text-[10px] text-[#F0EAD8]/40 uppercase tracking-widest mb-1.5 font-semibold">{label}</p>
-      <p className={`text-2xl font-light tracking-tight ${highlight ? 'text-[#C8893A]' : 'text-[#F0EAD8]'}`}>{value}</p>
-      {sub && <p className="text-xs text-[#F0EAD8]/40 mt-1">{sub}</p>}
+    <div className={`card-panel p-4 rounded-2xl ${highlight ? 'border-[#D4A24E]/30' : 'border-[rgba(212,162,78,0.1)]'}`}>
+      <p className="text-[10px] text-[#F5F0E1]/40 uppercase tracking-widest mb-1.5 font-semibold">{label}</p>
+      <p className={`text-2xl font-light tracking-tight ${highlight ? 'text-[#D4A24E]' : 'text-[#F5F0E1]'}`}>{value}</p>
+      {sub && <p className="text-xs text-[#F5F0E1]/40 mt-1">{sub}</p>}
     </div>
   );
 }
@@ -62,7 +62,7 @@ function DiagnosticoCard({ d }: { d: Diagnostico }) {
           {d.valor !== null ? (d.etapa.includes('Costo') ? `$${d.valor.toFixed(0)}` : `${d.valor.toFixed(1)}%`) : '—'}
         </span>
       </div>
-      <p className="text-sm text-[#F0EAD8]/80 leading-relaxed">{d.mensaje}</p>
+      <p className="text-sm text-[#F5F0E1]/80 leading-relaxed">{d.mensaje}</p>
     </div>
   );
 }
@@ -125,11 +125,11 @@ function TabProgreso({ userId }: { userId?: string }) {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
-      <div className="card-panel p-6 rounded-2xl bg-[#C8893A]/[0.03] border-[#C8893A]/10">
-        <h2 className="text-xl font-medium text-[#F0EAD8] mb-2" style={{ fontFamily: 'var(--font-display)', fontStyle: 'italic' }}>
+      <div className="card-panel p-6 rounded-2xl bg-[#D4A24E]/[0.03] border-[#D4A24E]/10">
+        <h2 className="text-xl font-medium text-[#F5F0E1] mb-2" style={{ fontFamily: 'var(--font-display)', fontStyle: 'italic' }}>
           Tu progreso en el Programa
         </h2>
-        <p className="text-sm text-[#F0EAD8]/60">Semana {progData.semanaActual} de 13 · 90 días · ADN del Negocio</p>
+        <p className="text-sm text-[#F5F0E1]/60">Semana {progData.semanaActual} de 13 · 90 días · ADN del Negocio</p>
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -140,16 +140,16 @@ function TabProgreso({ userId }: { userId?: string }) {
       </div>
 
       <div className="card-panel p-6 rounded-2xl">
-        <h3 className="text-xs font-bold text-[#F0EAD8]/60 tracking-widest uppercase mb-6">Velocidad de Avance (Tareas)</h3>
+        <h3 className="text-xs font-bold text-[#F5F0E1]/60 tracking-widest uppercase mb-6">Velocidad de Avance (Tareas)</h3>
         <div className="h-[300px] w-full">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={chartData} margin={{ top: 5, right: 20, left: -20, bottom: 5 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(200,137,58,0.08)" vertical={false} />
-              <XAxis dataKey="semana" stroke="rgba(200,137,58,0.2)" tick={{ fontSize: 11, fill: 'rgba(240,234,216,0.5)' }} />
-              <YAxis stroke="rgba(200,137,58,0.2)" tick={{ fontSize: 11, fill: 'rgba(240,234,216,0.5)' }} />
-              <RechartsTooltip contentStyle={{ backgroundColor: '#1A1410', borderColor: 'rgba(200,137,58,0.2)', borderRadius: '12px' }} />
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(212,162,78,0.08)" vertical={false} />
+              <XAxis dataKey="semana" stroke="rgba(212,162,78,0.2)" tick={{ fontSize: 11, fill: 'rgba(240,234,216,0.5)' }} />
+              <YAxis stroke="rgba(212,162,78,0.2)" tick={{ fontSize: 11, fill: 'rgba(240,234,216,0.5)' }} />
+              <RechartsTooltip contentStyle={{ backgroundColor: '#1A1410', borderColor: 'rgba(212,162,78,0.2)', borderRadius: '12px' }} />
               <Line type="monotone" dataKey="esperado" stroke="#6B7280" strokeDasharray="5 5" strokeWidth={2} dot={false} name="Ritmo Esperado" />
-              <Line type="monotone" dataKey="real" stroke="#C8893A" strokeWidth={3} dot={{ r: 4, fill: '#C8893A', strokeWidth: 0 }} name="Progreso Real" />
+              <Line type="monotone" dataKey="real" stroke="#D4A24E" strokeWidth={3} dot={{ r: 4, fill: '#D4A24E', strokeWidth: 0 }} name="Progreso Real" />
             </LineChart>
           </ResponsiveContainer>
         </div>
@@ -241,10 +241,10 @@ function TabEmbudo({ userId }: { userId?: string }) {
       {/* Header + Add button */}
       <div className="flex items-end justify-between">
         <div>
-          <h2 className="text-xl font-medium text-[#F0EAD8] mb-2" style={{ fontFamily: 'var(--font-display)', fontStyle: 'italic' }}>
+          <h2 className="text-xl font-medium text-[#F5F0E1] mb-2" style={{ fontFamily: 'var(--font-display)', fontStyle: 'italic' }}>
             Mi Embudo de Ventas
           </h2>
-          <p className="text-sm text-[#F0EAD8]/60">9 métricas semanales · 8 KPIs automáticos · Diagnóstico en tiempo real</p>
+          <p className="text-sm text-[#F5F0E1]/60">9 métricas semanales · 8 KPIs automáticos · Diagnóstico en tiempo real</p>
         </div>
         <button
           onClick={() => setShowForm(true)}
@@ -256,19 +256,19 @@ function TabEmbudo({ userId }: { userId?: string }) {
 
       {/* ── 9-field form ── */}
       {showForm && (
-        <div className="card-panel p-6 rounded-2xl border-[#C8893A]/30 animate-in slide-in-from-top-4">
+        <div className="card-panel p-6 rounded-2xl border-[#D4A24E]/30 animate-in slide-in-from-top-4">
           <div className="flex justify-between items-center mb-5">
-            <h3 className="text-lg font-medium text-[#F0EAD8]">Cargar métricas de la semana</h3>
-            <button onClick={() => setShowForm(false)} className="text-[#F0EAD8]/60 hover:text-[#F0EAD8]"><X className="w-5 h-5" /></button>
+            <h3 className="text-lg font-medium text-[#F5F0E1]">Cargar métricas de la semana</h3>
+            <button onClick={() => setShowForm(false)} className="text-[#F5F0E1]/60 hover:text-[#F5F0E1]"><X className="w-5 h-5" /></button>
           </div>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {FUNNEL_FIELDS.map(f => (
                 <div key={f.key}>
-                  <label className="block text-xs text-[#F0EAD8]/60 mb-1.5 font-medium">{f.label}</label>
+                  <label className="block text-xs text-[#F5F0E1]/60 mb-1.5 font-medium">{f.label}</label>
                   <div className="relative">
                     {f.prefix && (
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#F0EAD8]/30 text-sm">{f.prefix}</span>
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#F5F0E1]/30 text-sm">{f.prefix}</span>
                     )}
                     <input
                       type="number"
@@ -295,10 +295,10 @@ function TabEmbudo({ userId }: { userId?: string }) {
       )}
 
       {data.length === 0 ? (
-        <div className="card-panel p-12 rounded-2xl border border-dashed border-[rgba(200,137,58,0.2)] text-center">
-          <TrendingUp className="w-12 h-12 text-[#C8893A]/30 mx-auto mb-4" />
-          <p className="text-sm font-medium text-[#F0EAD8]/80 mb-2">Todavía no hay métricas registradas</p>
-          <p className="text-xs text-[#F0EAD8]/40 max-w-sm mx-auto">
+        <div className="card-panel p-12 rounded-2xl border border-dashed border-[rgba(212,162,78,0.2)] text-center">
+          <TrendingUp className="w-12 h-12 text-[#D4A24E]/30 mx-auto mb-4" />
+          <p className="text-sm font-medium text-[#F5F0E1]/80 mb-2">Todavía no hay métricas registradas</p>
+          <p className="text-xs text-[#F5F0E1]/40 max-w-sm mx-auto">
             Cargá los datos de tu primera semana para ver los KPIs de tu embudo y el diagnóstico automático.
           </p>
         </div>
@@ -354,7 +354,7 @@ function TabEmbudo({ userId }: { userId?: string }) {
           {/* ── 6 Diagnósticos ── */}
           {diagnosticos.length > 0 && (
             <div className="space-y-3">
-              <h3 className="text-xs font-bold text-[#F0EAD8]/60 tracking-widest uppercase flex items-center gap-2">
+              <h3 className="text-xs font-bold text-[#F5F0E1]/60 tracking-widest uppercase flex items-center gap-2">
                 <AlertTriangle className="w-4 h-4" /> Diagnóstico del Embudo
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -369,10 +369,10 @@ function TabEmbudo({ userId }: { userId?: string }) {
           {chartData.length > 1 && (
             <div className="card-panel p-6 rounded-2xl">
               <div className="flex items-center justify-between mb-6">
-                <h3 className="text-xs font-bold text-[#F0EAD8]/60 tracking-widest uppercase">Evolución del Embudo</h3>
-                <div className="flex gap-4 text-xs font-medium text-[#F0EAD8]/60">
-                  <div className="flex items-center gap-2"><div className="w-2.5 h-2.5 rounded-full bg-[#C8893A]" /> Mensajes</div>
-                  <div className="flex items-center gap-2"><div className="w-2.5 h-2.5 rounded-full bg-[#D9A04E]" /> Agendados</div>
+                <h3 className="text-xs font-bold text-[#F5F0E1]/60 tracking-widest uppercase">Evolución del Embudo</h3>
+                <div className="flex gap-4 text-xs font-medium text-[#F5F0E1]/60">
+                  <div className="flex items-center gap-2"><div className="w-2.5 h-2.5 rounded-full bg-[#D4A24E]" /> Mensajes</div>
+                  <div className="flex items-center gap-2"><div className="w-2.5 h-2.5 rounded-full bg-[#E2B865]" /> Agendados</div>
                   <div className="flex items-center gap-2"><div className="w-2.5 h-2.5 rounded-full bg-[#2DD4A0]" /> Ventas</div>
                 </div>
               </div>
@@ -380,16 +380,16 @@ function TabEmbudo({ userId }: { userId?: string }) {
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
                     <defs>
-                      <linearGradient id="colorMensajes" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#C8893A" stopOpacity={0.3} /><stop offset="95%" stopColor="#C8893A" stopOpacity={0} /></linearGradient>
-                      <linearGradient id="colorAgendados" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#D9A04E" stopOpacity={0.3} /><stop offset="95%" stopColor="#D9A04E" stopOpacity={0} /></linearGradient>
+                      <linearGradient id="colorMensajes" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#D4A24E" stopOpacity={0.3} /><stop offset="95%" stopColor="#D4A24E" stopOpacity={0} /></linearGradient>
+                      <linearGradient id="colorAgendados" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#E2B865" stopOpacity={0.3} /><stop offset="95%" stopColor="#E2B865" stopOpacity={0} /></linearGradient>
                       <linearGradient id="colorVentas" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#2DD4A0" stopOpacity={0.3} /><stop offset="95%" stopColor="#2DD4A0" stopOpacity={0} /></linearGradient>
                     </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(200,137,58,0.08)" vertical={false} />
-                    <XAxis dataKey="name" stroke="rgba(200,137,58,0.2)" tick={{ fill: 'rgba(240,234,216,0.5)', fontSize: 11 }} />
-                    <YAxis stroke="rgba(200,137,58,0.2)" tick={{ fill: 'rgba(240,234,216,0.5)', fontSize: 11 }} />
-                    <RechartsTooltip contentStyle={{ backgroundColor: '#1A1410', borderColor: 'rgba(200,137,58,0.2)', borderRadius: '8px', color: '#F0EAD8' }} />
-                    <Area type="monotone" dataKey="mensajes" stroke="#C8893A" strokeWidth={2} fillOpacity={1} fill="url(#colorMensajes)" />
-                    <Area type="monotone" dataKey="agendados" stroke="#D9A04E" strokeWidth={2} fillOpacity={1} fill="url(#colorAgendados)" />
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(212,162,78,0.08)" vertical={false} />
+                    <XAxis dataKey="name" stroke="rgba(212,162,78,0.2)" tick={{ fill: 'rgba(240,234,216,0.5)', fontSize: 11 }} />
+                    <YAxis stroke="rgba(212,162,78,0.2)" tick={{ fill: 'rgba(240,234,216,0.5)', fontSize: 11 }} />
+                    <RechartsTooltip contentStyle={{ backgroundColor: '#1A1410', borderColor: 'rgba(212,162,78,0.2)', borderRadius: '8px', color: '#F5F0E1' }} />
+                    <Area type="monotone" dataKey="mensajes" stroke="#D4A24E" strokeWidth={2} fillOpacity={1} fill="url(#colorMensajes)" />
+                    <Area type="monotone" dataKey="agendados" stroke="#E2B865" strokeWidth={2} fillOpacity={1} fill="url(#colorAgendados)" />
                     <Area type="monotone" dataKey="ventas" stroke="#2DD4A0" strokeWidth={2} fillOpacity={1} fill="url(#colorVentas)" />
                   </AreaChart>
                 </ResponsiveContainer>
@@ -414,8 +414,8 @@ export default function Metrics({ userId }: { userId?: string }) {
           onClick={() => setTab('progreso')}
           className={`px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-widest transition-all ${
             tab === 'progreso'
-              ? 'bg-[#C8893A]/20 text-[#C8893A] border border-[#C8893A]/30'
-              : 'bg-[#C8893A]/5 text-[#F0EAD8]/40 border border-transparent hover:bg-[#C8893A]/10 hover:text-[#F0EAD8]/80'
+              ? 'bg-[#D4A24E]/20 text-[#D4A24E] border border-[#D4A24E]/30'
+              : 'bg-[#D4A24E]/5 text-[#F5F0E1]/40 border border-transparent hover:bg-[#D4A24E]/10 hover:text-[#F5F0E1]/80'
           }`}
         >
           Mi Progreso
@@ -424,8 +424,8 @@ export default function Metrics({ userId }: { userId?: string }) {
           onClick={() => setTab('embudo')}
           className={`px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-widest transition-all ${
             tab === 'embudo'
-              ? 'bg-[#C8893A]/20 text-[#C8893A] border border-[#C8893A]/30'
-              : 'bg-[#C8893A]/5 text-[#F0EAD8]/40 border border-transparent hover:bg-[#C8893A]/10 hover:text-[#F0EAD8]/80'
+              ? 'bg-[#D4A24E]/20 text-[#D4A24E] border border-[#D4A24E]/30'
+              : 'bg-[#D4A24E]/5 text-[#F5F0E1]/40 border border-transparent hover:bg-[#D4A24E]/10 hover:text-[#F5F0E1]/80'
           }`}
         >
           Mi Embudo
