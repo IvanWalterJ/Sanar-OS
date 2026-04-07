@@ -671,7 +671,7 @@ export const SEED_ROADMAP_V3: RoadmapPilar[] = [
     fase: 4,
     dias_inicio: 45,
     dias_fin: 52,
-    metodo_letra: 'N',
+    metodo_letra: 'C',
     metas: [
       {
         codigo: 'P9A.1',
@@ -816,7 +816,7 @@ export const SEED_ROADMAP_V3: RoadmapPilar[] = [
     fase: 4,
     dias_inicio: 65,
     dias_fin: 75,
-    metodo_letra: 'I',
+    metodo_letra: 'C',
     metas: [
       {
         codigo: 'P9C.1',
@@ -875,6 +875,7 @@ export const SEED_ROADMAP_V3: RoadmapPilar[] = [
     fase: 5,
     dias_inicio: 70,
     dias_fin: 80,
+    metodo_letra: 'A',
     metas: [
       {
         codigo: 'P10.1',
@@ -1033,8 +1034,8 @@ export const FASES_ROADMAP: Omit<GrupoFase, 'pilares'>[] = [
   { fase: 1, titulo: 'Fase 1 — Sprint de Identidad',     subtitulo: 'Quién sos',                       dias: 'Días 3–20',  metodo_letra: 'C' },
   { fase: 2, titulo: 'Fase 2 — Sprint de Mercado',       subtitulo: 'A quién servís',                  dias: 'Días 20–38', metodo_letra: 'LÍ' },
   { fase: 3, titulo: 'Fase 3 — Sprint de Oferta',        subtitulo: 'Qué ofrecés',                     dias: 'Días 36–45', metodo_letra: 'NI' },
-  { fase: 4, titulo: 'Fase 4 — Activación y Ventas',     subtitulo: 'Cómo llegás y vendés',             dias: 'Días 45–80', metodo_letra: 'NIC' },
-  { fase: 5, titulo: 'Fase 5 — Identidad Visual',        subtitulo: 'Cómo te reconocen',                dias: 'Días 70–80' },
+  { fase: 4, titulo: 'Fase 4 — Activación y Ventas',     subtitulo: 'Cómo llegás y vendés',             dias: 'Días 45–75', metodo_letra: 'C' },
+  { fase: 5, titulo: 'Fase 5 — Identidad Visual',        subtitulo: 'Cómo te reconocen',                dias: 'Días 70–80', metodo_letra: 'A' },
   { fase: 6, titulo: 'Fase 6 — Análisis y Optimización', subtitulo: 'Retrospectiva y cierre',           dias: 'Días 85–90' },
 ];
 

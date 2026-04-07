@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { ChevronRight, CheckCircle2, Clock, Calendar, Target } from 'lucide-react';
+import { ChevronRight, CheckCircle2, Clock, Calendar, Target, Play, Wrench, MessageCircle, Bot, Sparkles } from 'lucide-react';
 import { supabase, isSupabaseReady } from '../lib/supabase';
 import { SEED_ROADMAP_V2 } from '../lib/roadmapSeed';
 import type { RoadmapMeta } from '../lib/roadmapSeed';
@@ -32,9 +32,13 @@ interface TareaHoy extends RoadmapMeta {
 
 interface ProximoHito {
   titulo: string;
+  subtitulo: string;
   pilarNumero: number;
   metasTotal: number;
   metasCompletadas: number;
+  hitoMensaje?: string;
+  tareasRestantes: { titulo: string; tipo: string }[];
+  diaPrograma: number;
 }
 
 export default function Dashboard({ setCurrentPage, userId }: { setCurrentPage: (page: string) => void, userId?: string }) {
@@ -86,16 +90,26 @@ export default function Dashboard({ setCurrentPage, userId }: { setCurrentPage: 
         }
       }
 
+      const diaPrograma = Math.max(1, diff + 1);
+
       let hito: ProximoHito | null = null;
       for (const pil of SEED_ROADMAP_V2) {
         const metasPilar = pil.metas ?? [];
         const completadasPilar = metasPilar.filter((m) => completadasSet.has(`${pil.numero}-${m.codigo}`)).length;
         if (completadasPilar < metasPilar.length) {
+          const pendientes = metasPilar
+            .filter((m) => !completadasSet.has(`${pil.numero}-${m.codigo}`))
+            .slice(0, 3)
+            .map((m) => ({ titulo: m.titulo, tipo: m.tipo || '' }));
           hito = {
             titulo: pil.titulo,
+            subtitulo: pil.subtitulo,
             pilarNumero: pil.numero,
             metasTotal: metasPilar.length,
             metasCompletadas: completadasPilar,
+            hitoMensaje: (pil as any).hito_mensaje,
+            tareasRestantes: pendientes,
+            diaPrograma,
           };
           break;
         }
@@ -150,7 +164,20 @@ export default function Dashboard({ setCurrentPage, userId }: { setCurrentPage: 
             const metasPilar = pil.metas ?? [];
             const completadasPilar = metasPilar.filter((m) => sbSet.has(`${pil.numero}-${m.codigo}`)).length;
             if (completadasPilar < metasPilar.length) {
-              sHito = { titulo: pil.titulo, pilarNumero: pil.numero, metasTotal: metasPilar.length, metasCompletadas: completadasPilar };
+              const pendientes = metasPilar
+                .filter((m) => !sbSet.has(`${pil.numero}-${m.codigo}`))
+                .slice(0, 3)
+                .map((m) => ({ titulo: m.titulo, tipo: m.tipo || '' }));
+              sHito = {
+                titulo: pil.titulo,
+                subtitulo: pil.subtitulo,
+                pilarNumero: pil.numero,
+                metasTotal: metasPilar.length,
+                metasCompletadas: completadasPilar,
+                hitoMensaje: (pil as any).hito_mensaje,
+                tareasRestantes: pendientes,
+                diaPrograma: Math.max(1, diff + 1),
+              };
               break;
             }
           }
@@ -254,21 +281,52 @@ export default function Dashboard({ setCurrentPage, userId }: { setCurrentPage: 
 
           {proximoHito ? (
             <>
-              <div>
-                <h2 className="text-[11px] font-bold text-[#D4A24E] tracking-widest uppercase mb-6 flex items-center gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#D4A24E] animate-pulse ring-4 ring-[#D4A24E]/20" /> Próximo hito
-                </h2>
-                <p className="text-xl font-medium text-[#F5F0E1] mb-3 line-clamp-2 leading-tight" style={{ fontFamily: 'var(--font-display)', fontStyle: 'italic' }}>{proximoHito.titulo}</p>
-                <p className="text-xs text-[#F5F0E1]/50 flex items-center gap-1.5">
-                  <Calendar className="w-3.5 h-3.5" /> Pilar {proximoHito.pilarNumero}
-                </p>
+              <div className="relative z-10">
+                {/* Header with day counter */}
+                <div className="flex items-center justify-between mb-5">
+                  <h2 className="text-[11px] font-bold text-[#D4A24E] tracking-widest uppercase flex items-center gap-2">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#D4A24E] animate-pulse ring-4 ring-[#D4A24E]/20" /> Próximo hito
+                  </h2>
+                  <div className="flex items-center gap-1.5 bg-[#D4A24E]/10 px-3 py-1 rounded-full border border-[#D4A24E]/20">
+                    <Sparkles className="w-3 h-3 text-[#D4A24E]" />
+                    <span className="text-[10px] font-bold text-[#D4A24E]">Día {proximoHito.diaPrograma}/90</span>
+                  </div>
+                </div>
+
+                {/* Pilar title */}
+                <p className="text-xl font-medium text-[#F5F0E1] mb-1 line-clamp-2 leading-tight" style={{ fontFamily: 'var(--font-display)', fontStyle: 'italic' }}>{proximoHito.titulo}</p>
+                <p className="text-xs text-[#F5F0E1]/40 mb-4">{proximoHito.subtitulo}</p>
+
+                {/* Pending tasks mini-list */}
+                {proximoHito.tareasRestantes.length > 0 && (
+                  <div className="space-y-2 mb-4">
+                    {proximoHito.tareasRestantes.map((t, i) => (
+                      <div key={i} className="flex items-center gap-2.5 py-1.5 px-3 rounded-lg bg-[#F5F0E1]/[0.03] border border-[#F5F0E1]/[0.06]">
+                        {t.tipo === 'VIDEO' && <Play className="w-3 h-3 text-[#D4A24E] shrink-0" />}
+                        {t.tipo === 'HERRAMIENTA' && <Wrench className="w-3 h-3 text-[#2DD4A0] shrink-0" />}
+                        {t.tipo === 'COACH' && <MessageCircle className="w-3 h-3 text-[#F5F0E1]/60 shrink-0" />}
+                        {t.tipo === 'AGENTE' && <Bot className="w-3 h-3 text-purple-400 shrink-0" />}
+                        {!t.tipo && <Target className="w-3 h-3 text-[#F5F0E1]/40 shrink-0" />}
+                        <span className="text-[11px] text-[#F5F0E1]/70 truncate">{t.titulo}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Motivational quote if available */}
+                {proximoHito.hitoMensaje && (
+                  <div className="px-3 py-2 rounded-lg border-l-2 border-[#D4A24E]/40 bg-[#D4A24E]/[0.04] mb-4">
+                    <p className="text-[11px] text-[#F5F0E1]/50 italic leading-relaxed">{proximoHito.hitoMensaje}</p>
+                  </div>
+                )}
               </div>
 
-              <div className="mt-10">
+              {/* Progress bar */}
+              <div className="relative z-10">
                 <div className="flex justify-between items-center mb-3">
-                  <span className="text-[10px] text-[#F5F0E1]/50 font-bold uppercase tracking-wider">Progreso del hito</span>
+                  <span className="text-[10px] text-[#F5F0E1]/50 font-bold uppercase tracking-wider">Progreso del pilar</span>
                   <span className="text-[10px] text-[#F5F0E1] bg-[#F5F0E1]/10 px-2 py-0.5 rounded-full">
-                    {tareasRestantesHito === 0 ? 'Completado' : `Faltan ${tareasRestantesHito} ${tareasRestantesHito === 1 ? 'tarea' : 'tareas'}`}
+                    {tareasRestantesHito === 0 ? 'Completado' : `${proximoHito.metasCompletadas}/${proximoHito.metasTotal}`}
                   </span>
                 </div>
                 <div className="h-2 bg-[#F5F0E1]/5 rounded-full overflow-hidden">

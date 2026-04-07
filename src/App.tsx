@@ -15,7 +15,7 @@ import Mensajes from './pages/Mensajes';
 import DiarioDirector from './pages/DiarioDirector';
 import Biblioteca from './pages/Biblioteca';
 import Agentes from './pages/Agentes';
-// ManualNegocio removed in V3
+import ManualNegocio from './pages/ManualNegocio';
 import Login from './pages/Login';
 import Admin from './pages/Admin';
 import WelcomeWizard from './components/WelcomeWizard';
@@ -242,7 +242,7 @@ export default function App() {
       />
 
       <div className="flex-1 flex flex-col relative z-10 overflow-hidden">
-        <Topbar setCurrentPage={setCurrentPage} />
+        <Topbar setCurrentPage={setCurrentPage} userId={supabaseProfile?.id} />
         <main ref={mainRef} className="flex-1 overflow-y-auto overflow-x-hidden overscroll-contain scrollbar-hide">
           {currentPage === 'mensajes' ? (
             <div className="h-full">
@@ -260,6 +260,7 @@ export default function App() {
                   geminiKey={import.meta.env.VITE_GEMINI_API_KEY}
                 />
               )}
+              {currentPage === 'adn' && <ManualNegocio perfil={supabaseProfile ?? {}} setCurrentPage={setCurrentPage} />}
               {currentPage === 'biblioteca' && <Biblioteca userId={supabaseProfile?.id} />}
               {currentPage === 'agentes' && (
                 <Agentes
@@ -371,15 +372,6 @@ export default function App() {
                             type="text"
                             value={profileDraft.especialidad}
                             onChange={e => setProfileDraft({ ...profileDraft, especialidad: e.target.value })}
-                            className="w-full bg-black/20 border border-[rgba(212,162,78,0.2)] rounded-lg px-4 py-2.5 text-[#F5F0E1] focus:outline-none focus:border-[#D4A24E]/50"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-xs text-[#F5F0E1]/60 mb-1">Fecha de inicio del programa</label>
-                          <input
-                            type="date"
-                            value={profileDraft.fecha_inicio}
-                            onChange={e => setProfileDraft({ ...profileDraft, fecha_inicio: e.target.value })}
                             className="w-full bg-black/20 border border-[rgba(212,162,78,0.2)] rounded-lg px-4 py-2.5 text-[#F5F0E1] focus:outline-none focus:border-[#D4A24E]/50"
                           />
                         </div>

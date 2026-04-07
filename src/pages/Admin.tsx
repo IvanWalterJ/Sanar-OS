@@ -11,20 +11,26 @@ import {
   Globe, Flame, Star, DollarSign, Pencil,
   Sprout, Target, Sunrise, UserCircle, Lightbulb, Triangle,
   Cog, Building2, Megaphone, Phone, Handshake, Palette, BarChart3,
+  Search, UsersRound, Check, ClipboardList,
 } from 'lucide-react';
 
 const ADMIN_PILAR_ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
   Sprout, BookOpen, Target, Sunrise, UserCircle, Lightbulb, Triangle, Cog,
   Building2, Megaphone, Phone, Handshake, Palette, BarChart3,
 };
-import { supabase, type Profile, type Mensaje, type AdminNote, type UserStatus, isSupabaseReady } from '../lib/supabase';
-import { SEED_ROADMAP_V2 } from '../lib/roadmapSeed';
+import { supabase, type Profile, type Mensaje, type AdminNote, type UserStatus, type PilarId, isSupabaseReady, PILAR_ORDER } from '../lib/supabase';
+import { SEED_ROADMAP_V3, SEED_ROADMAP_V2 } from '../lib/roadmapSeed';
 import { GoogleGenAI } from '@google/genai';
 import { toast } from 'sonner';
 import { createClient } from '@supabase/supabase-js';
 import Markdown from 'react-markdown';
 
 // ─── TIPOS Y CONSTANTES ─────────────────────────────────────────────────────────
+
+type AdminRol = 'owner' | 'manager' | 'staff';
+type MainTab = 'clientes' | 'mensajes' | 'metricas' | 'videos' | 'equipo';
+type DetalleTab = 'resumen' | 'diario' | 'metricas' | 'mensajes' | 'notas';
+type MensajesChannel = 'comunidad' | 'victorias' | 'consultas' | 'privados';
 
 interface AdminProps {
   adminProfile: Profile;
@@ -37,54 +43,66 @@ interface ClienteConEstado extends Profile {
   semaforo: 'verde' | 'amarillo' | 'rojo' | 'gris';
   tareas_completadas: number;
   tareas_total: number;
-  tareas_por_pilar: Record<number, number>; // pilar_numero -> completadas reales
+  tareas_por_pilar: Record<number, number>;
   ultima_entrada_diario?: string;
-  // v2.0
   racha_diario: number;
   ventas_count: number;
   estado_garantia: 'en_camino' | 'en_riesgo' | 'activada';
   progreso_porcentaje: number;
 }
 
-type MainTab = 'dashboard' | 'comunidad' | 'victorias' | 'consultas' | 'metricas_globales' | 'mensajes_privados' | 'videos';
-type DetalleTab = 'resumen' | 'diario' | 'metricas' | 'mensajes' | 'notas';
-
-const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; border: string }> = {
-  ONBOARDING: { label: 'Onboarding', color: 'text-[#D4A24E]', bg: 'bg-[#D4A24E]/10', border: 'border-blue-500/20' },
-  ACTIVE:     { label: 'Activo',     color: 'text-[#2DD4A0]', bg: 'bg-[#2DD4A0]/10', border: 'border-emerald-500/20' },
-  PAUSED:     { label: 'Pausado',    color: 'text-[#D4A24E]', bg: 'bg-amber-500/10', border: 'border-amber-500/20' },
-  COMPLETED:  { label: 'Completado', color: 'text-[#D4A24E]', bg: 'bg-[#D4A24E]/10', border: 'border-[#D4A24E]/20' },
-  CHURNED:    { label: 'Inactivo',   color: 'text-[#E85555]', bg: 'bg-[#E85555]/10', border: 'border-red-500/20' },
-};
-
 interface AdminVideo {
   id: string;
-  grupo: 'A' | 'B' | 'C' | 'D' | 'E';
+  grupo: string;
+  pilar_id?: PilarId;
   titulo: string;
   descripcion: string;
   youtubeUrl: string;
   duracion?: string;
 }
 
-const PILARES: { id: AdminVideo['grupo']; label: string }[] = [
-  { id: 'A', label: 'A — Identidad y Mentalidad' },
-  { id: 'B', label: 'B — Claridad y Oferta' },
-  { id: 'C', label: 'C — Contenido y Captación' },
-  { id: 'D', label: 'D — Infraestructura Digital' },
-  { id: 'E', label: 'E — Conversión y Ventas' },
-];
+interface AdminChecklistItem {
+  id: string;
+  admin_id: string;
+  titulo: string;
+  categoria: 'diaria' | 'semanal' | 'mensual';
+  completada: boolean;
+  fecha_completada?: string;
+}
+
+const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; border: string }> = {
+  ONBOARDING: { label: 'Onboarding', color: 'text-[#F5F0E1]/50',  bg: 'bg-[#F5F0E1]/5',  border: 'border-[#F5F0E1]/10' },
+  ACTIVE:     { label: 'Activo',     color: 'text-[#2DD4A0]',      bg: 'bg-[#2DD4A0]/10', border: 'border-[#2DD4A0]/20' },
+  PAUSED:     { label: 'Pausado',    color: 'text-[#D4A24E]',      bg: 'bg-[#D4A24E]/10', border: 'border-[#D4A24E]/20' },
+  COMPLETED:  { label: 'Completado', color: 'text-[#2DD4A0]',      bg: 'bg-[#2DD4A0]/10', border: 'border-[#2DD4A0]/20' },
+  CHURNED:    { label: 'Inactivo',   color: 'text-[#E85555]',      bg: 'bg-[#E85555]/10', border: 'border-[#E85555]/20' },
+};
+
+const STATUS_BADGE_COLOR: Record<string, string> = {
+  ACTIVE:     '#2DD4A0',
+  PAUSED:     '#D4A24E',
+  ONBOARDING: 'rgba(245,240,225,0.5)',
+  CHURNED:    '#E85555',
+  COMPLETED:  '#2DD4A0',
+};
+
+const SEMAFORO_CONFIG = {
+  verde:    { class: 'bg-[#2DD4A0] shadow-[0_0_8px_rgba(16,185,129,0.4)]', label: 'En ritmo',        text: 'text-[#2DD4A0]' },
+  amarillo: { class: 'bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.4)]', label: 'Atenci\u00f3n',   text: 'text-[#D4A24E]' },
+  rojo:     { class: 'bg-[#E85555] shadow-[0_0_8px_rgba(239,68,68,0.4)]',  label: 'Necesita ayuda',  text: 'text-[#E85555]' },
+  gris:     { class: 'bg-gray-600',                                         label: 'Sin datos',       text: 'text-[#F5F0E1]/60' },
+};
+
+// Build pilar options from SEED_ROADMAP_V3
+const PILAR_OPTIONS: { id: PilarId; label: string }[] = SEED_ROADMAP_V3.map(p => ({
+  id: p.id,
+  label: `${p.id} \u2014 ${p.titulo}`,
+}));
 
 function getYoutubeId(url: string): string | null {
   const m = url.match(/(?:v=|youtu\.be\/|embed\/)([a-zA-Z0-9_-]{11})/);
   return m ? m[1] : null;
 }
-
-const SEMAFORO_CONFIG = {
-  verde: { class: 'bg-[#2DD4A0] shadow-[0_0_8px_rgba(16,185,129,0.4)]', label: 'En ritmo', text: 'text-[#2DD4A0]' },
-  amarillo: { class: 'bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.4)]', label: 'Atención', text: 'text-[#D4A24E]' },
-  rojo: { class: 'bg-[#E85555] shadow-[0_0_8px_rgba(239,68,68,0.4)]', label: 'Necesita ayuda', text: 'text-[#E85555]' },
-  gris: { class: 'bg-gray-600', label: 'Sin datos', text: 'text-[#F5F0E1]/60' },
-};
 
 function calcDias(fecha_inicio: string): { dia: number; semana: number } {
   const diff = Math.floor((new Date().getTime() - new Date(fecha_inicio).getTime()) / (1000 * 60 * 60 * 24));
@@ -92,9 +110,18 @@ function calcDias(fecha_inicio: string): { dia: number; semana: number } {
   return { dia, semana: Math.max(1, Math.min(12, Math.floor(diff / 7) + 1)) };
 }
 
+function derivePilarFromProgress(tareas_completadas: number): PilarId {
+  let acum = 0;
+  for (const pilar of SEED_ROADMAP_V3) {
+    acum += pilar.metas.length;
+    if (acum > tareas_completadas) return pilar.id;
+  }
+  return 'P11';
+}
+
 // ─── COMPONENTE CHAT GLOBAL ADMIN ────────────────────────────────────────────────
 
-function GlobalChat({ canal, adminProfile }: { canal: string, adminProfile: Profile }) {
+function GlobalChat({ canal, adminProfile }: { canal: string; adminProfile: Profile }) {
   const [messages, setMessages] = useState<Mensaje[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(true);
@@ -161,21 +188,11 @@ function GlobalChat({ canal, adminProfile }: { canal: string, adminProfile: Prof
       });
       if (msgErr) throw msgErr;
     } catch {
-      toast.error('Error subiendo archivo. Verificá que el bucket exista en Supabase.');
+      toast.error('Error subiendo archivo. Verific\u00e1 que el bucket exista en Supabase.');
     } finally {
       setUploading(false);
     }
   }
-
-  const getTitle = () => {
-    switch (canal) {
-      case 'comunidad': return { t: 'Comunidad TCD', d: 'Chat general entre todos los clientes de la academia.', i: Users };
-      case 'victorias': return { t: 'Victorias Semanales', d: 'Espacio para celebrar las ventas y progresos.', i: Trophy };
-      case 'consultas': return { t: 'Consultas Grupales', d: 'Canal para dudas técnicas y de negocio compartidas.', i: Hash };
-      default: return { t: canal, d: '', i: Hash };
-    }
-  };
-  const titleInfo = getTitle();
 
   return (
     <div className="flex flex-col h-full min-h-0 bg-[#241A0C]/30 border border-[rgba(212,162,78,0.12)] rounded-2xl overflow-hidden">
@@ -185,25 +202,13 @@ function GlobalChat({ canal, adminProfile }: { canal: string, adminProfile: Prof
       <input ref={audioInputRef} type="file" accept="audio/*" className="hidden"
         onChange={e => { const f = e.target.files?.[0]; if (f) handleUploadFile(f, 'audio'); e.target.value = ''; }} />
 
-      <div className="p-6 border-b border-[rgba(212,162,78,0.12)] shrink-0 bg-[#241A0C]/20">
-        <div className="flex items-center gap-3 mb-1">
-          <div className="w-10 h-10 rounded-xl bg-[#D4A24E]/20 border border-[#D4A24E]/30 flex items-center justify-center">
-            <titleInfo.i className="w-5 h-5 text-[#D4A24E]" />
-          </div>
-          <div>
-            <h2 className="text-xl font-medium text-[#F5F0E1] tracking-tight">{titleInfo.t}</h2>
-            <p className="text-sm text-[#F5F0E1]/40">{titleInfo.d}</p>
-          </div>
-        </div>
-      </div>
-
       <div className="flex-1 overflow-y-auto p-6 scrollbar-hide space-y-4">
         {loading ? (
           <div className="flex justify-center py-10"><Loader2 className="w-6 h-6 text-[#D4A24E] animate-spin" /></div>
         ) : messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center">
-            <titleInfo.i className="w-12 h-12 text-gray-800 mb-4" />
-            <p className="text-[#F5F0E1]/40">Este canal aún está vacío.</p>
+            <MessageSquare className="w-12 h-12 text-gray-800 mb-4" />
+            <p className="text-[#F5F0E1]/40">Este canal a\u00fan est\u00e1 vac\u00edo.</p>
           </div>
         ) : (
           messages.map((m) => {
@@ -213,7 +218,6 @@ function GlobalChat({ canal, adminProfile }: { canal: string, adminProfile: Prof
             const initial = senderName.charAt(0).toUpperCase();
             return (
               <div key={m.id} className={`flex gap-2.5 items-end max-w-[85%] ${isMe ? 'ml-auto flex-row-reverse' : ''}`}>
-                {/* Avatar */}
                 {isMe && adminAvatarUrl ? (
                   <div className="w-8 h-8 rounded-full shrink-0 overflow-hidden border border-[#D4A24E]/30">
                     <img src={adminAvatarUrl} alt={senderName} className="w-full h-full object-cover" />
@@ -228,7 +232,7 @@ function GlobalChat({ canal, adminProfile }: { canal: string, adminProfile: Prof
                 )}
                 <div className="flex flex-col gap-1">
                   <span className={`text-[10px] font-semibold px-1 ${isAdmin ? 'text-[#D4A24E]' : 'text-[#F5F0E1]/40'} ${isMe ? 'text-right' : ''}`}>
-                    {senderName}{isAdmin ? ' · Coach' : ''}
+                    {senderName}{isAdmin ? ' \u00b7 Coach' : ''}
                   </span>
                   <div className={`px-4 py-3 rounded-2xl text-sm leading-relaxed ${
                     isMe ? 'bg-[#D4A24E]/25 text-[#F5F0E1] border border-[#D4A24E]/20 rounded-tr-sm'
@@ -257,7 +261,6 @@ function GlobalChat({ canal, adminProfile }: { canal: string, adminProfile: Prof
 
       <div className="p-4 border-t border-[rgba(212,162,78,0.12)] shrink-0 bg-[#241A0C]/20">
         <div className="flex gap-2 items-end">
-          {/* Attach buttons */}
           <div className="flex flex-col gap-1 shrink-0">
             <button type="button" onClick={() => imageInputRef.current?.click()} disabled={uploading}
               title="Subir imagen"
@@ -277,12 +280,12 @@ function GlobalChat({ canal, adminProfile }: { canal: string, adminProfile: Prof
             onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && send()}
             placeholder={uploading ? 'Subiendo archivo...' : 'Enviar mensaje al canal...'}
             disabled={enviando || uploading}
-            className="flex-1 bg-black/40 border border-[rgba(212,162,78,0.2)] rounded-xl py-3 px-5 text-sm text-[#F5F0E1] focus:outline-none focus:border-[#D4A24E]/50 transition-all disabled:opacity-50"
+            className="flex-1 bg-black/20 border border-[rgba(212,162,78,0.2)] rounded-lg py-3 px-5 text-sm text-[#F5F0E1] focus:outline-none focus:border-[#D4A24E]/50 transition-all disabled:opacity-50"
           />
           <button
             onClick={send}
             disabled={!input.trim() || enviando || uploading}
-            className="w-12 h-12 rounded-xl bg-[#D4A24E] hover:bg-[#D4A24E] flex items-center justify-center transition-colors disabled:opacity-50 shrink-0"
+            className="btn-primary w-12 h-12 rounded-xl flex items-center justify-center transition-colors disabled:opacity-50 shrink-0"
           >
             {enviando || uploading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
           </button>
@@ -295,15 +298,18 @@ function GlobalChat({ canal, adminProfile }: { canal: string, adminProfile: Prof
 // ─── COMPONENTE PRINCIPAL ───────────────────────────────────────────────────────
 
 export default function Admin({ adminProfile, onSignOut }: AdminProps) {
-  const [mainTab, setMainTab] = useState<MainTab>('dashboard');
+  const adminRol: AdminRol = (adminProfile as any).admin_rol ?? 'owner';
+  const [mainTab, setMainTab] = useState<MainTab>('clientes');
   const [channelUnread, setChannelUnread] = useState<Record<string, number>>({});
-  
-  // Clientes Dashboard
+
+  // Clientes
   const [clientes, setClientes] = useState<ClienteConEstado[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedCliente, setSelectedCliente] = useState<ClienteConEstado | null>(null);
   const [detalleTab, setDetalleTab] = useState<DetalleTab>('resumen');
   const [showNuevoCliente, setShowNuevoCliente] = useState(false);
+  const [clientSearch, setClientSearch] = useState('');
+  const [filtroStatus, setFiltroStatus] = useState<UserStatus | 'ALL'>('ALL');
 
   // Detalle state
   const [detalleTareas, setDetalleTareas] = useState<any[]>([]);
@@ -317,21 +323,19 @@ export default function Admin({ adminProfile, onSignOut }: AdminProps) {
   const [iaLoading, setIaLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Métricas globales
+  // Metricas globales
   const [metricasGlobales, setMetricasGlobales] = useState<any>(null);
   const [metricasLoading, setMetricasLoading] = useState(false);
-  const [filtroMetricasId, setFiltroMetricasId] = useState<string | null>(null); // null = global
-  // Tareas + outputs del cliente seleccionado en métricas
+  const [filtroMetricasId, setFiltroMetricasId] = useState<string | null>(null);
   const [metricasTareas, setMetricasTareas] = useState<any[]>([]);
   const [metricasOutputs, setMetricasOutputs] = useState<any[]>([]);
   const [metricasTareasLoading, setMetricasTareasLoading] = useState(false);
   const [pilarExpandido, setPilarExpandido] = useState<Record<number, boolean>>({});
-  // Modal de detalle de tarea
   const [tareaModal, setTareaModal] = useState<{ meta: any; tareaData: any; output: string; clienteNombre: string } | null>(null);
   const [tareaResumen, setTareaResumen] = useState('');
   const [tareaResumenLoading, setTareaResumenLoading] = useState(false);
 
-  // Formulario nuevo cliente con contraseña local
+  // Formulario nuevo cliente
   const [nuevoForm, setNuevoForm] = useState({
     nombre: '', email: '', password: '', especialidad: '', plan: 'DWY' as 'DWY' | 'DFY' | 'IMPLEMENTACION',
     fecha_inicio: new Date().toISOString().split('T')[0],
@@ -344,13 +348,11 @@ export default function Admin({ adminProfile, onSignOut }: AdminProps) {
   const [notaInput, setNotaInput] = useState('');
   const [notaLoading, setNotaLoading] = useState(false);
 
-  // Filtro por status en lista de clientes
-  const [filtroStatus, setFiltroStatus] = useState<UserStatus | 'ALL'>('ALL');
-
-  // Cambio de status de cliente
+  // Status change
   const [statusCambiando, setStatusCambiando] = useState(false);
 
-  // Mensajes privados (WhatsApp-style inbox)
+  // Mensajes unified
+  const [mensajesChannel, setMensajesChannel] = useState<MensajesChannel>('comunidad');
   const [chatCliente, setChatCliente] = useState<ClienteConEstado | null>(null);
   const [chatMessages, setChatMessages] = useState<Mensaje[]>([]);
   const [chatInput, setChatInput] = useState('');
@@ -362,8 +364,8 @@ export default function Admin({ adminProfile, onSignOut }: AdminProps) {
   const [adminVideos, setAdminVideos] = useState<AdminVideo[]>([]);
   const [videosLoading, setVideosLoading] = useState(false);
   const [showAddVideo, setShowAddVideo] = useState(false);
-  const [videoForm, setVideoForm] = useState<{ id?: string; grupo: AdminVideo['grupo']; titulo: string; descripcion: string; youtubeUrl: string; duracion: string }>({
-    grupo: 'A', titulo: '', descripcion: '', youtubeUrl: '', duracion: ''
+  const [videoForm, setVideoForm] = useState<{ id?: string; pilar_id: PilarId; titulo: string; descripcion: string; youtubeUrl: string; duracion: string }>({
+    pilar_id: 'P0', titulo: '', descripcion: '', youtubeUrl: '', duracion: ''
   });
 
   // Admin settings
@@ -373,12 +375,23 @@ export default function Admin({ adminProfile, onSignOut }: AdminProps) {
   const [guardandoAdmin, setGuardandoAdmin] = useState(false);
   const adminAvatarInputRef = useRef<HTMLInputElement>(null);
 
+  // Equipo
+  const [teamMembers, setTeamMembers] = useState<any[]>([]);
+  const [teamLoading, setTeamLoading] = useState(false);
+
+  // Manager checklist
+  const [checklistItems, setChecklistItems] = useState<AdminChecklistItem[]>([]);
+  const [checklistLoading, setChecklistLoading] = useState(false);
+
+  // ─── EFFECTS ──────────────────────────────────────────────────────────────────
+
   useEffect(() => { cargarClientes(); }, []);
 
   useEffect(() => {
-    if (mainTab === 'metricas_globales' && !metricasGlobales) cargarMetricasGlobales();
+    if (mainTab === 'metricas' && !metricasGlobales) cargarMetricasGlobales();
     if (mainTab === 'videos') cargarAdminVideos();
-    if (mainTab !== 'metricas_globales') setFiltroMetricasId(null);
+    if (mainTab === 'equipo') cargarEquipo();
+    if (mainTab !== 'metricas') setFiltroMetricasId(null);
   }, [mainTab]);
 
   useEffect(() => {
@@ -391,7 +404,12 @@ export default function Admin({ adminProfile, onSignOut }: AdminProps) {
     }
   }, [filtroMetricasId]);
 
-  // ─── Notificaciones de canales de chat (admin) ────────────────────────────
+  // Manager checklist load
+  useEffect(() => {
+    if (adminRol === 'manager') cargarChecklist();
+  }, [adminRol]);
+
+  // Channel notifications
   useEffect(() => {
     if (!supabase) return;
     const chatChannels = ['comunidad', 'victorias', 'consultas'] as const;
@@ -401,7 +419,7 @@ export default function Admin({ adminProfile, onSignOut }: AdminProps) {
       supabase!.channel(`admin-notif-${ch}`)
         .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'mensajes', filter: `canal=eq.${ch}` },
           async (payload) => {
-            if (ch === mainTab) return;
+            if (mainTab === 'mensajes' && mensajesChannel === ch) return;
             if (payload.new.emisor_id === adminProfile.id) return;
 
             const { data: m } = await supabase!.from('mensajes')
@@ -413,8 +431,8 @@ export default function Admin({ adminProfile, onSignOut }: AdminProps) {
             const ChIcon = ICONS[ch];
 
             toast(nombre, {
-              description: preview || '📎 Archivo adjunto',
-              action: { label: 'Ver →', onClick: () => setMainTab(ch) },
+              description: preview || 'Archivo adjunto',
+              action: { label: 'Ver', onClick: () => { setMainTab('mensajes'); setMensajesChannel(ch); } },
               icon: React.createElement(ChIcon, { className: 'w-4 h-4 text-[#D4A24E]' }),
               duration: 6000,
             });
@@ -424,11 +442,11 @@ export default function Admin({ adminProfile, onSignOut }: AdminProps) {
         ).subscribe()
     );
     return () => { subs.forEach(s => supabase!.removeChannel(s)); };
-  }, [mainTab, adminProfile.id]);
+  }, [mainTab, mensajesChannel, adminProfile.id]);
 
-  // Realtime chat for mensajes_privados tab
+  // Realtime for privados DM
   useEffect(() => {
-    if (!supabase || !chatCliente || mainTab !== 'mensajes_privados') return;
+    if (!supabase || !chatCliente || mainTab !== 'mensajes' || mensajesChannel !== 'privados') return;
     const channel = supabase
       .channel(`admin-inbox-${chatCliente.id}`)
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'mensajes' },
@@ -444,24 +462,22 @@ export default function Admin({ adminProfile, onSignOut }: AdminProps) {
         }
       ).subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [chatCliente, mainTab]);
+  }, [chatCliente, mainTab, mensajesChannel]);
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [chatMessages]);
 
-  // Realtime Privado Chat Subscription para Admin
+  // Realtime for client detail private messages
   useEffect(() => {
-    if (!supabase || !selectedCliente || mainTab !== 'dashboard') return;
+    if (!supabase || !selectedCliente || mainTab !== 'clientes') return;
     const channel = supabase
       .channel(`admin-private-${selectedCliente.id}`)
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'mensajes' },
         async (payload) => {
-          // Solo filtramos del lado del cliente si involucra a selectedCliente
           const { data } = await supabase.from('mensajes').select('*, emisor:profiles!emisor_id(nombre, rol)').eq('id', payload.new.id).single();
           if (data && data.canal === 'privado' && (data.emisor_id === selectedCliente.id || data.receptor_id === selectedCliente.id)) {
             setDetalleMensajes(prev => {
-              // evitar duplicados si fuimos nosotros quienes enviamos el msj
               if (prev.find(m => m.id === data.id)) return prev;
               return [...prev, data as Mensaje];
             });
@@ -472,17 +488,18 @@ export default function Admin({ adminProfile, onSignOut }: AdminProps) {
   }, [selectedCliente, mainTab]);
 
   useEffect(() => {
-    if (selectedCliente && mainTab === 'dashboard') cargarDetalleCliente(selectedCliente.id);
+    if (selectedCliente && mainTab === 'clientes') cargarDetalleCliente(selectedCliente.id);
   }, [selectedCliente, detalleTab, mainTab]);
-  
+
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [detalleMensajes]);
 
+  // ─── DATA FUNCTIONS ───────────────────────────────────────────────────────────
+
   function extractOutputText(output: unknown): string {
     if (!output) return '';
     if (typeof output === 'string') {
-      // Si es JSON string, parsear
       try {
         const parsed = JSON.parse(output);
         return extractOutputText(parsed);
@@ -490,13 +507,11 @@ export default function Admin({ adminProfile, onSignOut }: AdminProps) {
     }
     if (typeof output === 'object') {
       const obj = output as Record<string, unknown>;
-      // Buscar campos comunes de texto
       for (const key of ['texto', 'resultado', 'output', 'content', 'respuesta', 'text']) {
         if (typeof obj[key] === 'string' && (obj[key] as string).length > 10) {
           return (obj[key] as string).replace(/\\n/g, '\n').replace(/\\t/g, '  ');
         }
       }
-      // Concatenar todos los strings no triviales
       const parts = Object.entries(obj)
         .filter(([, v]) => typeof v === 'string' && (v as string).length > 5)
         .map(([k, v]) => `**${k}:** ${(v as string).replace(/\\n/g, '\n')}`);
@@ -505,40 +520,34 @@ export default function Admin({ adminProfile, onSignOut }: AdminProps) {
     return String(output);
   }
 
-  async function abrirTareaModal(
-    meta: any,
-    tareaData: any,
-    rawOutput: unknown,
-    clienteNombre: string
-  ) {
+  async function abrirTareaModal(meta: any, tareaData: any, rawOutput: unknown, clienteNombre: string) {
     const outputText = extractOutputText(rawOutput);
     setTareaModal({ meta, tareaData, output: outputText, clienteNombre });
     setTareaResumen('');
     if (!outputText || outputText.length < 20) return;
-    // Generar resumen IA para Paolis
     setTareaResumenLoading(true);
     try {
       const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY || '' });
-      const prompt = `Sos asistente de Paolis, una coach que acompaña a profesionales de la salud.
-El cliente "${clienteNombre}" completó la tarea "${meta.titulo}" del programa Tu Clínica Digital.
+      const prompt = `Sos asistente de Paolis, una coach que acompa\u00f1a a profesionales de la salud.
+El cliente "${clienteNombre}" complet\u00f3 la tarea "${meta.titulo}" del programa Tu Cl\u00ednica Digital.
 
-Este es el output que generó con la IA:
+Este es el output que gener\u00f3 con la IA:
 ---
 ${outputText.slice(0, 2000)}
 ---
 
-Escribí un resumen de 2-3 oraciones en español para Paolis que explique:
-1. Qué definió o produjo el cliente en esta tarea
-2. Una observación relevante para que Paolis lo guíe mejor en la próxima sesión
+Escrib\u00ed un resumen de 2-3 oraciones en espa\u00f1ol para Paolis que explique:
+1. Qu\u00e9 defini\u00f3 o produjo el cliente en esta tarea
+2. Una observaci\u00f3n relevante para que Paolis lo gu\u00ede mejor en la pr\u00f3xima sesi\u00f3n
 
-Sé directa, empática y concisa. Sin bullet points, solo texto corrido. Sin emojis.`;
+S\u00e9 directa, emp\u00e1tica y concisa. Sin bullet points, solo texto corrido. Sin emojis.`;
       const result = await ai.models.generateContent({
         model: 'gemini-2.5-flash',
         contents: [{ role: 'user', parts: [{ text: prompt }] }],
       });
       setTareaResumen(result.text ?? '');
     } catch {
-      // silencioso — resumen es opcional
+      // resumen is optional
     } finally {
       setTareaResumenLoading(false);
     }
@@ -555,7 +564,7 @@ Sé directa, empática y concisa. Sin bullet points, solo texto corrido. Sin emo
       setMetricasTareas(tareasRes.data ?? []);
       setMetricasOutputs(outputsRes.data ?? []);
     } catch {
-      // silencioso — tablas pueden no existir aún
+      // tables may not exist yet
     } finally {
       setMetricasTareasLoading(false);
     }
@@ -568,7 +577,7 @@ Sé directa, empática y concisa. Sin bullet points, solo texto corrido. Sin emo
       const { data } = await supabase.rpc('get_metricas_globales');
       setMetricasGlobales(data ?? {});
     } catch {
-      toast.error('Error cargando métricas globales');
+      toast.error('Error cargando m\u00e9tricas globales');
     } finally {
       setMetricasLoading(false);
     }
@@ -589,7 +598,6 @@ Sé directa, empática y concisa. Sin bullet points, solo texto corrido. Sin emo
           supabase.rpc('get_user_diary', { target_user_id: p.id }),
         ]);
 
-        // Fallback: if RPC returns no tasks, query hoja_de_ruta directly
         let tareas = tareasRes.data ?? [];
         if (tareas.length === 0) {
           const { data: hrRows } = await supabase
@@ -603,7 +611,6 @@ Sé directa, empática y concisa. Sin bullet points, solo texto corrido. Sin emo
             }));
           }
         }
-        // Calculate total from seed when RPC doesn't provide it
         const totalFromSeed = SEED_ROADMAP_V2.reduce((acc, pil) => acc + pil.metas.length, 0);
         const metricas = metricasRes.data ?? [];
         const ultimaDiario = diarioRes.data?.[0]?.fecha;
@@ -618,7 +625,6 @@ Sé directa, empática y concisa. Sin bullet points, solo texto corrido. Sin emo
           semaforo = 'verde';
         }
 
-        // v2.0: calcular racha de diario, ventas y garantía
         const entradas = diarioRes.data ?? [];
         let rachaActual = 0;
         const hoy = new Date();
@@ -642,13 +648,11 @@ Sé directa, empática y concisa. Sin bullet points, solo texto corrido. Sin emo
         }
 
         const tareasCompletadas = tareas.filter((t: any) => t.status === 'completada' || t.completada).length;
-        // Fallback: derive from progreso_porcentaje on profile when task data is unavailable
         const progPct = (p as any).progreso_porcentaje ?? 0;
         const tareasCompletadasFallback = tareasCompletadas === 0 && progPct > 0
           ? Math.round((progPct / 100) * totalFromSeed)
           : tareasCompletadas;
 
-        // Calcular progreso real por pilar desde hoja_de_ruta
         const tareasPorPilar: Record<number, number> = {};
         for (const t of tareas) {
           if (t.completada || t.status === 'completada') {
@@ -692,7 +696,6 @@ Sé directa, empática y concisa. Sin bullet points, solo texto corrido. Sin emo
           supabase.rpc('get_user_diary', { target_user_id: userId }),
           supabase.rpc('get_user_metrics', { target_user_id: userId }),
         ]);
-        // Fallback: if RPC returns no tasks, query hoja_de_ruta directly
         let tareasDetalle = t.data ?? [];
         if (tareasDetalle.length === 0) {
           const { data: hrRows } = await supabase
@@ -743,31 +746,31 @@ Sé directa, empática y concisa. Sin bullet points, solo texto corrido. Sin emo
       const lastMetric = detalleMetricas[detalleMetricas.length - 1];
 
       const diarioResumen = lastDiary
-        ? `Cómo se sintió: "${lastDiary.q1 || '—'}". Lo que lo frenó: "${lastDiary.q2 || '—'}". Energía: ${lastDiary.q3 || '—'}/10. Acción tomada: "${lastDiary.q4 || '—'}". Plan para mañana: "${lastDiary.q7 || '—'}".`
+        ? `C\u00f3mo se sinti\u00f3: "${lastDiary.q1 || '\u2014'}". Lo que lo fren\u00f3: "${lastDiary.q2 || '\u2014'}". Energ\u00eda: ${lastDiary.q3 || '\u2014'}/10. Acci\u00f3n tomada: "${lastDiary.q4 || '\u2014'}". Plan para ma\u00f1ana: "${lastDiary.q7 || '\u2014'}".`
         : 'Sin entradas de diario recientes.';
 
-      const prompt = `Sos el sistema de inteligencia de coaching del programa "Sanar OS" para profesionales de la salud. Tu rol es asistir al DIRECTOR/COACH humano dándole un briefing claro sobre el estado de un cliente específico y recomendaciones accionables para su próxima intervención.
+      const prompt = `Sos el sistema de inteligencia de coaching del programa "Sanar OS" para profesionales de la salud. Tu rol es asistir al DIRECTOR/COACH humano d\u00e1ndole un briefing claro sobre el estado de un cliente espec\u00edfico y recomendaciones accionables para su pr\u00f3xima intervenci\u00f3n.
 
 CLIENTE: ${selectedCliente.nombre} (${selectedCliente.especialidad || 'especialidad no indicada'})
-PLAN: ${selectedCliente.plan} · Día ${selectedCliente.dia_programa} de 90 · Semana ${selectedCliente.semana_programa} de 12
+PLAN: ${selectedCliente.plan} \u00b7 D\u00eda ${selectedCliente.dia_programa} de 90 \u00b7 Semana ${selectedCliente.semana_programa} de 12
 PROGRESO: ${selectedCliente.tareas_completadas} de ${selectedCliente.tareas_total} tareas completadas (${selectedCliente.tareas_total > 0 ? Math.round((selectedCliente.tareas_completadas / selectedCliente.tareas_total) * 100) : 0}%)
-RACHA DIARIO: ${selectedCliente.racha_diario} días consecutivos
+RACHA DIARIO: ${selectedCliente.racha_diario} d\u00edas consecutivos
 VENTAS REALES: ${selectedCliente.ventas_count}
-ÚLTIMO DIARIO: ${diarioResumen}
-MÉTRICAS NEGOCIO: ${lastMetric ? `${lastMetric.leads} leads, ${lastMetric.conversaciones ?? 0} llamadas, ${lastMetric.ventas} ventas en la última semana` : 'sin datos de métricas aún'}
+\u00daLTIMO DIARIO: ${diarioResumen}
+M\u00c9TRICAS NEGOCIO: ${lastMetric ? `${lastMetric.leads} leads, ${lastMetric.conversaciones ?? 0} llamadas, ${lastMetric.ventas} ventas en la \u00faltima semana` : 'sin datos de m\u00e9tricas a\u00fan'}
 
-Generá un briefing para el coach en 3 partes:
-1. ESTADO ACTUAL (1-2 oraciones sobre dónde está el cliente y su ritmo real)
-2. RIESGO O PUNTO CRÍTICO (qué puede frenar el avance si no se interviene)
-3. ACCIÓN SUGERIDA PARA EL COACH (qué decirle o hacer en la próxima interacción — específico y directo)
+Gener\u00e1 un briefing para el coach en 3 partes:
+1. ESTADO ACTUAL (1-2 oraciones sobre d\u00f3nde est\u00e1 el cliente y su ritmo real)
+2. RIESGO O PUNTO CR\u00cdTICO (qu\u00e9 puede frenar el avance si no se interviene)
+3. ACCI\u00d3N SUGERIDA PARA EL COACH (qu\u00e9 decirle o hacer en la pr\u00f3xima interacci\u00f3n \u2014 espec\u00edfico y directo)
 
-Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
+Tono: profesional, directo, orientado a resultados. Sin emojis. En espa\u00f1ol.`;
 
       const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY || '' });
       const result = await ai.models.generateContent({ model: 'gemini-2.5-flash', contents: [{ role: 'user', parts: [{ text: prompt }] }] });
       setIaRecomendacion(result.text ?? '');
     } catch {
-      toast.error('Error generando recomendación IA');
+      toast.error('Error generando recomendaci\u00f3n IA');
     } finally {
       setIaLoading(false);
     }
@@ -778,7 +781,6 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
     setEnviando(true);
     const texto = mensajeInput.trim();
     const tempId = crypto.randomUUID();
-    // Optimistic insert — show immediately before DB confirms
     const optimisticMsg: Mensaje = {
       id: tempId,
       canal: 'privado',
@@ -795,7 +797,6 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
       });
       if (error) throw error;
     } catch {
-      // Roll back optimistic insert
       setDetalleMensajes(prev => prev.filter(m => m.id !== tempId));
       setMensajeInput(texto);
       toast.error('Error enviando mensaje');
@@ -857,10 +858,11 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
       setAdminVideos(data.map((v: any) => ({
         id: v.id,
         grupo: v.grupo,
+        pilar_id: v.pilar_id ?? undefined,
         titulo: v.titulo,
         descripcion: v.descripcion,
         youtubeUrl: v.youtube_url,
-        duracion: v.duracion
+        duracion: v.duracion,
       })));
     } catch {
       toast.error('Error cargando videos');
@@ -873,30 +875,30 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
     if (!supabase) return;
     try {
       if (v.id) {
-        // UPDATE
         const { error } = await supabase
           .from('programa_videos')
           .update({
             grupo: v.grupo,
+            pilar_id: v.pilar_id ?? null,
             titulo: v.titulo,
             descripcion: v.descripcion,
             youtube_url: v.youtubeUrl,
-            duracion: v.duracion
+            duracion: v.duracion,
           })
           .eq('id', v.id);
         if (error) throw error;
         setAdminVideos(prev => prev.map(old => old.id === v.id ? { ...old, ...v, id: v.id! } : old));
         toast.success('Video actualizado');
       } else {
-        // INSERT
         const { data, error } = await supabase
           .from('programa_videos')
           .insert({
             grupo: v.grupo,
+            pilar_id: v.pilar_id ?? null,
             titulo: v.titulo,
             descripcion: v.descripcion,
             youtube_url: v.youtubeUrl,
-            duracion: v.duracion
+            duracion: v.duracion,
           })
           .select()
           .single();
@@ -904,10 +906,11 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
         setAdminVideos(prev => [...prev, {
           id: data.id,
           grupo: data.grupo,
+          pilar_id: data.pilar_id ?? undefined,
           titulo: data.titulo,
           descripcion: data.descripcion,
           youtubeUrl: data.youtube_url,
-          duracion: data.duracion
+          duracion: data.duracion,
         }]);
         toast.success('Video guardado en la nube');
       }
@@ -996,13 +999,12 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
           especialidad: adminDraft.cargo,
         }).eq('id', adminProfile.id);
       }
-      // Persist locally so sidebar reflects change immediately
       adminProfile.nombre = adminDraft.nombre;
       adminProfile.especialidad = adminDraft.cargo;
       toast.success('Perfil actualizado.');
       setShowAdminSettings(false);
     } catch {
-      toast.error('Error al guardar. Intentá de nuevo.');
+      toast.error('Error al guardar. Intent\u00e1 de nuevo.');
     } finally {
       setGuardandoAdmin(false);
     }
@@ -1026,8 +1028,7 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
     try {
       const url = import.meta.env.VITE_SUPABASE_URL;
       const key = import.meta.env.VITE_SUPABASE_ANON_KEY;
-      
-      // Creamos un cliente local descartable (sin persistir sesión) para no desloguear al admin
+
       const tempClient = createClient(url, key, {
         auth: {
           persistSession: false,
@@ -1040,14 +1041,12 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
         email: nuevoForm.email.trim(),
         password: nuevoForm.password.trim(),
         options: {
-          data: { nombre: nuevoForm.nombre.trim() } // Esto dispara el trigger para crear en profiles!
+          data: { nombre: nuevoForm.nombre.trim() }
         }
       });
       if (error) throw error;
 
-      // Actualizar perfil con datos extra (el trigger de Supabase crea el perfil base)
       if (signUpData.user && supabase) {
-        // Pequeño delay para que el trigger termine
         await new Promise(r => setTimeout(r, 1500));
         await supabase.from('profiles').update({
           especialidad: nuevoForm.especialidad.trim() || null,
@@ -1058,7 +1057,7 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
         }).eq('id', signUpData.user.id);
       }
 
-      toast.success(`Cuenta creada para ${nuevoForm.nombre}. Ya puede iniciar sesión.`);
+      toast.success(`Cuenta creada para ${nuevoForm.nombre}. Ya puede iniciar sesi\u00f3n.`);
       setShowNuevoCliente(false);
       setNuevoForm({ nombre: '', email: '', password: '', especialidad: '', plan: 'DWY', fecha_inicio: new Date().toISOString().split('T')[0], status: 'ONBOARDING' });
       await cargarClientes();
@@ -1069,69 +1068,163 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
     }
   }
 
+  async function cargarEquipo() {
+    if (!supabase) return;
+    setTeamLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('rol', 'admin');
+      if (error) throw error;
+      setTeamMembers(data ?? []);
+    } catch {
+      toast.error('Error cargando equipo');
+    } finally {
+      setTeamLoading(false);
+    }
+  }
+
+  async function cambiarRolAdmin(targetId: string, newRol: AdminRol) {
+    if (!supabase) return;
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ admin_rol: newRol })
+        .eq('id', targetId);
+      if (error) throw error;
+      setTeamMembers(prev => prev.map(m => m.id === targetId ? { ...m, admin_rol: newRol } : m));
+      toast.success('Rol actualizado');
+    } catch {
+      toast.error('Error actualizando rol');
+    }
+  }
+
+  async function cargarChecklist() {
+    if (!supabase) return;
+    setChecklistLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('admin_tareas_checklist')
+        .select('*')
+        .eq('admin_id', adminProfile.id)
+        .order('created_at');
+      if (error) throw error;
+      setChecklistItems((data ?? []) as AdminChecklistItem[]);
+    } catch {
+      // table may not exist yet
+    } finally {
+      setChecklistLoading(false);
+    }
+  }
+
+  async function toggleChecklistItem(itemId: string, completada: boolean) {
+    if (!supabase) return;
+    try {
+      const { error } = await supabase
+        .from('admin_tareas_checklist')
+        .update({ completada, fecha_completada: completada ? new Date().toISOString() : null })
+        .eq('id', itemId);
+      if (error) throw error;
+      setChecklistItems(prev => prev.map(item =>
+        item.id === itemId ? { ...item, completada, fecha_completada: completada ? new Date().toISOString() : undefined } : item
+      ));
+    } catch {
+      toast.error('Error actualizando tarea');
+    }
+  }
+
   const detailTabs: { id: DetalleTab; label: string; icon: React.ElementType }[] = [
     { id: 'resumen', label: 'Resumen', icon: TrendingUp },
     { id: 'diario', label: 'Diario', icon: Calendar },
-    { id: 'metricas', label: 'Métricas', icon: BarChart2 },
+    { id: 'metricas', label: 'M\u00e9tricas', icon: BarChart2 },
     { id: 'mensajes', label: 'Chat', icon: MessageSquare },
     { id: 'notas', label: 'Notas', icon: BookOpen },
   ];
 
+  // Filter clients
+  const filteredClientes = clientes.filter(c => {
+    const matchSearch = !clientSearch || c.nombre.toLowerCase().includes(clientSearch.toLowerCase());
+    const matchStatus = filtroStatus === 'ALL' || c.status === filtroStatus || (!c.status && filtroStatus === 'ACTIVE');
+    return matchSearch && matchStatus;
+  });
+
+  // ─── SIDEBAR NAV CONFIG ───────────────────────────────────────────────────────
+
+  const sidebarItems: { id: MainTab; label: string; icon: React.ElementType; ownerOnly?: boolean }[] = [
+    { id: 'clientes', label: 'Clientes', icon: Users },
+    { id: 'mensajes', label: 'Mensajes', icon: MessageSquare },
+    { id: 'metricas', label: 'M\u00e9tricas', icon: BarChart2 },
+    { id: 'videos', label: 'Videos', icon: Video },
+    { id: 'equipo', label: 'Equipo', icon: UsersRound, ownerOnly: true },
+  ];
+
+  const headerTitles: Record<MainTab, string> = {
+    clientes: 'Panel de Control \u2014 Clientes',
+    mensajes: 'Centro de Mensajes',
+    metricas: 'M\u00e9tricas Globales del Programa',
+    videos: 'Gesti\u00f3n de Videos',
+    equipo: 'Gesti\u00f3n de Equipo',
+  };
+
+  // ─── RENDER ───────────────────────────────────────────────────────────────────
+
   return (
     <div className="flex h-screen bg-[#080808] text-[#F5F0E1] font-sans overflow-hidden selection:bg-[#D4A24E]/30">
       <div className="fixed top-[-10%] left-[-10%] w-[500px] h-[500px] bg-[#D4A24E]/10 rounded-full blur-[150px] pointer-events-none" />
-      
-      {/* ─── SIDEBAR DEL ADMIN ─────────────────────────────────────────────────────────── */}
-      <aside className="w-[280px] shrink-0 border-r border-[rgba(212,162,78,0.1)] bg-black/40 backdrop-blur-3xl flex flex-col z-20">
-        <div className="p-6">
+
+      {/* ─── SIDEBAR ─────────────────────────────────────────────────────────── */}
+      <aside className="w-[220px] shrink-0 border-r border-[rgba(212,162,78,0.1)] bg-[#0E0B07] flex flex-col z-20">
+        <div className="p-5">
           <div className="flex items-center gap-3 mb-8">
             <div className="w-10 h-10 rounded-xl bg-[#D4A24E] flex items-center justify-center shadow-[0_0_20px_rgba(212,162,78,0.3)]">
               <Stethoscope className="w-5 h-5 text-[#F5F0E1]" />
             </div>
             <div>
-              <h1 className="text-sm font-semibold text-[#F5F0E1] tracking-wide">Tu Clínica Digital</h1>
-              <p className="text-[10px] text-[#D4A24E] uppercase tracking-widest font-bold">Director</p>
+              <h1 className="text-sm font-semibold text-[#F5F0E1] tracking-wide">Sanar OS</h1>
+              <p className="text-[10px] text-[#D4A24E] uppercase tracking-widest font-bold">Admin</p>
             </div>
           </div>
 
-          <nav className="space-y-1">
-            {[
-              { id: 'dashboard', label: 'Clientes', icon: Users },
-              { id: 'metricas_globales', label: 'Métricas Globales', icon: BarChart2 },
-              { id: 'mensajes_privados', label: 'Mensajes', icon: MessageSquare },
-              { id: 'comunidad', label: 'Comunidad', icon: Users },
-              { id: 'victorias', label: 'Victorias', icon: Trophy },
-              { id: 'consultas', label: 'Consultas', icon: Hash },
-              { id: 'videos', label: 'Videos', icon: Video },
-            ].map(item => {
-              const unread = channelUnread[item.id] ?? 0;
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => {
-                    setMainTab(item.id as MainTab);
-                    setChannelUnread(prev => ({ ...prev, [item.id]: 0 }));
-                  }}
-                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all group ${
-                    mainTab === item.id
-                      ? 'bg-[#D4A24E]/10 text-[#D4A24E]'
-                      : 'text-[#F5F0E1]/60 hover:bg-[#241A0C]/60 hover:text-[#F5F0E1]'
-                  }`}
-                >
-                  <item.icon className="w-4 h-4" />
-                  {item.label}
-                  {unread > 0 && (
-                    <span className="ml-auto min-w-[18px] h-[18px] px-1 rounded-full bg-[#D4A24E] text-[#F5F0E1] text-[10px] font-bold flex items-center justify-center">
-                      {unread}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
+          <nav className="space-y-0.5">
+            {sidebarItems
+              .filter(item => !item.ownerOnly || adminRol === 'owner' || !adminRol)
+              .map(item => {
+                const totalUnread = item.id === 'mensajes'
+                  ? (channelUnread['comunidad'] ?? 0) + (channelUnread['victorias'] ?? 0) + (channelUnread['consultas'] ?? 0)
+                  : 0;
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => {
+                      setMainTab(item.id);
+                      if (item.id === 'mensajes') {
+                        setChannelUnread(prev => ({ ...prev, comunidad: 0, victorias: 0, consultas: 0 }));
+                      }
+                    }}
+                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all group relative ${
+                      mainTab === item.id
+                        ? 'bg-[#D4A24E]/10 text-[#D4A24E]'
+                        : 'text-[#F5F0E1]/60 hover:bg-[#D4A24E]/10 hover:text-[#F5F0E1]'
+                    }`}
+                  >
+                    {mainTab === item.id && (
+                      <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-6 bg-[#D4A24E] rounded-r-full" />
+                    )}
+                    <item.icon className="w-4 h-4" />
+                    {item.label}
+                    {totalUnread > 0 && (
+                      <span className="ml-auto min-w-[18px] h-[18px] px-1 rounded-full bg-[#D4A24E] text-[#F5F0E1] text-[10px] font-bold flex items-center justify-center">
+                        {totalUnread}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
           </nav>
         </div>
 
-        <div className="mt-auto p-6 border-t border-[rgba(212,162,78,0.1)]">
+        <div className="mt-auto p-5 border-t border-[rgba(212,162,78,0.1)]">
           <div className="flex items-center gap-3 mb-4">
             <div className="w-9 h-9 rounded-full overflow-hidden bg-[#D4A24E]/10 flex items-center justify-center text-sm font-bold border border-[rgba(212,162,78,0.3)] shrink-0">
               {adminAvatar
@@ -1157,22 +1250,713 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
         </div>
       </aside>
 
-      {/* ─── MAIN CONTENT ──────────────────────────────────────────────────────────────── */}
-      <main className="flex-1 flex flex-col relative z-10 overflow-hidden bg-[url('https://grainy-gradients.vercel.app/noise.svg')] bg-opacity-50">
+      {/* ─── MAIN CONTENT ──────────────────────────────────────────────────── */}
+      <main className="flex-1 flex flex-col relative z-10 overflow-hidden">
         <header className="h-16 border-b border-[rgba(212,162,78,0.1)] flex items-center px-6 shrink-0 bg-black/20 backdrop-blur-md">
-          <h2 className="text-sm font-semibold text-[#F5F0E1]/90 capitalize tracking-wide">
-            {mainTab === 'dashboard' ? 'Panel de Control - Clientes'
-              : mainTab === 'metricas_globales' ? 'Métricas Globales del Programa'
-              : mainTab === 'mensajes_privados' ? 'Mensajes Privados'
-              : mainTab === 'videos' ? 'Gestión de Videos'
-              : `Canal: ${mainTab}`}
+          <h2 className="text-lg font-medium tracking-tight" style={{ fontFamily: 'var(--font-display)', fontStyle: 'italic', color: '#F5F0E1' }}>
+            {headerTitles[mainTab]}
           </h2>
         </header>
 
-        <div className={`flex-1 scrollbar-hide ${['comunidad','victorias','consultas','mensajes_privados'].includes(mainTab) ? 'overflow-hidden flex flex-col' : 'overflow-y-auto p-6'}`}>
-          {mainTab === 'metricas_globales' ? (
+        <div className={`flex-1 scrollbar-hide ${mainTab === 'mensajes' ? 'overflow-hidden flex flex-col' : 'overflow-y-auto p-6'}`}>
+
+          {/* ═══════════════════════════════════════════════════════════════════════
+              TAB: CLIENTES
+              ═══════════════════════════════════════════════════════════════════════ */}
+          {mainTab === 'clientes' && !selectedCliente && (
+            <div className="max-w-6xl mx-auto space-y-5">
+              {/* Header row */}
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex items-center gap-3 flex-1">
+                  <div className="relative flex-1 max-w-sm">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#F5F0E1]/30" />
+                    <input
+                      type="text"
+                      value={clientSearch}
+                      onChange={e => setClientSearch(e.target.value)}
+                      placeholder="Buscar por nombre..."
+                      className="w-full bg-black/20 border border-[rgba(212,162,78,0.2)] rounded-lg py-2.5 pl-10 pr-4 text-sm text-[#F5F0E1] focus:outline-none focus:border-[#D4A24E]/50 transition-all"
+                    />
+                  </div>
+                  <CustomSelect
+                    value={filtroStatus}
+                    onChange={(val) => setFiltroStatus(val as UserStatus | 'ALL')}
+                    options={[
+                      { value: 'ALL', label: 'Todos los estados' },
+                      { value: 'ACTIVE', label: 'Activos' },
+                      { value: 'ONBOARDING', label: 'Onboarding' },
+                      { value: 'PAUSED', label: 'Pausados' },
+                      { value: 'CHURNED', label: 'Inactivos' },
+                      { value: 'COMPLETED', label: 'Completados' },
+                    ]}
+                    className="w-48"
+                  />
+                </div>
+                <button
+                  onClick={() => setShowNuevoCliente(true)}
+                  className="btn-primary flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold shadow-lg shadow-[#D4A24E]/20"
+                >
+                  <Plus className="w-4 h-4" /> Nuevo Cliente
+                </button>
+              </div>
+
+              {/* Client table */}
+              <div className="card-panel border border-[rgba(212,162,78,0.2)] rounded-2xl overflow-hidden">
+                {loading ? (
+                  <div className="flex justify-center py-16"><Loader2 className="w-6 h-6 text-[#D4A24E] animate-spin" /></div>
+                ) : filteredClientes.length === 0 ? (
+                  <div className="text-center py-16">
+                    <Users className="w-8 h-8 text-gray-700 mx-auto mb-3" />
+                    <p className="text-[#F5F0E1]/40 text-sm">Sin clientes que coincidan</p>
+                  </div>
+                ) : (
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b border-[rgba(212,162,78,0.1)]">
+                        {['Nombre', 'Email', 'Plan', 'Inicio', 'D\u00edas', 'Pilar', 'Estado', 'Progreso'].map(h => (
+                          <th key={h} className="text-left px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-[#F5F0E1]/40">{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredClientes.map(c => {
+                        const pct = c.tareas_total > 0
+                          ? Math.round((c.tareas_completadas / c.tareas_total) * 100)
+                          : (c.progreso_porcentaje ?? 0);
+                        const pilar = (c as any).pilar_actual
+                          ? `P${(c as any).pilar_actual}`
+                          : derivePilarFromProgress(c.tareas_completadas);
+                        const st = c.status ?? 'ACTIVE';
+                        const stCfg = STATUS_CONFIG[st];
+                        return (
+                          <tr
+                            key={c.id}
+                            onClick={() => { setSelectedCliente(c); setDetalleTab('resumen'); setIaRecomendacion(''); }}
+                            className="bg-[#1A1410] hover:bg-[#241A0C] border-b border-[rgba(212,162,78,0.1)] cursor-pointer transition-colors group"
+                          >
+                            <td className="px-4 py-3">
+                              <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 rounded-full bg-[#D4A24E]/10 border border-[rgba(212,162,78,0.2)] flex items-center justify-center text-xs font-bold text-[#F5F0E1] shrink-0">
+                                  {c.nombre.charAt(0).toUpperCase()}
+                                </div>
+                                <span className="text-sm font-medium text-[#F5F0E1] group-hover:text-[#D4A24E] transition-colors truncate max-w-[140px]">{c.nombre}</span>
+                              </div>
+                            </td>
+                            <td className="px-4 py-3 text-xs text-[#F5F0E1]/50 truncate max-w-[160px]">{c.email}</td>
+                            <td className="px-4 py-3">
+                              <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-[#D4A24E]/10 text-[#D4A24E] border border-[#D4A24E]/20">{c.plan}</span>
+                            </td>
+                            <td className="px-4 py-3 text-xs text-[#F5F0E1]/50">{c.fecha_inicio}</td>
+                            <td className="px-4 py-3 text-xs text-[#F5F0E1]/60 font-medium">{c.dia_programa}</td>
+                            <td className="px-4 py-3 text-xs text-[#D4A24E] font-medium">{pilar}</td>
+                            <td className="px-4 py-3">
+                              <span
+                                className="text-[10px] font-bold px-2 py-1 rounded-md uppercase tracking-wider"
+                                style={{
+                                  color: STATUS_BADGE_COLOR[st] ?? '#F5F0E1',
+                                  backgroundColor: `${STATUS_BADGE_COLOR[st] ?? '#F5F0E1'}15`,
+                                  border: `1px solid ${STATUS_BADGE_COLOR[st] ?? '#F5F0E1'}30`,
+                                }}
+                              >
+                                {stCfg?.label ?? st}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3">
+                              <div className="flex items-center gap-2">
+                                <div className="flex-1 h-1.5 bg-[#D4A24E]/5 rounded-full overflow-hidden w-20">
+                                  <div
+                                    className="h-full rounded-full bg-[#D4A24E]"
+                                    style={{ width: `${pct}%` }}
+                                  />
+                                </div>
+                                <span className="text-[10px] text-[#F5F0E1]/50 w-8 text-right">{pct}%</span>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* ── Client detail view ── */}
+          {mainTab === 'clientes' && selectedCliente && (
+            <div className="flex gap-6" style={{ height: 'calc(100vh - 120px)' }}>
+              {/* Left: client list narrow */}
+              <div className="w-[240px] shrink-0 flex flex-col">
+                <button
+                  onClick={() => setSelectedCliente(null)}
+                  className="flex items-center gap-2 text-xs text-[#F5F0E1]/40 hover:text-[#F5F0E1] transition-colors mb-3"
+                >
+                  <ChevronRight className="w-3 h-3 rotate-180" /> Volver a la tabla
+                </button>
+                <div className="space-y-1.5 overflow-y-auto scrollbar-hide flex-1">
+                  {clientes.map(c => (
+                    <button
+                      key={c.id}
+                      onClick={() => { setSelectedCliente(c); setDetalleTab('resumen'); setIaRecomendacion(''); }}
+                      className={`w-full text-left p-3 rounded-xl border transition-all ${
+                        selectedCliente?.id === c.id
+                          ? 'bg-[#D4A24E]/10 border-[#D4A24E]/30'
+                          : 'bg-[#1A1410] border-[rgba(212,162,78,0.1)] hover:bg-[#D4A24E]/5'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <div className={`w-2 h-2 rounded-full shrink-0 ${SEMAFORO_CONFIG[c.semaforo].class}`} />
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium text-[#F5F0E1] truncate">{c.nombre}</p>
+                          <p className="text-[10px] text-[#F5F0E1]/40">D\u00eda {c.dia_programa}/90</p>
+                        </div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Right: detail panel */}
+              <div className="flex-1 card-panel border border-[rgba(212,162,78,0.2)] rounded-2xl overflow-hidden flex flex-col shadow-2xl relative">
+                {/* Header */}
+                <div className="absolute top-0 right-0 p-4 z-10">
+                  <button onClick={() => setSelectedCliente(null)} className="p-2 rounded-full bg-black/40 text-[#F5F0E1]/60 hover:text-[#F5F0E1] hover:bg-[#D4A24E]/10 transition-colors backdrop-blur-md">
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+
+                <div className="p-8 border-b border-[rgba(212,162,78,0.1)] flex items-center gap-5 shrink-0 bg-[#241A0C]/30">
+                  <div className="w-16 h-16 rounded-2xl bg-[#D4A24E]/20 border border-[#D4A24E]/30 flex items-center justify-center text-xl font-bold text-[#D4A24E] shadow-inner">
+                    {selectedCliente.nombre.charAt(0).toUpperCase()}
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-3 mb-1.5 flex-wrap">
+                      <h3 className="text-2xl font-light text-[#F5F0E1] tracking-tight">{selectedCliente.nombre}</h3>
+                      <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider ${selectedCliente.plan === 'DFY' ? 'bg-[#D4A24E]/20 text-[#D4A24E] border border-[#D4A24E]/30' : selectedCliente.plan === 'IMPLEMENTACION' ? 'bg-[#2DD4A0]/20 text-[#2DD4A0] border border-[#2DD4A0]/30' : 'bg-[#D4A24E]/20 text-[#D4A24E] border border-[#D4A24E]/30'}`}>
+                        {selectedCliente.plan}
+                      </span>
+                      {/* Status badge + quick change */}
+                      <div className="flex items-center gap-1.5 relative group">
+                        {(() => {
+                          const st = selectedCliente.status ?? 'ACTIVE';
+                          const cfg = STATUS_CONFIG[st];
+                          return (
+                            <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider ${cfg?.bg} ${cfg?.color} border ${cfg?.border}`}>
+                              {cfg?.label ?? st}
+                            </span>
+                          );
+                        })()}
+                        <select
+                          disabled={statusCambiando}
+                          value={selectedCliente.status ?? 'ACTIVE'}
+                          onChange={e => cambiarStatusCliente(e.target.value as UserStatus)}
+                          className="opacity-0 absolute inset-0 w-full cursor-pointer"
+                          title="Cambiar estado"
+                        >
+                          {Object.entries(STATUS_CONFIG).map(([val, cfg]) => (
+                            <option key={val} value={val}>{cfg.label}</option>
+                          ))}
+                        </select>
+                        <span title="Click en el badge para cambiar"><Pencil className="w-3 h-3 text-[#F5F0E1]/30 group-hover:text-[#F5F0E1]/60 transition-colors" /></span>
+                      </div>
+                    </div>
+                    <p className="text-xs text-[#F5F0E1]/60 flex items-center gap-2">
+                      <Lock className="w-3 h-3 text-[#F5F0E1]/30" /> {selectedCliente.email}
+                      {selectedCliente.especialidad && <><span>\u00b7</span> {selectedCliente.especialidad}</>}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Tabs nav */}
+                <div className="flex border-b border-[rgba(212,162,78,0.1)] px-6 shrink-0 bg-black/20">
+                  {detailTabs.map(tab => (
+                    <button
+                      key={tab.id}
+                      onClick={() => setDetalleTab(tab.id)}
+                      className={`flex items-center gap-2 px-4 py-4 text-xs font-semibold uppercase tracking-wider transition-all relative ${
+                        detalleTab === tab.id
+                          ? 'text-[#D4A24E]'
+                          : 'text-[#F5F0E1]/40 hover:text-[#F5F0E1]/80'
+                      }`}
+                    >
+                      <tab.icon className="w-3.5 h-3.5" />
+                      {tab.label}
+                      {detalleTab === tab.id && (
+                        <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#D4A24E] rounded-t-full shadow-[0_0_10px_rgba(212,162,78,0.5)]" />
+                      )}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Content */}
+                <div className="flex-1 overflow-y-auto p-6 scrollbar-hide bg-black/10">
+                  {detalleLoading ? (
+                    <div className="flex items-center justify-center h-full"><Loader2 className="w-6 h-6 text-[#D4A24E] animate-spin" /></div>
+                  ) : (
+                    <>
+                      {/* ── RESUMEN ── */}
+                      {detalleTab === 'resumen' && (
+                        <div className="space-y-6">
+                          <div className="grid grid-cols-4 gap-3">
+                            <div className="bg-[#1A1410] border border-[rgba(212,162,78,0.1)] rounded-2xl p-4 text-center">
+                              <p className="text-2xl font-light text-[#F5F0E1]">{selectedCliente.dia_programa}</p>
+                              <p className="text-[10px] text-[#F5F0E1]/40 uppercase tracking-wider mt-1">D\u00eda / 90</p>
+                            </div>
+                            <div className="bg-[#1A1410] border border-[rgba(212,162,78,0.1)] rounded-2xl p-4 text-center">
+                              <p className="text-2xl font-light text-[#D4A24E] flex items-center justify-center gap-1"><Flame className="w-5 h-5" /> {selectedCliente.racha_diario}</p>
+                              <p className="text-[10px] text-[#F5F0E1]/40 uppercase tracking-wider mt-1">Racha diario</p>
+                            </div>
+                            <div className="bg-[#1A1410] border border-[rgba(212,162,78,0.1)] rounded-2xl p-4 text-center">
+                              <p className="text-2xl font-light text-[#2DD4A0]">{selectedCliente.ventas_count}</p>
+                              <p className="text-[10px] text-[#F5F0E1]/40 uppercase tracking-wider mt-1">Ventas reales</p>
+                            </div>
+                            <div className={`rounded-2xl p-4 text-center border ${
+                              selectedCliente.estado_garantia === 'activada' ? 'bg-[#E85555]/10 border-[#E85555]/30' :
+                              selectedCliente.estado_garantia === 'en_riesgo' ? 'bg-[#D4A24E]/10 border-[#D4A24E]/30' :
+                              'bg-[#1A1410] border-[rgba(212,162,78,0.1)]'
+                            }`}>
+                              <Shield className={`w-6 h-6 mx-auto mb-1 ${
+                                selectedCliente.estado_garantia === 'activada' ? 'text-[#E85555]' :
+                                selectedCliente.estado_garantia === 'en_riesgo' ? 'text-[#D4A24E]' : 'text-[#F5F0E1]/30'
+                              }`} />
+                              <p className={`text-[10px] uppercase tracking-wider font-bold ${
+                                selectedCliente.estado_garantia === 'activada' ? 'text-[#E85555]' :
+                                selectedCliente.estado_garantia === 'en_riesgo' ? 'text-[#D4A24E]' : 'text-[#F5F0E1]/40'
+                              }`}>{selectedCliente.estado_garantia === 'activada' ? 'Garant\u00eda' : selectedCliente.estado_garantia === 'en_riesgo' ? 'En riesgo' : 'En camino'}</p>
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="bg-[#1A1410] border border-[rgba(212,162,78,0.1)] rounded-2xl p-5">
+                              <p className="text-[10px] text-[#F5F0E1]/40 uppercase tracking-widest mb-1 font-bold">Progreso de Tareas</p>
+                              <div className="flex items-end gap-2 mb-3">
+                                <p className="text-3xl font-light text-[#F5F0E1]">{selectedCliente.tareas_completadas}</p>
+                                <p className="text-sm text-[#F5F0E1]/40 mb-1">/ {selectedCliente.tareas_total}</p>
+                              </div>
+                              <div className="h-2 bg-[#D4A24E]/5 rounded-full overflow-hidden">
+                                <div className="h-full bg-[#D4A24E] rounded-full" style={{ width: `${selectedCliente.tareas_total > 0 ? Math.round((selectedCliente.tareas_completadas / selectedCliente.tareas_total) * 100) : 0}%` }} />
+                              </div>
+                            </div>
+                            <div className="bg-[#1A1410] border border-[rgba(212,162,78,0.1)] rounded-2xl p-5">
+                              <p className="text-[10px] text-[#F5F0E1]/40 uppercase tracking-widest mb-2 font-bold">\u00daltimo Diario</p>
+                              {detalleDiario[0] ? (
+                                <>
+                                  <p className="text-xs text-[#F5F0E1]/40 mb-2">{new Date(detalleDiario[0].fecha + 'T12:00:00').toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
+                                  {detalleDiario[0].respuestas?.q3 && (
+                                    <div className="flex items-center gap-1.5 mb-2">
+                                      <span className="text-[10px] text-[#F5F0E1]/40 uppercase font-bold">Energ\u00eda</span>
+                                      <div className="flex gap-0.5">
+                                        {Array.from({ length: 10 }).map((_, i) => (
+                                          <div key={i} className={`w-2 h-2 rounded-sm ${i < Number(detalleDiario[0].respuestas.q3) ? 'bg-[#D4A24E]' : 'bg-[#D4A24E]/10'}`} />
+                                        ))}
+                                      </div>
+                                      <span className="text-[10px] text-[#D4A24E] font-bold">{detalleDiario[0].respuestas.q3}/10</span>
+                                    </div>
+                                  )}
+                                  {detalleDiario[0].respuestas?.q4 && (
+                                    <p className="text-xs text-[#F5F0E1]/80 line-clamp-2"><span className="text-[#2DD4A0] font-bold">Acci\u00f3n: </span>{detalleDiario[0].respuestas.q4}</p>
+                                  )}
+                                  {detalleDiario[0].respuestas?.q2 && (
+                                    <p className="text-xs text-[#F5F0E1]/60 mt-1 line-clamp-1"><span className="text-[#D4A24E] font-bold">Freno: </span>{detalleDiario[0].respuestas.q2}</p>
+                                  )}
+                                </>
+                              ) : <p className="text-xs text-[#F5F0E1]/30">Sin entradas de diario a\u00fan</p>}
+                            </div>
+                          </div>
+
+                          <div className="bg-[#D4A24E]/5 border border-[#D4A24E]/20 rounded-2xl p-6 relative overflow-hidden">
+                            <Bot className="absolute -right-6 -bottom-6 w-32 h-32 text-[#F5F0E1]/5" />
+                            <div className="relative z-10">
+                              <div className="flex items-center justify-between mb-4">
+                                <div className="flex items-center gap-2">
+                                  <div className="w-8 h-8 rounded-lg bg-[#D4A24E]/20 flex items-center justify-center">
+                                    <Bot className="w-4 h-4 text-[#D4A24E]" />
+                                  </div>
+                                  <p className="text-xs font-bold uppercase tracking-widest text-[#D4A24E]">Coach AI Assistant</p>
+                                </div>
+                                <button
+                                  onClick={generarRecomendacion} disabled={iaLoading}
+                                  className="btn-primary flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all disabled:opacity-50 shadow-lg shadow-[#D4A24E]/20"
+                                >
+                                  {iaLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+                                  Analizar y Sugerir
+                                </button>
+                              </div>
+                              {iaRecomendacion ? (
+                                <div className="bg-black/20 rounded-xl p-4 border border-[#D4A24E]/20">
+                                  <p className="text-sm text-[#D4A24E] leading-relaxed whitespace-pre-line">{iaRecomendacion}</p>
+                                </div>
+                              ) : (
+                                <p className="text-xs text-[#F5F0E1]/40">Haz clic en Analizar para que la IA escanee el perfil, m\u00e9tricas diarias y tareas pendientes de este cliente para crear recomendaciones proactivas de coaching.</p>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* ── DIARIO ── */}
+                      {detalleTab === 'diario' && (
+                        <div className="space-y-4">
+                          {detalleDiario.length === 0 ? (
+                            <p className="text-[#F5F0E1]/40 text-sm text-center py-12">Sin entradas de diario</p>
+                          ) : detalleDiario.map((entrada: any, i: number) => {
+                            const r = entrada.respuestas ?? {};
+                            return (
+                              <div key={i} className="p-6 rounded-2xl bg-[#1A1410] border border-[rgba(212,162,78,0.1)]">
+                                <div className="flex items-center justify-between mb-4">
+                                  <p className="text-sm font-semibold text-[#F5F0E1] tracking-wide">
+                                    {new Date(entrada.fecha + 'T12:00:00').toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+                                  </p>
+                                  {r.q3 && (
+                                    <div className="flex items-center gap-1.5">
+                                      <span className="text-[10px] text-[#F5F0E1]/40 uppercase font-bold">Energ\u00eda</span>
+                                      <div className="flex gap-0.5">
+                                        {Array.from({ length: 10 }).map((_, idx) => (
+                                          <div key={idx} className={`w-2 h-2 rounded-sm ${idx < Number(r.q3) ? 'bg-[#D4A24E]' : 'bg-[#D4A24E]/10'}`} />
+                                        ))}
+                                      </div>
+                                      <span className="text-[10px] text-[#D4A24E] font-bold">{r.q3}/10</span>
+                                    </div>
+                                  )}
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                  {r.q1 && <div className="col-span-2"><p className="text-[10px] uppercase font-bold text-[#D4A24E]/70 mb-1">C\u00f3mo se sinti\u00f3</p><p className="text-xs text-[#F5F0E1]/80">{r.q1}</p></div>}
+                                  {r.q4 && <div><p className="text-[10px] uppercase font-bold text-[#2DD4A0]/70 mb-1">Acci\u00f3n tomada</p><p className="text-xs text-[#F5F0E1]/80">{r.q4}</p></div>}
+                                  {r.q5 && <div><p className="text-[10px] uppercase font-bold text-[#D4A24E]/70 mb-1">Pensamiento dominante</p><p className="text-xs text-[#F5F0E1]/80">{r.q5}</p></div>}
+                                  {r.q2 && <div className="col-span-2"><p className="text-[10px] uppercase font-bold text-[#D4A24E]/70 mb-1">Lo que lo fren\u00f3</p><p className="text-xs text-[#F5F0E1]/80">{r.q2}</p></div>}
+                                  {r.q6 && <div><p className="text-[10px] uppercase font-bold text-[#D4A24E]/70 mb-1">Emoci\u00f3n predominante</p><p className="text-xs text-[#F5F0E1]/80">{r.q6}</p></div>}
+                                  {r.q7 && <div><p className="text-[10px] uppercase font-bold text-[#D4A24E]/70 mb-1">Plan para ma\u00f1ana</p><p className="text-xs text-[#F5F0E1]/80">{r.q7}</p></div>}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+
+                      {/* ── METRICAS ── */}
+                      {detalleTab === 'metricas' && (
+                        <div className="space-y-5">
+                          <div className="bg-[#1A1410] border border-[rgba(212,162,78,0.1)] rounded-2xl p-5">
+                            <h3 className="text-[10px] font-bold uppercase tracking-widest text-[#F5F0E1]/60 mb-4">Progreso por Pilar</h3>
+                            <div className="space-y-3">
+                              {SEED_ROADMAP_V2.map(pilar => {
+                                const metasPilar = pilar.metas.length;
+                                const completadas = selectedCliente.tareas_por_pilar?.[pilar.numero] ?? 0;
+                                const pct = metasPilar > 0 ? Math.round((completadas / metasPilar) * 100) : 0;
+                                return (
+                                  <div key={pilar.numero} className="flex items-center gap-3">
+                                    {(() => { const IC = ADMIN_PILAR_ICON_MAP[pilar.icon]; return IC ? <IC className="w-5 h-5 text-[#D4A24E] shrink-0" /> : <span className="w-5 h-5 shrink-0" />; })()}
+                                    <span className="text-xs text-[#F5F0E1]/60 w-36 truncate shrink-0">{pilar.titulo}</span>
+                                    <div className="flex-1 h-2 bg-[#D4A24E]/5 rounded-full overflow-hidden">
+                                      <div className="h-full bg-[#D4A24E] rounded-full transition-all" style={{ width: `${pct}%` }} />
+                                    </div>
+                                    <span className="text-xs text-[#F5F0E1]/60 w-10 text-right shrink-0">{completadas}/{metasPilar}</span>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                          <div>
+                            <h3 className="text-[10px] font-bold uppercase tracking-widest text-[#F5F0E1]/60 mb-3">M\u00e9tricas de Negocio Semanales</h3>
+                            {detalleMetricas.length === 0 ? (
+                              <div className="bg-[#1A1410] border border-[rgba(212,162,78,0.1)] rounded-2xl p-6 text-center">
+                                <p className="text-sm text-[#F5F0E1]/40">El cliente a\u00fan no carg\u00f3 m\u00e9tricas semanales.</p>
+                              </div>
+                            ) : detalleMetricas.slice().reverse().map((m: any, i: number) => (
+                              <div key={i} className="p-5 rounded-2xl bg-[#1A1410] border border-[rgba(212,162,78,0.1)] flex items-center justify-between mb-3">
+                                <span className="text-xs font-semibold text-[#F5F0E1]/60 bg-[#D4A24E]/5 px-2.5 py-1 rounded-lg">{m.semana}</span>
+                                <div className="flex gap-8">
+                                  <div className="text-center"><p className="text-[#F5F0E1] text-lg font-light">{m.leads}</p><p className="text-[10px] text-[#F5F0E1]/40 font-bold uppercase">leads</p></div>
+                                  <div className="text-center"><p className="text-[#F5F0E1] text-lg font-light">{m.conversaciones ?? 0}</p><p className="text-[10px] text-[#F5F0E1]/40 font-bold uppercase">llamadas</p></div>
+                                  <div className="text-center"><p className="text-[#2DD4A0] text-lg font-bold">{m.ventas}</p><p className="text-[10px] text-[#2DD4A0]/50 font-bold uppercase">ventas</p></div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* ── NOTAS INTERNAS ── */}
+                      {detalleTab === 'notas' && (
+                        <div className="space-y-4">
+                          <p className="text-[10px] text-[#F5F0E1]/30 uppercase tracking-wider font-bold">Solo visible para admins -- No la ve el cliente</p>
+                          <div className="flex gap-2">
+                            <textarea
+                              value={notaInput}
+                              onChange={e => setNotaInput(e.target.value)}
+                              onKeyDown={e => { if (e.key === 'Enter' && e.ctrlKey) agregarNota(); }}
+                              placeholder="Escrib\u00ed una nota interna... (Ctrl+Enter para guardar)"
+                              rows={3}
+                              className="flex-1 bg-black/20 border border-[rgba(212,162,78,0.2)] rounded-lg py-3 px-4 text-sm text-[#F5F0E1] focus:outline-none focus:border-[#D4A24E]/50 transition-all resize-none"
+                            />
+                            <button
+                              onClick={agregarNota}
+                              disabled={!notaInput.trim()}
+                              className="btn-primary w-12 rounded-xl flex items-center justify-center transition-colors disabled:opacity-50 shadow-lg shadow-[#D4A24E]/20 shrink-0"
+                            >
+                              <Send className="w-4 h-4" />
+                            </button>
+                          </div>
+                          {notaLoading ? (
+                            <div className="flex justify-center py-8"><Loader2 className="w-5 h-5 text-[#D4A24E] animate-spin" /></div>
+                          ) : detalleNotas.length === 0 ? (
+                            <div className="text-center py-12">
+                              <BookOpen className="w-8 h-8 text-gray-800 mx-auto mb-3" />
+                              <p className="text-[#F5F0E1]/40 text-sm">Sin notas a\u00fan. Us\u00e1 esto para documentar contexto importante del cliente.</p>
+                            </div>
+                          ) : detalleNotas.map(nota => (
+                            <div key={nota.id} className="bg-[#1A1410] border border-[rgba(212,162,78,0.12)] rounded-xl p-4">
+                              <p className="text-sm text-[#F5F0E1]/90 leading-relaxed whitespace-pre-wrap">{nota.content}</p>
+                              <p className="text-[10px] text-[#F5F0E1]/30 mt-2">
+                                {new Date(nota.created_at).toLocaleDateString('es-AR', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* ── MENSAJES ── */}
+                      {detalleTab === 'mensajes' && (
+                        <div className="space-y-3">
+                          {detalleMensajes.length === 0 ? (
+                            <div className="flex flex-col items-center justify-center py-16 text-center">
+                              <MessageSquare className="w-10 h-10 text-gray-800 mb-4" />
+                              <p className="text-[#F5F0E1]/40 text-sm">Comenz\u00e1 la conversaci\u00f3n con {selectedCliente.nombre}</p>
+                            </div>
+                          ) : detalleMensajes.map(m => {
+                            const isMe = m.emisor_id === adminProfile.id;
+                            const senderName = isMe ? adminProfile.nombre : selectedCliente.nombre;
+                            const initial = senderName.charAt(0).toUpperCase();
+                            return (
+                              <div key={m.id} className={`flex gap-2.5 items-end max-w-[88%] ${isMe ? 'ml-auto flex-row-reverse' : ''}`}>
+                                <div className={`w-7 h-7 rounded-full shrink-0 flex items-center justify-center text-xs font-bold border overflow-hidden ${isMe ? 'bg-[#D4A24E]/20 border-[#D4A24E]/30 text-[#D4A24E]' : 'bg-[#D4A24E]/10 border-[rgba(212,162,78,0.2)] text-[#F5F0E1]'}`}>
+                                  {isMe
+                                    ? (adminAvatar ? <img src={adminAvatar} alt="" className="w-full h-full object-cover" /> : <Shield className="w-3.5 h-3.5" />)
+                                    : initial}
+                                </div>
+                                <div className="flex flex-col gap-1">
+                                  <span className={`text-[10px] font-semibold text-[#F5F0E1]/40 px-1 ${isMe ? 'text-right' : ''}`}>{senderName}</span>
+                                  <div className={`px-4 py-3 rounded-2xl text-sm leading-relaxed ${
+                                    isMe ? 'bg-[#D4A24E]/25 text-[#F5F0E1] border border-[#D4A24E]/20 rounded-tr-sm'
+                                         : 'bg-[#241A0C]/60 text-[#F5F0E1]/90 border border-[rgba(212,162,78,0.12)] rounded-tl-sm'
+                                  }`}>
+                                    {m.contenido && <p>{m.contenido}</p>}
+                                    <p className={`text-[10px] mt-1.5 opacity-40 ${isMe ? 'text-right' : ''}`}>
+                                      {new Date(m.created_at).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}
+                                    </p>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                          <div ref={messagesEndRef} />
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+
+                {/* Chat input for private messages */}
+                {detalleTab === 'mensajes' && (
+                  <div className="p-4 border-t border-[rgba(212,162,78,0.1)] shrink-0 bg-[#241A0C]/20">
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={mensajeInput}
+                        onChange={e => setMensajeInput(e.target.value)}
+                        onKeyDown={e => e.key === 'Enter' && !e.shiftKey && enviarMensajePrivado()}
+                        placeholder="Escribe un mensaje privado..."
+                        disabled={enviando}
+                        className="flex-1 bg-black/20 border border-[rgba(212,162,78,0.2)] rounded-lg py-3 px-5 text-sm text-[#F5F0E1] focus:outline-none focus:border-[#D4A24E]/50 transition-all"
+                      />
+                      <button
+                        onClick={enviarMensajePrivado}
+                        disabled={!mensajeInput.trim() || enviando}
+                        className="btn-primary w-12 h-12 rounded-xl flex items-center justify-center transition-colors disabled:opacity-50 shadow-lg shadow-[#D4A24E]/20"
+                      >
+                        {enviando ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Manager checklist floating panel */}
+              {adminRol === 'manager' && checklistItems.length > 0 && (
+                <div className="w-[260px] shrink-0">
+                  <ManagerChecklist
+                    items={checklistItems}
+                    onToggle={toggleChecklistItem}
+                    loading={checklistLoading}
+                  />
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ═══════════════════════════════════════════════════════════════════════
+              TAB: MENSAJES (unified)
+              ═══════════════════════════════════════════════════════════════════════ */}
+          {mainTab === 'mensajes' && (
+            <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+              {/* Channel tabs */}
+              <div className="flex border-b border-[rgba(212,162,78,0.1)] px-6 shrink-0 bg-black/20">
+                {([
+                  { id: 'comunidad' as MensajesChannel, label: 'Comunidad', icon: Users },
+                  { id: 'victorias' as MensajesChannel, label: 'Victorias', icon: Trophy },
+                  { id: 'consultas' as MensajesChannel, label: 'Consultas', icon: Hash },
+                  { id: 'privados' as MensajesChannel, label: 'Privados', icon: MessageSquare },
+                ]).map(ch => (
+                  <button
+                    key={ch.id}
+                    onClick={() => { setMensajesChannel(ch.id); setChatCliente(null); }}
+                    className={`flex items-center gap-2 px-5 py-4 text-sm font-medium transition-all relative ${
+                      mensajesChannel === ch.id
+                        ? 'text-[#D4A24E]'
+                        : 'text-[#F5F0E1]/40 hover:text-[#F5F0E1]/80'
+                    }`}
+                  >
+                    <ch.icon className="w-4 h-4" />
+                    {ch.label}
+                    {(channelUnread[ch.id] ?? 0) > 0 && (
+                      <span className="min-w-[16px] h-[16px] px-1 rounded-full bg-[#D4A24E] text-[#F5F0E1] text-[9px] font-bold flex items-center justify-center">
+                        {channelUnread[ch.id]}
+                      </span>
+                    )}
+                    {mensajesChannel === ch.id && (
+                      <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#D4A24E] rounded-t-full" />
+                    )}
+                  </button>
+                ))}
+              </div>
+
+              {/* Channel content */}
+              {mensajesChannel !== 'privados' ? (
+                <div className="flex-1 min-h-0 p-4">
+                  <GlobalChat canal={mensajesChannel} adminProfile={adminProfile} />
+                </div>
+              ) : (
+                /* Privados: WhatsApp-style */
+                <div className="flex flex-1 min-h-0 overflow-hidden">
+                  {/* Left: client list */}
+                  <div className="w-[280px] shrink-0 border-r border-[rgba(212,162,78,0.12)] flex flex-col bg-black/20">
+                    <div className="p-4 border-b border-[rgba(212,162,78,0.12)]">
+                      <p className="text-[11px] font-bold uppercase tracking-widest text-[#F5F0E1]/40">Conversaciones ({clientes.length})</p>
+                    </div>
+                    <div className="flex-1 overflow-y-auto scrollbar-hide">
+                      {loading ? (
+                        <div className="flex justify-center py-10"><Loader2 className="w-5 h-5 text-[#D4A24E] animate-spin" /></div>
+                      ) : clientes.map(c => (
+                        <button
+                          key={c.id}
+                          onClick={() => { setChatCliente(c); cargarChatMessages(c.id); }}
+                          className={`w-full text-left px-4 py-3.5 border-b border-[rgba(212,162,78,0.08)] transition-all flex items-center gap-3 ${
+                            chatCliente?.id === c.id ? 'bg-[#D4A24E]/10' : 'hover:bg-[#241A0C]/50'
+                          }`}
+                        >
+                          <div className={`w-10 h-10 rounded-full shrink-0 flex items-center justify-center text-sm font-bold border ${
+                            chatCliente?.id === c.id ? 'bg-[#D4A24E]/20 border-[#D4A24E]/30 text-[#D4A24E]' : 'bg-[#D4A24E]/5 border-[rgba(212,162,78,0.2)] text-[#F5F0E1]'
+                          }`}>
+                            {c.nombre.charAt(0).toUpperCase()}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-[#F5F0E1] truncate">{c.nombre}</p>
+                            <p className="text-[10px] text-[#F5F0E1]/40 truncate">{c.especialidad || 'Sin especialidad'}</p>
+                          </div>
+                          <div className={`w-2 h-2 rounded-full shrink-0 ${SEMAFORO_CONFIG[c.semaforo].class}`} />
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Right: conversation */}
+                  {chatCliente ? (
+                    <div className="flex-1 flex flex-col min-w-0 bg-[#080808]">
+                      <div className="h-16 border-b border-[rgba(212,162,78,0.12)] flex items-center gap-3 px-6 shrink-0 bg-black/20">
+                        <div className="w-9 h-9 rounded-full bg-[#D4A24E]/20 border border-[#D4A24E]/30 flex items-center justify-center text-sm font-bold text-[#D4A24E]">
+                          {chatCliente.nombre.charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                          <p className="text-sm font-semibold text-[#F5F0E1]">{chatCliente.nombre}</p>
+                          <p className="text-[10px] text-[#F5F0E1]/40">{chatCliente.especialidad || 'D\u00eda ' + chatCliente.dia_programa + '/90'}</p>
+                        </div>
+                      </div>
+                      <div className="flex-1 overflow-y-auto p-5 scrollbar-hide space-y-3">
+                        {chatLoading ? (
+                          <div className="flex justify-center py-10"><Loader2 className="w-6 h-6 text-[#D4A24E] animate-spin" /></div>
+                        ) : chatMessages.length === 0 ? (
+                          <div className="flex flex-col items-center justify-center h-full text-center">
+                            <MessageSquare className="w-10 h-10 text-gray-800 mb-4" />
+                            <p className="text-[#F5F0E1]/40 text-sm">Comenz\u00e1 la conversaci\u00f3n con {chatCliente.nombre}</p>
+                          </div>
+                        ) : chatMessages.map(m => {
+                          const isMe = m.emisor_id === adminProfile.id;
+                          const senderName = isMe ? adminProfile.nombre : chatCliente.nombre;
+                          return (
+                            <div key={m.id} className={`flex gap-2.5 items-end max-w-[85%] ${isMe ? 'ml-auto flex-row-reverse' : ''}`}>
+                              <div className={`w-7 h-7 rounded-full shrink-0 flex items-center justify-center text-xs font-bold border overflow-hidden ${isMe ? 'bg-[#D4A24E]/20 border-[#D4A24E]/30' : 'bg-[#D4A24E]/10 border-[rgba(212,162,78,0.2)]'}`}>
+                                {isMe
+                                  ? (adminAvatar ? <img src={adminAvatar} alt="" className="w-full h-full object-cover" /> : <Shield className="w-3.5 h-3.5 text-[#D4A24E]" />)
+                                  : senderName.charAt(0).toUpperCase()
+                                }
+                              </div>
+                              <div className="flex flex-col gap-1">
+                                <span className={`text-[10px] font-semibold text-[#F5F0E1]/40 px-1 ${isMe ? 'text-right' : ''}`}>{senderName}</span>
+                                <div className={`px-4 py-3 rounded-2xl text-sm leading-relaxed ${
+                                  isMe ? 'bg-[#D4A24E]/25 text-[#F5F0E1] border border-[#D4A24E]/20 rounded-tr-sm'
+                                       : 'bg-[#241A0C]/60 text-[#F5F0E1]/90 border border-[rgba(212,162,78,0.12)] rounded-tl-sm'
+                                }`}>
+                                  <p>{m.contenido}</p>
+                                  <p className={`text-[10px] mt-1.5 opacity-40 ${isMe ? 'text-right' : ''}`}>
+                                    {new Date(m.created_at).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                        <div ref={chatEndRef} />
+                      </div>
+                      <div className="p-4 border-t border-[rgba(212,162,78,0.12)] shrink-0 bg-[#241A0C]/20">
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            value={chatInput}
+                            onChange={e => setChatInput(e.target.value)}
+                            onKeyDown={e => e.key === 'Enter' && !e.shiftKey && enviarChatMsg()}
+                            placeholder={`Mensaje a ${chatCliente.nombre}...`}
+                            disabled={chatEnviando}
+                            className="flex-1 bg-black/20 border border-[rgba(212,162,78,0.2)] rounded-lg py-3 px-5 text-sm text-[#F5F0E1] focus:outline-none focus:border-[#D4A24E]/50 transition-all"
+                          />
+                          <button
+                            onClick={enviarChatMsg}
+                            disabled={!chatInput.trim() || chatEnviando}
+                            className="btn-primary w-12 h-12 rounded-xl flex items-center justify-center disabled:opacity-50 transition-colors shadow-lg shadow-[#D4A24E]/20"
+                          >
+                            {chatEnviando ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex-1 flex items-center justify-center text-center">
+                      <div>
+                        <MessageSquare className="w-12 h-12 text-gray-800 mx-auto mb-4" />
+                        <p className="text-[#F5F0E1]/40 text-sm">Seleccion\u00e1 un cliente para chatear</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ═══════════════════════════════════════════════════════════════════════
+              TAB: METRICAS
+              ═══════════════════════════════════════════════════════════════════════ */}
+          {mainTab === 'metricas' && (
             <div className="max-w-6xl mx-auto space-y-6">
-              {/* ── Filtro de cliente ── */}
+              {/* Client filter */}
               <div className="flex flex-wrap gap-2 items-center">
                 <button
                   onClick={() => setFiltroMetricasId(null)}
@@ -1207,36 +1991,16 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
               </div>
 
               {filtroMetricasId === null ? (
-                /* ── VISTA GLOBAL ── */
                 <>
                   {/* KPIs */}
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     {[
-                      {
-                        label: 'Profesionales activos', value: clientes.length,
-                        icon: Users, color: 'text-[#D4A24E]', glow: 'shadow-[#D4A24E]/20',
-                        bg: 'from-[#D4A24E]/15 to-indigo-600/5', border: 'border-[#D4A24E]/20',
-                      },
-                      {
-                        label: 'En ritmo', value: clientes.filter(c => c.semaforo === 'verde').length,
-                        icon: CheckCheck, color: 'text-[#2DD4A0]', glow: 'shadow-emerald-500/20',
-                        bg: 'from-emerald-600/15 to-emerald-600/5', border: 'border-emerald-500/20',
-                      },
-                      {
-                        label: 'Necesitan atención', value: clientes.filter(c => c.semaforo === 'rojo' || c.semaforo === 'amarillo').length,
-                        icon: AlertTriangle, color: 'text-[#D4A24E]', glow: 'shadow-amber-500/20',
-                        bg: 'from-amber-600/15 to-amber-600/5', border: 'border-amber-500/20',
-                      },
-                      {
-                        label: 'Progreso promedio',
-                        value: clientes.length
-                          ? `${Math.round(clientes.reduce((a, c) => a + (c.tareas_total > 0 ? (c.tareas_completadas / c.tareas_total) * 100 : (c.progreso_porcentaje ?? 0)), 0) / clientes.length)}%`
-                          : '—',
-                        icon: TrendingUp, color: 'text-violet-400', glow: 'shadow-violet-500/20',
-                        bg: 'from-violet-600/15 to-violet-600/5', border: 'border-violet-500/20',
-                      },
+                      { label: 'Profesionales activos', value: clientes.length, icon: Users, color: 'text-[#D4A24E]', border: 'border-[#D4A24E]/20', bg: 'bg-[#D4A24E]/5' },
+                      { label: 'En ritmo', value: clientes.filter(c => c.semaforo === 'verde').length, icon: CheckCheck, color: 'text-[#2DD4A0]', border: 'border-[#2DD4A0]/20', bg: 'bg-[#2DD4A0]/5' },
+                      { label: 'Necesitan atenci\u00f3n', value: clientes.filter(c => c.semaforo === 'rojo' || c.semaforo === 'amarillo').length, icon: AlertTriangle, color: 'text-[#D4A24E]', border: 'border-[#D4A24E]/20', bg: 'bg-[#D4A24E]/5' },
+                      { label: 'Progreso promedio', value: clientes.length ? `${Math.round(clientes.reduce((a, c) => a + (c.tareas_total > 0 ? (c.tareas_completadas / c.tareas_total) * 100 : (c.progreso_porcentaje ?? 0)), 0) / clientes.length)}%` : '\u2014', icon: TrendingUp, color: 'text-[#D4A24E]', border: 'border-[#D4A24E]/20', bg: 'bg-[#D4A24E]/5' },
                     ].map((s, i) => (
-                      <div key={i} className={`bg-gradient-to-b ${s.bg} border ${s.border} rounded-2xl p-5 shadow-lg ${s.glow}`}>
+                      <div key={i} className={`${s.bg} border ${s.border} rounded-2xl p-5`}>
                         <s.icon className={`w-5 h-5 ${s.color} mb-3`} />
                         <p className={`text-3xl font-light ${s.color} mb-1`}>{s.value}</p>
                         <p className="text-xs text-[#F5F0E1]/40 font-semibold uppercase tracking-wider">{s.label}</p>
@@ -1244,57 +2008,43 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
                     ))}
                   </div>
 
-                  {/* Tabla de progreso por cliente */}
-                  <div className="bg-[#241A0C]/30 border border-[rgba(212,162,78,0.12)] rounded-2xl overflow-hidden">
+                  {/* Progress table */}
+                  <div className="card-panel border border-[rgba(212,162,78,0.2)] rounded-2xl overflow-hidden">
                     <div className="px-6 py-4 border-b border-[rgba(212,162,78,0.1)] flex items-center justify-between">
                       <h3 className="text-xs font-bold uppercase tracking-widest text-[#F5F0E1]/60 flex items-center gap-2">
                         <BarChart2 className="w-3.5 h-3.5 text-[#D4A24E]" /> Progreso individual
                       </h3>
-                      <span className="text-[10px] text-[#F5F0E1]/30 uppercase tracking-wider">Click en una fila para ver detalle</span>
                     </div>
-                    <div className="divide-y divide-white/[0.04]">
+                    <div className="divide-y divide-[rgba(212,162,78,0.1)]">
                       {clientes.length === 0 ? (
                         <p className="text-[#F5F0E1]/30 text-sm text-center py-10">Sin datos de clientes</p>
                       ) : clientes.map(c => {
                         const pct = c.tareas_total > 0
                           ? Math.round((c.tareas_completadas / c.tareas_total) * 100)
                           : (c.progreso_porcentaje ?? 0);
-                        const pilarActual = SEED_ROADMAP_V2.findIndex((p, idx) => {
-                          const completadasPilar = SEED_ROADMAP_V2.slice(0, idx + 1).reduce((a, p2) => a + p2.metas.length, 0);
-                          return completadasPilar > c.tareas_completadas;
-                        });
                         return (
                           <button
                             key={c.id}
                             onClick={() => setFiltroMetricasId(c.id)}
-                            className="w-full flex items-center gap-4 px-6 py-4 hover:bg-[#241A0C]/50 transition-colors text-left group"
+                            className="w-full flex items-center gap-4 px-6 py-4 bg-[#1A1410] hover:bg-[#241A0C] transition-colors text-left group"
                           >
                             <div className={`w-2 h-2 rounded-full shrink-0 ${SEMAFORO_CONFIG[c.semaforo].class}`} />
                             <div className="w-32 shrink-0">
                               <p className="text-sm font-semibold text-[#F5F0E1] group-hover:text-[#D4A24E] transition-colors truncate">{c.nombre}</p>
-                              <p className="text-[10px] text-[#F5F0E1]/40">Día {c.dia_programa}/90</p>
+                              <p className="text-[10px] text-[#F5F0E1]/40">D\u00eda {c.dia_programa}/90</p>
                             </div>
                             <div className="flex-1">
                               <div className="flex items-center justify-between mb-1">
-                                <span className="text-[10px] text-[#F5F0E1]/40">Pilar {Math.max(0, pilarActual)}</span>
+                                <span className="text-[10px] text-[#F5F0E1]/40">Pilar {derivePilarFromProgress(c.tareas_completadas)}</span>
                                 <span className="text-xs font-bold text-[#F5F0E1]">{pct}%</span>
                               </div>
                               <div className="h-2 bg-[#D4A24E]/5 rounded-full overflow-hidden">
-                                <div
-                                  className="h-full rounded-full transition-all"
-                                  style={{
-                                    width: `${pct}%`,
-                                    background: pct >= 70 ? 'linear-gradient(to right, #10b981, #34d399)' :
-                                      pct >= 40 ? 'linear-gradient(to right, #6366f1, #8b5cf6)' :
-                                      'linear-gradient(to right, #3b82f6, #6366f1)',
-                                  }}
-                                />
+                                <div className="h-full rounded-full bg-[#D4A24E] transition-all" style={{ width: `${pct}%` }} />
                               </div>
                             </div>
                             <div className="flex items-center gap-5 shrink-0">
                               {c.racha_diario > 0 && <div className="text-center"><p className="text-sm font-bold text-[#D4A24E] flex items-center gap-0.5"><Flame className="w-3.5 h-3.5" /> {c.racha_diario}</p><p className="text-[9px] text-[#F5F0E1]/30 uppercase">Racha</p></div>}
                               <div className="text-center"><p className={`text-sm font-bold ${c.ventas_count > 0 ? 'text-[#2DD4A0]' : 'text-[#F5F0E1]/30'}`}>{c.ventas_count}</p><p className="text-[9px] text-[#F5F0E1]/30 uppercase">Ventas</p></div>
-                              <div className="text-center"><p className="text-sm font-semibold text-[#F5F0E1]/80">{c.tareas_completadas}<span className="text-[#F5F0E1]/30 font-normal">/{c.tareas_total}</span></p><p className="text-[9px] text-[#F5F0E1]/30 uppercase">Tareas</p></div>
                               <ChevronRight className="w-4 h-4 text-gray-700 group-hover:text-[#D4A24E] transition-colors" />
                             </div>
                           </button>
@@ -1303,12 +2053,12 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
                     </div>
                   </div>
 
-                  {/* Estado garantía */}
+                  {/* Guarantee status */}
                   <div className="grid grid-cols-3 gap-4">
                     {[
-                      { label: 'En camino al resultado', IconComp: CheckCircle2, count: clientes.filter(c => c.estado_garantia === 'en_camino').length, color: 'text-[#2DD4A0]', border: 'border-emerald-500/20', bg: 'bg-[#2DD4A0]/5' },
-                      { label: 'En riesgo de garantia', IconComp: AlertTriangle, count: clientes.filter(c => c.estado_garantia === 'en_riesgo').length, color: 'text-[#D4A24E]', border: 'border-amber-500/20', bg: 'bg-amber-500/5' },
-                      { label: 'Garantia activada', IconComp: Shield, count: clientes.filter(c => c.estado_garantia === 'activada').length, color: 'text-[#E85555]', border: 'border-red-500/20', bg: 'bg-[#E85555]/5' },
+                      { label: 'En camino al resultado', IconComp: CheckCircle2, count: clientes.filter(c => c.estado_garantia === 'en_camino').length, color: 'text-[#2DD4A0]', border: 'border-[#2DD4A0]/20', bg: 'bg-[#2DD4A0]/5' },
+                      { label: 'En riesgo de garant\u00eda', IconComp: AlertTriangle, count: clientes.filter(c => c.estado_garantia === 'en_riesgo').length, color: 'text-[#D4A24E]', border: 'border-[#D4A24E]/20', bg: 'bg-[#D4A24E]/5' },
+                      { label: 'Garant\u00eda activada', IconComp: Shield, count: clientes.filter(c => c.estado_garantia === 'activada').length, color: 'text-[#E85555]', border: 'border-[#E85555]/20', bg: 'bg-[#E85555]/5' },
                     ].map((s, i) => (
                       <div key={i} className={`${s.bg} border ${s.border} rounded-2xl p-5 flex items-center gap-4`}>
                         <s.IconComp className={`w-8 h-8 ${s.color}`} />
@@ -1321,7 +2071,7 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
                   </div>
                 </>
               ) : (
-                /* ── VISTA INDIVIDUAL ── */
+                /* Individual view */
                 (() => {
                   const c = clientes.find(x => x.id === filtroMetricasId);
                   if (!c) return null;
@@ -1330,14 +2080,13 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
                     : (c.progreso_porcentaje ?? 0);
                   return (
                     <div className="space-y-5">
-                      {/* Header del cliente */}
                       <div className="flex items-center gap-4 bg-[#D4A24E]/10 border border-[#D4A24E]/20 rounded-2xl p-5">
                         <div className="w-14 h-14 rounded-2xl bg-[#D4A24E]/30 border border-[#D4A24E]/30 flex items-center justify-center text-xl font-bold text-[#F5F0E1]">
                           {c.nombre.charAt(0)}
                         </div>
                         <div className="flex-1">
                           <h3 className="text-xl font-semibold text-[#F5F0E1]">{c.nombre}</h3>
-                          <p className="text-sm text-[#F5F0E1]/60">{c.especialidad || 'Profesional de la salud'} · {c.email}</p>
+                          <p className="text-sm text-[#F5F0E1]/60">{c.especialidad || 'Profesional de la salud'} \u00b7 {c.email}</p>
                         </div>
                         <div className="flex items-center gap-2 shrink-0">
                           <span className={`w-2.5 h-2.5 rounded-full ${SEMAFORO_CONFIG[c.semaforo].class}`} />
@@ -1345,109 +2094,71 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
                         </div>
                       </div>
 
-                      {/* KPIs individuales */}
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                         {[
-                          { label: 'Día del programa', value: `${c.dia_programa}/90`, color: 'text-[#D4A24E]', icon: Calendar },
-                          { label: 'Tareas completadas', value: `${c.tareas_completadas}/${c.tareas_total}`, color: 'text-violet-400', icon: CheckCircle2 },
-                          { label: 'Racha diario', value: c.racha_diario > 0 ? `${c.racha_diario} dias` : '—', color: 'text-[#D4A24E]', icon: TrendingUp },
-                          { label: 'Ventas registradas', value: c.ventas_count, color: 'text-[#2DD4A0]', icon: TrendingUp },
+                          { label: 'D\u00eda del programa', value: `${c.dia_programa}/90`, color: 'text-[#D4A24E]' },
+                          { label: 'Tareas completadas', value: `${c.tareas_completadas}/${c.tareas_total}`, color: 'text-[#D4A24E]' },
+                          { label: 'Racha diario', value: c.racha_diario > 0 ? `${c.racha_diario} d\u00edas` : '\u2014', color: 'text-[#D4A24E]' },
+                          { label: 'Ventas registradas', value: c.ventas_count, color: 'text-[#2DD4A0]' },
                         ].map((s, i) => (
-                          <div key={i} className="bg-[#241A0C]/50 border border-[rgba(212,162,78,0.14)] rounded-2xl p-4">
+                          <div key={i} className="bg-[#1A1410] border border-[rgba(212,162,78,0.14)] rounded-2xl p-4">
                             <p className={`text-2xl font-light ${s.color} mb-1`}>{s.value}</p>
                             <p className="text-[10px] text-[#F5F0E1]/40 uppercase tracking-wider font-semibold">{s.label}</p>
                           </div>
                         ))}
                       </div>
 
-                      {/* Barra de progreso total */}
-                      <div className="bg-[#241A0C]/30 border border-[rgba(212,162,78,0.12)] rounded-2xl p-5">
+                      <div className="bg-[#1A1410] border border-[rgba(212,162,78,0.12)] rounded-2xl p-5">
                         <div className="flex items-center justify-between mb-3">
                           <p className="text-xs font-bold uppercase tracking-widest text-[#F5F0E1]/60">Progreso en el programa</p>
                           <p className="text-2xl font-light text-[#F5F0E1]">{pct}%</p>
                         </div>
                         <div className="h-3 bg-[#D4A24E]/5 rounded-full overflow-hidden mb-2">
-                          <div
-                            className="h-full rounded-full transition-all duration-700"
-                            style={{
-                              width: `${pct}%`,
-                              background: pct >= 70 ? 'linear-gradient(to right, #10b981, #34d399)' : 'linear-gradient(to right, #6366f1, #8b5cf6)',
-                            }}
-                          />
-                        </div>
-                        <div className="flex justify-between text-[10px] text-[#F5F0E1]/30">
-                          <span>Inicio</span>
-                          <span>{c.tareas_completadas} de {c.tareas_total} tareas · Día {c.dia_programa} de 90</span>
-                          <span>Meta</span>
+                          <div className="h-full rounded-full bg-[#D4A24E] transition-all duration-700" style={{ width: `${pct}%` }} />
                         </div>
                       </div>
 
-                      {/* Progreso por pilar — acordeón expandible */}
-                      <div className="bg-[#241A0C]/30 border border-[rgba(212,162,78,0.12)] rounded-2xl overflow-hidden">
+                      {/* Pilar accordion */}
+                      <div className="card-panel border border-[rgba(212,162,78,0.2)] rounded-2xl overflow-hidden">
                         <div className="px-5 pt-5 pb-3 flex items-center justify-between">
                           <h3 className="text-xs font-bold uppercase tracking-widest text-[#F5F0E1]/60 flex items-center gap-2">
-                            <BarChart2 className="w-3.5 h-3.5 text-[#D4A24E]" /> Estimación por pilar
+                            <BarChart2 className="w-3.5 h-3.5 text-[#D4A24E]" /> Estimaci\u00f3n por pilar
                           </h3>
                           {metricasTareasLoading && <Loader2 className="w-3.5 h-3.5 text-[#D4A24E] animate-spin" />}
                         </div>
-                        <div className="divide-y divide-white/[0.04]">
+                        <div className="divide-y divide-[rgba(212,162,78,0.1)]">
                           {SEED_ROADMAP_V2.map(pilar => {
                             const metasPilar = pilar.metas.length;
                             const completadasReales = (c as any).tareas_por_pilar
                               ? ((c as any).tareas_por_pilar[pilar.numero] ?? 0)
-                              : Math.min(
-                                  metasPilar,
-                                  Math.max(0, c.tareas_completadas - SEED_ROADMAP_V2.slice(0, pilar.numero).reduce((a, p) => a + p.metas.length, 0))
-                                );
+                              : Math.min(metasPilar, Math.max(0, c.tareas_completadas - SEED_ROADMAP_V2.slice(0, pilar.numero).reduce((a, p) => a + p.metas.length, 0)));
                             const pctPilar = metasPilar > 0 ? Math.round((completadasReales / metasPilar) * 100) : 0;
-                            const colores: Record<number, { bar: string; badge: string; text: string; bg: string }> = {
-                              0: { bar: '#6366f1', badge: 'bg-[#D4A24E]/10 text-[#D4A24E]', text: 'text-[#D4A24E]', bg: 'bg-[#D4A24E]/5' },
-                              1: { bar: '#8b5cf6', badge: 'bg-violet-500/10 text-violet-400', text: 'text-violet-400', bg: 'bg-violet-500/5' },
-                              2: { bar: '#3b82f6', badge: 'bg-[#D4A24E]/10 text-[#D4A24E]', text: 'text-[#D4A24E]', bg: 'bg-[#D4A24E]/5' },
-                              3: { bar: '#06b6d4', badge: 'bg-cyan-500/10 text-cyan-400', text: 'text-cyan-400', bg: 'bg-cyan-500/5' },
-                              4: { bar: '#10b981', badge: 'bg-[#2DD4A0]/10 text-[#2DD4A0]', text: 'text-[#2DD4A0]', bg: 'bg-[#2DD4A0]/5' },
-                              5: { bar: '#f59e0b', badge: 'bg-amber-500/10 text-[#D4A24E]', text: 'text-[#D4A24E]', bg: 'bg-amber-500/5' },
-                              6: { bar: '#f97316', badge: 'bg-orange-500/10 text-orange-400', text: 'text-orange-400', bg: 'bg-orange-500/5' },
-                              7: { bar: '#f43f5e', badge: 'bg-rose-500/10 text-rose-400', text: 'text-rose-400', bg: 'bg-rose-500/5' },
-                              8: { bar: '#ec4899', badge: 'bg-pink-500/10 text-pink-400', text: 'text-pink-400', bg: 'bg-pink-500/5' },
-                            };
-                            const col = colores[pilar.numero] ?? colores[0];
                             const expandido = pilarExpandido[pilar.numero] ?? false;
-                            // Tareas completadas de este pilar con sus datos
-                            const tareasCompletadasPilar = metricasTareas.filter(
-                              (t: any) => (t.pilar_numero ?? t.pilarNumero) === pilar.numero
-                            );
+                            const tareasCompletadasPilar = metricasTareas.filter((t: any) => (t.pilar_numero ?? t.pilarNumero) === pilar.numero);
                             return (
                               <div key={pilar.numero}>
-                                {/* ── Fila del pilar (clickeable si hay completadas) ── */}
                                 <button
                                   type="button"
                                   onClick={() => completadasReales > 0 && setPilarExpandido(prev => ({ ...prev, [pilar.numero]: !expandido }))}
-                                  className={`w-full flex items-center gap-3 px-5 py-3.5 transition-colors text-left ${
-                                    completadasReales > 0 ? 'hover:bg-[#241A0C]/30 cursor-pointer' : 'cursor-default'
+                                  className={`w-full flex items-center gap-3 px-5 py-3.5 transition-colors text-left bg-[#1A1410] ${
+                                    completadasReales > 0 ? 'hover:bg-[#241A0C] cursor-pointer' : 'cursor-default'
                                   }`}
                                 >
                                   {(() => { const IC = ADMIN_PILAR_ICON_MAP[pilar.icon]; return IC ? <IC className="w-5 h-5 text-[#D4A24E] shrink-0" /> : <span className="w-5 h-5 shrink-0" />; })()}
                                   <span className="text-xs text-[#F5F0E1]/80 w-36 truncate shrink-0 font-medium">{pilar.titulo}</span>
                                   <div className="flex-1 h-1.5 bg-[#D4A24E]/5 rounded-full overflow-hidden">
-                                    <div
-                                      className="h-full rounded-full transition-all duration-500"
-                                      style={{ width: `${pctPilar}%`, backgroundColor: col.bar }}
-                                    />
+                                    <div className="h-full rounded-full bg-[#D4A24E] transition-all duration-500" style={{ width: `${pctPilar}%` }} />
                                   </div>
                                   <span className="text-xs text-[#F5F0E1]/40 w-10 text-right shrink-0">{completadasReales}/{metasPilar}</span>
                                   {completadasReales > 0 && (
-                                    <ChevronDown className={`w-3.5 h-3.5 shrink-0 transition-transform ${col.text} ${expandido ? 'rotate-180' : ''}`} />
+                                    <ChevronDown className={`w-3.5 h-3.5 shrink-0 transition-transform text-[#D4A24E] ${expandido ? 'rotate-180' : ''}`} />
                                   )}
                                 </button>
 
-                                {/* ── Acordeón con tareas completadas ── */}
                                 {expandido && (
-                                  <div className={`px-5 pb-4 space-y-2 ${col.bg}`}>
+                                  <div className="px-5 pb-4 space-y-2 bg-[#D4A24E]/5">
                                     {pilar.metas.map(meta => {
-                                      const tareaData = tareasCompletadasPilar.find(
-                                        (t: any) => t.meta_codigo === meta.codigo
-                                      );
+                                      const tareaData = tareasCompletadasPilar.find((t: any) => t.meta_codigo === meta.codigo);
                                       if (!tareaData) return null;
                                       const herramientaOutput = meta.herramienta_id
                                         ? metricasOutputs.find((o: any) => o.herramienta_id === meta.herramienta_id)
@@ -1462,10 +2173,10 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
                                           className="w-full text-left bg-black/20 border border-[rgba(212,162,78,0.12)] rounded-xl overflow-hidden hover:border-[rgba(212,162,78,0.3)] hover:bg-[#241A0C]/50 transition-all group"
                                         >
                                           <div className="flex items-center gap-3 p-3.5">
-                                            <CheckCircle2 className={`w-4 h-4 shrink-0 ${col.text}`} />
+                                            <CheckCircle2 className="w-4 h-4 shrink-0 text-[#D4A24E]" />
                                             <div className="flex-1 min-w-0">
                                               <div className="flex items-center gap-2 flex-wrap">
-                                                <span className={`text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded ${col.badge}`}>{meta.codigo}</span>
+                                                <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-[#D4A24E]/10 text-[#D4A24E]">{meta.codigo}</span>
                                                 {meta.es_estrella && <Star className="w-3 h-3 text-[#D4A24E] fill-[#D4A24E]" />}
                                                 {tareaData.fecha_completada && (
                                                   <span className="text-[10px] text-[#F5F0E1]/30">
@@ -1486,7 +2197,7 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
                                       );
                                     })}
                                     {tareasCompletadasPilar.length === 0 && (
-                                      <p className="text-xs text-[#F5F0E1]/30 py-2">Sin datos detallados disponibles aún.</p>
+                                      <p className="text-xs text-[#F5F0E1]/30 py-2">Sin datos detallados disponibles a\u00fan.</p>
                                     )}
                                   </div>
                                 )}
@@ -1497,805 +2208,192 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
                       </div>
 
                       <button
-                        onClick={() => { setSelectedCliente(c); setMainTab('dashboard'); setDetalleTab('resumen'); }}
+                        onClick={() => { setSelectedCliente(c); setMainTab('clientes'); setDetalleTab('resumen'); }}
                         className="w-full py-3 rounded-xl bg-[#D4A24E]/10 border border-[#D4A24E]/20 text-[#D4A24E] text-sm font-semibold hover:bg-[#D4A24E]/20 transition-colors"
                       >
-                        Ver perfil completo con diario, métricas y mensajes →
+                        Ver perfil completo con diario, m\u00e9tricas y mensajes
                       </button>
                     </div>
                   );
                 })()
               )}
             </div>
-          ) : mainTab === 'mensajes_privados' ? (
-            /* ── MENSAJES PRIVADOS (WhatsApp style) ── */
-            <div className="flex flex-1 min-h-0 overflow-hidden">
-              {/* Left: client list */}
-              <div className="w-[300px] shrink-0 border-r border-[rgba(212,162,78,0.12)] flex flex-col bg-black/20">
-                <div className="p-4 border-b border-[rgba(212,162,78,0.12)]">
-                  <p className="text-[11px] font-bold uppercase tracking-widest text-[#F5F0E1]/40">Conversaciones ({clientes.length})</p>
-                </div>
-                <div className="flex-1 overflow-y-auto scrollbar-hide">
-                  {loading ? (
-                    <div className="flex justify-center py-10"><Loader2 className="w-5 h-5 text-[#D4A24E] animate-spin" /></div>
-                  ) : clientes.map(c => (
-                    <button
-                      key={c.id}
-                      onClick={() => { setChatCliente(c); cargarChatMessages(c.id); }}
-                      className={`w-full text-left px-4 py-3.5 border-b border-[rgba(212,162,78,0.08)] transition-all flex items-center gap-3 ${
-                        chatCliente?.id === c.id ? 'bg-[#D4A24E]/10' : 'hover:bg-[#241A0C]/50'
-                      }`}
-                    >
-                      <div className={`w-10 h-10 rounded-full shrink-0 flex items-center justify-center text-sm font-bold border ${
-                        chatCliente?.id === c.id ? 'bg-[#D4A24E]/20 border-[#D4A24E]/30 text-[#D4A24E]' : 'bg-[#D4A24E]/5 border-[rgba(212,162,78,0.2)] text-[#F5F0E1]'
-                      }`}>
-                        {c.nombre.charAt(0).toUpperCase()}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-[#F5F0E1] truncate">{c.nombre}</p>
-                        <p className="text-[10px] text-[#F5F0E1]/40 truncate">{c.especialidad || 'Sin especialidad'}</p>
-                      </div>
-                      <div className={`w-2 h-2 rounded-full shrink-0 ${SEMAFORO_CONFIG[c.semaforo].class}`} />
-                    </button>
-                  ))}
-                </div>
-              </div>
+          )}
 
-              {/* Right: conversation */}
-              {chatCliente ? (
-                <div className="flex-1 flex flex-col min-w-0 bg-[#080808]">
-                  {/* Chat header */}
-                  <div className="h-16 border-b border-[rgba(212,162,78,0.12)] flex items-center gap-3 px-6 shrink-0 bg-black/20">
-                    <div className="w-9 h-9 rounded-full bg-[#D4A24E]/20 border border-[#D4A24E]/30 flex items-center justify-center text-sm font-bold text-[#D4A24E]">
-                      {chatCliente.nombre.charAt(0).toUpperCase()}
-                    </div>
-                    <div>
-                      <p className="text-sm font-semibold text-[#F5F0E1]">{chatCliente.nombre}</p>
-                      <p className="text-[10px] text-[#F5F0E1]/40">{chatCliente.especialidad || 'Día ' + chatCliente.dia_programa + '/90'}</p>
-                    </div>
-                  </div>
-                  {/* Messages */}
-                  <div className="flex-1 overflow-y-auto p-5 scrollbar-hide space-y-3">
-                    {chatLoading ? (
-                      <div className="flex justify-center py-10"><Loader2 className="w-6 h-6 text-[#D4A24E] animate-spin" /></div>
-                    ) : chatMessages.length === 0 ? (
-                      <div className="flex flex-col items-center justify-center h-full text-center">
-                        <MessageSquare className="w-10 h-10 text-gray-800 mb-4" />
-                        <p className="text-[#F5F0E1]/40 text-sm">Comenzá la conversación con {chatCliente.nombre}</p>
-                      </div>
-                    ) : chatMessages.map(m => {
-                      const isMe = m.emisor_id === adminProfile.id;
-                      const senderName = isMe ? adminProfile.nombre : chatCliente.nombre;
-                      return (
-                        <div key={m.id} className={`flex gap-2.5 items-end max-w-[85%] ${isMe ? 'ml-auto flex-row-reverse' : ''}`}>
-                          <div className={`w-7 h-7 rounded-full shrink-0 flex items-center justify-center text-xs font-bold border overflow-hidden ${isMe ? 'bg-[#D4A24E]/20 border-[#D4A24E]/30' : 'bg-[#D4A24E]/10 border-[rgba(212,162,78,0.2)]'}`}>
-                            {isMe
-                              ? (adminAvatar ? <img src={adminAvatar} alt="" className="w-full h-full object-cover" /> : <Shield className="w-3.5 h-3.5 text-[#D4A24E]" />)
-                              : senderName.charAt(0).toUpperCase()
-                            }
-                          </div>
-                          <div className="flex flex-col gap-1">
-                            <span className={`text-[10px] font-semibold text-[#F5F0E1]/40 px-1 ${isMe ? 'text-right' : ''}`}>{senderName}</span>
-                            <div className={`px-4 py-3 rounded-2xl text-sm leading-relaxed ${
-                              isMe ? 'bg-[#D4A24E]/25 text-[#F5F0E1] border border-[#D4A24E]/20 rounded-tr-sm'
-                                   : 'bg-[#241A0C]/60 text-[#F5F0E1]/90 border border-[rgba(212,162,78,0.12)] rounded-tl-sm'
-                            }`}>
-                              <p>{m.contenido}</p>
-                              <p className={`text-[10px] mt-1.5 opacity-40 ${isMe ? 'text-right' : ''}`}>
-                                {new Date(m.created_at).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                    <div ref={chatEndRef} />
-                  </div>
-                  {/* Input */}
-                  <div className="p-4 border-t border-[rgba(212,162,78,0.12)] shrink-0 bg-[#241A0C]/20">
-                    <div className="flex gap-2">
-                      <input
-                        type="text"
-                        value={chatInput}
-                        onChange={e => setChatInput(e.target.value)}
-                        onKeyDown={e => e.key === 'Enter' && !e.shiftKey && enviarChatMsg()}
-                        placeholder={`Mensaje a ${chatCliente.nombre}...`}
-                        disabled={chatEnviando}
-                        className="flex-1 bg-black/40 border border-[rgba(212,162,78,0.2)] rounded-xl py-3 px-5 text-sm text-[#F5F0E1] focus:outline-none focus:border-[#D4A24E]/50 transition-all"
-                      />
-                      <button
-                        onClick={enviarChatMsg}
-                        disabled={!chatInput.trim() || chatEnviando}
-                        className="w-12 h-12 rounded-xl bg-[#D4A24E] hover:bg-[#E2B865] disabled:opacity-50 flex items-center justify-center transition-colors shadow-lg shadow-[#D4A24E]/20"
-                      >
-                        {chatEnviando ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div className="flex-1 flex items-center justify-center text-center">
-                  <div>
-                    <MessageSquare className="w-12 h-12 text-gray-800 mx-auto mb-4" />
-                    <p className="text-[#F5F0E1]/40 text-sm">Seleccioná un cliente para chatear</p>
-                  </div>
-                </div>
-              )}
-            </div>
-          ) : mainTab === 'videos' ? (
-            /* ── GESTIÓN DE VIDEOS ── */
+          {/* ═══════════════════════════════════════════════════════════════════════
+              TAB: VIDEOS (pilar-based)
+              ═══════════════════════════════════════════════════════════════════════ */}
+          {mainTab === 'videos' && (
             <div className="max-w-5xl mx-auto space-y-6">
-              {/* Header */}
               <div className="flex items-center justify-between">
                 <div>
-                  <h2 className="text-2xl font-light text-[#F5F0E1] tracking-tight">Videos del Programa</h2>
-                  <p className="text-sm text-[#F5F0E1]/40 mt-1">Agregá videos de YouTube por pilar. Se muestran automáticamente en la Biblioteca de tus clientes.</p>
+                  <h2 className="text-2xl font-light text-[#F5F0E1] tracking-tight" style={{ fontFamily: 'var(--font-display)', fontStyle: 'italic' }}>Videos del Programa</h2>
+                  <p className="text-sm text-[#F5F0E1]/40 mt-1">Agreg\u00e1 videos de YouTube por pilar. Se muestran autom\u00e1ticamente en la Biblioteca de tus clientes.</p>
                 </div>
                 <button
-                  onClick={() => { setVideoForm({ grupo: 'A', titulo: '', descripcion: '', youtubeUrl: '', duracion: '' }); setShowAddVideo(true); }}
-                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#E85555] hover:bg-[#E85555] text-[#F5F0E1] text-sm font-semibold transition-all shadow-lg shadow-[#D4A24E]/20"
+                  onClick={() => { setVideoForm({ pilar_id: 'P0', titulo: '', descripcion: '', youtubeUrl: '', duracion: '' }); setShowAddVideo(true); }}
+                  className="btn-primary flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold shadow-lg shadow-[#D4A24E]/20"
                 >
                   <Plus className="w-4 h-4" /> Agregar Video
                 </button>
               </div>
 
-              {/* Videos por pilar */}
-              {PILARES.map(p => {
-                const vids = adminVideos.filter(v => v.grupo === p.id);
+              {/* Videos grouped by pilar */}
+              {SEED_ROADMAP_V3.map(pilar => {
+                // Find videos for this pilar: match by pilar_id or fallback grupo mapping
+                const vids = adminVideos.filter(v => v.pilar_id === pilar.id);
+                // Also find VIDEO tasks in the roadmap for this pilar
+                const videoTask = pilar.metas.find(m => m.tipo === 'VIDEO');
                 return (
-                  <div key={p.id} className="bg-[#241A0C]/30 border border-[rgba(212,162,78,0.12)] rounded-2xl overflow-hidden">
+                  <div key={pilar.id} className="card-panel border border-[rgba(212,162,78,0.2)] rounded-2xl overflow-hidden">
                     <div className="px-5 py-3 border-b border-[rgba(212,162,78,0.12)] flex items-center justify-between">
-                      <p className="text-sm font-semibold text-[#F5F0E1]">{p.label}</p>
+                      <div className="flex items-center gap-2">
+                        {(() => { const IC = ADMIN_PILAR_ICON_MAP[pilar.icon]; return IC ? <IC className="w-4 h-4 text-[#D4A24E]" /> : null; })()}
+                        <p className="text-sm font-semibold text-[#F5F0E1]">{pilar.id} \u2014 {pilar.titulo}</p>
+                        {videoTask && <span className="text-[10px] text-[#F5F0E1]/30 ml-2 truncate max-w-[200px]">{videoTask.titulo}</span>}
+                      </div>
                       <span className="text-[10px] bg-[#D4A24E]/5 px-2 py-0.5 rounded-full text-[#F5F0E1]/40">{vids.length} videos</span>
                     </div>
                     {videosLoading ? (
-                      <div className="flex justify-center py-10"><Loader2 className="w-6 h-6 text-[#E85555] animate-spin" /></div>
+                      <div className="flex justify-center py-10"><Loader2 className="w-6 h-6 text-[#D4A24E] animate-spin" /></div>
                     ) : vids.length === 0 ? (
-                      <div className="px-5 py-4 text-sm text-[#F5F0E1]/30">Sin videos en este pilar todavía.</div>
+                      <div className="px-5 py-4 text-sm text-[#F5F0E1]/30">Sin videos en este pilar todav\u00eda.</div>
                     ) : (
-                      <div className="divide-y divide-white/[0.04]">
+                      <div className="divide-y divide-[rgba(212,162,78,0.1)]">
                         {vids.map(v => {
                           const vidId = getYoutubeId(v.youtubeUrl);
                           return (
-                            <div key={v.id} className="flex items-center gap-4 px-5 py-3">
+                            <div key={v.id} className="flex items-center gap-4 px-5 py-3 bg-[#1A1410] hover:bg-[#241A0C] transition-colors">
                               <div className="w-16 h-10 rounded-lg overflow-hidden bg-black/40 shrink-0">
                                 {vidId ? (
                                   <img src={`https://img.youtube.com/vi/${vidId}/mqdefault.jpg`} alt={v.titulo} className="w-full h-full object-cover" />
                                 ) : (
-                                  <div className="w-full h-full flex items-center justify-center"><Youtube className="w-4 h-4 text-red-500/40" /></div>
+                                  <div className="w-full h-full flex items-center justify-center"><Youtube className="w-4 h-4 text-[#E85555]/40" /></div>
                                 )}
                               </div>
                               <div className="flex-1 min-w-0">
                                 <p className="text-sm font-medium text-[#F5F0E1] truncate">{v.titulo}</p>
                                 <p className="text-xs text-[#F5F0E1]/40 truncate">{v.descripcion}</p>
                               </div>
+                              <span className="text-[10px] text-[#D4A24E] font-medium shrink-0">{v.pilar_id ?? v.grupo}</span>
                               {v.duracion && <span className="text-[10px] text-[#F5F0E1]/40 shrink-0">{v.duracion}</span>}
-                                <div className="flex items-center gap-2">
-                                  <button
-                                    onClick={() => {
-                                      setVideoForm({
-                                        id: v.id,
-                                        grupo: v.grupo,
-                                        titulo: v.titulo,
-                                        descripcion: v.descripcion,
-                                        youtubeUrl: v.youtubeUrl,
-                                        duracion: v.duracion || ''
-                                      });
-                                      setShowAddVideo(true);
-                                    }}
-                                    className="w-7 h-7 rounded-lg bg-[#D4A24E]/5 hover:bg-[#D4A24E]/10 flex items-center justify-center text-[#F5F0E1]/60 hover:text-[#F5F0E1] transition-colors shrink-0"
-                                    title="Editar video"
-                                  >
-                                    <Settings className="w-3.5 h-3.5" />
-                                  </button>
-                                  <button
-                                    onClick={() => deleteAdminVideo(v.id)}
-                                    className="w-7 h-7 rounded-lg bg-[#E85555]/10 hover:bg-[#E85555]/20 flex items-center justify-center text-[#E85555] transition-colors shrink-0"
-                                    title="Eliminar video"
-                                  >
-                                    <Trash2 className="w-3.5 h-3.5" />
-                                  </button>
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-  
-                {/* Modal agregar/editar video */}
-                {showAddVideo && (
-                  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md">
-                    <div className="w-full max-w-md bg-[#1A1410] border border-[rgba(212,162,78,0.2)] rounded-3xl p-8 shadow-2xl relative overflow-hidden">
-                      <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-red-500 to-orange-500" />
-                      <div className="flex items-center justify-between mb-6">
-                        <h3 className="text-xl font-semibold text-[#F5F0E1]">{videoForm.id ? 'Editar Video' : 'Nuevo Video'}</h3>
-                        <button onClick={() => setShowAddVideo(false)} className="w-8 h-8 rounded-full bg-[#D4A24E]/5 flex items-center justify-center text-[#F5F0E1]/60 hover:text-[#F5F0E1] hover:bg-[#D4A24E]/10 transition-colors">
-                          <X className="w-4 h-4" />
-                        </button>
-                      </div>
-                      <div className="space-y-4">
-                        <div>
-                          <label className="block text-[11px] font-bold uppercase tracking-wider text-[#F5F0E1]/60 mb-2">URL de YouTube *</label>
-                          <input
-                            type="text"
-                            value={videoForm.youtubeUrl}
-                            onChange={e => setVideoForm({ ...videoForm, youtubeUrl: e.target.value })}
-                            placeholder="https://youtu.be/... o https://youtube.com/watch?v=..."
-                            className="w-full bg-black/50 border border-[rgba(212,162,78,0.2)] rounded-xl px-4 py-3 text-sm text-[#F5F0E1] focus:outline-none focus:border-[#D4A24E]/50 transition-colors"
-                          />
-                          {videoForm.youtubeUrl && getYoutubeId(videoForm.youtubeUrl) && (
-                            <img
-                              src={`https://img.youtube.com/vi/${getYoutubeId(videoForm.youtubeUrl)}/mqdefault.jpg`}
-                              alt="preview"
-                              className="mt-2 w-full rounded-xl object-cover aspect-video"
-                            />
-                          )}
-                        </div>
-                        <div>
-                          <label className="block text-[11px] font-bold uppercase tracking-wider text-[#F5F0E1]/60 mb-2">Pilar *</label>
-                          <select
-                            value={videoForm.grupo}
-                            onChange={e => setVideoForm({ ...videoForm, grupo: e.target.value as AdminVideo['grupo'] })}
-                            className="w-full custom-select rounded-xl px-4 py-3"
-                          >
-                            {PILARES.map(p => <option key={p.id} value={p.id}>{p.label}</option>)}
-                        </select>
-                      </div>
-                      <div>
-                        <label className="block text-[11px] font-bold uppercase tracking-wider text-[#F5F0E1]/60 mb-2">Título *</label>
-                        <input
-                          type="text"
-                          value={videoForm.titulo}
-                          onChange={e => setVideoForm({ ...videoForm, titulo: e.target.value })}
-                          placeholder="Ej: Módulo 1 — Identidad del Fundador"
-                          className="w-full bg-black/50 border border-[rgba(212,162,78,0.2)] rounded-xl px-4 py-3 text-sm text-[#F5F0E1] focus:outline-none focus:border-[#D4A24E]/50 transition-colors"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-[11px] font-bold uppercase tracking-wider text-[#F5F0E1]/60 mb-2">Descripción</label>
-                        <input
-                          type="text"
-                          value={videoForm.descripcion}
-                          onChange={e => setVideoForm({ ...videoForm, descripcion: e.target.value })}
-                          placeholder="Breve descripción del contenido"
-                          className="w-full bg-black/50 border border-[rgba(212,162,78,0.2)] rounded-xl px-4 py-3 text-sm text-[#F5F0E1] focus:outline-none focus:border-[#D4A24E]/50 transition-colors"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-[11px] font-bold uppercase tracking-wider text-[#F5F0E1]/60 mb-2">Duración (opcional)</label>
-                        <input
-                          type="text"
-                          value={videoForm.duracion}
-                          onChange={e => setVideoForm({ ...videoForm, duracion: e.target.value })}
-                          placeholder="Ej: 15:30"
-                          className="w-full bg-black/50 border border-[rgba(212,162,78,0.2)] rounded-xl px-4 py-3 text-sm text-[#F5F0E1] focus:outline-none focus:border-[#D4A24E]/50 transition-colors"
-                        />
-                      </div>
-                    </div>
-                    <div className="flex gap-3 mt-6">
-                      <button onClick={() => setShowAddVideo(false)} className="flex-1 py-3 rounded-xl bg-[#D4A24E]/5 text-[#F5F0E1]/60 hover:text-[#F5F0E1] text-sm font-semibold transition-colors">
-                        Cancelar
-                      </button>
-                      <button
-                        disabled={!videoForm.youtubeUrl.trim() || !videoForm.titulo.trim()}
-                        onClick={() => {
-                          if (!videoForm.youtubeUrl.trim() || !videoForm.titulo.trim()) return;
-                          saveAdminVideo({
-                            id: videoForm.id,
-                            grupo: videoForm.grupo,
-                            titulo: videoForm.titulo.trim(),
-                            descripcion: videoForm.descripcion.trim(),
-                            youtubeUrl: videoForm.youtubeUrl.trim(),
-                            duracion: videoForm.duracion.trim() || undefined,
-                          });
-                          setShowAddVideo(false);
-                        }}
-                        className="flex-1 py-3 rounded-xl bg-[#E85555] hover:bg-[#E85555] disabled:opacity-50 text-[#F5F0E1] text-sm font-bold transition-all flex items-center justify-center gap-2"
-                      >
-                        {videoForm.id ? 'Guardar Cambios' : <><Plus className="w-4 h-4" /> Agregar Video</>}
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-          ) : ['comunidad', 'victorias', 'consultas'].includes(mainTab) ? (
-            <div className="flex-1 min-h-0 p-4">
-              <GlobalChat canal={mainTab} adminProfile={adminProfile} />
-            </div>
-          ) : (
-            <>
-              {/* Stats row */}
-              <div className="grid grid-cols-4 gap-4 mb-6">
-                {[
-                  { label: 'Clientes activos', value: clientes.length, icon: Users, color: 'text-[#D4A24E]', border: 'border-[#D4A24E]/25', bg: 'from-indigo-600/20 to-indigo-600/5' },
-                  { label: 'En ritmo', value: clientes.filter(c => c.semaforo === 'verde').length, icon: CheckCheck, color: 'text-emerald-300', border: 'border-emerald-500/25', bg: 'from-emerald-600/20 to-emerald-600/5' },
-                  { label: 'Necesitan atención', value: clientes.filter(c => c.semaforo === 'rojo' || c.semaforo === 'amarillo').length, icon: AlertTriangle, color: 'text-amber-300', border: 'border-amber-500/25', bg: 'from-amber-600/20 to-amber-600/5' },
-                  { label: 'Progreso promedio', value: clientes.length ? `${Math.round(clientes.reduce((acc, c) => acc + (c.tareas_total > 0 ? (c.tareas_completadas / c.tareas_total) * 100 : (c.progreso_porcentaje ?? 0)), 0) / clientes.length)}%` : '—', icon: TrendingUp, color: 'text-violet-300', border: 'border-violet-500/25', bg: 'from-violet-600/20 to-violet-600/5' },
-                ].map((stat, i) => (
-                  <div key={i} className={`bg-gradient-to-b ${stat.bg} border ${stat.border} rounded-2xl p-5 relative overflow-hidden`}>
-                    <stat.icon className={`w-5 h-5 ${stat.color} mb-3 opacity-70`} />
-                    <p className={`text-3xl font-light ${stat.color} mb-1 tracking-tight`}>{stat.value}</p>
-                    <p className="text-xs text-[#F5F0E1]/40 uppercase tracking-wider font-semibold">{stat.label}</p>
-                  </div>
-                ))}
-              </div>
-
-              {/* Main layout Dashboard */}
-              <div className="flex gap-6" style={{ height: 'calc(100vh - 220px)', minHeight: 540 }}>
-                {/* Lista de clientes */}
-                <div className={`shrink-0 flex flex-col transition-all duration-300 ${selectedCliente ? 'w-[280px]' : 'w-full max-w-2xl mx-auto'}`}>
-                  <div className="flex items-center justify-between mb-3">
-                    <h2 className="text-[11px] font-bold uppercase tracking-widest text-[#F5F0E1]/40">
-                      Directorio ({filtroStatus === 'ALL' ? clientes.length : clientes.filter(c => c.status === filtroStatus || (!c.status && filtroStatus === 'ACTIVE')).length})
-                    </h2>
-                    <button
-                      onClick={() => setShowNuevoCliente(true)}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#D4A24E] hover:bg-[#E2B865] text-[#F5F0E1] text-xs font-semibold shadow-lg shadow-[#D4A24E]/20 transition-all"
-                    >
-                      <Plus className="w-3.5 h-3.5" /> Nuevo
-                    </button>
-                  </div>
-                  {/* Filtro por estado */}
-                  <div className="flex gap-1 flex-wrap mb-3">
-                    {(['ALL', 'ACTIVE', 'ONBOARDING', 'PAUSED', 'CHURNED'] as const).map(s => (
-                      <button
-                        key={s}
-                        onClick={() => setFiltroStatus(s)}
-                        className={`px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-colors ${
-                          filtroStatus === s
-                            ? s === 'ALL' ? 'bg-[#D4A24E]/10 text-[#F5F0E1]' : `${STATUS_CONFIG[s]?.bg} ${STATUS_CONFIG[s]?.color} border ${STATUS_CONFIG[s]?.border}`
-                            : 'bg-[#D4A24E]/5 text-[#F5F0E1]/40 hover:text-[#F5F0E1]/80'
-                        }`}
-                      >
-                        {s === 'ALL' ? 'Todos' : STATUS_CONFIG[s]?.label}
-                      </button>
-                    ))}
-                  </div>
-
-                  {loading ? (
-                    <div className="flex items-center justify-center py-16"><Loader2 className="w-5 h-5 text-[#D4A24E] animate-spin" /></div>
-                  ) : clientes.length === 0 ? (
-                    <div className="text-center py-16 bg-[#241A0C]/30 rounded-3xl border border-[rgba(212,162,78,0.1)] border-dashed">
-                      <Users className="w-8 h-8 text-gray-700 mx-auto mb-3" />
-                      <p className="text-[#F5F0E1]/40 text-sm">Sin clientes aún</p>
-                    </div>
-                  ) : (
-                    <div className="space-y-2 overflow-y-auto scrollbar-hide pr-2">
-                      {clientes.filter(c => filtroStatus === 'ALL' || c.status === filtroStatus || (!c.status && filtroStatus === 'ACTIVE')).map(cliente => (
-                        <button
-                          key={cliente.id}
-                          onClick={() => { setSelectedCliente(cliente); setDetalleTab('resumen'); setIaRecomendacion(''); }}
-                          className={`w-full text-left p-4 rounded-2xl border transition-all relative overflow-hidden ${
-                            selectedCliente?.id === cliente.id
-                              ? 'bg-[#D4A24E]/10 border-[#D4A24E]/30'
-                              : 'bg-[#241A0C]/30 border-[rgba(212,162,78,0.1)] hover:bg-[#D4A24E]/5 hover:border-[rgba(212,162,78,0.2)]'
-                          }`}
-                        >
-                          <div className={`absolute left-0 top-0 bottom-0 w-1 ${SEMAFORO_CONFIG[cliente.semaforo].class} opacity-80`} />
-                          <div className="flex items-center gap-3 pl-2">
-                            <div className="w-10 h-10 rounded-full bg-[#D4A24E]/5 border border-[rgba(212,162,78,0.2)] flex items-center justify-center text-xs font-bold text-[#F5F0E1] shrink-0">
-                              {cliente.nombre.charAt(0).toUpperCase()}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2 mb-0.5">
-                                <h3 className="text-sm font-semibold text-[#F5F0E1] truncate">{cliente.nombre}</h3>
-                                {cliente.plan === 'DFY' && (
-                                  <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-[#D4A24E]/20 text-[#D4A24E] border border-[#D4A24E]/20 shrink-0">DFY</span>
-                                )}
-                              </div>
-                              <p className="text-[10px] text-[#F5F0E1]/60">
-                                Día {cliente.dia_programa}/90 · <span className={SEMAFORO_CONFIG[cliente.semaforo].text}>{SEMAFORO_CONFIG[cliente.semaforo].label}</span>
-                              </p>
-                              <div className="flex items-center gap-2 mt-1">
-                                {cliente.racha_diario > 0 && (
-                                  <span className="text-[9px] text-[#D4A24E]/80 font-medium flex items-center gap-0.5"><Flame className="w-3 h-3" /> {cliente.racha_diario}d</span>
-                                )}
-                                {cliente.ventas_count > 0 && (
-                                  <span className="text-[9px] text-[#2DD4A0]/80 font-medium flex items-center gap-0.5"><DollarSign className="w-3 h-3" /> {cliente.ventas_count} venta{cliente.ventas_count !== 1 ? 's' : ''}</span>
-                                )}
-                                {cliente.estado_garantia === 'activada' && (
-                                  <span className="text-[9px] text-[#E85555]/80 font-bold flex items-center gap-0.5"><AlertTriangle className="w-3 h-3" /> Garantia</span>
-                                )}
-                                {cliente.estado_garantia === 'en_riesgo' && (
-                                  <span className="text-[9px] text-[#D4A24E]/80 font-bold flex items-center gap-0.5"><AlertTriangle className="w-3 h-3" /> En riesgo</span>
-                                )}
-                              </div>
-                            </div>
-                            <ChevronRight className="w-4 h-4 text-[#F5F0E1]/30 shrink-0" />
-                          </div>
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                {/* Panel de detalle */}
-                {selectedCliente ? (
-                  <div className="flex-1 bg-[#080808] border border-[rgba(212,162,78,0.16)] rounded-2xl overflow-hidden flex flex-col shadow-2xl relative">
-                    {/* Header Pestaña Detalle */}
-                    <div className="absolute top-0 right-0 p-4">
-                      <button onClick={() => setSelectedCliente(null)} className="p-2 rounded-full bg-black/40 text-[#F5F0E1]/60 hover:text-[#F5F0E1] hover:bg-[#D4A24E]/10 transition-colors backdrop-blur-md">
-                        <X className="w-4 h-4" />
-                      </button>
-                    </div>
-                    
-                    <div className="p-8 border-b border-[rgba(212,162,78,0.1)] flex items-center gap-5 shrink-0 bg-[#241A0C]/30">
-                      <div className="w-16 h-16 rounded-2xl bg-[#D4A24E]/20 border border-[#D4A24E]/30 flex items-center justify-center text-xl font-bold text-[#D4A24E] shadow-inner">
-                        {selectedCliente.nombre.charAt(0).toUpperCase()}
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-3 mb-1.5 flex-wrap">
-                          <h3 className="text-2xl font-light text-[#F5F0E1] tracking-tight">{selectedCliente.nombre}</h3>
-                          <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider ${selectedCliente.plan === 'DFY' ? 'bg-[#D4A24E]/20 text-[#D4A24E] border border-[#D4A24E]/30' : selectedCliente.plan === 'IMPLEMENTACION' ? 'bg-[#2DD4A0]/20 text-[#2DD4A0] border border-emerald-500/30' : 'bg-[#D4A24E]/20 text-[#D4A24E] border border-[#D4A24E]/30'}`}>
-                            {selectedCliente.plan}
-                          </span>
-                          {/* Status badge + quick change */}
-                          <div className="flex items-center gap-1.5 relative group">
-                            {(() => {
-                              const st = selectedCliente.status ?? 'ACTIVE';
-                              const cfg = STATUS_CONFIG[st];
-                              return (
-                                <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider ${cfg?.bg} ${cfg?.color} border ${cfg?.border}`}>
-                                  {cfg?.label ?? st}
-                                </span>
-                              );
-                            })()}
-                            <select
-                              disabled={statusCambiando}
-                              value={selectedCliente.status ?? 'ACTIVE'}
-                              onChange={e => cambiarStatusCliente(e.target.value as UserStatus)}
-                              className="opacity-0 absolute inset-0 w-full cursor-pointer"
-                              title="Cambiar estado"
-                            >
-                              {Object.entries(STATUS_CONFIG).map(([val, cfg]) => (
-                                <option key={val} value={val}>{cfg.label}</option>
-                              ))}
-                            </select>
-                            <span title="Click en el badge para cambiar"><Pencil className="w-3 h-3 text-[#F5F0E1]/30 group-hover:text-[#F5F0E1]/60 transition-colors" /></span>
-                          </div>
-                        </div>
-                        <p className="text-xs text-[#F5F0E1]/60 flex items-center gap-2">
-                          <Lock className="w-3 h-3 text-[#F5F0E1]/30" /> {selectedCliente.email}
-                          {selectedCliente.especialidad && <><span>·</span> {selectedCliente.especialidad}</>}
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* Tabs nav */}
-                    <div className="flex border-b border-[rgba(212,162,78,0.1)] px-6 shrink-0 bg-black/20">
-                      {detailTabs.map(tab => (
-                        <button
-                          key={tab.id}
-                          onClick={() => setDetalleTab(tab.id)}
-                          className={`flex items-center gap-2 px-4 py-4 text-xs font-semibold uppercase tracking-wider transition-all relative ${
-                            detalleTab === tab.id
-                              ? 'text-[#D4A24E]'
-                              : 'text-[#F5F0E1]/40 hover:text-[#F5F0E1]/80'
-                          }`}
-                        >
-                          <tab.icon className="w-3.5 h-3.5" />
-                          {tab.label}
-                          {detalleTab === tab.id && (
-                            <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#D4A24E] rounded-t-full shadow-[0_0_10px_rgba(212,162,78,0.5)]" />
-                          )}
-                        </button>
-                      ))}
-                    </div>
-
-                    {/* Content */}
-                    <div className="flex-1 overflow-y-auto p-6 scrollbar-hide bg-black/10">
-                      {detalleLoading ? (
-                        <div className="flex items-center justify-center h-full"><Loader2 className="w-6 h-6 text-[#D4A24E] animate-spin" /></div>
-                      ) : (
-                        <>
-                          {/* ── RESUMEN ── */}
-                          {detalleTab === 'resumen' && (
-                            <div className="space-y-6">
-                              {/* v2.0 Status Bar */}
-                              <div className="grid grid-cols-4 gap-3">
-                                <div className="bg-[#241A0C]/30 border border-[rgba(212,162,78,0.1)] rounded-2xl p-4 text-center">
-                                  <p className="text-2xl font-light text-[#F5F0E1]">{selectedCliente.dia_programa}</p>
-                                  <p className="text-[10px] text-[#F5F0E1]/40 uppercase tracking-wider mt-1">Día / 90</p>
-                                </div>
-                                <div className="bg-[#241A0C]/30 border border-[rgba(212,162,78,0.1)] rounded-2xl p-4 text-center">
-                                  <p className="text-2xl font-light text-[#D4A24E] flex items-center justify-center gap-1"><Flame className="w-5 h-5" /> {selectedCliente.racha_diario}</p>
-                                  <p className="text-[10px] text-[#F5F0E1]/40 uppercase tracking-wider mt-1">Racha diario</p>
-                                </div>
-                                <div className="bg-[#241A0C]/30 border border-[rgba(212,162,78,0.1)] rounded-2xl p-4 text-center">
-                                  <p className="text-2xl font-light text-[#2DD4A0]">{selectedCliente.ventas_count}</p>
-                                  <p className="text-[10px] text-[#F5F0E1]/40 uppercase tracking-wider mt-1">Ventas reales</p>
-                                </div>
-                                <div className={`rounded-2xl p-4 text-center border ${
-                                  selectedCliente.estado_garantia === 'activada' ? 'bg-[#E85555]/10 border-red-500/30' :
-                                  selectedCliente.estado_garantia === 'en_riesgo' ? 'bg-amber-500/10 border-amber-500/30' :
-                                  'bg-[#241A0C]/30 border-[rgba(212,162,78,0.1)]'
-                                }`}>
-                                  <Shield className={`w-6 h-6 mx-auto mb-1 ${
-                                    selectedCliente.estado_garantia === 'activada' ? 'text-[#E85555]' :
-                                    selectedCliente.estado_garantia === 'en_riesgo' ? 'text-[#D4A24E]' : 'text-[#F5F0E1]/30'
-                                  }`} />
-                                  <p className={`text-[10px] uppercase tracking-wider font-bold ${
-                                    selectedCliente.estado_garantia === 'activada' ? 'text-[#E85555]' :
-                                    selectedCliente.estado_garantia === 'en_riesgo' ? 'text-[#D4A24E]' : 'text-[#F5F0E1]/40'
-                                  }`}>{selectedCliente.estado_garantia === 'activada' ? 'Garantía' : selectedCliente.estado_garantia === 'en_riesgo' ? 'En riesgo' : 'En camino'}</p>
-                                </div>
-                              </div>
-
-                              <div className="grid grid-cols-2 gap-4">
-                                <div className="bg-[#241A0C]/30 border border-[rgba(212,162,78,0.1)] rounded-2xl p-5">
-                                  <p className="text-[10px] text-[#F5F0E1]/40 uppercase tracking-widest mb-1 font-bold">Progreso de Tareas</p>
-                                  <div className="flex items-end gap-2 mb-3">
-                                    <p className="text-3xl font-light text-[#F5F0E1]">{selectedCliente.tareas_completadas}</p>
-                                    <p className="text-sm text-[#F5F0E1]/40 mb-1">/ {selectedCliente.tareas_total}</p>
-                                  </div>
-                                  <div className="h-2 bg-[#D4A24E]/5 rounded-full overflow-hidden">
-                                    <div className="h-full bg-[#D4A24E] rounded-full" style={{ width: `${selectedCliente.tareas_total > 0 ? Math.round((selectedCliente.tareas_completadas / selectedCliente.tareas_total) * 100) : 0}%` }} />
-                                  </div>
-                                </div>
-                                <div className="bg-[#241A0C]/30 border border-[rgba(212,162,78,0.1)] rounded-2xl p-5">
-                                  <p className="text-[10px] text-[#F5F0E1]/40 uppercase tracking-widest mb-2 font-bold">Último Diario</p>
-                                  {detalleDiario[0] ? (
-                                    <>
-                                      <p className="text-xs text-[#F5F0E1]/40 mb-2">{new Date(detalleDiario[0].fecha + 'T12:00:00').toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
-                                      {detalleDiario[0].respuestas?.q3 && (
-                                        <div className="flex items-center gap-1.5 mb-2">
-                                          <span className="text-[10px] text-[#F5F0E1]/40 uppercase font-bold">Energía</span>
-                                          <div className="flex gap-0.5">
-                                            {Array.from({ length: 10 }).map((_, i) => (
-                                              <div key={i} className={`w-2 h-2 rounded-sm ${i < Number(detalleDiario[0].respuestas.q3) ? 'bg-amber-400' : 'bg-[#D4A24E]/10'}`} />
-                                            ))}
-                                          </div>
-                                          <span className="text-[10px] text-[#D4A24E] font-bold">{detalleDiario[0].respuestas.q3}/10</span>
-                                        </div>
-                                      )}
-                                      {detalleDiario[0].respuestas?.q4 && (
-                                        <p className="text-xs text-[#F5F0E1]/80 line-clamp-2"><span className="text-[#2DD4A0] font-bold">Acción: </span>{detalleDiario[0].respuestas.q4}</p>
-                                      )}
-                                      {detalleDiario[0].respuestas?.q2 && (
-                                        <p className="text-xs text-[#F5F0E1]/60 mt-1 line-clamp-1"><span className="text-[#D4A24E] font-bold">Freno: </span>{detalleDiario[0].respuestas.q2}</p>
-                                      )}
-                                    </>
-                                  ) : <p className="text-xs text-[#F5F0E1]/30">Sin entradas de diario aún</p>}
-                                </div>
-                              </div>
-
-                              <div className="bg-[#D4A24E]/5 border border-[#D4A24E]/20 rounded-2xl p-6 relative overflow-hidden">
-                                <Bot className="absolute -right-6 -bottom-6 w-32 h-32 text-[#F5F0E1]0/10" />
-                                <div className="relative z-10">
-                                  <div className="flex items-center justify-between mb-4">
-                                    <div className="flex items-center gap-2">
-                                      <div className="w-8 h-8 rounded-lg bg-[#D4A24E]/20 flex items-center justify-center">
-                                        <Bot className="w-4 h-4 text-[#D4A24E]" />
-                                      </div>
-                                      <p className="text-xs font-bold uppercase tracking-widest text-[#D4A24E]">Coach AI Assistant</p>
-                                    </div>
-                                    <button
-                                      onClick={generarRecomendacion} disabled={iaLoading}
-                                      className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#D4A24E] text-[#F5F0E1] text-xs font-bold transition-all hover:bg-[#E2B865] disabled:opacity-50 shadow-lg shadow-[#D4A24E]/20"
-                                    >
-                                      {iaLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
-                                      Analizar y Sugerir
-                                    </button>
-                                  </div>
-                                  {iaRecomendacion ? (
-                                    <div className="bg-black/20 rounded-xl p-4 border border-[#D4A24E]/20">
-                                      <p className="text-sm text-[#D4A24E] leading-relaxed whitespace-pre-line">{iaRecomendacion}</p>
-                                    </div>
-                                  ) : (
-                                    <p className="text-xs text-[#F5F0E1]/40">Haz clic en Analizar para que la IA escanee el perfil, métricas diarias y tareas pendientes de este cliente para crear recomendaciones proactivas de coaching.</p>
-                                  )}
-                                </div>
-                              </div>
-                            </div>
-                          )}
-
-                          {/* ── DIARIO ── */}
-                          {detalleTab === 'diario' && (
-                            <div className="space-y-4">
-                              {detalleDiario.length === 0 ? (
-                                <p className="text-[#F5F0E1]/40 text-sm text-center py-12">Sin entradas de diario</p>
-                              ) : detalleDiario.map((entrada: any, i: number) => {
-                                const r = entrada.respuestas ?? {};
-                                return (
-                                  <div key={i} className="p-6 rounded-2xl bg-[#241A0C]/30 border border-[rgba(212,162,78,0.1)]">
-                                    <div className="flex items-center justify-between mb-4">
-                                      <p className="text-sm font-semibold text-[#F5F0E1] tracking-wide">
-                                        {new Date(entrada.fecha + 'T12:00:00').toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
-                                      </p>
-                                      {r.q3 && (
-                                        <div className="flex items-center gap-1.5">
-                                          <span className="text-[10px] text-[#F5F0E1]/40 uppercase font-bold">Energía</span>
-                                          <div className="flex gap-0.5">
-                                            {Array.from({ length: 10 }).map((_, idx) => (
-                                              <div key={idx} className={`w-2 h-2 rounded-sm ${idx < Number(r.q3) ? 'bg-amber-400' : 'bg-[#D4A24E]/10'}`} />
-                                            ))}
-                                          </div>
-                                          <span className="text-[10px] text-[#D4A24E] font-bold">{r.q3}/10</span>
-                                        </div>
-                                      )}
-                                    </div>
-                                    <div className="grid grid-cols-2 gap-4">
-                                      {r.q1 && <div className="col-span-2"><p className="text-[10px] uppercase font-bold text-[#D4A24E]/70 mb-1">Cómo se sintió</p><p className="text-xs text-[#F5F0E1]/80">{r.q1}</p></div>}
-                                      {r.q4 && <div><p className="text-[10px] uppercase font-bold text-emerald-500/70 mb-1">Acción tomada</p><p className="text-xs text-[#F5F0E1]/80">{r.q4}</p></div>}
-                                      {r.q5 && <div><p className="text-[10px] uppercase font-bold text-purple-500/70 mb-1">Pensamiento dominante</p><p className="text-xs text-[#F5F0E1]/80">{r.q5}</p></div>}
-                                      {r.q2 && <div className="col-span-2"><p className="text-[10px] uppercase font-bold text-amber-500/70 mb-1">Lo que lo frenó</p><p className="text-xs text-[#F5F0E1]/80">{r.q2}</p></div>}
-                                      {r.q6 && <div><p className="text-[10px] uppercase font-bold text-pink-500/70 mb-1">Emoción predominante</p><p className="text-xs text-[#F5F0E1]/80">{r.q6}</p></div>}
-                                      {r.q7 && <div><p className="text-[10px] uppercase font-bold text-[#D4A24E]/70 mb-1">Plan para mañana</p><p className="text-xs text-[#F5F0E1]/80">{r.q7}</p></div>}
-                                    </div>
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          )}
-
-                          {/* ── MÉTRICAS ── */}
-                          {detalleTab === 'metricas' && (
-                            <div className="space-y-5">
-                              {/* Progreso por pilar — siempre visible */}
-                              <div className="bg-[#241A0C]/30 border border-[rgba(212,162,78,0.1)] rounded-2xl p-5">
-                                <h3 className="text-[10px] font-bold uppercase tracking-widest text-[#F5F0E1]/60 mb-4">Progreso por Pilar</h3>
-                                <div className="space-y-3">
-                                  {SEED_ROADMAP_V2.map(pilar => {
-                                    const metasPilar = pilar.metas.length;
-                                    const completadas = selectedCliente.tareas_por_pilar?.[pilar.numero] ?? 0;
-                                    const pct = metasPilar > 0 ? Math.round((completadas / metasPilar) * 100) : 0;
-                                    const colors = ['indigo','violet','blue','cyan','emerald','amber','orange','rose','pink'];
-                                    const col = colors[pilar.numero % colors.length];
-                                    return (
-                                      <div key={pilar.numero} className="flex items-center gap-3">
-                                        {(() => { const IC = ADMIN_PILAR_ICON_MAP[pilar.icon]; return IC ? <IC className="w-5 h-5 text-[#D4A24E] shrink-0" /> : <span className="w-5 h-5 shrink-0" />; })()}
-                                        <span className="text-xs text-[#F5F0E1]/60 w-36 truncate shrink-0">{pilar.titulo}</span>
-                                        <div className="flex-1 h-2 bg-[#D4A24E]/5 rounded-full overflow-hidden">
-                                          <div className={`h-full bg-${col}-500 rounded-full transition-all`} style={{ width: `${pct}%` }} />
-                                        </div>
-                                        <span className="text-xs text-[#F5F0E1]/60 w-10 text-right shrink-0">{completadas}/{metasPilar}</span>
-                                      </div>
-                                    );
-                                  })}
-                                </div>
-                              </div>
-
-                              {/* Métricas de negocio semanales */}
-                              <div>
-                                <h3 className="text-[10px] font-bold uppercase tracking-widest text-[#F5F0E1]/60 mb-3">Métricas de Negocio Semanales</h3>
-                                {detalleMetricas.length === 0 ? (
-                                  <div className="bg-[#241A0C]/30 border border-[rgba(212,162,78,0.1)] rounded-2xl p-6 text-center">
-                                    <p className="text-sm text-[#F5F0E1]/40">El cliente aún no cargó métricas semanales.</p>
-                                    <p className="text-xs text-[#F5F0E1]/30 mt-1">Se completan desde la sección Métricas del cliente.</p>
-                                  </div>
-                                ) : detalleMetricas.slice().reverse().map((m: any, i: number) => (
-                                  <div key={i} className="p-5 rounded-2xl bg-[#241A0C]/30 border border-[rgba(212,162,78,0.1)] flex items-center justify-between mb-3">
-                                    <span className="text-xs font-semibold text-[#F5F0E1]/60 bg-[#D4A24E]/5 px-2.5 py-1 rounded-lg">{m.semana}</span>
-                                    <div className="flex gap-8">
-                                      <div className="text-center"><p className="text-[#F5F0E1] text-lg font-light">{m.leads}</p><p className="text-[10px] text-[#F5F0E1]/40 font-bold uppercase">leads</p></div>
-                                      <div className="text-center"><p className="text-[#F5F0E1] text-lg font-light">{m.conversaciones ?? 0}</p><p className="text-[10px] text-[#F5F0E1]/40 font-bold uppercase">llamadas</p></div>
-                                      <div className="text-center"><p className="text-[#2DD4A0] text-lg font-bold">{m.ventas}</p><p className="text-[10px] text-emerald-500/50 font-bold uppercase">ventas</p></div>
-                                    </div>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-
-                          {/* ── NOTAS INTERNAS ── */}
-                          {detalleTab === 'notas' && (
-                            <div className="space-y-4">
-                              <p className="text-[10px] text-[#F5F0E1]/30 uppercase tracking-wider font-bold">Solo visible para admins · No la ve el cliente</p>
-                              {/* Input nueva nota */}
-                              <div className="flex gap-2">
-                                <textarea
-                                  value={notaInput}
-                                  onChange={e => setNotaInput(e.target.value)}
-                                  onKeyDown={e => { if (e.key === 'Enter' && e.ctrlKey) agregarNota(); }}
-                                  placeholder="Escribí una nota interna... (Ctrl+Enter para guardar)"
-                                  rows={3}
-                                  className="flex-1 bg-black/40 border border-[rgba(212,162,78,0.2)] rounded-xl py-3 px-4 text-sm text-[#F5F0E1] focus:outline-none focus:border-[#D4A24E]/50 transition-all resize-none"
-                                />
+                              <div className="flex items-center gap-2">
                                 <button
-                                  onClick={agregarNota}
-                                  disabled={!notaInput.trim()}
-                                  className="w-12 rounded-xl bg-[#D4A24E] hover:bg-[#E2B865] disabled:opacity-50 flex items-center justify-center transition-colors shadow-lg shadow-[#D4A24E]/20 shrink-0"
+                                  onClick={() => {
+                                    setVideoForm({
+                                      id: v.id,
+                                      pilar_id: (v.pilar_id ?? 'P0') as PilarId,
+                                      titulo: v.titulo,
+                                      descripcion: v.descripcion,
+                                      youtubeUrl: v.youtubeUrl,
+                                      duracion: v.duracion || '',
+                                    });
+                                    setShowAddVideo(true);
+                                  }}
+                                  className="w-7 h-7 rounded-lg bg-[#D4A24E]/5 hover:bg-[#D4A24E]/10 flex items-center justify-center text-[#F5F0E1]/60 hover:text-[#F5F0E1] transition-colors shrink-0"
+                                  title="Editar video"
                                 >
-                                  <Send className="w-4 h-4" />
+                                  <Settings className="w-3.5 h-3.5" />
+                                </button>
+                                <button
+                                  onClick={() => deleteAdminVideo(v.id)}
+                                  className="w-7 h-7 rounded-lg bg-[#E85555]/10 hover:bg-[#E85555]/20 flex items-center justify-center text-[#E85555] transition-colors shrink-0"
+                                  title="Eliminar video"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
                                 </button>
                               </div>
-                              {/* Lista de notas */}
-                              {notaLoading ? (
-                                <div className="flex justify-center py-8"><Loader2 className="w-5 h-5 text-[#D4A24E] animate-spin" /></div>
-                              ) : detalleNotas.length === 0 ? (
-                                <div className="text-center py-12">
-                                  <BookOpen className="w-8 h-8 text-gray-800 mx-auto mb-3" />
-                                  <p className="text-[#F5F0E1]/40 text-sm">Sin notas aún. Usá esto para documentar contexto importante del cliente.</p>
-                                </div>
-                              ) : detalleNotas.map(nota => (
-                                <div key={nota.id} className="bg-[#241A0C]/30 border border-[rgba(212,162,78,0.12)] rounded-xl p-4">
-                                  <p className="text-sm text-[#F5F0E1]/90 leading-relaxed whitespace-pre-wrap">{nota.content}</p>
-                                  <p className="text-[10px] text-[#F5F0E1]/30 mt-2">
-                                    {new Date(nota.created_at).toLocaleDateString('es-AR', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                                  </p>
-                                </div>
-                              ))}
                             </div>
-                          )}
-
-                          {/* ── MENSAJES ── */}
-                          {detalleTab === 'mensajes' && (
-                            <div className="space-y-3">
-                              {detalleMensajes.length === 0 ? (
-                                <div className="flex flex-col items-center justify-center py-16 text-center">
-                                  <MessageSquare className="w-10 h-10 text-gray-800 mb-4" />
-                                  <p className="text-[#F5F0E1]/40 text-sm">Comenzá la conversación con {selectedCliente.nombre}</p>
-                                </div>
-                              ) : detalleMensajes.map(m => {
-                                const isMe = m.emisor_id === adminProfile.id;
-                                const senderName = isMe ? adminProfile.nombre : selectedCliente.nombre;
-                                const initial = senderName.charAt(0).toUpperCase();
-                                return (
-                                  <div key={m.id} className={`flex gap-2.5 items-end max-w-[88%] ${isMe ? 'ml-auto flex-row-reverse' : ''}`}>
-                                    {/* Avatar */}
-                                    <div className={`w-7 h-7 rounded-full shrink-0 flex items-center justify-center text-xs font-bold border overflow-hidden ${isMe ? 'bg-[#D4A24E]/20 border-[#D4A24E]/30 text-[#D4A24E]' : 'bg-[#D4A24E]/10 border-[rgba(212,162,78,0.2)] text-[#F5F0E1]'}`}>
-                                      {isMe
-                                        ? (adminAvatar ? <img src={adminAvatar} alt="" className="w-full h-full object-cover" /> : <Shield className="w-3.5 h-3.5" />)
-                                        : initial}
-                                    </div>
-                                    <div className="flex flex-col gap-1">
-                                      <span className={`text-[10px] font-semibold text-[#F5F0E1]/40 px-1 ${isMe ? 'text-right' : ''}`}>{senderName}</span>
-                                      <div className={`px-4 py-3 rounded-2xl text-sm leading-relaxed ${
-                                        isMe ? 'bg-[#D4A24E]/25 text-[#F5F0E1] border border-[#D4A24E]/20 rounded-tr-sm'
-                                             : 'bg-[#241A0C]/60 text-[#F5F0E1]/90 border border-[rgba(212,162,78,0.12)] rounded-tl-sm'
-                                      }`}>
-                                        {m.contenido && <p>{m.contenido}</p>}
-                                        <p className={`text-[10px] mt-1.5 opacity-40 ${isMe ? 'text-right' : ''}`}>
-                                          {new Date(m.created_at).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}
-                                        </p>
-                                      </div>
-                                    </div>
-                                  </div>
-                                );
-                              })}
-                              <div ref={messagesEndRef} />
-                            </div>
-                          )}
-                        </>
-                      )}
-                    </div>
-
-                    {/* Chat input for private messages */}
-                    {detalleTab === 'mensajes' && (
-                      <div className="p-4 border-t border-[rgba(212,162,78,0.1)] shrink-0 bg-[#241A0C]/20">
-                        <div className="flex gap-2">
-                          <input
-                            type="text"
-                            value={mensajeInput}
-                            onChange={e => setMensajeInput(e.target.value)}
-                            onKeyDown={e => e.key === 'Enter' && !e.shiftKey && enviarMensajePrivado()}
-                            placeholder="Escribe un mensaje privado..."
-                            disabled={enviando}
-                            className="flex-1 bg-black/40 border border-[rgba(212,162,78,0.2)] rounded-xl py-3 px-5 text-sm text-[#F5F0E1] focus:outline-none focus:border-[#D4A24E]/50 transition-all"
-                          />
-                          <button
-                            onClick={enviarMensajePrivado}
-                            disabled={!mensajeInput.trim() || enviando}
-                            className="w-12 h-12 rounded-xl bg-[#D4A24E] hover:bg-[#E2B865] disabled:opacity-50 flex items-center justify-center transition-colors shadow-lg shadow-[#D4A24E]/20"
-                          >
-                            {enviando ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
-                          </button>
-                        </div>
+                          );
+                        })}
                       </div>
                     )}
                   </div>
-                ) : null}
-              </div>
-            </>
+                );
+              })}
+            </div>
           )}
+
+          {/* ═══════════════════════════════════════════════════════════════════════
+              TAB: EQUIPO (owner only)
+              ═══════════════════════════════════════════════════════════════════════ */}
+          {mainTab === 'equipo' && (adminRol === 'owner' || !adminRol) && (
+            <div className="max-w-4xl mx-auto space-y-6">
+              <div>
+                <h2 className="text-2xl font-light text-[#F5F0E1] tracking-tight" style={{ fontFamily: 'var(--font-display)', fontStyle: 'italic' }}>Gesti\u00f3n de Equipo</h2>
+                <p className="text-sm text-[#F5F0E1]/40 mt-1">Administr\u00e1 roles y permisos de los miembros del equipo.</p>
+              </div>
+
+              <div className="card-panel border border-[rgba(212,162,78,0.2)] rounded-2xl overflow-hidden">
+                {teamLoading ? (
+                  <div className="flex justify-center py-16"><Loader2 className="w-6 h-6 text-[#D4A24E] animate-spin" /></div>
+                ) : teamMembers.length === 0 ? (
+                  <div className="text-center py-16">
+                    <UsersRound className="w-8 h-8 text-gray-700 mx-auto mb-3" />
+                    <p className="text-[#F5F0E1]/40 text-sm">No hay miembros del equipo</p>
+                  </div>
+                ) : (
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b border-[rgba(212,162,78,0.1)]">
+                        {['Nombre', 'Rol', 'Estado'].map(h => (
+                          <th key={h} className="text-left px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-[#F5F0E1]/40">{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {teamMembers.map(member => {
+                        const memberRol: AdminRol = member.admin_rol ?? 'owner';
+                        return (
+                          <tr key={member.id} className="bg-[#1A1410] hover:bg-[#241A0C] border-b border-[rgba(212,162,78,0.1)] transition-colors">
+                            <td className="px-5 py-4">
+                              <div className="flex items-center gap-3">
+                                <div className="w-9 h-9 rounded-full bg-[#D4A24E]/10 border border-[rgba(212,162,78,0.2)] flex items-center justify-center text-sm font-bold text-[#F5F0E1]">
+                                  {member.nombre?.charAt(0)?.toUpperCase() ?? '?'}
+                                </div>
+                                <div>
+                                  <p className="text-sm font-medium text-[#F5F0E1]">{member.nombre}</p>
+                                  <p className="text-[10px] text-[#F5F0E1]/40">{member.email}</p>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="px-5 py-4">
+                              {member.id === adminProfile.id ? (
+                                <span className="text-[10px] font-bold px-2 py-1 rounded-md uppercase tracking-wider bg-[#D4A24E]/20 text-[#D4A24E] border border-[#D4A24E]/30">
+                                  {memberRol}
+                                </span>
+                              ) : (
+                                <CustomSelect
+                                  value={memberRol}
+                                  onChange={(val) => cambiarRolAdmin(member.id, val as AdminRol)}
+                                  options={[
+                                    { value: 'owner', label: 'Owner' },
+                                    { value: 'manager', label: 'Manager' },
+                                    { value: 'staff', label: 'Staff' },
+                                  ]}
+                                  className="w-32"
+                                />
+                              )}
+                            </td>
+                            <td className="px-5 py-4">
+                              <span className="text-[10px] font-bold px-2 py-1 rounded-md uppercase tracking-wider bg-[#2DD4A0]/10 text-[#2DD4A0] border border-[#2DD4A0]/20">
+                                Activo
+                              </span>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+            </div>
+          )}
+
         </div>
       </main>
 
-      {/* ─── MODAL AJUSTES ADMIN ────────────────────────────────────────────────────── */}
+      {/* ─── MODAL AJUSTES ADMIN ────────────────────────────────────────────────── */}
       {showAdminSettings && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="w-full max-w-md bg-[#1A1410] border border-[rgba(212,162,78,0.2)] rounded-3xl p-8 shadow-2xl relative overflow-hidden">
@@ -2307,7 +2405,6 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
               </button>
             </div>
 
-            {/* Avatar */}
             <div className="flex flex-col items-center gap-3 mb-6">
               <input ref={adminAvatarInputRef} type="file" accept="image/*" className="hidden" onChange={handleAdminAvatarUpload} />
               <button
@@ -2335,29 +2432,29 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
                   type="text"
                   value={adminDraft.nombre}
                   onChange={e => setAdminDraft({ ...adminDraft, nombre: e.target.value })}
-                  className="w-full bg-black/50 border border-[rgba(212,162,78,0.2)] rounded-xl px-4 py-3 text-sm text-[#F5F0E1] focus:outline-none focus:border-[#D4A24E]/50 transition-colors"
+                  className="w-full bg-black/20 border border-[rgba(212,162,78,0.2)] rounded-lg px-4 py-3 text-sm text-[#F5F0E1] focus:outline-none focus:border-[#D4A24E]/50 transition-colors"
                 />
               </div>
               <div>
-                <label className="block text-[11px] font-bold uppercase tracking-wider text-[#F5F0E1]/60 mb-2">Cargo / Título</label>
+                <label className="block text-[11px] font-bold uppercase tracking-wider text-[#F5F0E1]/60 mb-2">Cargo / T\u00edtulo</label>
                 <input
                   type="text"
                   value={adminDraft.cargo}
                   onChange={e => setAdminDraft({ ...adminDraft, cargo: e.target.value })}
-                  placeholder="Ej: Coach Principal, Soporte Técnico..."
-                  className="w-full bg-black/50 border border-[rgba(212,162,78,0.2)] rounded-xl px-4 py-3 text-sm text-[#F5F0E1] focus:outline-none focus:border-[#D4A24E]/50 transition-colors"
+                  placeholder="Ej: Coach Principal, Soporte T\u00e9cnico..."
+                  className="w-full bg-black/20 border border-[rgba(212,162,78,0.2)] rounded-lg px-4 py-3 text-sm text-[#F5F0E1] focus:outline-none focus:border-[#D4A24E]/50 transition-colors"
                 />
               </div>
             </div>
 
             <div className="flex gap-3 mt-8">
-              <button onClick={() => setShowAdminSettings(false)} className="flex-1 py-3 rounded-xl bg-[#D4A24E]/5 text-[#F5F0E1]/60 hover:text-[#F5F0E1] text-sm font-semibold transition-colors">
+              <button onClick={() => setShowAdminSettings(false)} className="btn-secondary flex-1 py-3 rounded-xl text-sm font-semibold transition-colors">
                 Cancelar
               </button>
               <button
                 onClick={guardarConfigAdmin}
                 disabled={guardandoAdmin || !adminDraft.nombre.trim()}
-                className="flex-1 py-3 rounded-xl bg-[#D4A24E] hover:bg-[#D4A24E] disabled:opacity-50 text-[#F5F0E1] text-sm font-bold transition-all flex items-center justify-center gap-2"
+                className="btn-primary flex-1 py-3 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2 disabled:opacity-50"
               >
                 {guardandoAdmin ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Guardar Cambios'}
               </button>
@@ -2366,7 +2463,7 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
         </div>
       )}
 
-      {/* ─── MODAL NUEVO CLIENTE (CON CONTRASEÑA DIRECTA) ────────────────────────── */}
+      {/* ─── MODAL NUEVO CLIENTE ────────────────────────────────────────────────── */}
       {showNuevoCliente && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md">
           <div className="w-full max-w-md bg-[#1A1410] border border-[rgba(212,162,78,0.2)] rounded-3xl p-8 shadow-2xl relative overflow-hidden">
@@ -2384,19 +2481,19 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
             <div className="space-y-4">
               <div>
                 <label className="block text-[11px] font-bold uppercase tracking-wider text-[#F5F0E1]/60 mb-2">Nombre completo *</label>
-                <input type="text" value={nuevoForm.nombre} onChange={e => setNuevoForm({ ...nuevoForm, nombre: e.target.value })} placeholder="Ej: Dra. María González" className="w-full bg-black/50 border border-[rgba(212,162,78,0.2)] rounded-xl px-4 py-3 text-sm text-[#F5F0E1] focus:outline-none focus:border-[#D4A24E]/50 transition-colors" />
+                <input type="text" value={nuevoForm.nombre} onChange={e => setNuevoForm({ ...nuevoForm, nombre: e.target.value })} placeholder="Ej: Dra. Mar\u00eda Gonz\u00e1lez" className="w-full bg-black/20 border border-[rgba(212,162,78,0.2)] rounded-lg px-4 py-3 text-sm text-[#F5F0E1] focus:outline-none focus:border-[#D4A24E]/50 transition-colors" />
               </div>
               <div>
                 <label className="block text-[11px] font-bold uppercase tracking-wider text-[#F5F0E1]/60 mb-2">Email *</label>
-                <input type="email" value={nuevoForm.email} onChange={e => setNuevoForm({ ...nuevoForm, email: e.target.value })} placeholder="maria@ejemplo.com" className="w-full bg-black/50 border border-[rgba(212,162,78,0.2)] rounded-xl px-4 py-3 text-sm text-[#F5F0E1] focus:outline-none focus:border-[#D4A24E]/50 transition-colors" />
+                <input type="email" value={nuevoForm.email} onChange={e => setNuevoForm({ ...nuevoForm, email: e.target.value })} placeholder="maria@ejemplo.com" className="w-full bg-black/20 border border-[rgba(212,162,78,0.2)] rounded-lg px-4 py-3 text-sm text-[#F5F0E1] focus:outline-none focus:border-[#D4A24E]/50 transition-colors" />
               </div>
               <div>
-                <label className="block text-[11px] font-bold uppercase tracking-wider text-[#2DD4A0]/80 mb-2">Contraseña inicial *</label>
-                <input type="text" value={nuevoForm.password} onChange={e => setNuevoForm({ ...nuevoForm, password: e.target.value })} placeholder="Ej: Maria123!" className="w-full bg-[#2DD4A0]/5 border border-emerald-500/20 rounded-xl px-4 py-3 text-sm text-emerald-100 placeholder-emerald-900/50 focus:outline-none focus:border-emerald-500/50 transition-colors" />
+                <label className="block text-[11px] font-bold uppercase tracking-wider text-[#2DD4A0]/80 mb-2">Contrase\u00f1a inicial *</label>
+                <input type="text" value={nuevoForm.password} onChange={e => setNuevoForm({ ...nuevoForm, password: e.target.value })} placeholder="Ej: Maria123!" className="w-full bg-[#2DD4A0]/5 border border-[#2DD4A0]/20 rounded-lg px-4 py-3 text-sm text-[#2DD4A0] placeholder-[#2DD4A0]/30 focus:outline-none focus:border-[#2DD4A0]/50 transition-colors" />
               </div>
               <div>
                 <label className="block text-[11px] font-bold uppercase tracking-wider text-[#F5F0E1]/60 mb-2">Especialidad</label>
-                <input type="text" value={nuevoForm.especialidad} onChange={e => setNuevoForm({ ...nuevoForm, especialidad: e.target.value })} placeholder="Ej: Nutricionista" className="w-full bg-black/50 border border-[rgba(212,162,78,0.2)] rounded-xl px-4 py-3 text-sm text-[#F5F0E1] focus:outline-none focus:border-[#D4A24E]/50 transition-colors" />
+                <input type="text" value={nuevoForm.especialidad} onChange={e => setNuevoForm({ ...nuevoForm, especialidad: e.target.value })} placeholder="Ej: Nutricionista" className="w-full bg-black/20 border border-[rgba(212,162,78,0.2)] rounded-lg px-4 py-3 text-sm text-[#F5F0E1] focus:outline-none focus:border-[#D4A24E]/50 transition-colors" />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
@@ -2405,15 +2502,15 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
                     value={nuevoForm.plan}
                     onChange={(val) => setNuevoForm({ ...nuevoForm, plan: val as 'DWY' | 'DFY' | 'IMPLEMENTACION' })}
                     options={[
-                      { value: 'DWY', label: 'DWY — Solo App' },
-                      { value: 'DFY', label: 'DFY — Con Paolis' },
-                      { value: 'IMPLEMENTACION', label: 'Implementación' },
+                      { value: 'DWY', label: 'DWY \u2014 Solo App' },
+                      { value: 'DFY', label: 'DFY \u2014 Con Paolis' },
+                      { value: 'IMPLEMENTACION', label: 'Implementaci\u00f3n' },
                     ]}
                   />
                 </div>
                 <div>
                   <label className="block text-[11px] font-bold uppercase tracking-wider text-[#F5F0E1]/60 mb-2">Inicio</label>
-                  <input type="date" value={nuevoForm.fecha_inicio} onChange={e => setNuevoForm({ ...nuevoForm, fecha_inicio: e.target.value })} className="w-full bg-black/50 border border-[rgba(212,162,78,0.2)] rounded-xl px-4 py-3 text-sm text-[#F5F0E1] focus:outline-none focus:border-[#D4A24E]/50 transition-colors" />
+                  <input type="date" value={nuevoForm.fecha_inicio} onChange={e => setNuevoForm({ ...nuevoForm, fecha_inicio: e.target.value })} className="w-full bg-black/20 border border-[rgba(212,162,78,0.2)] rounded-lg px-4 py-3 text-sm text-[#F5F0E1] focus:outline-none focus:border-[#D4A24E]/50 transition-colors" />
                 </div>
               </div>
               <div>
@@ -2430,8 +2527,104 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
             </div>
 
             <div className="flex gap-3 mt-8">
-              <button onClick={crearClienteLocal} disabled={creando || !nuevoForm.email || !nuevoForm.nombre || !nuevoForm.password} className="flex-1 py-3.5 rounded-xl bg-[#D4A24E] hover:bg-[#D4A24E] disabled:opacity-50 text-[#F5F0E1] text-sm font-bold shadow-xl shadow-[#D4A24E]/20 transition-all flex items-center justify-center gap-2">
+              <button onClick={crearClienteLocal} disabled={creando || !nuevoForm.email || !nuevoForm.nombre || !nuevoForm.password} className="btn-primary flex-1 py-3.5 rounded-xl text-sm font-bold shadow-xl shadow-[#D4A24E]/20 transition-all flex items-center justify-center gap-2 disabled:opacity-50">
                 {creando ? <><Loader2 className="w-4 h-4 animate-spin" /> Creando cuenta...</> : 'Crear Cuenta Activa'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── MODAL ADD/EDIT VIDEO ──────────────────────────────────────────────── */}
+      {showAddVideo && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md">
+          <div className="w-full max-w-md bg-[#1A1410] border border-[rgba(212,162,78,0.2)] rounded-3xl p-8 shadow-2xl relative overflow-hidden">
+            <div className="absolute top-0 left-0 right-0 h-1 bg-[#D4A24E]" />
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-semibold text-[#F5F0E1]">{videoForm.id ? 'Editar Video' : 'Nuevo Video'}</h3>
+              <button onClick={() => setShowAddVideo(false)} className="w-8 h-8 rounded-full bg-[#D4A24E]/5 flex items-center justify-center text-[#F5F0E1]/60 hover:text-[#F5F0E1] hover:bg-[#D4A24E]/10 transition-colors">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-[11px] font-bold uppercase tracking-wider text-[#F5F0E1]/60 mb-2">URL de YouTube *</label>
+                <input
+                  type="text"
+                  value={videoForm.youtubeUrl}
+                  onChange={e => setVideoForm({ ...videoForm, youtubeUrl: e.target.value })}
+                  placeholder="https://youtu.be/... o https://youtube.com/watch?v=..."
+                  className="w-full bg-black/20 border border-[rgba(212,162,78,0.2)] rounded-lg px-4 py-3 text-sm text-[#F5F0E1] focus:outline-none focus:border-[#D4A24E]/50 transition-colors"
+                />
+                {videoForm.youtubeUrl && getYoutubeId(videoForm.youtubeUrl) && (
+                  <img
+                    src={`https://img.youtube.com/vi/${getYoutubeId(videoForm.youtubeUrl)}/mqdefault.jpg`}
+                    alt="preview"
+                    className="mt-2 w-full rounded-xl object-cover aspect-video"
+                  />
+                )}
+              </div>
+              <div>
+                <label className="block text-[11px] font-bold uppercase tracking-wider text-[#F5F0E1]/60 mb-2">Pilar *</label>
+                <CustomSelect
+                  value={videoForm.pilar_id}
+                  onChange={(val) => setVideoForm({ ...videoForm, pilar_id: val as PilarId })}
+                  options={PILAR_OPTIONS.map(p => ({ value: p.id, label: p.label }))}
+                />
+              </div>
+              <div>
+                <label className="block text-[11px] font-bold uppercase tracking-wider text-[#F5F0E1]/60 mb-2">T\u00edtulo *</label>
+                <input
+                  type="text"
+                  value={videoForm.titulo}
+                  onChange={e => setVideoForm({ ...videoForm, titulo: e.target.value })}
+                  placeholder="Ej: M\u00f3dulo 1 \u2014 Identidad del Fundador"
+                  className="w-full bg-black/20 border border-[rgba(212,162,78,0.2)] rounded-lg px-4 py-3 text-sm text-[#F5F0E1] focus:outline-none focus:border-[#D4A24E]/50 transition-colors"
+                />
+              </div>
+              <div>
+                <label className="block text-[11px] font-bold uppercase tracking-wider text-[#F5F0E1]/60 mb-2">Descripci\u00f3n</label>
+                <input
+                  type="text"
+                  value={videoForm.descripcion}
+                  onChange={e => setVideoForm({ ...videoForm, descripcion: e.target.value })}
+                  placeholder="Breve descripci\u00f3n del contenido"
+                  className="w-full bg-black/20 border border-[rgba(212,162,78,0.2)] rounded-lg px-4 py-3 text-sm text-[#F5F0E1] focus:outline-none focus:border-[#D4A24E]/50 transition-colors"
+                />
+              </div>
+              <div>
+                <label className="block text-[11px] font-bold uppercase tracking-wider text-[#F5F0E1]/60 mb-2">Duraci\u00f3n (opcional)</label>
+                <input
+                  type="text"
+                  value={videoForm.duracion}
+                  onChange={e => setVideoForm({ ...videoForm, duracion: e.target.value })}
+                  placeholder="Ej: 15:30"
+                  className="w-full bg-black/20 border border-[rgba(212,162,78,0.2)] rounded-lg px-4 py-3 text-sm text-[#F5F0E1] focus:outline-none focus:border-[#D4A24E]/50 transition-colors"
+                />
+              </div>
+            </div>
+            <div className="flex gap-3 mt-6">
+              <button onClick={() => setShowAddVideo(false)} className="btn-secondary flex-1 py-3 rounded-xl text-sm font-semibold transition-colors">
+                Cancelar
+              </button>
+              <button
+                disabled={!videoForm.youtubeUrl.trim() || !videoForm.titulo.trim()}
+                onClick={() => {
+                  if (!videoForm.youtubeUrl.trim() || !videoForm.titulo.trim()) return;
+                  saveAdminVideo({
+                    id: videoForm.id,
+                    grupo: videoForm.pilar_id,
+                    pilar_id: videoForm.pilar_id,
+                    titulo: videoForm.titulo.trim(),
+                    descripcion: videoForm.descripcion.trim(),
+                    youtubeUrl: videoForm.youtubeUrl.trim(),
+                    duracion: videoForm.duracion.trim() || undefined,
+                  });
+                  setShowAddVideo(false);
+                }}
+                className="btn-primary flex-1 py-3 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+              >
+                {videoForm.id ? 'Guardar Cambios' : <><Plus className="w-4 h-4" /> Agregar Video</>}
               </button>
             </div>
           </div>
@@ -2448,7 +2641,6 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
             className="w-full max-w-2xl max-h-[90vh] bg-[#1A1410] border border-[rgba(212,162,78,0.2)] rounded-3xl shadow-2xl flex flex-col overflow-hidden"
             onClick={e => e.stopPropagation()}
           >
-            {/* Header */}
             <div className="flex items-start gap-4 p-6 border-b border-[rgba(212,162,78,0.12)]">
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap mb-1">
@@ -2474,7 +2666,6 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
             </div>
 
             <div className="flex-1 overflow-y-auto scrollbar-hide p-6 space-y-4">
-              {/* Resumen Paolis */}
               <div className="bg-[#D4A24E]/5 border border-[#D4A24E]/20 rounded-2xl p-4">
                 <div className="flex items-center gap-2 mb-2">
                   <Bot className="w-4 h-4 text-[#D4A24E]" />
@@ -2489,12 +2680,11 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
                   <p className="text-sm text-[#F5F0E1]/90 leading-relaxed">{tareaResumen}</p>
                 ) : (
                   <p className="text-sm text-[#F5F0E1]/40 italic">
-                    {tareaModal.output ? 'No se pudo generar el resumen automático.' : 'Esta tarea no tiene output guardado — fue marcada como completada manualmente.'}
+                    {tareaModal.output ? 'No se pudo generar el resumen autom\u00e1tico.' : 'Esta tarea no tiene output guardado \u2014 fue marcada como completada manualmente.'}
                   </p>
                 )}
               </div>
 
-              {/* Output completo */}
               {tareaModal.output ? (
                 <div>
                   <div className="flex items-center gap-2 mb-3">
@@ -2511,12 +2701,86 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
                 <div className="flex flex-col items-center justify-center py-8 text-center">
                   <Circle className="w-8 h-8 text-gray-700 mb-3" />
                   <p className="text-sm text-[#F5F0E1]/40">Sin output guardado</p>
-                  <p className="text-xs text-gray-700 mt-1">El cliente completó esta tarea pero no hay contenido generado por IA asociado.</p>
+                  <p className="text-xs text-gray-700 mt-1">El cliente complet\u00f3 esta tarea pero no hay contenido generado por IA asociado.</p>
                 </div>
               )}
             </div>
           </div>
         </div>
+      )}
+    </div>
+  );
+}
+
+// ─── MANAGER CHECKLIST COMPONENT ────────────────────────────────────────────────
+
+function ManagerChecklist({
+  items,
+  onToggle,
+  loading,
+}: {
+  items: AdminChecklistItem[];
+  onToggle: (id: string, completada: boolean) => void;
+  loading: boolean;
+}) {
+  const categorias: { key: AdminChecklistItem['categoria']; label: string }[] = [
+    { key: 'diaria', label: 'Tareas del d\u00eda' },
+    { key: 'semanal', label: 'Semanales' },
+    { key: 'mensual', label: 'Mensuales' },
+  ];
+
+  const diarias = items.filter(i => i.categoria === 'diaria');
+  const completadasDiarias = diarias.filter(i => i.completada).length;
+
+  return (
+    <div className="card-panel border border-[rgba(212,162,78,0.2)] rounded-2xl p-5 space-y-4">
+      <div className="flex items-center gap-2">
+        <ClipboardList className="w-4 h-4 text-[#D4A24E]" />
+        <h3 className="text-xs font-bold uppercase tracking-widest text-[#D4A24E]">Checklist</h3>
+      </div>
+      {diarias.length > 0 && (
+        <p className="text-[10px] text-[#F5F0E1]/40 font-medium">
+          {completadasDiarias}/{diarias.length} tareas del d\u00eda
+        </p>
+      )}
+
+      {loading ? (
+        <div className="flex justify-center py-4"><Loader2 className="w-4 h-4 text-[#D4A24E] animate-spin" /></div>
+      ) : items.length === 0 ? (
+        <p className="text-xs text-[#F5F0E1]/30">Sin tareas asignadas</p>
+      ) : (
+        categorias.map(cat => {
+          const catItems = items.filter(i => i.categoria === cat.key);
+          if (catItems.length === 0) return null;
+          return (
+            <div key={cat.key}>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-[#F5F0E1]/40 mb-2">{cat.label}</p>
+              <div className="space-y-1.5">
+                {catItems.map(item => (
+                  <label
+                    key={item.id}
+                    className="flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-[#D4A24E]/5 cursor-pointer transition-colors"
+                  >
+                    <button
+                      type="button"
+                      onClick={() => onToggle(item.id, !item.completada)}
+                      className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-colors ${
+                        item.completada
+                          ? 'bg-[#2DD4A0] border-[#2DD4A0] text-[#F5F0E1]'
+                          : 'border-[rgba(212,162,78,0.3)] text-transparent hover:border-[#D4A24E]/50'
+                      }`}
+                    >
+                      <Check className="w-3 h-3" />
+                    </button>
+                    <span className={`text-xs ${item.completada ? 'text-[#F5F0E1]/30 line-through' : 'text-[#F5F0E1]/80'}`}>
+                      {item.titulo}
+                    </span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          );
+        })
       )}
     </div>
   );

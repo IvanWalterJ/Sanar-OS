@@ -1,8 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, Bell, X, CheckCircle2, MessageSquare, LayoutDashboard, Map, TrendingUp, Users, BookOpen, Library } from 'lucide-react';
+import { Search, Bell, X, CheckCircle2, MessageSquare, LayoutDashboard, Map, TrendingUp, Users, BookOpen, Library, Trophy, Shield } from 'lucide-react';
+import { obtenerNotificaciones, marcarLeida, marcarTodasLeidas, contarNoLeidas, type NotificacionDB, type TipoNotificacion } from '../lib/notifications';
+import { supabase, isSupabaseReady } from '../lib/supabase';
 
 interface TopbarProps {
   setCurrentPage: (page: string) => void;
+  userId?: string;
 }
 
 const searchablePages = [
@@ -15,18 +18,58 @@ const searchablePages = [
   { id: 'biblioteca', label: 'Biblioteca', icon: Library, desc: 'Videos, herramientas, recursos' },
 ];
 
-export default function Topbar({ setCurrentPage }: TopbarProps) {
+const ICON_MAP: Record<TipoNotificacion, React.ElementType> = {
+  hito: Trophy,
+  tarea: CheckCircle2,
+  mensaje: MessageSquare,
+  sistema: Bell,
+  admin: Shield,
+};
+
+const COLOR_MAP: Record<TipoNotificacion, { text: string; bg: string }> = {
+  hito: { text: 'text-[#D4A24E]', bg: 'bg-[#D4A24E]/10' },
+  tarea: { text: 'text-[#2DD4A0]', bg: 'bg-[#2DD4A0]/10' },
+  mensaje: { text: 'text-[#D4A24E]', bg: 'bg-[#D4A24E]/10' },
+  sistema: { text: 'text-[#D4A24E]', bg: 'bg-[#D4A24E]/10' },
+  admin: { text: 'text-[#D4A24E]', bg: 'bg-[#D4A24E]/10' },
+};
+
+const URL_TO_PAGE: Record<string, string> = {
+  '/hoja-de-ruta': 'roadmap',
+  '/diario': 'diario',
+  '/mensajes': 'mensajes',
+  '/metricas': 'metrics',
+  '/admin/clientes': 'admin-clientes',
+  '/admin/mensajes': 'admin-mensajes',
+};
+
+function tiempoRelativo(fechaISO: string): string {
+  const ahora = Date.now();
+  const fecha = new Date(fechaISO).getTime();
+  const diffMs = ahora - fecha;
+  const minutos = Math.floor(diffMs / 60_000);
+
+  if (minutos < 1) return 'ahora';
+  if (minutos < 60) return `hace ${minutos} min`;
+
+  const horas = Math.floor(minutos / 60);
+  if (horas < 24) return `hace ${horas} h`;
+
+  const dias = Math.floor(horas / 24);
+  if (dias < 30) return `hace ${dias} d`;
+
+  const meses = Math.floor(dias / 30);
+  return `hace ${meses} mes${meses > 1 ? 'es' : ''}`;
+}
+
+export default function Topbar({ setCurrentPage, userId }: TopbarProps) {
   const [showNotifications, setShowNotifications] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [notifications, setNotifications] = useState([
-    { id: 1, title: 'Hoja de Ruta lista', desc: 'Tu programa de 90 días está listo. Empezá con el Día 1.', time: 'Hoy', icon: CheckCircle2, color: 'text-[#2DD4A0]', bg: 'bg-[#2DD4A0]/10', read: false, page: 'roadmap' },
-    { id: 2, title: 'Mensaje del equipo', desc: '¡Bienvenida al programa! Estamos acá para acompañarte.', time: 'Hoy', icon: MessageSquare, color: 'text-[#D4A24E]', bg: 'bg-[#D4A24E]/10', read: false, page: 'mensajes' },
-    { id: 3, title: 'Recordatorio', desc: 'No olvides completar tu entrada del Diario de hoy.', time: 'Hoy', icon: Bell, color: 'text-[#D4A24E]', bg: 'bg-[#D4A24E]/10', read: false, page: 'diario' },
-  ]);
+  const [notifications, setNotifications] = useState<NotificacionDB[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   const searchInputRef = useRef<HTMLInputElement>(null);
-  const unreadCount = notifications.filter(n => !n.read).length;
 
   const profile = (() => {
     try {
@@ -35,6 +78,35 @@ export default function Topbar({ setCurrentPage }: TopbarProps) {
     } catch { return { nombre: 'Profesional', especialidad: '' }; }
   })();
 
+  // Load notifications + real-time subscription
+  useEffect(() => {
+    async function load() {
+      if (!userId) return;
+      const notifs = await obtenerNotificaciones(userId, 20);
+      setNotifications(notifs);
+      const count = await contarNoLeidas(userId);
+      setUnreadCount(count);
+    }
+    load();
+
+    if (isSupabaseReady() && supabase && userId) {
+      const channel = supabase.channel('notif-realtime')
+        .on('postgres_changes', {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'notificaciones',
+          filter: `usuario_id=eq.${userId}`,
+        }, (payload) => {
+          setNotifications(prev => [payload.new as NotificacionDB, ...prev].slice(0, 20));
+          setUnreadCount(prev => prev + 1);
+        })
+        .subscribe();
+
+      return () => { supabase!.removeChannel(channel); };
+    }
+  }, [userId]);
+
+  // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
@@ -63,13 +135,27 @@ export default function Topbar({ setCurrentPage }: TopbarProps) {
     p.desc.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const markAllRead = () => {
-    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+  const markAllRead = async () => {
+    if (!userId) return;
+    await marcarTodasLeidas(userId);
+    setNotifications(prev => prev.map(n => ({ ...n, leida: true })));
+    setUnreadCount(0);
   };
 
-  const handleNotificationClick = (notif: typeof notifications[0]) => {
-    setNotifications(prev => prev.map(n => n.id === notif.id ? { ...n, read: true } : n));
-    setCurrentPage(notif.page);
+  const handleNotificationClick = async (notif: NotificacionDB) => {
+    if (!notif.leida) {
+      await marcarLeida(notif.id);
+      setNotifications(prev => prev.map(n => n.id === notif.id ? { ...n, leida: true } : n));
+      setUnreadCount(prev => Math.max(0, prev - 1));
+    }
+
+    if (notif.accion_url) {
+      const page = URL_TO_PAGE[notif.accion_url];
+      if (page) {
+        setCurrentPage(page);
+      }
+    }
+
     setShowNotifications(false);
   };
 
@@ -103,25 +189,45 @@ export default function Topbar({ setCurrentPage }: TopbarProps) {
               <div className="absolute right-0 mt-3 w-80 card-panel border border-[rgba(212,162,78,0.2)] rounded-2xl shadow-2xl overflow-hidden animate-in slide-in-from-top-2 fade-in duration-200 z-50">
                 <div className="p-4 border-b border-[rgba(212,162,78,0.15)] flex items-center justify-between bg-[#241A0C]/50">
                   <h3 className="font-medium text-[#F5F0E1]">Notificaciones</h3>
-                  <span onClick={markAllRead} className="text-xs text-[#D4A24E] cursor-pointer hover:text-[#E2B865]">Marcar leídas</span>
+                  {unreadCount > 0 && (
+                    <span onClick={markAllRead} className="text-xs text-[#D4A24E] cursor-pointer hover:text-[#E2B865]">Marcar todas como leidas</span>
+                  )}
                 </div>
                 <div className="max-h-[400px] overflow-y-auto">
-                  {notifications.map(notif => (
-                    <div
-                      key={notif.id}
-                      onClick={() => handleNotificationClick(notif)}
-                      className={`p-4 border-b border-[rgba(212,162,78,0.08)] hover:bg-[#241A0C]/50 transition-colors cursor-pointer flex gap-3 ${notif.read ? 'opacity-60' : ''}`}
-                    >
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${notif.bg}`}>
-                        <notif.icon className={`w-4 h-4 ${notif.color}`} />
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-[#F5F0E1]/90 mb-0.5">{notif.title}</p>
-                        <p className="text-xs text-[#F5F0E1]/50 line-clamp-2">{notif.desc}</p>
-                        <p className="text-[10px] text-[#F5F0E1]/30 mt-2">{notif.time}</p>
-                      </div>
+                  {notifications.length === 0 && (
+                    <div className="py-12 text-center">
+                      <Bell className="w-8 h-8 text-[#F5F0E1]/20 mx-auto mb-3" />
+                      <p className="text-sm text-[#F5F0E1]/40">Sin notificaciones</p>
                     </div>
-                  ))}
+                  )}
+                  {notifications.map(notif => {
+                    const IconComponent = ICON_MAP[notif.tipo] ?? Bell;
+                    const colors = COLOR_MAP[notif.tipo] ?? COLOR_MAP.sistema;
+
+                    return (
+                      <div
+                        key={notif.id}
+                        onClick={() => handleNotificationClick(notif)}
+                        className={`p-4 border-b border-[rgba(212,162,78,0.08)] hover:bg-[#241A0C]/50 transition-colors cursor-pointer flex gap-3 ${notif.leida ? 'opacity-60' : ''}`}
+                      >
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${colors.bg}`}>
+                          <IconComponent className={`w-4 h-4 ${colors.text}`} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start gap-2">
+                            <p className="text-sm font-medium text-[#F5F0E1]/90 mb-0.5">{notif.titulo}</p>
+                            {!notif.leida && (
+                              <span className="w-2 h-2 rounded-full bg-[#E85555] shrink-0 mt-1.5" />
+                            )}
+                          </div>
+                          {notif.descripcion && (
+                            <p className="text-xs text-[#F5F0E1]/50 line-clamp-2">{notif.descripcion}</p>
+                          )}
+                          <p className="text-[10px] text-[#F5F0E1]/30 mt-2">{tiempoRelativo(notif.created_at)}</p>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
                 <div className="p-3 text-center border-t border-[rgba(212,162,78,0.15)] bg-[#241A0C]/50">
                   <button onClick={() => setShowNotifications(false)} className="text-xs text-[#F5F0E1]/50 hover:text-[#F5F0E1] transition-colors">
