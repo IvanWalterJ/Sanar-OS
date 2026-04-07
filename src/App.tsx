@@ -260,7 +260,7 @@ export default function App() {
                   geminiKey={import.meta.env.VITE_GEMINI_API_KEY}
                 />
               )}
-              {currentPage === 'adn' && <ManualNegocio perfil={supabaseProfile ?? {}} setCurrentPage={setCurrentPage} />}
+              {currentPage === 'adn' && <ManualNegocio perfil={supabaseProfile ?? {}} userId={supabaseProfile?.id} setCurrentPage={setCurrentPage} />}
               {currentPage === 'biblioteca' && <Biblioteca userId={supabaseProfile?.id} />}
               {currentPage === 'agentes' && (
                 <Agentes

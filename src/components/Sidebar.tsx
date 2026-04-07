@@ -60,12 +60,12 @@ export default function Sidebar({ currentPage, setCurrentPage, onOpenSettings, o
         { id: 'dashboard', icon: LayoutDashboard, label: 'Dashboard' },
         { id: 'roadmap', icon: RoadmapIcon, label: 'Hoja de Ruta', badge: data.hasPending },
         { id: 'metrics', icon: TrendingUp, label: 'Métricas' },
+        { id: 'adn', icon: Dna, label: 'ADN del Negocio' },
       ]
     },
     {
       title: 'HERRAMIENTAS',
       items: [
-        { id: 'adn', icon: Dna, label: 'ADN del Negocio' },
         { id: 'coach', icon: MessageSquare, label: 'Coach IA' },
         { id: 'diario', icon: BookOpen, label: 'Diario del Fundador' },
         { id: 'mensajes', icon: Users, label: 'Mensajes', badge: messageBadge > 0 },

@@ -3,7 +3,7 @@
  * Progress view organized by the CLINICA method letters
  * showing all completed ADN fields.
  */
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import {
   ChevronUp,
   ChevronDown,
@@ -18,8 +18,10 @@ import {
   ArrowRight,
 } from 'lucide-react';
 import Markdown from 'react-markdown';
+import { supabase, isSupabaseReady } from '../lib/supabase';
 import type { ProfileV2 } from '../lib/supabase';
 import type { LucideIcon } from 'lucide-react';
+import { SEED_ROADMAP_V3 } from '../lib/roadmapSeed';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -40,6 +42,7 @@ interface SectionDef {
 
 interface ManualNegocioProps {
   perfil: Partial<ProfileV2>;
+  userId?: string;
   setCurrentPage: (page: string) => void;
 }
 
@@ -382,17 +385,69 @@ function SectionCard({ section, perfil, isExpanded, onToggle, setCurrentPage }: 
 
 // ── Main component ───────────────────────────────────────────────────────────
 
-export default function ManualNegocio({ perfil, setCurrentPage }: ManualNegocioProps) {
+export default function ManualNegocio({ perfil, userId, setCurrentPage }: ManualNegocioProps) {
   const [expanded, setExpanded] = useState<Set<string>>(
     () => new Set([SECTIONS[0].id])
   );
+  const [hojaOutputs, setHojaOutputs] = useState<Record<string, string>>({});
+
+  // Load hoja_de_ruta outputs and map them to adn_field keys
+  useEffect(() => {
+    if (!isSupabaseReady() || !supabase || !userId) return;
+    supabase
+      .from('hoja_de_ruta')
+      .select('pilar_numero, meta_codigo, completada, output_generado')
+      .eq('usuario_id', userId)
+      .eq('completada', true)
+      .then(({ data }) => {
+        if (!data) return;
+        const outputs: Record<string, string> = {};
+        for (const row of data) {
+          // Find the matching meta in roadmapSeed to get its adn_field
+          const pilar = SEED_ROADMAP_V3.find(p => p.numero === row.pilar_numero);
+          if (!pilar) continue;
+          const meta = pilar.metas.find(m => m.codigo === row.meta_codigo);
+          if (!meta?.adn_field) continue;
+          const texto = row.output_generado?.texto;
+          if (typeof texto === 'string' && texto.trim()) {
+            // Special case: historia_300 may contain all 3 versions
+            if (meta.adn_field === 'historia_300') {
+              const m300 = texto.match(/---\s*HISTORIA\s+300\s+PALABRAS\s*---\s*([\s\S]*?)(?=---\s*HISTORIA\s+150|$)/i);
+              const m150 = texto.match(/---\s*HISTORIA\s+150\s+PALABRAS\s*---\s*([\s\S]*?)(?=---\s*HISTORIA\s+50|$)/i);
+              const m50 = texto.match(/---\s*HISTORIA\s+50\s+PALABRAS\s*---\s*([\s\S]*?)$/i);
+              if (m300 && m150 && m50) {
+                outputs['historia_300'] = m300[1].trim();
+                outputs['historia_150'] = m150[1].trim();
+                outputs['historia_50'] = m50[1].trim();
+              } else {
+                outputs['historia_300'] = texto;
+              }
+            } else {
+              outputs[meta.adn_field] = texto;
+            }
+          }
+        }
+        setHojaOutputs(outputs);
+      });
+  }, [userId]);
+
+  // Merge profile data with hoja_de_ruta outputs for a complete view
+  const mergedPerfil = useMemo(() => {
+    const merged = { ...perfil } as Record<string, unknown>;
+    for (const [key, val] of Object.entries(hojaOutputs)) {
+      if (!merged[key] || (typeof merged[key] === 'string' && !(merged[key] as string).trim())) {
+        merged[key] = val;
+      }
+    }
+    return merged as Partial<ProfileV2>;
+  }, [perfil, hojaOutputs]);
 
   const { totalCompleted, totalFields, progressPct } = useMemo(() => {
-    const completed = SECTIONS.reduce((acc, s) => acc + countCompleted(perfil, s.fields), 0);
+    const completed = SECTIONS.reduce((acc, s) => acc + countCompleted(mergedPerfil, s.fields), 0);
     const total = SECTIONS.reduce((acc, s) => acc + s.fields.length, 0);
     const pct = total > 0 ? Math.round((completed / total) * 100) : 0;
     return { totalCompleted: completed, totalFields: total, progressPct: pct };
-  }, [perfil]);
+  }, [mergedPerfil]);
 
   const toggleSection = (id: string) => {
     setExpanded((prev) => {
@@ -446,7 +501,7 @@ export default function ManualNegocio({ perfil, setCurrentPage }: ManualNegocioP
         <SectionCard
           key={section.id}
           section={section}
-          perfil={perfil}
+          perfil={mergedPerfil}
           isExpanded={expanded.has(section.id)}
           onToggle={() => toggleSection(section.id)}
           setCurrentPage={setCurrentPage}
