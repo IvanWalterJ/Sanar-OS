@@ -56,6 +56,7 @@ export default function App() {
   const [supabaseProfile, setSupabaseProfile] = useState<SupabaseProfile | null>(null);
   const [unreadMessages, setUnreadMessages] = useState(0);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState<string>(() => localStorage.getItem('tcd_avatar') || '');
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const mainRef = useRef<HTMLElement>(null);
@@ -231,6 +232,14 @@ export default function App() {
       <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] rounded-full bg-[#F5A623]/10 blur-[120px] pointer-events-none" />
       <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] rounded-full bg-[#F5A623]/5 blur-[120px] pointer-events-none" />
 
+      {/* Mobile overlay backdrop */}
+      {mobileMenuOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm md:hidden"
+          onClick={() => setMobileMenuOpen(false)}
+        />
+      )}
+
       <Sidebar
         currentPage={currentPage}
         setCurrentPage={setCurrentPage}
@@ -239,10 +248,12 @@ export default function App() {
         messageBadge={unreadMessages}
         collapsed={sidebarCollapsed}
         onToggleCollapse={() => setSidebarCollapsed(v => !v)}
+        mobileOpen={mobileMenuOpen}
+        onMobileClose={() => setMobileMenuOpen(false)}
       />
 
       <div className="flex-1 flex flex-col relative z-10 overflow-hidden">
-        <Topbar setCurrentPage={setCurrentPage} userId={supabaseProfile?.id} />
+        <Topbar setCurrentPage={setCurrentPage} userId={supabaseProfile?.id} onMobileMenuToggle={() => setMobileMenuOpen(v => !v)} />
         <main ref={mainRef} className="flex-1 overflow-y-auto overflow-x-hidden overscroll-contain scrollbar-hide">
           {currentPage === 'mensajes' ? (
             <div className="h-full">

@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, Bell, X, CheckCircle2, MessageSquare, LayoutDashboard, Map, TrendingUp, Users, BookOpen, Library, Trophy, Shield } from 'lucide-react';
+import { Search, Bell, X, CheckCircle2, MessageSquare, LayoutDashboard, Map, TrendingUp, Users, BookOpen, Library, Trophy, Shield, Menu } from 'lucide-react';
 import { obtenerNotificaciones, marcarLeida, marcarTodasLeidas, contarNoLeidas, type NotificacionDB, type TipoNotificacion } from '../lib/notifications';
 import { supabase, isSupabaseReady } from '../lib/supabase';
 
 interface TopbarProps {
   setCurrentPage: (page: string) => void;
   userId?: string;
+  onMobileMenuToggle: () => void;
 }
 
 const searchablePages = [
@@ -62,7 +63,7 @@ function tiempoRelativo(fechaISO: string): string {
   return `hace ${meses} mes${meses > 1 ? 'es' : ''}`;
 }
 
-export default function Topbar({ setCurrentPage, userId }: TopbarProps) {
+export default function Topbar({ setCurrentPage, userId, onMobileMenuToggle }: TopbarProps) {
   const [showNotifications, setShowNotifications] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -161,10 +162,19 @@ export default function Topbar({ setCurrentPage, userId }: TopbarProps) {
 
   return (
     <>
-      <header className="h-20 px-8 flex items-center justify-between z-20 relative">
+      <header className="h-14 md:h-20 px-4 md:px-8 flex items-center justify-between z-20 relative">
+        {/* Hamburger — mobile only */}
+        <button
+          onClick={onMobileMenuToggle}
+          className="md:hidden w-10 h-10 flex items-center justify-center rounded-xl text-[#FFFFFF]/60 hover:text-[#FFFFFF] hover:bg-[#F5A623]/10 transition-colors"
+          aria-label="Abrir menú"
+        >
+          <Menu className="w-5 h-5" />
+        </button>
+
         <div
           onClick={() => setShowSearch(true)}
-          className="flex items-center w-96 card-panel px-4 py-2 cursor-pointer hover:bg-[#1C1C1C] transition-colors"
+          className="hidden md:flex items-center w-96 card-panel px-4 py-2 cursor-pointer hover:bg-[#1C1C1C] transition-colors"
         >
           <Search className="w-4 h-4 text-[#FFFFFF]/40" />
           <span className="bg-transparent text-sm text-[#FFFFFF]/40 ml-3">Buscar secciones, tareas...</span>
@@ -186,7 +196,7 @@ export default function Topbar({ setCurrentPage, userId }: TopbarProps) {
             </button>
 
             {showNotifications && (
-              <div className="absolute right-0 mt-3 w-80 card-panel border border-[rgba(245,166,35,0.2)] rounded-2xl shadow-2xl overflow-hidden animate-in slide-in-from-top-2 fade-in duration-200 z-50">
+              <div className="absolute right-0 mt-3 w-[calc(100vw-2rem)] md:w-80 card-panel border border-[rgba(245,166,35,0.2)] rounded-2xl shadow-2xl overflow-hidden animate-in slide-in-from-top-2 fade-in duration-200 z-50">
                 <div className="p-4 border-b border-[rgba(245,166,35,0.15)] flex items-center justify-between bg-[#1C1C1C]/50">
                   <h3 className="font-medium text-[#FFFFFF]">Notificaciones</h3>
                   {unreadCount > 0 && (

@@ -10,6 +10,8 @@ interface SidebarProps {
   messageBadge?: number;
   collapsed: boolean;
   onToggleCollapse: () => void;
+  mobileOpen: boolean;
+  onMobileClose: () => void;
 }
 
 function getSidebarData() {
@@ -43,7 +45,7 @@ function getSidebarData() {
   return { profile, progress, hasPending, semana };
 }
 
-export default function Sidebar({ currentPage, setCurrentPage, onOpenSettings, onSignOut, messageBadge = 0, collapsed, onToggleCollapse }: SidebarProps) {
+export default function Sidebar({ currentPage, setCurrentPage, onOpenSettings, onSignOut, messageBadge = 0, collapsed, onToggleCollapse, mobileOpen, onMobileClose }: SidebarProps) {
   const [data, setData] = useState(getSidebarData());
 
   useEffect(() => {
@@ -90,7 +92,7 @@ export default function Sidebar({ currentPage, setCurrentPage, onOpenSettings, o
 
   return (
     <aside
-      className={`${collapsed ? 'w-16' : 'w-64'} h-full flex flex-col py-6 transition-all duration-300 z-20 shrink-0 overflow-x-hidden border-r border-[rgba(245,166,35,0.15)] bg-[#0A0A0A]/90 backdrop-blur-xl relative`}
+      className={`fixed inset-y-0 left-0 z-50 w-64 ${mobileOpen ? 'translate-x-0' : '-translate-x-full'} md:relative md:inset-auto md:translate-x-0 md:z-20 ${collapsed ? 'md:w-16' : 'md:w-64'} h-full flex flex-col py-6 transition-all duration-300 shrink-0 overflow-x-hidden border-r border-[rgba(245,166,35,0.15)] bg-[#0A0A0A]/90 backdrop-blur-xl`}
     >
       {/* Logo */}
       <div className={`flex items-center mb-8 ${collapsed ? 'justify-center px-0' : 'px-6'}`}>
@@ -160,6 +162,7 @@ export default function Sidebar({ currentPage, setCurrentPage, onOpenSettings, o
                     onClick={() => {
                       if (item.action) item.action();
                       else setCurrentPage(item.id);
+                      onMobileClose();
                     }}
                     title={collapsed ? item.label : undefined}
                     className={`w-full flex items-center transition-all relative group ${
