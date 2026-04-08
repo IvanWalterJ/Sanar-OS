@@ -11,7 +11,7 @@ import {
   Globe, Flame, Star, DollarSign, Pencil,
   Sprout, Target, Sunrise, UserCircle, Lightbulb, Triangle,
   Cog, Building2, Megaphone, Phone, Handshake, Palette, BarChart3,
-  Search, UsersRound, Check, ClipboardList,
+  Search, UsersRound, Check, ClipboardList, Menu,
 } from 'lucide-react';
 
 const ADMIN_PILAR_ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -300,6 +300,7 @@ function GlobalChat({ canal, adminProfile }: { canal: string; adminProfile: Prof
 export default function Admin({ adminProfile, onSignOut }: AdminProps) {
   const adminRol: AdminRol = (adminProfile as any).admin_rol ?? 'owner';
   const [mainTab, setMainTab] = useState<MainTab>('clientes');
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [channelUnread, setChannelUnread] = useState<Record<string, number>>({});
 
   // Clientes
@@ -1217,8 +1218,16 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
     <div className="flex h-screen bg-[#0A0A0A] text-[#FFFFFF] font-sans overflow-hidden selection:bg-[#F5A623]/30">
       <div className="fixed top-[-10%] left-[-10%] w-[500px] h-[500px] bg-[#F5A623]/10 rounded-full blur-[150px] pointer-events-none" />
 
+      {/* Mobile overlay backdrop */}
+      {mobileMenuOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm md:hidden"
+          onClick={() => setMobileMenuOpen(false)}
+        />
+      )}
+
       {/* ─── SIDEBAR ─────────────────────────────────────────────────────────── */}
-      <aside className="w-[220px] shrink-0 border-r border-[rgba(245,166,35,0.1)] bg-[#0E0E0E] flex flex-col z-20">
+      <aside className={`fixed inset-y-0 left-0 z-50 w-[220px] ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} md:relative md:inset-auto md:translate-x-0 md:z-20 shrink-0 border-r border-[rgba(245,166,35,0.1)] bg-[#0E0E0E] flex flex-col transition-transform duration-300`}>
         <div className="p-5">
           <div className="flex items-center gap-3 mb-8">
             <div className="w-10 h-10 rounded-xl bg-[#F5A623] flex items-center justify-center shadow-[0_0_20px_rgba(245,166,35,0.3)]">
@@ -1242,6 +1251,7 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
                     key={item.id}
                     onClick={() => {
                       setMainTab(item.id);
+                      setMobileMenuOpen(false);
                       if (item.id === 'mensajes') {
                         setChannelUnread(prev => ({ ...prev, comunidad: 0, victorias: 0, consultas: 0 }));
                       }
@@ -1296,7 +1306,14 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
 
       {/* ─── MAIN CONTENT ──────────────────────────────────────────────────── */}
       <main className="flex-1 flex flex-col relative z-10 overflow-hidden">
-        <header className="h-16 border-b border-[rgba(245,166,35,0.1)] flex items-center px-6 shrink-0 bg-black/20 backdrop-blur-md">
+        <header className="h-16 border-b border-[rgba(245,166,35,0.1)] flex items-center gap-3 px-4 md:px-6 shrink-0 bg-black/20 backdrop-blur-md">
+          <button
+            onClick={() => setMobileMenuOpen(v => !v)}
+            className="md:hidden w-9 h-9 flex items-center justify-center rounded-xl text-[#FFFFFF]/60 hover:text-[#FFFFFF] hover:bg-[#F5A623]/10 transition-colors"
+            aria-label="Abrir menú"
+          >
+            <Menu className="w-5 h-5" />
+          </button>
           <h2 className="text-lg font-medium tracking-tight" style={{ fontFamily: 'var(--font-display)', fontStyle: 'italic', color: '#FFFFFF' }}>
             {headerTitles[mainTab]}
           </h2>
