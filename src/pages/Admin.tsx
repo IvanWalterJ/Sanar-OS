@@ -1371,7 +1371,8 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
                     <p className="text-[#FFFFFF]/40 text-sm">Sin clientes que coincidan</p>
                   </div>
                 ) : (
-                  <table className="w-full">
+                  <div className="overflow-x-auto">
+                  <table className="w-full min-w-[700px]">
                     <thead>
                       <tr className="border-b border-[rgba(245,166,35,0.1)]">
                         {['Nombre', 'Email', 'Plan', 'Inicio', 'Días', 'Pilar', 'Estado', 'Progreso'].map(h => (
@@ -1438,6 +1439,7 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
                       })}
                     </tbody>
                   </table>
+                  </div>
                 )}
               </div>
             </div>
