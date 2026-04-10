@@ -60,6 +60,9 @@ export default function Campanas({ userId, perfil, geminiKey }: CampanasProps) {
   const navigateTo = (target: CampanasView) => {
     setPreviousView(view);
     setView(target);
+    // Scroll the main container back to top
+    const main = document.querySelector('main');
+    if (main) main.scrollTop = 0;
   };
 
   const handleSelectCampana = (campana: Campana) => {
