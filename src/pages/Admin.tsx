@@ -53,7 +53,7 @@ interface ClienteConEstado extends Profile {
 
 interface AdminVideo {
   id: string;
-  grupo: string;
+  grupo?: string;
   pilar_id?: PilarId;
   titulo: string;
   descripcion: string;
@@ -948,7 +948,6 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
         const { error } = await supabase
           .from('programa_videos')
           .update({
-            grupo: v.grupo,
             pilar_id: v.pilar_id ?? null,
             titulo: v.titulo,
             descripcion: v.descripcion,
@@ -963,7 +962,6 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
         const { data, error } = await supabase
           .from('programa_videos')
           .insert({
-            grupo: v.grupo,
             pilar_id: v.pilar_id ?? null,
             titulo: v.titulo,
             descripcion: v.descripcion,
@@ -3103,7 +3101,6 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
                   if (!videoForm.youtubeUrl.trim() || !videoForm.titulo.trim()) return;
                   saveAdminVideo({
                     id: videoForm.id,
-                    grupo: videoForm.pilar_id,
                     pilar_id: videoForm.pilar_id,
                     titulo: videoForm.titulo.trim(),
                     descripcion: videoForm.descripcion.trim(),
