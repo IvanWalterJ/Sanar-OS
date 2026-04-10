@@ -1392,8 +1392,8 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
           {mainTab === 'pipeline' && (
             <div className="flex-1 flex flex-col h-full overflow-hidden">
               {/* Stats bar */}
-              <div className="flex items-center gap-4 px-6 pt-4 pb-3 border-b border-[rgba(245,166,35,0.08)] shrink-0">
-                <div className="flex items-center gap-6">
+              <div className="flex items-center gap-4 px-4 md:px-6 pt-4 pb-3 border-b border-[rgba(245,166,35,0.08)] shrink-0 overflow-x-auto scrollbar-hide">
+                <div className="flex items-center gap-3 md:gap-6 shrink-0">
                   {PIPELINE_STAGES.map((stage, i) => {
                     const count = clientes.filter(c => {
                       const clienteFase = getFaseFromProgress(c.tareas_completadas);
@@ -1401,14 +1401,15 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
                       return (idx === -1 ? 0 : idx) === i;
                     }).length;
                     return (
-                      <div key={stage.label} className="flex items-center gap-1.5">
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-[#FFFFFF]/30">{stage.label}</span>
+                      <div key={stage.label} className="flex items-center gap-1.5 shrink-0">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-[#FFFFFF]/30 hidden sm:inline">{stage.label}</span>
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-[#FFFFFF]/30 sm:hidden">{stage.label.split(' ').pop()}</span>
                         <span className="text-[11px] font-bold text-[#F5A623] bg-[#F5A623]/10 px-1.5 py-0.5 rounded-md">{count}</span>
                       </div>
                     );
                   })}
                 </div>
-                <div className="ml-auto flex items-center gap-2">
+                <div className="ml-auto hidden md:flex items-center gap-2 shrink-0">
                   <div className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-[#22C55E]" /><span className="text-[10px] text-[#FFFFFF]/40">En ritmo</span></div>
                   <div className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-amber-400" /><span className="text-[10px] text-[#FFFFFF]/40">Atención</span></div>
                   <div className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-[#EF4444]" /><span className="text-[10px] text-[#FFFFFF]/40">Necesita ayuda</span></div>
@@ -1417,7 +1418,7 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
 
               {/* Kanban columns */}
               <div className="flex-1 overflow-x-auto overflow-y-hidden">
-                <div className="flex gap-3 h-full p-4 min-w-max">
+                <div className="flex gap-3 h-full p-3 md:p-4 min-w-max">
                   {PIPELINE_STAGES.map((stage, stageIdx) => {
                     const stageClientes = clientes.filter(c => {
                       const clienteFase = getFaseFromProgress(c.tareas_completadas);
@@ -1425,7 +1426,7 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
                       return (idx === -1 ? 0 : idx) === stageIdx;
                     });
                     return (
-                      <div key={stage.label} className="w-[240px] shrink-0 flex flex-col h-full">
+                      <div key={stage.label} className="w-[200px] sm:w-[240px] shrink-0 flex flex-col h-full">
                         {/* Column header */}
                         <div className="flex items-center justify-between px-3 py-2.5 mb-2 rounded-xl bg-[#141414] border border-[rgba(245,166,35,0.12)]">
                           <div>
