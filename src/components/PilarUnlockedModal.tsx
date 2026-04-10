@@ -5,7 +5,7 @@
  * Step 2: Optional 1-5 star satisfaction rating.
  */
 import React, { useEffect, useState } from 'react';
-import { Trophy, ChevronRight, Sparkles, X, Star } from 'lucide-react';
+import { Trophy, ChevronRight, Sparkles, Star } from 'lucide-react';
 
 interface PilarUnlockedModalProps {
   pilarCompletado: string;
@@ -81,7 +81,7 @@ export default function PilarUnlockedModal({
       className={`fixed inset-0 z-[100] flex items-center justify-center p-4 transition-all duration-300 ${
         visible ? 'opacity-100' : 'opacity-0'
       }`}
-      onClick={(e) => { if (e.target === e.currentTarget) handleClose(); }}
+      onClick={(e) => { if (e.target === e.currentTarget && step === 'achievement') handleClose(); }}
     >
       {/* Backdrop */}
       <div className="absolute inset-0 bg-black/80 backdrop-blur-md" />
@@ -107,13 +107,6 @@ export default function PilarUnlockedModal({
           visible ? 'scale-100 translate-y-0' : 'scale-90 translate-y-8'
         }`}
       >
-        {/* Close button */}
-        <button
-          onClick={handleClose}
-          className="absolute -top-2 -right-2 z-20 w-8 h-8 rounded-full bg-[#141414] border border-[rgba(245,166,35,0.3)] flex items-center justify-center text-[#FFFFFF]/40 hover:text-[#FFFFFF] transition-colors"
-        >
-          <X className="w-4 h-4" />
-        </button>
 
         {/* Trophy glow */}
         <div className="relative mx-auto w-24 h-24 mb-6">
@@ -241,13 +234,6 @@ export default function PilarUnlockedModal({
                 {submitting ? 'Enviando...' : 'Enviar valoración'}
               </button>
 
-              {/* Skip */}
-              <button
-                onClick={handleSkipRating}
-                className="text-sm text-[#FFFFFF]/30 hover:text-[#FFFFFF]/60 transition-colors"
-              >
-                Saltar
-              </button>
             </>
           )}
         </div>
