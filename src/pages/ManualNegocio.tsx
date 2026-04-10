@@ -285,7 +285,7 @@ function FieldItem({ field, perfil, setCurrentPage }: FieldItemProps) {
   return (
     <div className="py-4 px-5">
       <div className="flex items-center justify-between mb-2">
-        <p className="text-sm font-medium text-[#FFFFFF]">{field.label}</p>
+        <p className={`text-sm font-medium ${field.label.toLowerCase().includes('version') ? 'text-[#F5A623]' : 'text-[#FFFFFF]'}`}>{field.label}</p>
         <button
           onClick={() => navigateToTask(setCurrentPage, field.key)}
           className="flex items-center gap-1 px-2 py-1 text-xs text-[#F5A623]/60 hover:text-[#F5A623] transition-colors"
@@ -300,15 +300,17 @@ function FieldItem({ field, perfil, setCurrentPage }: FieldItemProps) {
           <AvatarCard data={value as AvatarData} />
         ) : field.type === 'array' && Array.isArray(value) ? (
           <ol className="space-y-1.5">
-            {(value as string[]).map((item, i) => (
-              <li key={i} className="text-sm text-[#FFFFFF]/80 flex gap-2">
-                <span className="text-[#F5A623] font-medium shrink-0">{i + 1}.</span>
-                <span>{item}</span>
-              </li>
-            ))}
+            {(value as string[])
+              .filter((item) => !item.trim().startsWith('#'))
+              .map((item, i) => (
+                <li key={i} className="text-sm text-[#FFFFFF]/80 flex gap-2">
+                  <span className="text-[#F5A623] font-medium shrink-0">{i + 1}.</span>
+                  <span>{item}</span>
+                </li>
+              ))}
           </ol>
         ) : (
-          <div className="prose prose-invert prose-sm max-w-none prose-p:text-[#FFFFFF]/80 prose-p:leading-relaxed prose-headings:text-[#F5A623] prose-headings:font-semibold prose-headings:mt-4 prose-headings:mb-2 prose-strong:text-[#FFFFFF] prose-strong:font-bold prose-em:text-[#FFFFFF]/70 prose-li:text-[#FFFFFF]/80 prose-li:my-0.5 prose-ul:my-2 prose-ol:my-2 prose-hr:border-[rgba(245,166,35,0.15)] prose-a:text-[#F5A623] prose-a:underline">
+          <div className="prose prose-invert prose-sm max-w-none prose-p:text-[#FFFFFF]/80 prose-p:leading-relaxed prose-h1:text-base prose-h1:font-semibold prose-h1:text-[#F5A623] prose-h1:mt-3 prose-h1:mb-1.5 prose-h2:text-sm prose-h2:font-semibold prose-h2:text-[#F5A623] prose-h2:mt-3 prose-h2:mb-1 prose-h3:text-sm prose-h3:font-medium prose-h3:text-[#F5A623]/80 prose-h3:mt-2 prose-h3:mb-1 prose-h4:text-sm prose-h4:font-medium prose-h4:text-[#FFFFFF]/70 prose-strong:text-[#FFFFFF] prose-strong:font-semibold prose-em:text-[#FFFFFF]/70 prose-li:text-[#FFFFFF]/80 prose-li:my-0.5 prose-ul:my-2 prose-ol:my-2 prose-hr:border-[rgba(245,166,35,0.15)] prose-a:text-[#F5A623] prose-a:underline">
             <Markdown>{String(value)}</Markdown>
           </div>
         )}
