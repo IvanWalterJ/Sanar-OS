@@ -99,13 +99,21 @@ const PILAR_OPTIONS: { id: PilarId; label: string }[] = SEED_ROADMAP_V3.map(p =>
   label: `${p.id} — ${p.titulo}`,
 }));
 
-const PIPELINE_STAGES: { label: string; sub: string; maxDay: number }[] = [
-  { label: 'Onboarding',    sub: 'Días 1–3',   maxDay: 3  },
-  { label: 'Fundamentos',   sub: 'Días 4–20',  maxDay: 20 },
-  { label: 'Construcción',  sub: 'Días 21–50', maxDay: 50 },
-  { label: 'Lanzamiento',   sub: 'Días 51–75', maxDay: 75 },
-  { label: 'Consolidación', sub: 'Días 76–90', maxDay: 91 },
+const PIPELINE_STAGES: { label: string; sub: string; maxDay: number; fase: number }[] = [
+  { label: 'Onboarding',              sub: 'Días 1–3',   maxDay: 3,  fase: 0 },
+  { label: 'Sprint de Identidad',     sub: 'Días 4–20',  maxDay: 20, fase: 1 },
+  { label: 'Sprint de Mercado',       sub: 'Días 21–38', maxDay: 38, fase: 2 },
+  { label: 'Sprint de Oferta',        sub: 'Días 39–45', maxDay: 45, fase: 3 },
+  { label: 'Activación y Ventas',     sub: 'Días 46–75', maxDay: 75, fase: 4 },
+  { label: 'Identidad Visual',        sub: 'Días 76–80', maxDay: 80, fase: 5 },
+  { label: 'Análisis y Optimización', sub: 'Días 81–90', maxDay: 91, fase: 6 },
 ];
+
+function getFaseFromProgress(tareas_completadas: number): number {
+  const pilarId = derivePilarFromProgress(tareas_completadas);
+  const pilar = SEED_ROADMAP_V3.find(p => p.id === pilarId);
+  return pilar?.fase ?? 0;
+}
 
 function getYoutubeId(url: string): string | null {
   const m = url.match(/(?:v=|youtu\.be\/|embed\/)([a-zA-Z0-9_-]{11})/);
@@ -1388,9 +1396,9 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
                 <div className="flex items-center gap-6">
                   {PIPELINE_STAGES.map((stage, i) => {
                     const count = clientes.filter(c => {
-                      const rawIdx = PIPELINE_STAGES.findIndex(s => c.dia_programa <= s.maxDay);
-                      const idx = rawIdx === -1 ? PIPELINE_STAGES.length - 1 : rawIdx;
-                      return idx === i;
+                      const clienteFase = getFaseFromProgress(c.tareas_completadas);
+                      const idx = PIPELINE_STAGES.findIndex(s => s.fase === clienteFase);
+                      return (idx === -1 ? 0 : idx) === i;
                     }).length;
                     return (
                       <div key={stage.label} className="flex items-center gap-1.5">
@@ -1412,9 +1420,9 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
                 <div className="flex gap-3 h-full p-4 min-w-max">
                   {PIPELINE_STAGES.map((stage, stageIdx) => {
                     const stageClientes = clientes.filter(c => {
-                      const rawIdx = PIPELINE_STAGES.findIndex(s => c.dia_programa <= s.maxDay);
-                      const idx = rawIdx === -1 ? PIPELINE_STAGES.length - 1 : rawIdx;
-                      return idx === stageIdx;
+                      const clienteFase = getFaseFromProgress(c.tareas_completadas);
+                      const idx = PIPELINE_STAGES.findIndex(s => s.fase === clienteFase);
+                      return (idx === -1 ? 0 : idx) === stageIdx;
                     });
                     return (
                       <div key={stage.label} className="w-[240px] shrink-0 flex flex-col h-full">
@@ -1760,9 +1768,9 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
 
                           {/* ── PIPELINE ── */}
                           {(() => {
-                            const dia = selectedCliente.dia_programa;
-                            const rawIdx = PIPELINE_STAGES.findIndex(s => dia <= s.maxDay);
-                            const activeIdx = rawIdx === -1 ? PIPELINE_STAGES.length - 1 : rawIdx;
+                            const clienteFase = getFaseFromProgress(selectedCliente.tareas_completadas);
+                            const rawIdx = PIPELINE_STAGES.findIndex(s => s.fase === clienteFase);
+                            const activeIdx = rawIdx === -1 ? 0 : rawIdx;
                             return (
                               <div className="bg-[#141414] border border-[rgba(245,166,35,0.1)] rounded-2xl p-5">
                                 <p className="text-[10px] font-bold uppercase tracking-widest text-[#FFFFFF]/40 mb-5">Pipeline del Programa</p>
