@@ -28,7 +28,7 @@ import Markdown from 'react-markdown';
 // ─── TIPOS Y CONSTANTES ─────────────────────────────────────────────────────────
 
 type AdminRol = 'owner' | 'manager' | 'staff';
-type MainTab = 'clientes' | 'mensajes' | 'metricas' | 'videos' | 'equipo';
+type MainTab = 'clientes' | 'pipeline' | 'mensajes' | 'metricas' | 'videos' | 'equipo';
 type DetalleTab = 'resumen' | 'diario' | 'metricas' | 'mensajes' | 'notas';
 type MensajesChannel = 'comunidad' | 'victorias' | 'consultas' | 'privados';
 
@@ -1231,15 +1231,17 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
   // ─── SIDEBAR NAV CONFIG ───────────────────────────────────────────────────────
 
   const sidebarItems: { id: MainTab; label: string; icon: React.ElementType; ownerOnly?: boolean }[] = [
-    { id: 'clientes', label: 'Clientes', icon: Users },
-    { id: 'mensajes', label: 'Mensajes', icon: MessageSquare },
-    { id: 'metricas', label: 'Métricas', icon: BarChart2 },
-    { id: 'videos', label: 'Videos', icon: Video },
-    { id: 'equipo', label: 'Equipo', icon: UsersRound, ownerOnly: true },
+    { id: 'clientes',  label: 'Clientes',  icon: Users },
+    { id: 'pipeline',  label: 'Pipeline',  icon: LayoutDashboard },
+    { id: 'mensajes',  label: 'Mensajes',  icon: MessageSquare },
+    { id: 'metricas',  label: 'Métricas',  icon: BarChart2 },
+    { id: 'videos',    label: 'Videos',    icon: Video },
+    { id: 'equipo',    label: 'Equipo',    icon: UsersRound, ownerOnly: true },
   ];
 
   const headerTitles: Record<MainTab, string> = {
     clientes: 'Panel de Control — Clientes',
+    pipeline: 'Pipeline de Clientes',
     mensajes: 'Centro de Mensajes',
     metricas: 'Métricas Globales del Programa',
     videos: 'Gestión de Videos',
@@ -1353,7 +1355,128 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
           </h2>
         </header>
 
-        <div className={`flex-1 scrollbar-hide ${mainTab === 'mensajes' ? 'overflow-hidden flex flex-col' : 'overflow-y-auto p-6'}`}>
+        <div className={`flex-1 scrollbar-hide ${mainTab === 'mensajes' ? 'overflow-hidden flex flex-col' : mainTab === 'pipeline' ? 'overflow-hidden flex flex-col' : 'overflow-y-auto p-6'}`}>
+
+          {/* ═══════════════════════════════════════════════════════════════════════
+              TAB: PIPELINE (KANBAN)
+              ═══════════════════════════════════════════════════════════════════════ */}
+          {mainTab === 'pipeline' && (
+            <div className="flex-1 flex flex-col h-full overflow-hidden">
+              {/* Stats bar */}
+              <div className="flex items-center gap-4 px-6 pt-4 pb-3 border-b border-[rgba(245,166,35,0.08)] shrink-0">
+                <div className="flex items-center gap-6">
+                  {PIPELINE_STAGES.map((stage, i) => {
+                    const count = clientes.filter(c => {
+                      const rawIdx = PIPELINE_STAGES.findIndex(s => c.dia_programa <= s.maxDay);
+                      const idx = rawIdx === -1 ? PIPELINE_STAGES.length - 1 : rawIdx;
+                      return idx === i;
+                    }).length;
+                    return (
+                      <div key={stage.label} className="flex items-center gap-1.5">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-[#FFFFFF]/30">{stage.label}</span>
+                        <span className="text-[11px] font-bold text-[#F5A623] bg-[#F5A623]/10 px-1.5 py-0.5 rounded-md">{count}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+                <div className="ml-auto flex items-center gap-2">
+                  <div className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-[#22C55E]" /><span className="text-[10px] text-[#FFFFFF]/40">En ritmo</span></div>
+                  <div className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-amber-400" /><span className="text-[10px] text-[#FFFFFF]/40">Atención</span></div>
+                  <div className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-[#EF4444]" /><span className="text-[10px] text-[#FFFFFF]/40">Necesita ayuda</span></div>
+                </div>
+              </div>
+
+              {/* Kanban columns */}
+              <div className="flex-1 overflow-x-auto overflow-y-hidden">
+                <div className="flex gap-3 h-full p-4 min-w-max">
+                  {PIPELINE_STAGES.map((stage, stageIdx) => {
+                    const stageClientes = clientes.filter(c => {
+                      const rawIdx = PIPELINE_STAGES.findIndex(s => c.dia_programa <= s.maxDay);
+                      const idx = rawIdx === -1 ? PIPELINE_STAGES.length - 1 : rawIdx;
+                      return idx === stageIdx;
+                    });
+                    return (
+                      <div key={stage.label} className="w-[240px] shrink-0 flex flex-col h-full">
+                        {/* Column header */}
+                        <div className="flex items-center justify-between px-3 py-2.5 mb-2 rounded-xl bg-[#141414] border border-[rgba(245,166,35,0.12)]">
+                          <div>
+                            <p className="text-xs font-bold text-[#FFFFFF]/80">{stage.label}</p>
+                            <p className="text-[9px] text-[#FFFFFF]/30 mt-0.5">{stage.sub}</p>
+                          </div>
+                          <span className="text-[11px] font-bold text-[#F5A623] bg-[#F5A623]/10 px-2 py-0.5 rounded-full min-w-[22px] text-center">
+                            {stageClientes.length}
+                          </span>
+                        </div>
+
+                        {/* Cards */}
+                        <div className="flex-1 overflow-y-auto scrollbar-hide space-y-2.5">
+                          {stageClientes.length === 0 ? (
+                            <div className="flex flex-col items-center justify-center py-8 text-center border border-dashed border-[rgba(245,166,35,0.1)] rounded-xl">
+                              <p className="text-[11px] text-[#FFFFFF]/20">Sin clientes</p>
+                            </div>
+                          ) : stageClientes.map(c => {
+                            const pct = c.tareas_total > 0
+                              ? Math.round((c.tareas_completadas / c.tareas_total) * 100)
+                              : 0;
+                            const sem = SEMAFORO_CONFIG[c.semaforo];
+                            const stCfg = STATUS_CONFIG[c.status ?? 'ACTIVE'];
+                            return (
+                              <button
+                                key={c.id}
+                                type="button"
+                                onClick={() => { setSelectedCliente(c); setMainTab('clientes'); setDetalleTab('resumen'); setIaRecomendacion(''); }}
+                                className="w-full text-left bg-[#141414] border border-[rgba(245,166,35,0.12)] rounded-xl p-3.5 hover:border-[rgba(245,166,35,0.3)] hover:bg-[#1C1C1C] transition-all group"
+                              >
+                                {/* Top: avatar + name + semaforo */}
+                                <div className="flex items-center gap-2.5 mb-3">
+                                  <div className="w-8 h-8 rounded-full bg-[#F5A623]/15 border border-[rgba(245,166,35,0.25)] flex items-center justify-center text-xs font-bold text-[#F5A623] shrink-0">
+                                    {c.nombre.charAt(0).toUpperCase()}
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-semibold text-[#FFFFFF] truncate group-hover:text-[#F5A623] transition-colors">{c.nombre}</p>
+                                    {c.especialidad && <p className="text-[10px] text-[#FFFFFF]/30 truncate">{c.especialidad}</p>}
+                                  </div>
+                                  <div className={`w-2 h-2 rounded-full shrink-0 ${sem.class}`} title={sem.label} />
+                                </div>
+
+                                {/* Progress bar */}
+                                <div className="mb-2.5">
+                                  <div className="flex items-center justify-between mb-1">
+                                    <span className="text-[9px] text-[#FFFFFF]/30 uppercase tracking-wider font-bold">Progreso</span>
+                                    <span className="text-[10px] text-[#F5A623] font-bold">{pct}%</span>
+                                  </div>
+                                  <div className="h-1.5 bg-[#F5A623]/8 rounded-full overflow-hidden">
+                                    <div
+                                      className="h-full bg-[#F5A623] rounded-full transition-all"
+                                      style={{ width: `${pct}%` }}
+                                    />
+                                  </div>
+                                </div>
+
+                                {/* Footer: day + plan + status */}
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                  <span className="text-[9px] text-[#FFFFFF]/30 bg-[#FFFFFF]/5 px-1.5 py-0.5 rounded">Día {c.dia_programa}/90</span>
+                                  <span className="text-[9px] font-bold text-[#F5A623] bg-[#F5A623]/10 px-1.5 py-0.5 rounded">{c.plan}</span>
+                                  {c.status && c.status !== 'ACTIVE' && (
+                                    <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${stCfg.color} ${stCfg.bg}`}>{stCfg.label}</span>
+                                  )}
+                                  {c.racha_diario > 0 && (
+                                    <span className="text-[9px] text-[#F5A623] flex items-center gap-0.5 ml-auto">
+                                      <Flame className="w-2.5 h-2.5" />{c.racha_diario}
+                                    </span>
+                                  )}
+                                </div>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* ═══════════════════════════════════════════════════════════════════════
               TAB: CLIENTES
