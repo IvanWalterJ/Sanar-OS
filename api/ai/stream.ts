@@ -9,7 +9,7 @@ interface AIMessage {
   content: string;
 }
 
-const MODEL = 'claude-sonnet-4-5-20250514';
+const MODEL = 'claude-sonnet-4-6';
 const MAX_TOKENS = 16384;
 
 export const config = { maxDuration: 120 };
