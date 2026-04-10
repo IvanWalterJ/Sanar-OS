@@ -98,7 +98,7 @@ export default function Campanas({ userId, perfil, geminiKey }: CampanasProps) {
   }
 
   return (
-    <div className="max-w-6xl mx-auto">
+    <div className="max-w-6xl mx-auto pb-16">
       {/* Sub-nav */}
       <CampanasSubNav currentView={view} onNavigate={navigateTo} />
 
