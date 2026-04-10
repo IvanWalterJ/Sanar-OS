@@ -982,8 +982,10 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
         }]);
         toast.success('Video guardado en la nube');
       }
-    } catch {
-      toast.error('Error al guardar video');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error('saveAdminVideo error:', err);
+      toast.error(`Error al guardar video: ${msg}`);
     }
   }
 
