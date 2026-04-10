@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Sparkles, Loader2, Copy, Check, Calendar, Lightbulb, FileText } from 'lucide-react';
-import { GoogleGenAI } from '@google/genai';
+import { generateText } from '../lib/aiProvider';
 import Markdown from 'react-markdown';
 import { toast } from 'sonner';
 
@@ -102,18 +102,11 @@ export default function ContentGenerator() {
     const prompt = buildPrompt(activeTab, specialty.trim(), audience.trim());
 
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-
-      const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
-        contents: [{ role: 'user', parts: [{ text: prompt }] }],
-        config: {
-          systemInstruction:
-            'Eres un estratega de contenido digital de Sanare OS especializado en marketing para profesionales de la salud. Genera contenido en espanol, practico y accionable. Usa formato markdown con encabezados y listas.',
-        },
+      const text = await generateText({
+        prompt,
+        systemInstruction:
+          'Eres un estratega de contenido digital de Sanare OS especializado en marketing para profesionales de la salud. Genera contenido en espanol, practico y accionable. Usa formato markdown con encabezados y listas.',
       });
-
-      const text = response.text;
       if (!text) throw new Error('Respuesta vacía del servidor');
 
       setContent((prev) => ({ ...prev, [activeTab]: text }));

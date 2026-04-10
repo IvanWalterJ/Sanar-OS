@@ -11,7 +11,7 @@ import {
 import type { ProfileV2 } from '../../lib/supabase';
 import { getHerramienta, type CampoInput, type Herramienta } from '../../lib/herramientas';
 import type { RoadmapMeta } from '../../lib/roadmapSeed';
-import { GoogleGenAI } from '@google/genai';
+import { generateText } from '../../lib/aiProvider';
 import { toast } from 'sonner';
 import Markdown from 'react-markdown';
 
@@ -57,18 +57,13 @@ export default function TaskHerramientaIA({
 
   // ─── Generate with AI ─────────────────────────────────────────────────────
   const handleGenerate = async () => {
-    if (!herramienta || !geminiKey) return;
+    if (!herramienta) return;
 
     if (usaIA) {
       setModo('generando');
       try {
         const prompt = herramienta.promptTemplate(formValues, perfil ?? {});
-        const ai = new GoogleGenAI({ apiKey: geminiKey });
-        const response = await ai.models.generateContent({
-          model: 'gemini-2.5-flash',
-          contents: prompt,
-        });
-        const text = response.text ?? '';
+        const text = await generateText({ prompt });
         setOutput(text);
         setModo('revision');
         setTimeout(() => outputRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);

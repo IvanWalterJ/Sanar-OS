@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Calculator, DollarSign, Clock, TrendingUp, Sparkles, Loader2, AlertTriangle } from 'lucide-react';
-import { GoogleGenAI } from '@google/genai';
+import { generateText } from '../lib/aiProvider';
 import Markdown from 'react-markdown';
 import { toast } from 'sonner';
 
@@ -55,8 +55,6 @@ export default function PHRCalculator() {
     if (!hasData) return;
     setGenerating(true);
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-
       const prompt = `Analiza estos números de un profesional de la salud (${data.especialidad || 'no especificada'}):
 - Tarifa por consulta: $${tarifa}
 - Consultas por semana: ${consultas}
@@ -68,11 +66,9 @@ export default function PHRCalculator() {
 - PHR (Precio Hora Real): $${phr.toFixed(2)}
 - Margen de ganancia: ${margenGanancia.toFixed(1)}%`;
 
-      const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
-        contents: [{ role: 'user', parts: [{ text: prompt }] }],
-        config: {
-          systemInstruction: `Eres un consultor financiero de Sanare OS especializado en profesionales de la salud. Analiza los números y genera un diagnóstico financiero en español. Incluye:
+      const text = await generateText({
+        prompt,
+        systemInstruction: `Eres un consultor financiero de Sanare OS especializado en profesionales de la salud. Analiza los números y genera un diagnóstico financiero en español. Incluye:
 
 1. **Diagnóstico del PHR** — ¿Es saludable o preocupante? Compará con benchmarks del sector salud
 2. **Cuello de Botella Principal** — ¿Qué está limitando su facturación?
@@ -81,10 +77,7 @@ export default function PHRCalculator() {
 5. **Proyección** — Si implementa los cambios, cuánto podría facturar
 
 Sé directo, usa números y ejemplos concretos. Formato markdown.`,
-        }
       });
-
-      const text = response.text || '';
       setAnalysis(text);
       toast.success('Análisis financiero generado');
     } catch (error) {

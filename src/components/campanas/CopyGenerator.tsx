@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { Loader2, Sparkles, Copy, Check, RotateCcw, Image as ImageIcon, Layers } from 'lucide-react';
-import { GoogleGenAI } from '@google/genai';
+import { generateText } from '../../lib/aiProvider';
 import { toast } from 'sonner';
 import { buildCopyPrompt } from '../../lib/campanasPrompts';
 import { ANGULO_LABELS, TIPO_LABELS } from '../../lib/campanasTypes';
@@ -25,24 +25,12 @@ export default function CopyGenerator({ perfil, geminiKey, objetivo, onCopyGener
   const [copiedIdx, setCopiedIdx] = useState<number | null>(null);
 
   const generate = useCallback(async () => {
-    if (!geminiKey) {
-      toast.error('API key de Gemini no configurada');
-      return;
-    }
-
     setGenerating(true);
     setCopies([]);
 
     try {
       const prompt = buildCopyPrompt(angulo, tipo, perfil, objetivo, tipo === 'carrusel' ? slideCount : undefined);
-      const ai = new GoogleGenAI({ apiKey: geminiKey });
-
-      const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
-        contents: [{ role: 'user', parts: [{ text: prompt }] }],
-      });
-
-      const text = response.text ?? '';
+      const text = await generateText({ prompt });
       // Extraer JSON del response (puede venir envuelto en ```json ... ```)
       const jsonMatch = text.match(/\[[\s\S]*\]/) ?? text.match(/\{[\s\S]*\}/);
       if (!jsonMatch) {

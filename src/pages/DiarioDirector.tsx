@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { supabase, isSupabaseReady } from '../lib/supabase';
 import { toast } from 'sonner';
+import { generateText } from '../lib/aiProvider';
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 
@@ -316,7 +317,7 @@ export default function DiarioDirector({
   // ─── Generar resumen semanal (domingo) ────────────────────────────────────
   const generarResumenSemana = useCallback(
     async (todasEntradas: EntradaDiario[]) => {
-      if (!geminiKey) return;
+      if (!import.meta.env.VITE_GEMINI_API_KEY) return;
 
       // Obtener las entradas de esta semana (L-V)
       const ahora = new Date();
@@ -359,14 +360,7 @@ Genera un JSON con EXACTAMENTE esta estructura:
 
 Respondé SOLO con el JSON, sin texto adicional.`;
 
-        const { GoogleGenAI } = await import('@google/genai');
-        const ai = new GoogleGenAI({ apiKey: geminiKey });
-        const result = await ai.models.generateContent({
-          model: 'gemini-2.5-flash',
-          contents: prompt,
-        });
-
-        const texto = result.text ?? '';
+        const texto = await generateText({ prompt });
         const jsonMatch = texto.match(/\{[\s\S]*\}/);
         if (!jsonMatch) throw new Error('No JSON en respuesta');
 

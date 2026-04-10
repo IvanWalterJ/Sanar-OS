@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { Loader2, Sparkles, Copy, Check, RotateCcw } from 'lucide-react';
-import { GoogleGenAI } from '@google/genai';
+import { streamText } from '../../lib/aiProvider';
 import Markdown from 'react-markdown';
 import { toast } from 'sonner';
 import { buildGuiaCampanaPrompt } from '../../lib/campanasPrompts';
@@ -22,28 +22,16 @@ export default function WizardStepGuia({ form, perfil, geminiKey, userId, guia, 
   const [copied, setCopied] = useState(false);
 
   const generateGuia = useCallback(async () => {
-    if (!geminiKey) {
-      toast.error('API key de Gemini no configurada');
-      return;
-    }
-
     setGenerating(true);
     onGuiaChange('');
 
     try {
       const kb = await getUserKnowledgeBase(userId);
       const prompt = buildGuiaCampanaPrompt(form, perfil, kb);
-      const ai = new GoogleGenAI({ apiKey: geminiKey });
 
       let fullText = '';
-      const stream = await ai.models.generateContentStream({
-        model: 'gemini-2.5-flash',
-        contents: [{ role: 'user', parts: [{ text: prompt }] }],
-      });
-
-      for await (const chunk of stream) {
-        const text = chunk.text ?? '';
-        fullText += text;
+      for await (const chunk of streamText({ prompt })) {
+        fullText += chunk;
         onGuiaChange(fullText);
       }
     } catch (err) {

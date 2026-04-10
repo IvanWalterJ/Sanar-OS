@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Send, Bot, User, Sparkles, RefreshCw, Zap } from 'lucide-react';
-import { GoogleGenAI } from '@google/genai';
+import { streamText } from '../lib/aiProvider';
 import Markdown from 'react-markdown';
 import { toast } from 'sonner';
 import { buildCoachSystemPrompt, detectarContextoConversacion, loadCoachExtraContext } from '../lib/coachPrompt';
@@ -85,10 +85,9 @@ export default function Coach({ userId }: { userId?: string }) {
 
     try {
       setMessages(prev => [...prev, { role: 'assistant', content: '' }]);
-      const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY || '' });
-      const contents = newMessages.map(msg => ({
-        role: msg.role === 'assistant' ? 'model' : 'user',
-        parts: [{ text: msg.content }]
+      const aiMessages = newMessages.map(msg => ({
+        role: msg.role === 'assistant' ? 'assistant' : 'user',
+        content: msg.content
       }));
 
       const extraCtx = detectarContextoConversacion(text);
@@ -96,15 +95,12 @@ export default function Coach({ userId }: { userId?: string }) {
       const perfil = JSON.parse(localStorage.getItem('tcd_profile') || '{}');
       const systemPrompt = buildCoachSystemPrompt({ perfil, ...extraCtx, ...coachExtra, baseDeConocimiento: knowledgeBaseRef.current || undefined });
 
-      const streamResponse = await ai.models.generateContentStream({
-        model: 'gemini-2.5-flash',
-        contents: contents,
-        config: { systemInstruction: systemPrompt }
-      });
-
       let fullResponse = '';
-      for await (const chunk of streamResponse) {
-        fullResponse += chunk.text;
+      for await (const chunk of streamText({
+        systemInstruction: systemPrompt,
+        messages: aiMessages,
+      })) {
+        fullResponse += chunk;
         setMessages(prev => {
           const newMsgs = [...prev];
           newMsgs[newMsgs.length - 1] = { ...newMsgs[newMsgs.length - 1], content: fullResponse };

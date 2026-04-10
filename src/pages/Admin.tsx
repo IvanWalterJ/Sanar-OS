@@ -20,7 +20,7 @@ const ADMIN_PILAR_ICON_MAP: Record<string, React.ComponentType<{ className?: str
 };
 import { supabase, type Profile, type Mensaje, type AdminNote, type UserStatus, type PilarId, isSupabaseReady, PILAR_ORDER } from '../lib/supabase';
 import { SEED_ROADMAP_V3, SEED_ROADMAP_V2 } from '../lib/roadmapSeed';
-import { GoogleGenAI } from '@google/genai';
+import { generateText } from '../lib/aiProvider';
 import { toast } from 'sonner';
 import { createClient } from '@supabase/supabase-js';
 import Markdown from 'react-markdown';
@@ -360,6 +360,7 @@ export default function Admin({ adminProfile, onSignOut }: AdminProps) {
     nombre: '', email: '', password: '', especialidad: '', plan: 'DWY' as 'DWY' | 'DFY' | 'IMPLEMENTACION',
     fecha_inicio: new Date().toISOString().split('T')[0],
     status: 'ONBOARDING' as UserStatus,
+    full_agent_access: false,
   });
   const [creando, setCreando] = useState(false);
 
@@ -554,7 +555,6 @@ export default function Admin({ adminProfile, onSignOut }: AdminProps) {
     if (!outputText || outputText.length < 20) return;
     setTareaResumenLoading(true);
     try {
-      const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY || '' });
       const prompt = `Sos asistente de Paolis, una coach que acompaña a profesionales de la salud.
 El cliente "${clienteNombre}" completó la tarea "${meta.titulo}" del programa Tu Clínica Digital.
 
@@ -568,11 +568,8 @@ Escribí un resumen de 2-3 oraciones en español para Paolis que explique:
 2. Una observación relevante para que Paolis lo guíe mejor en la próxima sesión
 
 Sé directa, empática y concisa. Sin bullet points, solo texto corrido. Sin emojis.`;
-      const result = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
-        contents: [{ role: 'user', parts: [{ text: prompt }] }],
-      });
-      setTareaResumen(result.text ?? '');
+      const resumen = await generateText({ prompt });
+      setTareaResumen(resumen);
     } catch {
       // resumen is optional
     } finally {
@@ -840,9 +837,8 @@ Generá un briefing para el coach en 3 partes:
 
 Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
 
-      const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY || '' });
-      const result = await ai.models.generateContent({ model: 'gemini-2.5-flash', contents: [{ role: 'user', parts: [{ text: prompt }] }] });
-      setIaRecomendacion(result.text ?? '');
+      const recomendacion = await generateText({ prompt });
+      setIaRecomendacion(recomendacion);
     } catch {
       toast.error('Error generando recomendación IA');
     } finally {
@@ -1064,6 +1060,21 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
     }
   }
 
+  async function toggleFullAgentAccess() {
+    if (!supabase || !selectedCliente) return;
+    const newVal = !selectedCliente.full_agent_access;
+    try {
+      await supabase.from('profiles').update({ full_agent_access: newVal }).eq('id', selectedCliente.id);
+      setClientes(prev => prev.map(c =>
+        c.id === selectedCliente.id ? { ...c, full_agent_access: newVal } : c
+      ));
+      setSelectedCliente(prev => prev ? { ...prev, full_agent_access: newVal } : prev);
+      toast.success(newVal ? 'Acceso completo a agentes activado' : 'Acceso a agentes con restricciones de pilar');
+    } catch {
+      toast.error('Error actualizando acceso a agentes');
+    }
+  }
+
   async function guardarConfigAdmin() {
     setGuardandoAdmin(true);
     try {
@@ -1128,12 +1139,13 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
           fecha_inicio: nuevoForm.fecha_inicio,
           status: nuevoForm.status,
           onboarding_completed: nuevoForm.status !== 'ONBOARDING',
+          full_agent_access: nuevoForm.full_agent_access,
         }).eq('id', signUpData.user.id);
       }
 
       toast.success(`Cuenta creada para ${nuevoForm.nombre}. Ya puede iniciar sesión.`);
       setShowNuevoCliente(false);
-      setNuevoForm({ nombre: '', email: '', password: '', especialidad: '', plan: 'DWY', fecha_inicio: new Date().toISOString().split('T')[0], status: 'ONBOARDING' });
+      setNuevoForm({ nombre: '', email: '', password: '', especialidad: '', plan: 'DWY', fecha_inicio: new Date().toISOString().split('T')[0], status: 'ONBOARDING', full_agent_access: false });
       await cargarClientes();
     } catch (e: any) {
       toast.error(`Error creando cuenta: ${e.message}`);
@@ -1700,6 +1712,18 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
                         />
                         {statusCambiando && <Loader2 className="w-3 h-3 text-[#F5A623] animate-spin" />}
                       </div>
+                      {/* Toggle acceso completo agentes */}
+                      <button
+                        onClick={toggleFullAgentAccess}
+                        className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all border ${
+                          selectedCliente.full_agent_access
+                            ? 'bg-[#22C55E]/15 text-[#22C55E] border-[#22C55E]/30 hover:bg-[#22C55E]/25'
+                            : 'bg-[#FFFFFF]/5 text-[#FFFFFF]/40 border-[#FFFFFF]/10 hover:text-[#FFFFFF]/70 hover:border-[#FFFFFF]/20'
+                        }`}
+                      >
+                        <Bot className="w-3 h-3" />
+                        {selectedCliente.full_agent_access ? 'Agentes: Full' : 'Agentes: Pilar'}
+                      </button>
                     </div>
                     <p className="text-xs text-[#FFFFFF]/60 flex items-center gap-2">
                       <Lock className="w-3 h-3 text-[#FFFFFF]/30" /> {selectedCliente.email}
@@ -2963,6 +2987,33 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
                   ]}
                 />
               </div>
+
+              {/* Toggle acceso completo a agentes */}
+              <button
+                type="button"
+                onClick={() => setNuevoForm({ ...nuevoForm, full_agent_access: !nuevoForm.full_agent_access })}
+                className={`w-full flex items-center justify-between p-4 rounded-xl border transition-all ${
+                  nuevoForm.full_agent_access
+                    ? 'bg-[#F5A623]/10 border-[#F5A623]/40'
+                    : 'bg-black/20 border-[rgba(245,166,35,0.15)]'
+                }`}
+              >
+                <div className="text-left">
+                  <p className={`text-sm font-medium ${nuevoForm.full_agent_access ? 'text-[#F5A623]' : 'text-[#FFFFFF]/60'}`}>
+                    Acceso completo a Agentes
+                  </p>
+                  <p className="text-[10px] text-[#FFFFFF]/40 mt-0.5">
+                    Desbloquea todos los agentes IA sin completar pilares
+                  </p>
+                </div>
+                <div className={`w-10 h-5 rounded-full relative transition-colors ${
+                  nuevoForm.full_agent_access ? 'bg-[#F5A623]' : 'bg-[#FFFFFF]/10'
+                }`}>
+                  <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${
+                    nuevoForm.full_agent_access ? 'translate-x-5' : 'translate-x-0.5'
+                  }`} />
+                </div>
+              </button>
             </div>
 
             <div className="flex gap-3 mt-8">

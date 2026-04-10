@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowRight, ArrowLeft, CheckCircle2, Sparkles, Loader2 } from 'lucide-react';
-import { GoogleGenAI } from '@google/genai';
+import { generateText } from '../lib/aiProvider';
 import Markdown from 'react-markdown';
 import { toast } from 'sonner';
 
@@ -116,49 +116,43 @@ export default function Onboarding() {
   const generateProfile = async () => {
     setGenerating(true);
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
       const answersText = QUESTIONS.map(q => `${q.question}\nRespuesta: ${answers[q.id]}`).join('\n\n');
 
-      const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
-        contents: [{ role: 'user', parts: [{ text: answersText }] }],
-        config: {
-          systemInstruction: `Eres el Coach IA de "tu.clínica.digital", experto en el Método CLÍNICA para profesionales de la salud. Tu objetivo es generar el ADN prototipo beta del profesional a partir de las respuestas del onboarding de Fase 0.
+      const text = await generateText({
+        prompt: answersText,
+        systemInstruction: `Eres el Coach IA de "tu.clínica.digital", experto en el Método CLÍNICA para profesionales de la salud. Tu objetivo es generar el ADN prototipo beta del profesional a partir de las respuestas del onboarding de Fase 0.
 
 Este prototipo es el punto de partida — NO es el ADN definitivo. Es una primera versión que los 10 pilares del programa irán refinando con trabajo real y datos reales.
 
 Analizá las respuestas y generá el ADN prototipo beta con este formato en markdown:
 
-## 🧬 Tu ADN Prototipo Beta
+## Tu ADN Prototipo Beta
 
 > *"Este es tu prototipo de ADN. Construido desde lo que nos contaste hoy. Ahora comienza el trabajo real: completar cada pilar lo afinará y lo hará verdadero."*
 
 ---
 
-### 👤 Quién Sos (borrador inicial)
+### Quién Sos (borrador inicial)
 Párrafo breve sobre su identidad como profesional basado en sus referentes y lo que admira en ellos. Qué dice sobre sus valores el hecho de que admire a esas personas.
 
-### 🎯 A Quién Servís (hipótesis)
+### A Quién Servís (hipótesis)
 Primer perfil de paciente ideal basado en el contexto del negocio. Hipótesis de dolores y deseos — se refinará en los Pilares 4 y 5.
 
-### 💡 Por Qué Hacés Lo Que Hacés (pista)
+### Por Qué Hacés Lo Que Hacés (pista)
 Basado en sus miedos, deseos y obstáculos: ¿qué sugieren sobre su motivación profunda? Una hipótesis del propósito que el Pilar 2 profundizará.
 
-### 💰 Objetivo Económico
+### Objetivo Económico
 - **Meta:** $10,000 USD/mes extra
-- **Camino más probable:** 5 pacientes × $2,000 (Oferta Mid) — o la combinación que más se ajuste a su contexto
+- **Camino más probable:** 5 pacientes x $2,000 (Oferta Mid) — o la combinación que más se ajuste a su contexto
 - **Primer bloqueo a trabajar:** [identificá el mayor obstáculo mencionado]
 
-### 🚀 Próximo Paso
+### Próximo Paso
 Desbloqueaste el **Pilar 1: Historia**. Ahora vas a construir tu narrativa real — no tu currículum, sino la historia que conecta tu origen con lo que hacés hoy. Eso es lo que crea conexión antes del primer contacto.
 
 ---
 
 Sé directo, honesto y estratégico. Usá segunda persona informal (vos/tu). No seas genérico — conectá con lo específico que dijeron. Máximo 400 palabras en total.`,
-        }
       });
-
-      const text = response.text || '';
       setProfile(text);
       setCurrentStep(QUESTIONS.length);
       toast.success('Perfil generado exitosamente');

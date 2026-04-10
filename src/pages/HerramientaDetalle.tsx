@@ -13,6 +13,7 @@ import {
 import { supabase, isSupabaseReady } from '../lib/supabase';
 import type { ProfileV2 } from '../lib/supabase';
 import { getHerramienta, EMOJI_TO_ICON, type CampoInput } from '../lib/herramientas';
+import { streamText } from '../lib/aiProvider';
 
 const HERRAMIENTA_ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
   Sprout, Mail, BookOpen, RefreshCw, DollarSign, Microscope, Target,
@@ -79,29 +80,14 @@ export default function HerramientaDetalle({ herramientaId, userId, perfil, gemi
       toast.error('Completá todos los campos requeridos.');
       return;
     }
-    if (!geminiKey) {
-      toast.error('Falta la GEMINI_API_KEY.');
-      return;
-    }
-
     setGenerando(true);
     setOutput('');
 
     try {
       const prompt = herramienta.promptTemplate(inputs, perfil ?? {});
-
-      const { GoogleGenAI } = await import('@google/genai');
-      const ai = new GoogleGenAI({ apiKey: geminiKey });
-
-      // Streaming
       let textoCompleto = '';
-      const stream = await ai.models.generateContentStream({
-        model: 'gemini-2.5-flash',
-        contents: prompt,
-      });
-
-      for await (const chunk of stream) {
-        textoCompleto += chunk.text ?? '';
+      for await (const chunk of streamText({ prompt })) {
+        textoCompleto += chunk;
         setOutput(textoCompleto);
       }
 

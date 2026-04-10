@@ -8,6 +8,7 @@ import {
   X, Loader2, RotateCcw, CheckCircle2, Edit3, Download,
   Copy, Star, Clock, ChevronDown, ChevronUp, FileText, Sparkles,
 } from 'lucide-react';
+import { streamText } from '../lib/aiProvider';
 import CustomSelect from './CustomSelect';
 import { supabase, isSupabaseReady } from '../lib/supabase';
 import type { ProfileV2 } from '../lib/supabase';
@@ -180,7 +181,6 @@ export default function TaskWorkModal({
   // ── Generar con Gemini ──────────────────────────────────────────────────────
   const handleGenerar = useCallback(async () => {
     if (!camposCompletos) { toast.error('Completá todos los campos requeridos.'); return; }
-    if (!geminiKey) { toast.error('Falta la GEMINI_API_KEY.'); return; }
     if (!herramienta) return;
 
     setModo('generando');
@@ -188,17 +188,9 @@ export default function TaskWorkModal({
 
     try {
       const prompt = herramienta.promptTemplate(inputs, perfil ?? {});
-      const { GoogleGenAI } = await import('@google/genai');
-      const ai = new GoogleGenAI({ apiKey: geminiKey });
-
       let textoCompleto = '';
-      const stream = await ai.models.generateContentStream({
-        model: 'gemini-2.5-flash',
-        contents: prompt,
-      });
-
-      for await (const chunk of stream) {
-        textoCompleto += chunk.text ?? '';
+      for await (const chunk of streamText({ prompt })) {
+        textoCompleto += chunk;
         setOutput(textoCompleto);
       }
 

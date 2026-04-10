@@ -14,6 +14,7 @@ import Markdown from 'react-markdown';
 import type { PilarId, ProfileV2 } from '../lib/supabase';
 import { toast } from 'sonner';
 import { getUserKnowledgeBase } from '../lib/userKnowledgeBase';
+import { generateText } from '../lib/aiProvider';
 import { SEED_ROADMAP_V2 } from '../lib/roadmapSeed';
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
@@ -362,17 +363,6 @@ export default function Agentes({
       setCargando(true);
 
       try {
-        if (!geminiKey) {
-          setMensajes([
-            ...nuevosMensajes,
-            { rol: 'agente', contenido: 'Configurá la GEMINI_API_KEY para activar los agentes IA.' },
-          ]);
-          return;
-        }
-
-        const { GoogleGenAI } = await import('@google/genai');
-        const ai = new GoogleGenAI({ apiKey: geminiKey });
-
         const historial = nuevosMensajes
           .map((m) => `${m.rol === 'usuario' ? 'Usuario' : 'Agente'}: ${m.contenido}`)
           .join('\n\n');
@@ -380,13 +370,11 @@ export default function Agentes({
         const baseConocimiento = knowledgeBaseRef.current
           ? `\n\n=== BASE DE CONOCIMIENTO DEL PROFESIONAL ===\n${knowledgeBaseRef.current}`
           : '';
-        const resultado = await ai.models.generateContent({
-          model: 'gemini-2.5-flash',
-          contents: `${agenteActivo.sistemPrompt(perfil ?? {})}${baseConocimiento}\n\n---HISTORIAL---\n${historial}\n\nAgente:`,
+        const respuesta = await generateText({
+          prompt: `${baseConocimiento}\n\n---HISTORIAL---\n${historial}\n\nAgente:`,
+          systemInstruction: agenteActivo.sistemPrompt(perfil ?? {}),
         });
-
-        const respuesta = resultado.text ?? 'Sin respuesta del agente.';
-        setMensajes([...nuevosMensajes, { rol: 'agente', contenido: respuesta }]);
+        setMensajes([...nuevosMensajes, { rol: 'agente', contenido: respuesta || 'Sin respuesta del agente.' }]);
       } catch {
         toast.error('Error al conectar con el agente. Intentá de nuevo.');
         setMensajes(nuevosMensajes);
@@ -415,7 +403,7 @@ export default function Agentes({
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {AGENTES.map((agente) => {
-            const unlocked = isPilarActive(agente.unlockPilar, completadas);
+            const unlocked = perfil?.full_agent_access || isPilarActive(agente.unlockPilar, completadas);
             return (
               <button
                 key={agente.id}

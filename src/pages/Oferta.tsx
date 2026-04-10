@@ -1,34 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Sparkles, Target, Copy, CheckCircle2, LayoutTemplate, Download, ChevronLeft, Lock, Check } from 'lucide-react';
-import { GoogleGenAI, Type } from '@google/genai';
+import { generateText } from '../lib/aiProvider';
 import { motion, AnimatePresence } from 'motion/react';
 import { toast } from 'sonner';
 
 type Step = 'input' | 'variants' | 'landing';
 
-const VARIANTS_MODEL = 'gemini-2.5-flash';
-const LANDING_MODEL = 'gemini-2.5-pro';
-const MAX_RETRIES = 3;
-
-async function retryWithBackoff<T>(fn: () => Promise<T>): Promise<T> {
-  let lastError: any;
-  for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
-    try {
-      return await fn();
-    } catch (err: any) {
-      lastError = err;
-      const isRetryable =
-        err?.status === 503 ||
-        err?.message?.includes('503') ||
-        err?.message?.includes('UNAVAILABLE') ||
-        err?.message?.includes('high demand');
-      if (!isRetryable || attempt === MAX_RETRIES - 1) throw err;
-      const delay = (attempt + 1) * 3000;
-      await new Promise((r) => setTimeout(r, delay));
-    }
-  }
-  throw lastError;
-}
 
 export default function Oferta() {
   const [step, setStep] = useState<Step>('input');
@@ -68,39 +45,25 @@ export default function Oferta() {
   const handleGenerateVariants = async () => {
     setIsGenerating(true);
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
       const prompt = `Actúa como un experto en marketing y ventas high-ticket para profesionales de la salud.
       El profesional describe su servicio así: "${description}".
       Genera 3 variantes de oferta (Conservadora, Media, Ambiciosa) para un programa de salud online.
-      Asegúrate de que los precios estén en USD y sean realistas para un programa premium.`;
+      Asegúrate de que los precios estén en USD y sean realistas para un programa premium.
 
-      const response = await retryWithBackoff(() => ai.models.generateContent({
-        model: VARIANTS_MODEL,
-        contents: prompt,
-        config: {
-          responseMimeType: "application/json",
-          responseSchema: {
-            type: Type.ARRAY,
-            items: {
-              type: Type.OBJECT,
-              properties: {
-                id: { type: Type.STRING, description: "conservadora, media, o ambiciosa" },
-                name: { type: Type.STRING, description: "Nombre atractivo del programa" },
-                subtitle: { type: Type.STRING, description: "Promesa principal en una línea" },
-                price: { type: Type.NUMBER, description: "Precio en USD" },
-                duration: { type: Type.NUMBER, description: "Duración en semanas" },
-                score: { type: Type.NUMBER, description: "Viabilidad de mercado (0-100)" },
-                includes: { type: Type.ARRAY, items: { type: Type.STRING }, description: "Lista de 3 a 5 entregables" },
-                recommended: { type: Type.BOOLEAN, description: "Solo la opción 'media' debe ser true" }
-              },
-              required: ["id", "name", "subtitle", "price", "duration", "score", "includes", "recommended"]
-            }
-          }
-        }
-      }));
+      Respondé SOLO con un JSON array válido (sin markdown, sin texto adicional). Cada objeto debe tener:
+      - id: "conservadora", "media", o "ambiciosa"
+      - name: Nombre atractivo del programa
+      - subtitle: Promesa principal en una línea
+      - price: Precio en USD (número)
+      - duration: Duración en semanas (número)
+      - score: Viabilidad de mercado 0-100 (número)
+      - includes: Array de 3 a 5 entregables (strings)
+      - recommended: boolean (solo true para "media")`;
 
-      const generatedVariants = JSON.parse(response.text || "[]");
-      
+      const text = await generateText({ prompt });
+      const jsonMatch = text.match(/\[[\s\S]*\]/);
+      const generatedVariants = JSON.parse(jsonMatch?.[0] || "[]");
+
       const styledVariants = generatedVariants.map((v: any) => {
         if (v.id === 'conservadora') {
           return { ...v, color: 'border-[#F5A623]/30 hover:border-[#F5A623]', badge: 'text-[#F5A623] bg-[#F5A623]/10' };
@@ -113,15 +76,8 @@ export default function Oferta() {
 
       setVariants(styledVariants);
       setStep('variants');
-    } catch (error: any) {
-      console.error(error);
-      if (error?.status === 429 || error?.message?.includes('429') || error?.message?.includes('quota') || error?.message?.includes('RESOURCE_EXHAUSTED')) {
-        toast.error("Has excedido el límite de uso de la IA (Error 429). Por favor, esperá un momento e intentá de nuevo.");
-      } else if (error?.status === 503 || error?.message?.includes('503') || error?.message?.includes('UNAVAILABLE') || error?.message?.includes('high demand')) {
-        toast.error("La IA está experimentando alta demanda en este momento. Se reintentó 3 veces sin éxito. Por favor, intentá en unos minutos.");
-      } else {
-        toast.error("Hubo un error generando las variantes. Intentá de nuevo.");
-      }
+    } catch {
+      toast.error("Hubo un error generando las variantes. Intentá de nuevo.");
     } finally {
       setIsGenerating(false);
     }
@@ -131,7 +87,6 @@ export default function Oferta() {
     setIsGenerating(true);
     setSelectedVariant(variant.id);
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
       const prompt = `Actúa como un experto en diseño web UI/UX premium, copywriting persuasivo de respuesta directa y estratega de ofertas high-ticket (estilo Alex Hormozi).
       Crea una Landing Page de altísima conversión (formato Long-Form) en HTML y Tailwind CSS (usando CDN) para este programa de salud:
       Nombre: ${variant.name}
@@ -171,25 +126,13 @@ export default function Oferta() {
       - Usa Tailwind CSS via CDN: <script src="https://cdn.tailwindcss.com"></script>
       - El diseño debe verse exactamente como una landing page de un infoproducto high-ticket de lujo.`;
 
-      const response = await retryWithBackoff(() => ai.models.generateContent({
-        model: LANDING_MODEL,
-        contents: prompt,
-      }));
-
-      let html = response.text || "";
+      let html = await generateText({ prompt });
       html = html.replace(/```html/g, '').replace(/```/g, '').trim();
 
       setLandingHtml(html);
       setStep('landing');
-    } catch (error: any) {
-      console.error(error);
-      if (error?.status === 429 || error?.message?.includes('429') || error?.message?.includes('quota') || error?.message?.includes('RESOURCE_EXHAUSTED')) {
-        toast.error("Has excedido el límite de uso de la IA (Error 429). Por favor, esperá un momento e intentá de nuevo.");
-      } else if (error?.status === 503 || error?.message?.includes('503') || error?.message?.includes('UNAVAILABLE') || error?.message?.includes('high demand')) {
-        toast.error("La IA está experimentando alta demanda. Se reintentó 3 veces. Por favor, intentá en unos minutos.");
-      } else {
-        toast.error("Hubo un error generando la landing page. Intentá de nuevo.");
-      }
+    } catch {
+      toast.error("Hubo un error generando la landing page. Intentá de nuevo.");
     } finally {
       setIsGenerating(false);
     }
