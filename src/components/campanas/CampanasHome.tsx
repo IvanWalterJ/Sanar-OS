@@ -78,7 +78,7 @@ export default function CampanasHome({ campanas, creativos, perfil, onNavigate, 
   const recientes = campanas.slice(0, 3);
 
   return (
-    <div className="space-y-6 max-w-4xl animate-in fade-in duration-500">
+    <div className="space-y-6 max-w-5xl mx-auto animate-in fade-in duration-500">
       {/* Hero */}
       <div>
         <p className="text-[10px] font-bold tracking-[0.2em] uppercase text-[#F5A623] mb-2">

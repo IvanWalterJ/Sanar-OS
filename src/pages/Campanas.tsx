@@ -60,8 +60,17 @@ export default function Campanas({ userId, perfil, geminiKey }: CampanasProps) {
 
   // Scroll to top whenever view changes
   useEffect(() => {
-    // Use scrollIntoView on the top ref — works regardless of scroll container
-    topRef.current?.scrollIntoView({ block: 'start' });
+    const el = topRef.current;
+    if (!el) return;
+    let parent = el.parentElement;
+    while (parent) {
+      const { overflowY } = getComputedStyle(parent);
+      if (overflowY === 'auto' || overflowY === 'scroll') {
+        parent.scrollTop = 0;
+        break;
+      }
+      parent = parent.parentElement;
+    }
   }, [view]);
 
   const navigateTo = (target: CampanasView) => {

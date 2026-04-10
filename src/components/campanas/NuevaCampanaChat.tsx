@@ -66,7 +66,7 @@ export default function NuevaCampanaChat({ userId, perfil, onComplete, onCancel 
   });
   const [summaryTab, setSummaryTab] = useState<'resumen' | 'salida' | 'tips'>('resumen');
   const [aiOutput, setAiOutput] = useState('');
-  const msgsEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
 
   const currentPhaseIndex = PHASES.findIndex((p) => p.id === currentPhase);
 
@@ -84,7 +84,9 @@ export default function NuevaCampanaChat({ userId, perfil, onComplete, onCancel 
   }, []);
 
   useEffect(() => {
-    msgsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (messagesContainerRef.current) {
+      messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+    }
   }, [messages]);
 
   const advancePhase = () => {
@@ -257,7 +259,7 @@ REGLAS:
   };
 
   return (
-    <div className="animate-in fade-in duration-500">
+    <div className="animate-in fade-in duration-500 flex flex-col h-[calc(100vh-10rem)]">
       {/* Back button */}
       <button
         onClick={onCancel}
@@ -306,11 +308,11 @@ REGLAS:
         </div>
       </div>
 
-      <div className="flex flex-col lg:flex-row gap-4">
+      <div className="flex flex-col lg:flex-row gap-4 flex-1 min-h-0">
         {/* Chat principal */}
         <div className="flex-1 card-panel flex flex-col">
           {/* Messages */}
-          <div className="h-[60vh] overflow-y-auto overscroll-contain p-4 space-y-3">
+          <div ref={messagesContainerRef} className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4 space-y-3 scrollbar-hide">
             {messages.map((msg) => (
               <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'items-end gap-2'}`}>
                 {msg.role === 'assistant' && (
@@ -337,7 +339,6 @@ REGLAS:
                 </div>
               </div>
             ))}
-            <div ref={msgsEndRef} />
           </div>
 
           {/* Quick options for first phase */}
@@ -396,7 +397,7 @@ REGLAS:
             ))}
           </div>
 
-          <div className="max-h-[60vh] overflow-y-auto overscroll-contain p-4">
+          <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4 scrollbar-hide">
             {/* Tab: Resumen */}
             {summaryTab === 'resumen' && (
               <div className="space-y-3">
