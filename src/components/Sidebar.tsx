@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { LayoutDashboard, Map as RoadmapIcon, MessageSquare, TrendingUp, Users, Settings, LogOut, Hexagon, BookOpen, Library, Bot, ChevronLeft, ChevronRight, Dna } from 'lucide-react';
+import { LayoutDashboard, Map as RoadmapIcon, MessageSquare, TrendingUp, Users, Settings, LogOut, Hexagon, BookOpen, Library, Bot, ChevronLeft, ChevronRight, Dna, Megaphone } from 'lucide-react';
 import { SEED_ROADMAP_V2 } from '../lib/roadmapSeed';
 
 interface SidebarProps {
@@ -73,6 +73,12 @@ export default function Sidebar({ currentPage, setCurrentPage, onOpenSettings, o
         { id: 'mensajes', icon: Users, label: 'Mensajes', badge: messageBadge > 0 },
         { id: 'biblioteca', icon: Library, label: 'Biblioteca' },
         { id: 'agentes', icon: Bot, label: 'Agentes IA' },
+      ]
+    },
+    {
+      title: 'MARKETING',
+      items: [
+        { id: 'campanas', icon: Megaphone, label: 'Campanas & Creativos' },
       ]
     },
     {

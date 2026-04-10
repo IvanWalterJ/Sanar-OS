@@ -28,6 +28,7 @@ export interface Profile {
   created_at: string;
   status?: UserStatus;
   onboarding_completed?: boolean;
+  full_agent_access?: boolean;
 }
 
 export interface AdminNote {
@@ -408,3 +409,16 @@ export const PILAR_MIGRATION_MAP: Record<number, PilarId> = {
   0: 'P0', 1: 'P1', 2: 'P2', 3: 'P3', 4: 'P4', 5: 'P5',
   6: 'P6', 7: 'P7', 8: 'P8', 9: 'P9A', 10: 'P10',
 };
+
+// ─── Re-export tipos de Campañas & Creativos ─────────────────────────────────
+export type {
+  Campana,
+  Creativo,
+  CreativoAsset,
+  ObjetivoCampana,
+  AnguloCreativo,
+  TipoCreativo,
+  EstadoCampana,
+  EstadoCreativo,
+  CopyGenerado,
+} from './campanasTypes';
