@@ -1,7 +1,7 @@
 -- ============================================================
 -- Tabla de valoraciones de satisfacción por pilar completado
 -- El paciente puede valorar de 1 a 5 estrellas al completar
--- cada pilar. Un rating por pilar por usuario (upsert).
+-- cada pilar, con comentario opcional.
 -- ============================================================
 
 CREATE TABLE IF NOT EXISTS pilar_satisfaction_ratings (
@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS pilar_satisfaction_ratings (
   pilar_numero INT         NOT NULL,
   pilar_titulo TEXT,
   rating       SMALLINT    NOT NULL CHECK (rating >= 1 AND rating <= 5),
+  comentario   TEXT,
   created_at   TIMESTAMPTZ DEFAULT now()
 );
 
@@ -45,3 +46,15 @@ CREATE POLICY "admin puede leer ratings"
       WHERE id = auth.uid() AND rol = 'admin'
     )
   );
+
+-- ── Si la tabla ya existe, agregar la columna comentario ──────
+-- (para bases de datos que ya corrieron la migración anterior)
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_name = 'pilar_satisfaction_ratings' AND column_name = 'comentario'
+  ) THEN
+    ALTER TABLE pilar_satisfaction_ratings ADD COLUMN comentario TEXT;
+  END IF;
+END $$;

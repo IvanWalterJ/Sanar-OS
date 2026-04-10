@@ -44,6 +44,7 @@ export interface PilarSatisfactionRating {
   pilar_numero: number;
   pilar_titulo?: string;
   rating: 1 | 2 | 3 | 4 | 5;
+  comentario?: string;
   created_at: string;
 }
 

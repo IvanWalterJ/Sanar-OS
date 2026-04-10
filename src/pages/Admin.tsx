@@ -341,7 +341,8 @@ export default function Admin({ adminProfile, onSignOut }: AdminProps) {
   const [metricasTareasLoading, setMetricasTareasLoading] = useState(false);
   const [pilarExpandido, setPilarExpandido] = useState<Record<number, boolean>>({});
   const [satisfaccionGlobal, setSatisfaccionGlobal] = useState<number | null>(null);
-  const [clienteRatings, setClienteRatings] = useState<{ pilar_numero: number; pilar_titulo?: string; rating: number }[]>([]);
+  const [clienteRatings, setClienteRatings] = useState<{ pilar_numero: number; pilar_titulo?: string; rating: number; comentario?: string }[]>([]);
+  const [ratingsResumen, setRatingsResumen] = useState<Record<string, number>>({});
   const [tareaModal, setTareaModal] = useState<{ meta: any; tareaData: any; output: string; clienteNombre: string } | null>(null);
   const [tareaResumen, setTareaResumen] = useState('');
   const [tareaResumenLoading, setTareaResumenLoading] = useState(false);
@@ -399,11 +400,12 @@ export default function Admin({ adminProfile, onSignOut }: AdminProps) {
 
   // ─── EFFECTS ──────────────────────────────────────────────────────────────────
 
-  useEffect(() => { cargarClientes(); }, []);
+  useEffect(() => { cargarClientes(); cargarRatingsResumen(); }, []);
 
   useEffect(() => {
     if (mainTab === 'metricas' && !metricasGlobales) cargarMetricasGlobales();
-    if (mainTab === 'metricas') cargarSatisfaccionGlobal();
+    if (mainTab === 'metricas') { cargarSatisfaccionGlobal(); cargarRatingsResumen(); }
+    if (mainTab === 'pipeline') cargarRatingsResumen();
     if (mainTab === 'videos') cargarAdminVideos();
     if (mainTab === 'equipo') cargarEquipo();
     if (mainTab !== 'metricas') setFiltroMetricasId(null);
@@ -615,10 +617,29 @@ Sé directa, empática y concisa. Sin bullet points, solo texto corrido. Sin emo
     if (!supabase) return;
     const { data } = await supabase
       .from('pilar_satisfaction_ratings')
-      .select('pilar_numero, pilar_titulo, rating')
+      .select('pilar_numero, pilar_titulo, rating, comentario')
       .eq('usuario_id', userId)
       .order('pilar_numero');
     setClienteRatings(data ?? []);
+  }
+
+  async function cargarRatingsResumen() {
+    if (!supabase) return;
+    const { data } = await supabase
+      .from('pilar_satisfaction_ratings')
+      .select('usuario_id, rating');
+    if (!data) return;
+    const totals: Record<string, { sum: number; count: number }> = {};
+    for (const r of data) {
+      if (!totals[r.usuario_id]) totals[r.usuario_id] = { sum: 0, count: 0 };
+      totals[r.usuario_id].sum += r.rating;
+      totals[r.usuario_id].count += 1;
+    }
+    const resumen: Record<string, number> = {};
+    for (const [uid, { sum, count }] of Object.entries(totals)) {
+      resumen[uid] = Math.round((sum / count) * 10) / 10;
+    }
+    setRatingsResumen(resumen);
   }
 
   async function cargarClientes() {
@@ -1453,10 +1474,15 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
                                   </div>
                                 </div>
 
-                                {/* Footer: day + plan + status */}
+                                {/* Footer: day + plan + rating + status */}
                                 <div className="flex items-center gap-1.5 flex-wrap">
                                   <span className="text-[9px] text-[#FFFFFF]/30 bg-[#FFFFFF]/5 px-1.5 py-0.5 rounded">Día {c.dia_programa}/90</span>
                                   <span className="text-[9px] font-bold text-[#F5A623] bg-[#F5A623]/10 px-1.5 py-0.5 rounded">{c.plan}</span>
+                                  {ratingsResumen[c.id] !== undefined && (
+                                    <span className="text-[9px] text-[#F5A623] bg-[#F5A623]/10 px-1.5 py-0.5 rounded flex items-center gap-0.5">
+                                      <Star className="w-2.5 h-2.5 fill-[#F5A623]" />{ratingsResumen[c.id].toFixed(1)}
+                                    </span>
+                                  )}
                                   {c.status && c.status !== 'ACTIVE' && (
                                     <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${stCfg.color} ${stCfg.bg}`}>{stCfg.label}</span>
                                   )}
@@ -2448,21 +2474,28 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
                         {clienteRatings.length === 0 ? (
                           <p className="text-xs text-[#FFFFFF]/30">Sin valoraciones registradas aún.</p>
                         ) : (
-                          <div className="space-y-0">
+                          <div className="space-y-3">
                             {clienteRatings.map((r) => (
-                              <div key={r.pilar_numero} className="flex items-center justify-between py-2.5 border-b border-[rgba(255,255,255,0.05)] last:border-0">
-                                <span className="text-sm text-[#FFFFFF]/70">
-                                  Pilar {r.pilar_numero}{r.pilar_titulo ? ` — ${r.pilar_titulo}` : ''}
-                                </span>
-                                <div className="flex items-center gap-1">
-                                  {[1, 2, 3, 4, 5].map((s) => (
-                                    <Star
-                                      key={s}
-                                      className={`w-3.5 h-3.5 ${s <= r.rating ? 'text-[#F5A623] fill-[#F5A623]' : 'text-[#FFFFFF]/15'}`}
-                                    />
-                                  ))}
-                                  <span className="text-xs text-[#FFFFFF]/40 ml-1">{r.rating}/5</span>
+                              <div key={r.pilar_numero} className="border-b border-[rgba(255,255,255,0.05)] last:border-0 pb-3 last:pb-0">
+                                <div className="flex items-center justify-between mb-1">
+                                  <span className="text-sm text-[#FFFFFF]/70">
+                                    Pilar {r.pilar_numero}{r.pilar_titulo ? ` — ${r.pilar_titulo}` : ''}
+                                  </span>
+                                  <div className="flex items-center gap-1">
+                                    {[1, 2, 3, 4, 5].map((s) => (
+                                      <Star
+                                        key={s}
+                                        className={`w-3.5 h-3.5 ${s <= r.rating ? 'text-[#F5A623] fill-[#F5A623]' : 'text-[#FFFFFF]/15'}`}
+                                      />
+                                    ))}
+                                    <span className="text-xs text-[#FFFFFF]/40 ml-1">{r.rating}/5</span>
+                                  </div>
                                 </div>
+                                {r.comentario && (
+                                  <p className="text-xs text-[#FFFFFF]/45 italic bg-[#FFFFFF]/3 rounded-lg px-3 py-2 border border-[rgba(255,255,255,0.05)]">
+                                    "{r.comentario}"
+                                  </p>
+                                )}
                               </div>
                             ))}
                           </div>

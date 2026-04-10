@@ -2,7 +2,7 @@
  * PilarUnlockedModal.tsx
  * Gamification popup shown when a pilar is completed and the next one unlocks.
  * Step 1: Achievement celebration screen.
- * Step 2: Optional 1-5 star satisfaction rating.
+ * Step 2: Mandatory 1-5 star satisfaction rating + optional comment.
  */
 import React, { useEffect, useState } from 'react';
 import { Trophy, ChevronRight, Sparkles, Star } from 'lucide-react';
@@ -13,8 +13,36 @@ interface PilarUnlockedModalProps {
   pilarNumero: number;
   onClose: () => void;
   onContinuar?: () => void;
-  onRating?: (rating: number) => Promise<void>;
+  onRating?: (rating: number, comentario: string) => Promise<void>;
 }
+
+const RATING_CONFIG: Record<number, { titulo: string; mensaje: string; placeholder: string }> = {
+  5: {
+    titulo: '¡Excelente!',
+    mensaje: '¡Gracias por tu valoración! Nos alegra muchísimo que hayas disfrutado este pilar. Tu compromiso es lo que hace que el programa funcione.',
+    placeholder: '¿Qué fue lo que más te gustó de este pilar? (opcional)',
+  },
+  4: {
+    titulo: 'Muy bueno',
+    mensaje: 'Gracias por tu feedback. Nos acercamos, pero nos gustaría saber qué nos faltó para llegar a las 5 estrellas y seguir mejorando para vos.',
+    placeholder: '¿Qué podríamos mejorar para llegar a las 5 estrellas?',
+  },
+  3: {
+    titulo: 'Aceptable',
+    mensaje: 'Gracias por ser honesto. Queremos entender qué pasó: ¿hay algo que podamos mejorar o que no quedó del todo claro en este pilar?',
+    placeholder: '¿Qué podríamos hacer mejor en este pilar?',
+  },
+  2: {
+    titulo: 'Necesita mejorar',
+    mensaje: 'Lamentamos que este pilar no haya cumplido tus expectativas. Tu opinión es muy valiosa para nosotros, contanos qué estuvo mal.',
+    placeholder: '¿Qué no funcionó en este pilar? Tu opinión nos ayuda mucho.',
+  },
+  1: {
+    titulo: 'Muy por debajo',
+    mensaje: 'Lamentamos profundamente que este pilar haya sido una mala experiencia. Queremos saber exactamente qué pasó para poder solucionarlo.',
+    placeholder: '¿Qué salió mal? Cualquier detalle nos ayuda a mejorar.',
+  },
+};
 
 export default function PilarUnlockedModal({
   pilarCompletado,
@@ -29,6 +57,7 @@ export default function PilarUnlockedModal({
   const [step, setStep] = useState<'achievement' | 'rating'>('achievement');
   const [selectedRating, setSelectedRating] = useState<number>(0);
   const [hoveredRating, setHoveredRating] = useState<number>(0);
+  const [comentario, setComentario] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
@@ -61,7 +90,7 @@ export default function PilarUnlockedModal({
     if (selectedRating === 0 || submitting) return;
     setSubmitting(true);
     try {
-      await onRating?.(selectedRating);
+      await onRating?.(selectedRating, comentario.trim());
     } finally {
       setSubmitting(false);
     }
@@ -69,12 +98,8 @@ export default function PilarUnlockedModal({
     handleClose();
   };
 
-  const handleSkipRating = () => {
-    if (onContinuar) onContinuar();
-    handleClose();
-  };
-
   const activeRating = hoveredRating || selectedRating;
+  const ratingConfig = selectedRating > 0 ? RATING_CONFIG[selectedRating] : null;
 
   return (
     <div
@@ -107,7 +132,6 @@ export default function PilarUnlockedModal({
           visible ? 'scale-100 translate-y-0' : 'scale-90 translate-y-8'
         }`}
       >
-
         {/* Trophy glow */}
         <div className="relative mx-auto w-24 h-24 mb-6">
           <div className="absolute inset-0 rounded-full bg-[var(--accent-gold)]/20 animate-pulse" />
@@ -129,7 +153,6 @@ export default function PilarUnlockedModal({
                 </span>
               </div>
 
-              {/* Title */}
               <h2
                 className="text-2xl font-medium text-[#FFFFFF] mb-2"
                 style={{ fontFamily: 'var(--font-display)', fontStyle: 'italic' }}
@@ -140,10 +163,8 @@ export default function PilarUnlockedModal({
                 {pilarCompletado}
               </p>
 
-              {/* Divider */}
               <div className="w-16 h-px bg-[var(--accent-gold)]/30 mx-auto mb-4" />
 
-              {/* Next pilar */}
               {pilarDesbloqueado ? (
                 <div className="mb-6">
                   <p className="text-sm text-[#FFFFFF]/60 mb-1">Nuevo pilar desbloqueado:</p>
@@ -157,7 +178,6 @@ export default function PilarUnlockedModal({
                 </div>
               )}
 
-              {/* Action button */}
               <button
                 onClick={handleContinuar}
                 className="btn-primary w-full flex items-center justify-center gap-2 text-base py-3"
@@ -174,7 +194,7 @@ export default function PilarUnlockedModal({
             </>
           ) : (
             <>
-              {/* Rating step */}
+              {/* Badge */}
               <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[var(--accent-gold)]/15 border border-[var(--accent-gold)]/30 mb-4">
                 <Star className="w-4 h-4 text-[var(--accent-gold)]" />
                 <span className="text-xs font-bold uppercase tracking-widest text-[var(--accent-gold)]">
@@ -188,16 +208,16 @@ export default function PilarUnlockedModal({
               >
                 ¿Cómo te pareció este pilar?
               </h2>
-              <p className="text-sm text-[#FFFFFF]/50 mb-6">
+              <p className="text-sm text-[#FFFFFF]/50 mb-5">
                 Tu valoración nos ayuda a mejorar el programa
               </p>
 
               {/* Stars */}
-              <div className="flex items-center justify-center gap-3 mb-2">
+              <div className="flex items-center justify-center gap-3 mb-4">
                 {[1, 2, 3, 4, 5].map((star) => (
                   <button
                     key={star}
-                    onClick={() => setSelectedRating(star)}
+                    onClick={() => { setSelectedRating(star); setComentario(''); }}
                     onMouseEnter={() => setHoveredRating(star)}
                     onMouseLeave={() => setHoveredRating(0)}
                     className="transition-transform hover:scale-110 focus:outline-none"
@@ -214,26 +234,34 @@ export default function PilarUnlockedModal({
                 ))}
               </div>
 
-              {/* Rating label */}
-              <p className="text-sm text-[#FFFFFF]/40 mb-6 h-5">
-                {activeRating === 1 && 'Necesita mejorar'}
-                {activeRating === 2 && 'Regular'}
-                {activeRating === 3 && 'Bueno'}
-                {activeRating === 4 && 'Muy bueno'}
-                {activeRating === 5 && 'Excelente'}
-              </p>
+              {/* Dynamic message based on rating */}
+              {ratingConfig && (
+                <div className="text-left mb-4 transition-all duration-300">
+                  <p className="text-sm font-semibold text-[#FFFFFF] mb-1">{ratingConfig.titulo}</p>
+                  <p className="text-sm text-[#FFFFFF]/60 leading-relaxed mb-3">
+                    {ratingConfig.mensaje}
+                  </p>
+                  <textarea
+                    value={comentario}
+                    onChange={(e) => setComentario(e.target.value)}
+                    placeholder={ratingConfig.placeholder}
+                    maxLength={500}
+                    rows={3}
+                    className="w-full bg-[#0A0A0A] border border-[rgba(245,166,35,0.2)] rounded-xl px-4 py-3 text-sm text-[#FFFFFF] placeholder-[#FFFFFF]/25 focus:outline-none focus:border-[#F5A623]/50 resize-none"
+                  />
+                </div>
+              )}
 
               {/* Submit button */}
               <button
                 onClick={handleSubmitRating}
                 disabled={selectedRating === 0 || submitting}
-                className={`btn-primary w-full flex items-center justify-center gap-2 text-base py-3 mb-3 transition-opacity ${
+                className={`btn-primary w-full flex items-center justify-center gap-2 text-base py-3 transition-opacity ${
                   selectedRating === 0 ? 'opacity-40 cursor-not-allowed' : ''
                 }`}
               >
                 {submitting ? 'Enviando...' : 'Enviar valoración'}
               </button>
-
             </>
           )}
         </div>

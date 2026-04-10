@@ -876,7 +876,7 @@ export default function Roadmap({ userId, perfil, geminiKey, onNavigate, onProfi
               setTimeout(() => detalleRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 100);
             }
           }}
-          onRating={async (rating) => {
+          onRating={async (rating, comentario) => {
             if (!isSupabaseReady() || !supabase || !userId) return;
             await supabase.from('pilar_satisfaction_ratings').upsert(
               {
@@ -884,6 +884,7 @@ export default function Roadmap({ userId, perfil, geminiKey, onNavigate, onProfi
                 pilar_numero: pilarUnlocked.numero,
                 pilar_titulo: pilarUnlocked.completado,
                 rating,
+                comentario: comentario || null,
               },
               { onConflict: 'usuario_id,pilar_numero' },
             );
