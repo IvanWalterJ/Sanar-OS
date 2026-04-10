@@ -12,7 +12,7 @@ interface Props {
 
 export default function CreativosView({}: Props) {
   return (
-    <div className="animate-in fade-in duration-500 max-w-3xl">
+    <div className="animate-in fade-in duration-500 max-w-5xl mx-auto">
       <div className="mb-5">
         <p className="text-[10px] font-bold tracking-[0.2em] uppercase text-[#F5A623] mb-1">
           Modulo — Beta

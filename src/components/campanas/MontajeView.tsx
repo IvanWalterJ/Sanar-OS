@@ -29,7 +29,7 @@ export default function MontajeView({ perfil }: Props) {
   const [messages, setMessages] = useState<KaiMessage[]>([]);
   const [input, setInput] = useState('');
   const [streaming, setStreaming] = useState(false);
-  const msgsEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
 
   const activeStep = steps.find((s) => s.status === 'active');
 
@@ -46,7 +46,9 @@ export default function MontajeView({ perfil }: Props) {
   }, []);
 
   useEffect(() => {
-    msgsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (messagesContainerRef.current) {
+      messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+    }
   }, [messages]);
 
   const markStepDone = (stepId: number) => {
@@ -132,7 +134,7 @@ INSTRUCCIONES:
   }, [input, streaming, messages, activeStep, perfil]);
 
   return (
-    <div className="animate-in fade-in duration-500">
+    <div className="animate-in fade-in duration-500 flex flex-col h-[calc(100vh-10rem)]">
       <div className="mb-5">
         <p className="text-[10px] font-bold tracking-[0.2em] uppercase text-[#F5A623] mb-1">
           Configuracion guiada
@@ -145,7 +147,7 @@ INSTRUCCIONES:
         </h2>
       </div>
 
-      <div className="flex flex-col lg:flex-row gap-4">
+      <div className="flex flex-col lg:flex-row gap-4 flex-1 min-h-0">
         {/* Checklist izquierda */}
         <div className="lg:w-[300px] lg:min-w-[300px] card-panel p-4">
           <div className="flex items-center gap-3 mb-4">
@@ -199,7 +201,7 @@ INSTRUCCIONES:
         {/* Chat derecha */}
         <div className="flex-1 card-panel flex flex-col min-h-0">
           {/* Messages */}
-          <div className="h-[60vh] overflow-y-auto overscroll-contain p-4 space-y-3">
+          <div ref={messagesContainerRef} className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4 space-y-3 scrollbar-hide">
             {messages.map((msg) => (
               <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'items-end gap-2'}`}>
                 {msg.role === 'assistant' && (
@@ -226,7 +228,6 @@ INSTRUCCIONES:
                 </div>
               </div>
             ))}
-            <div ref={msgsEndRef} />
           </div>
 
           {/* Input */}
