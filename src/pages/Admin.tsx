@@ -99,6 +99,14 @@ const PILAR_OPTIONS: { id: PilarId; label: string }[] = SEED_ROADMAP_V3.map(p =>
   label: `${p.id} — ${p.titulo}`,
 }));
 
+const PIPELINE_STAGES: { label: string; sub: string; maxDay: number }[] = [
+  { label: 'Onboarding',    sub: 'Días 1–3',   maxDay: 3  },
+  { label: 'Fundamentos',   sub: 'Días 4–20',  maxDay: 20 },
+  { label: 'Construcción',  sub: 'Días 21–50', maxDay: 50 },
+  { label: 'Lanzamiento',   sub: 'Días 51–75', maxDay: 75 },
+  { label: 'Consolidación', sub: 'Días 76–90', maxDay: 91 },
+];
+
 function getYoutubeId(url: string): string | null {
   const m = url.match(/(?:v=|youtu\.be\/|embed\/)([a-zA-Z0-9_-]{11})/);
   return m ? m[1] : null;
@@ -353,7 +361,7 @@ export default function Admin({ adminProfile, onSignOut }: AdminProps) {
   const [statusCambiando, setStatusCambiando] = useState(false);
 
   // Mensajes unified
-  const [mensajesChannel, setMensajesChannel] = useState<MensajesChannel>('comunidad');
+  const [mensajesChannel, setMensajesChannel] = useState<MensajesChannel>('privados');
   const [chatCliente, setChatCliente] = useState<ClienteConEstado | null>(null);
   const [chatMessages, setChatMessages] = useState<Mensaje[]>([]);
   const [chatInput, setChatInput] = useState('');
@@ -1234,7 +1242,7 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
               <Stethoscope className="w-5 h-5 text-[#FFFFFF]" />
             </div>
             <div>
-              <h1 className="text-sm font-semibold text-[#FFFFFF] tracking-wide">Sanar OS</h1>
+              <h1 className="text-sm font-semibold text-[#FFFFFF] tracking-wide">Tu Clinica Digital</h1>
               <p className="text-[10px] text-[#F5A623] uppercase tracking-widest font-bold">Admin</p>
             </div>
           </div>
@@ -1575,6 +1583,55 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
                             </div>
                           </div>
 
+                          {/* ── PIPELINE ── */}
+                          {(() => {
+                            const dia = selectedCliente.dia_programa;
+                            const rawIdx = PIPELINE_STAGES.findIndex(s => dia <= s.maxDay);
+                            const activeIdx = rawIdx === -1 ? PIPELINE_STAGES.length - 1 : rawIdx;
+                            return (
+                              <div className="bg-[#141414] border border-[rgba(245,166,35,0.1)] rounded-2xl p-5">
+                                <p className="text-[10px] font-bold uppercase tracking-widest text-[#FFFFFF]/40 mb-5">Pipeline del Programa</p>
+                                <div className="flex items-start">
+                                  {PIPELINE_STAGES.map((stage, i) => {
+                                    const isActive = i === activeIdx;
+                                    const isDone = i < activeIdx;
+                                    return (
+                                      <React.Fragment key={stage.label}>
+                                        <div className="flex flex-col items-center gap-2 flex-1">
+                                          <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 shrink-0 transition-all ${
+                                            isActive
+                                              ? 'bg-[#F5A623] border-[#F5A623] shadow-[0_0_14px_rgba(245,166,35,0.45)]'
+                                              : isDone
+                                              ? 'bg-[#22C55E]/15 border-[#22C55E]/60'
+                                              : 'bg-[#0A0A0A] border-[rgba(245,166,35,0.15)]'
+                                          }`}>
+                                            {isDone
+                                              ? <Check className="w-3.5 h-3.5 text-[#22C55E]" />
+                                              : isActive
+                                              ? <span className="w-2.5 h-2.5 bg-[#0A0A0A] rounded-full block" />
+                                              : <span className={`text-[10px] font-bold ${isActive ? 'text-[#0A0A0A]' : 'text-[#FFFFFF]/20'}`}>{i + 1}</span>
+                                            }
+                                          </div>
+                                          <div className="text-center px-1">
+                                            <p className={`text-[11px] font-semibold leading-tight ${
+                                              isActive ? 'text-[#F5A623]' : isDone ? 'text-[#22C55E]/70' : 'text-[#FFFFFF]/25'
+                                            }`}>{stage.label}</p>
+                                            <p className={`text-[9px] mt-0.5 ${isActive ? 'text-[#F5A623]/60' : 'text-[#FFFFFF]/15'}`}>{stage.sub}</p>
+                                          </div>
+                                        </div>
+                                        {i < PIPELINE_STAGES.length - 1 && (
+                                          <div className={`h-[2px] flex-1 mt-4 rounded-full mx-0.5 ${
+                                            i < activeIdx ? 'bg-[#22C55E]/30' : 'bg-[rgba(245,166,35,0.08)]'
+                                          }`} />
+                                        )}
+                                      </React.Fragment>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            );
+                          })()}
+
                           <div className="grid grid-cols-2 gap-4">
                             <div className="bg-[#141414] border border-[rgba(245,166,35,0.1)] rounded-2xl p-5">
                               <p className="text-[10px] text-[#FFFFFF]/40 uppercase tracking-widest mb-1 font-bold">Progreso de Tareas</p>
@@ -1633,7 +1690,9 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
                               </div>
                               {iaRecomendacion ? (
                                 <div className="bg-black/20 rounded-xl p-4 border border-[#F5A623]/20">
-                                  <p className="text-sm text-[#F5A623] leading-relaxed whitespace-pre-line">{iaRecomendacion}</p>
+                                  <div className="prose prose-invert prose-sm max-w-none prose-p:my-2 prose-p:leading-relaxed prose-headings:text-[#FFFFFF] prose-headings:font-semibold prose-headings:mt-3 prose-headings:mb-1 prose-strong:text-[#F5A623] prose-strong:font-semibold prose-li:text-[#FFFFFF]/85 prose-li:my-0.5 prose-p:text-[#FFFFFF]/90">
+                                    <Markdown>{iaRecomendacion}</Markdown>
+                                  </div>
                                 </div>
                               ) : (
                                 <p className="text-xs text-[#FFFFFF]/40">Haz clic en Analizar para que la IA escanee el perfil, métricas diarias y tareas pendientes de este cliente para crear recomendaciones proactivas de coaching.</p>
@@ -1915,10 +1974,10 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
               {/* Channel tabs */}
               <div className="flex border-b border-[rgba(245,166,35,0.1)] px-6 shrink-0 bg-black/20">
                 {([
+                  { id: 'privados' as MensajesChannel, label: 'Privados', icon: MessageSquare },
                   { id: 'comunidad' as MensajesChannel, label: 'Comunidad', icon: Users },
                   { id: 'victorias' as MensajesChannel, label: 'Victorias', icon: Trophy },
                   { id: 'consultas' as MensajesChannel, label: 'Consultas', icon: Hash },
-                  { id: 'privados' as MensajesChannel, label: 'Privados', icon: MessageSquare },
                 ]).map(ch => (
                   <button
                     key={ch.id}
