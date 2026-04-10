@@ -560,7 +560,7 @@ export default function Admin({ adminProfile, onSignOut }: AdminProps) {
     if (!outputText || outputText.length < 20) return;
     setTareaResumenLoading(true);
     try {
-      const prompt = `Sos asistente de Paolis, una coach que acompaña a profesionales de la salud.
+      const prompt = `Sos asistente del equipo de coaching que acompaña a profesionales de la salud.
 El cliente "${clienteNombre}" completó la tarea "${meta.titulo}" del programa Tu Clínica Digital.
 
 Este es el output que generó con la IA:
@@ -568,9 +568,9 @@ Este es el output que generó con la IA:
 ${outputText.slice(0, 2000)}
 ---
 
-Escribí un resumen de 2-3 oraciones en español para Paolis que explique:
+Escribí un resumen de 2-3 oraciones en español para el equipo que explique:
 1. Qué definió o produjo el cliente en esta tarea
-2. Una observación relevante para que Paolis lo guíe mejor en la próxima sesión
+2. Una observación relevante para guiarlo mejor en la próxima sesión
 
 Sé directa, empática y concisa. Sin bullet points, solo texto corrido. Sin emojis.`;
       const resumen = await generateText({ prompt });
@@ -2837,11 +2837,11 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
                     <div className="space-y-4">
                       <div>
                         <label className="block text-[11px] font-bold uppercase tracking-wider text-white/60 mb-2">Nombre completo *</label>
-                        <input type="text" value={teamForm.nombre} onChange={e => setTeamForm({ ...teamForm, nombre: e.target.value })} placeholder="Ej: Paolis García" className="w-full bg-black/20 border border-[rgba(245,166,35,0.2)] rounded-lg px-4 py-3 text-sm text-white focus:outline-none focus:border-[#F5A623]/50 transition-colors" />
+                        <input type="text" value={teamForm.nombre} onChange={e => setTeamForm({ ...teamForm, nombre: e.target.value })} placeholder="Ej: María García" className="w-full bg-black/20 border border-[rgba(245,166,35,0.2)] rounded-lg px-4 py-3 text-sm text-white focus:outline-none focus:border-[#F5A623]/50 transition-colors" />
                       </div>
                       <div>
                         <label className="block text-[11px] font-bold uppercase tracking-wider text-white/60 mb-2">Email *</label>
-                        <input type="email" value={teamForm.email} onChange={e => setTeamForm({ ...teamForm, email: e.target.value })} placeholder="paolis@ejemplo.com" className="w-full bg-black/20 border border-[rgba(245,166,35,0.2)] rounded-lg px-4 py-3 text-sm text-white focus:outline-none focus:border-[#F5A623]/50 transition-colors" />
+                        <input type="email" value={teamForm.email} onChange={e => setTeamForm({ ...teamForm, email: e.target.value })} placeholder="nombre@ejemplo.com" className="w-full bg-black/20 border border-[rgba(245,166,35,0.2)] rounded-lg px-4 py-3 text-sm text-white focus:outline-none focus:border-[#F5A623]/50 transition-colors" />
                       </div>
                       <div>
                         <label className="block text-[11px] font-bold uppercase tracking-wider text-[#22C55E]/80 mb-2">Contraseña inicial *</label>
@@ -2977,7 +2977,7 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
                     onChange={(val) => setNuevoForm({ ...nuevoForm, plan: val as 'DWY' | 'DFY' | 'IMPLEMENTACION' })}
                     options={[
                       { value: 'DWY', label: 'DWY — Solo App' },
-                      { value: 'DFY', label: 'DFY — Con Paolis' },
+                      { value: 'DFY', label: 'DFY — Con Acompañamiento' },
                       { value: 'IMPLEMENTACION', label: 'Implementación' },
                     ]}
                   />
@@ -3143,7 +3143,7 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
               <div className="bg-[#F5A623]/5 border border-[#F5A623]/20 rounded-2xl p-4">
                 <div className="flex items-center gap-2 mb-2">
                   <Bot className="w-4 h-4 text-[#F5A623]" />
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-[#F5A623]">Resumen para Paolis</span>
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-[#F5A623]">Resumen para el equipo</span>
                 </div>
                 {tareaResumenLoading ? (
                   <div className="flex items-center gap-2 py-2">

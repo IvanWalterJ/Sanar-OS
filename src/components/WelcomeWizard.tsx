@@ -341,14 +341,14 @@ export default function WelcomeWizard({ profile, onComplete }: WelcomeWizardProp
               Ya estás dentro del programa.
             </p>
             <p className="text-sm text-[#FFFFFF]/80 leading-relaxed mb-6">
-              <span className="text-[#F5A623] font-semibold">Paolis</span> es tu acompañante personal — ella sigue tu progreso, responde tus dudas y te guía durante todo el proceso. Podés escribirle en cualquier momento desde el Chat.
+              <span className="text-[#F5A623] font-semibold">Nuestro equipo</span> te acompaña en todo el proceso — seguimos tu progreso, respondemos tus dudas y te guiamos paso a paso. Podés escribirnos en cualquier momento desde el Chat.
             </p>
 
             <div className="grid grid-cols-3 gap-3 mb-8">
               {[
                 { icon: Map, label: 'Hoja de Ruta', desc: 'Tu camino paso a paso' },
                 { icon: Bot, label: 'Coach IA', desc: 'Disponible 24/7' },
-                { icon: MessageSquare, label: 'Chat directo', desc: 'Con Paolis, siempre' },
+                { icon: MessageSquare, label: 'Chat directo', desc: 'Soporte siempre' },
               ].map(item => (
                 <div key={item.label} className="bg-[#141414] border border-[rgba(245,166,35,0.1)] rounded-2xl p-4">
                   <div className="mb-2"><item.icon className="w-6 h-6 text-[#F5A623]" /></div>
@@ -398,8 +398,8 @@ export default function WelcomeWizard({ profile, onComplete }: WelcomeWizardProp
                 {
                   num: '2',
                   icon: MessageSquare,
-                  title: 'Presentate con Paolis',
-                  desc: 'Mandále un mensaje presentándote. Ella ya tiene tu información y te va a responder lo antes posible.',
+                  title: 'Escribinos al Chat',
+                  desc: 'Mandá un mensaje presentándote. Ya tenemos tu información y te vamos a responder lo antes posible.',
                   styles: {
                     card: 'bg-[#F5A623]/5 border-[#F5A623]/20 hover:bg-[#F5A623]/10',
                     icon: 'bg-[#F5A623]/20',
