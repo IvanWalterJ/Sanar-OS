@@ -55,7 +55,7 @@ export default function CustomSelect({
       </button>
 
       {open && (
-        <div className="absolute z-50 w-full mt-1.5 bg-[#141414] border border-[rgba(245,166,35,0.2)] rounded-xl shadow-xl shadow-black/50 overflow-hidden">
+        <div className="absolute z-50 w-full mt-1.5 bg-[#141414] border border-[rgba(245,166,35,0.2)] rounded-xl shadow-xl shadow-black/50 overflow-y-auto max-h-60">
           {options.map((opt) => (
             <button
               key={opt.value}
