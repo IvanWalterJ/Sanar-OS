@@ -172,4 +172,60 @@ export const TIPO_LABELS: Record<TipoCreativo, string> = {
 
 // ─── Vistas internas de la pagina ────────────────────────────────────────────
 
-export type CampanasView = 'dashboard' | 'wizard' | 'studio' | 'detail';
+export type CampanasView =
+  | 'home'
+  | 'nueva'
+  | 'copies'
+  | 'diagnostico'
+  | 'montaje'
+  | 'historial'
+  | 'ganadores'
+  | 'creativos'
+  | 'studio'
+  | 'detail';
+
+// ─── Chat KAI (wizard conversacional) ──────────────────────────────────────
+
+export type WizardPhase = 'cliente' | 'estrategia' | 'audiencias' | 'copies' | 'creativos' | 'montaje';
+
+export interface KaiMessage {
+  id: string;
+  role: 'user' | 'assistant';
+  content: string;
+  timestamp: string;
+  phase?: WizardPhase;
+}
+
+export const WIZARD_PHASES: { id: WizardPhase; label: string; numero: number }[] = [
+  { id: 'cliente', label: 'Cliente', numero: 1 },
+  { id: 'estrategia', label: 'Estrategia', numero: 2 },
+  { id: 'audiencias', label: 'Audiencias', numero: 3 },
+  { id: 'copies', label: 'Copies', numero: 4 },
+  { id: 'creativos', label: 'Creativos', numero: 5 },
+  { id: 'montaje', label: 'Montaje', numero: 6 },
+];
+
+// ─── Diagnostico de campana ────────────────────────────────────────────────
+
+export interface DiagnosticoInput {
+  nombre_campana: string;
+  rubro: string;
+  gasto: number;
+  clicks: number;
+  leads: number;
+  ctr: number;
+  impresiones: number;
+  dias: number;
+  problema_observado?: string;
+}
+
+// ─── Montaje paso a paso ───────────────────────────────────────────────────
+
+export type MontajeStepStatus = 'done' | 'active' | 'locked';
+
+export interface MontajeStep {
+  id: number;
+  label: string;
+  description: string;
+  status: MontajeStepStatus;
+}
