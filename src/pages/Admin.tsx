@@ -120,6 +120,12 @@ function getYoutubeId(url: string): string | null {
   return m ? m[1] : null;
 }
 
+const PILAR_TO_GRUPO: Record<string, string> = {
+  P0: 'A', P1: 'A', P2: 'A', P3: 'B', P4: 'B',
+  P5: 'C', P6: 'C', P7: 'D', P8: 'D',
+  P9A: 'E', P9B: 'E', P9C: 'E', P10: 'E', P11: 'E',
+};
+
 function calcDias(fecha_inicio: string): { dia: number; semana: number } {
   const diff = Math.floor((new Date().getTime() - new Date(fecha_inicio).getTime()) / (1000 * 60 * 60 * 24));
   const dia = Math.max(1, Math.min(90, diff + 1));
@@ -948,11 +954,12 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
         const { error } = await supabase
           .from('programa_videos')
           .update({
+            grupo: PILAR_TO_GRUPO[v.pilar_id ?? 'P0'] ?? 'A',
             pilar_id: v.pilar_id ?? null,
             titulo: v.titulo,
-            descripcion: v.descripcion,
+            descripcion: v.descripcion || '',
             youtube_url: v.youtubeUrl,
-            duracion: v.duracion,
+            duracion: v.duracion || null,
           })
           .eq('id', v.id);
         if (error) throw error;
@@ -962,11 +969,12 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
         const { data, error } = await supabase
           .from('programa_videos')
           .insert({
+            grupo: PILAR_TO_GRUPO[v.pilar_id ?? 'P0'] ?? 'A',
             pilar_id: v.pilar_id ?? null,
             titulo: v.titulo,
-            descripcion: v.descripcion,
+            descripcion: v.descripcion || '',
             youtube_url: v.youtubeUrl,
-            duracion: v.duracion,
+            duracion: v.duracion || null,
           })
           .select()
           .single();
@@ -983,7 +991,7 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
         toast.success('Video guardado en la nube');
       }
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : String(err);
+      const msg = (err as any)?.message ?? (err instanceof Error ? err.message : JSON.stringify(err));
       console.error('saveAdminVideo error:', err);
       toast.error(`Error al guardar video: ${msg}`);
     }
