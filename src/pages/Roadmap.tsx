@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import {
   CheckCircle2,
   Circle,
@@ -58,6 +58,7 @@ import {
   type RoadmapPilar,
   type RoadmapMeta,
 } from '../lib/roadmapSeed';
+import { getYoutubeVideoId } from '../lib/videos';
 import { NIVEL_NOMBRES } from '../lib/supabase';
 import TaskVideo from '../components/tasks/TaskVideo';
 import TaskHerramientaIA from '../components/tasks/TaskHerramientaIA';
@@ -129,9 +130,27 @@ export default function Roadmap({ userId, perfil, geminiKey, onNavigate, onProfi
   const [activeMeta, setActiveMeta] = useState<string | null>(null); // codigo of active task
   const [taskOutputs, setTaskOutputs] = useState<Map<string, string>>(new Map());
   const [pilarUnlocked, setPilarUnlocked] = useState<{ completado: string; desbloqueado?: string; numero: number } | null>(null);
+  const [videosPorPilar, setVideosPorPilar] = useState<Record<string, string>>({});
   const prevCompletadasRef = useRef<Set<string>>(new Set());
   const detalleRef = useRef<HTMLDivElement>(null);
   const taskRef = useRef<HTMLDivElement>(null);
+
+  // ─── Seed enriquecido con videos reales de programa_videos ─────────────
+  const seedConVideos: RoadmapPilar[] = useMemo(() => {
+    if (Object.keys(videosPorPilar).length === 0) return SEED_ROADMAP_V2;
+    return SEED_ROADMAP_V2.map(pilar => {
+      const ytId = videosPorPilar[pilar.id];
+      if (!ytId) return pilar;
+      return {
+        ...pilar,
+        metas: pilar.metas.map(meta =>
+          meta.tipo === 'VIDEO'
+            ? { ...meta, video_youtube_id: ytId }
+            : meta,
+        ),
+      };
+    });
+  }, [videosPorPilar]);
 
   // ─── Cargar datos de Supabase ───────────────────────────────────────────
   useEffect(() => {
@@ -146,9 +165,10 @@ export default function Roadmap({ userId, perfil, geminiKey, onNavigate, onProfi
         return;
       }
 
-      const [{ data: hdr }, { data: vts }] = await Promise.all([
+      const [{ data: hdr }, { data: vts }, { data: vids }] = await Promise.all([
         supabase.from('hoja_de_ruta').select('*').eq('usuario_id', userId),
         supabase.from('ventas_registradas').select('*').eq('usuario_id', userId),
+        supabase.from('programa_videos').select('pilar_id, youtube_url').order('created_at', { ascending: true }),
       ]);
 
       if (hdr) {
@@ -168,6 +188,19 @@ export default function Roadmap({ userId, perfil, geminiKey, onNavigate, onProfi
       }
 
       if (vts) setVentas(vts as VentaRegistrada[]);
+
+      if (vids) {
+        const map: Record<string, string> = {};
+        for (const v of vids as { pilar_id: string | null; youtube_url: string }[]) {
+          if (!v.pilar_id || !v.youtube_url) continue;
+          if (!map[v.pilar_id]) {
+            const ytId = getYoutubeVideoId(v.youtube_url);
+            if (ytId) map[v.pilar_id] = ytId;
+          }
+        }
+        setVideosPorPilar(map);
+      }
+
       setLoading(false);
     }
     cargar();
@@ -193,7 +226,7 @@ export default function Roadmap({ userId, perfil, geminiKey, onNavigate, onProfi
       const k = localStorage.key(i);
       if (!k?.startsWith('tcd_herramienta_')) continue;
       const herramientaId = k.replace('tcd_herramienta_', '');
-      for (const pilar of SEED_ROADMAP_V2) {
+      for (const pilar of seedConVideos) {
         for (const meta of pilar.metas) {
           if (meta.herramienta_id === herramientaId) {
             const val = localStorage.getItem(k);
@@ -232,7 +265,7 @@ export default function Roadmap({ userId, perfil, geminiKey, onNavigate, onProfi
     if (!autoOpen) return;
     localStorage.removeItem('tcd_auto_open_adn_field');
     // Find the pilar and meta that has this adn_field
-    for (const pilar of SEED_ROADMAP_V2) {
+    for (const pilar of seedConVideos) {
       for (const meta of pilar.metas) {
         if (meta.adn_field === autoOpen) {
           setPilarAbierto(pilar.numero);
@@ -287,8 +320,8 @@ export default function Roadmap({ userId, perfil, geminiKey, onNavigate, onProfi
   );
 
   // ─── Enriquecer pilares con estado ─────────────────────────────────────
-  const pilaresConEstado: PilarConEstado[] = SEED_ROADMAP_V2.map((pilar) => {
-    const estado = calcularEstadoPilar(pilar, SEED_ROADMAP_V2);
+  const pilaresConEstado: PilarConEstado[] = seedConVideos.map((pilar) => {
+    const estado = calcularEstadoPilar(pilar, seedConVideos);
     const metasCompletadas = pilar.metas.filter((m) =>
       completadas.has(`${pilar.numero}-${m.codigo}`),
     ).length;

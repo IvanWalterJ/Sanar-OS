@@ -20,7 +20,8 @@ export default function TaskVideo({ meta, onComplete, isCompleted }: TaskVideoPr
     onComplete();
   };
 
-  const videoId = meta.video_youtube_id || 'dQw4w9WgXcQ'; // placeholder until Javo provides IDs
+  const hasRealVideo = meta.video_youtube_id && !meta.video_youtube_id.startsWith('PLACEHOLDER');
+  const videoId = hasRealVideo ? meta.video_youtube_id : null;
 
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
@@ -44,7 +45,7 @@ export default function TaskVideo({ meta, onComplete, isCompleted }: TaskVideoPr
 
       {/* YouTube Embed */}
       <div className="relative w-full aspect-video rounded-xl overflow-hidden border border-[rgba(245,166,35,0.2)] bg-black">
-        {meta.video_youtube_id ? (
+        {videoId ? (
           <iframe
             src={getYoutubeEmbedUrl(videoId)}
             title={meta.titulo}

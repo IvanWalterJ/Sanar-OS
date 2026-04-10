@@ -403,7 +403,7 @@ export default function Agentes({
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {AGENTES.map((agente) => {
-            const unlocked = perfil?.full_agent_access || isPilarActive(agente.unlockPilar, completadas);
+            const unlocked = perfil?.full_agent_access === true || isPilarActive(agente.unlockPilar, completadas);
             return (
               <button
                 key={agente.id}
