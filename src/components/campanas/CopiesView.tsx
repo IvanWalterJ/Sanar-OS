@@ -100,7 +100,7 @@ Separa cada variante claramente con ---`;
   }, [output]);
 
   return (
-    <div className="animate-in fade-in duration-500">
+    <div className="animate-in fade-in duration-500 flex-1 flex flex-col">
       {/* Header */}
       <div className="mb-5">
         <p className="text-[10px] font-bold tracking-[0.2em] uppercase text-[#F5A623] mb-1">
@@ -117,7 +117,7 @@ Separa cada variante claramente con ---`;
         </p>
       </div>
 
-      <div className="flex flex-col lg:flex-row gap-4">
+      <div className="flex flex-col lg:flex-row gap-4 flex-1">
         {/* Form izquierdo */}
         <div className="lg:w-[380px] lg:min-w-[380px] card-panel p-5 space-y-4">
           <div>

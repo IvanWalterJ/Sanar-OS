@@ -107,7 +107,7 @@ export default function Campanas({ userId, perfil, geminiKey }: CampanasProps) {
   }
 
   return (
-    <div className="max-w-6xl mx-auto pb-6">
+    <div className="w-full min-h-full flex flex-col">
       {/* Sub-nav */}
       <CampanasSubNav currentView={view} onNavigate={navigateTo} />
 
@@ -134,16 +134,20 @@ export default function Campanas({ userId, perfil, geminiKey }: CampanasProps) {
       )}
 
       {view === 'nueva' && (
-        <NuevaCampanaChat
-          userId={userId}
-          perfil={perfil}
-          onComplete={handleCampanaCreated}
-          onCancel={() => navigateTo('home')}
-        />
+        <div className="flex-1 flex flex-col">
+          <NuevaCampanaChat
+            userId={userId}
+            perfil={perfil}
+            onComplete={handleCampanaCreated}
+            onCancel={() => navigateTo('home')}
+          />
+        </div>
       )}
 
       {view === 'copies' && (
-        <CopiesView perfil={perfil ?? {}} />
+        <div className="flex-1 flex flex-col">
+          <CopiesView perfil={perfil ?? {}} />
+        </div>
       )}
 
       {view === 'diagnostico' && (
@@ -151,7 +155,9 @@ export default function Campanas({ userId, perfil, geminiKey }: CampanasProps) {
       )}
 
       {view === 'montaje' && (
-        <MontajeView perfil={perfil ?? {}} />
+        <div className="flex-1 flex flex-col">
+          <MontajeView perfil={perfil ?? {}} />
+        </div>
       )}
 
       {view === 'historial' && (

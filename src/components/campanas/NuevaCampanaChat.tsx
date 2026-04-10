@@ -257,7 +257,7 @@ REGLAS:
   };
 
   return (
-    <div className="animate-in fade-in duration-500">
+    <div className="animate-in fade-in duration-500 flex-1 flex flex-col">
       {/* Back button */}
       <button
         onClick={onCancel}
@@ -306,11 +306,11 @@ REGLAS:
         </div>
       </div>
 
-      <div className="flex flex-col lg:flex-row gap-4">
+      <div className="flex flex-col lg:flex-row gap-4 flex-1">
         {/* Chat principal */}
-        <div className="flex-1 card-panel flex flex-col min-h-0">
+        <div className="flex-1 card-panel flex flex-col">
           {/* Messages */}
-          <div className="flex-1 overflow-y-auto max-h-[55vh] overscroll-contain p-4 space-y-3">
+          <div className="flex-1 overflow-y-auto overscroll-contain p-4 space-y-3">
             {messages.map((msg) => (
               <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'items-end gap-2'}`}>
                 {msg.role === 'assistant' && (
@@ -396,7 +396,7 @@ REGLAS:
             ))}
           </div>
 
-          <div className="flex-1 overflow-y-auto max-h-[55vh] overscroll-contain p-4">
+          <div className="flex-1 overflow-y-auto overscroll-contain p-4">
             {/* Tab: Resumen */}
             {summaryTab === 'resumen' && (
               <div className="space-y-3">
