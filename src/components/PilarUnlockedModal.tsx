@@ -241,14 +241,16 @@ export default function PilarUnlockedModal({
                   <p className="text-sm text-[#FFFFFF]/60 leading-relaxed mb-3">
                     {ratingConfig.mensaje}
                   </p>
-                  <textarea
-                    value={comentario}
-                    onChange={(e) => setComentario(e.target.value)}
-                    placeholder={ratingConfig.placeholder}
-                    maxLength={500}
-                    rows={3}
-                    className="w-full bg-[#0A0A0A] border border-[rgba(245,166,35,0.2)] rounded-xl px-4 py-3 text-sm text-[#FFFFFF] placeholder-[#FFFFFF]/25 focus:outline-none focus:border-[#F5A623]/50 resize-none"
-                  />
+                  {selectedRating < 5 && (
+                    <textarea
+                      value={comentario}
+                      onChange={(e) => setComentario(e.target.value)}
+                      placeholder={ratingConfig.placeholder}
+                      maxLength={500}
+                      rows={3}
+                      className="w-full bg-[#0A0A0A] border border-[rgba(245,166,35,0.2)] rounded-xl px-4 py-3 text-sm text-[#FFFFFF] placeholder-[#FFFFFF]/25 focus:outline-none focus:border-[#F5A623]/50 resize-none"
+                    />
+                  )}
                 </div>
               )}
 
