@@ -20,8 +20,8 @@ export default function WizardStepObjetivo({ value, onChange }: Props) {
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="text-lg font-semibold text-[#FFFFFF] mb-1">Objetivo de la Campana</h3>
-        <p className="text-sm text-[#FFFFFF]/50">Selecciona el tipo de campana que queres crear</p>
+        <h3 className="text-lg font-semibold text-[#FFFFFF] mb-1">Objetivo de la Campaña</h3>
+        <p className="text-sm text-[#FFFFFF]/50">Selecciona el tipo de campaña que queres crear</p>
       </div>
 
       <div className="grid gap-4">

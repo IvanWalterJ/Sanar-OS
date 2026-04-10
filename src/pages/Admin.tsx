@@ -23,12 +23,13 @@ import { SEED_ROADMAP_V3, SEED_ROADMAP_V2 } from '../lib/roadmapSeed';
 import { generateText } from '../lib/aiProvider';
 import { toast } from 'sonner';
 import { createClient } from '@supabase/supabase-js';
+import Campanas from './Campanas';
 import Markdown from 'react-markdown';
 
 // ─── TIPOS Y CONSTANTES ─────────────────────────────────────────────────────────
 
 type AdminRol = 'owner' | 'manager' | 'staff';
-type MainTab = 'clientes' | 'pipeline' | 'mensajes' | 'metricas' | 'videos' | 'equipo';
+type MainTab = 'clientes' | 'pipeline' | 'mensajes' | 'metricas' | 'videos' | 'equipo' | 'campanas';
 type DetalleTab = 'resumen' | 'diario' | 'metricas' | 'mensajes' | 'notas';
 type MensajesChannel = 'comunidad' | 'victorias' | 'consultas' | 'privados';
 
@@ -1289,6 +1290,7 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
     { id: 'metricas',  label: 'Métricas',  icon: BarChart2 },
     { id: 'videos',    label: 'Videos',    icon: Video },
     { id: 'equipo',    label: 'Equipo',    icon: UsersRound, ownerOnly: true },
+    { id: 'campanas',  label: 'Campañas',  icon: Megaphone },
   ];
 
   const headerTitles: Record<MainTab, string> = {
@@ -1298,6 +1300,7 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
     metricas: 'Métricas Globales del Programa',
     videos: 'Gestión de Videos',
     equipo: 'Gestión de Equipo',
+    campanas: 'Campañas & Creativos',
   };
 
   // ─── RENDER ───────────────────────────────────────────────────────────────────
@@ -2861,6 +2864,19 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
                   </div>
                 </div>
               )}
+            </div>
+          )}
+
+          {/* ═══════════════════════════════════════════════════════════════════════
+              TAB: CAMPAÑAS & CREATIVOS
+              ═══════════════════════════════════════════════════════════════════════ */}
+          {mainTab === 'campanas' && (
+            <div className="max-w-6xl mx-auto">
+              <Campanas
+                userId={adminProfile.id}
+                perfil={adminProfile}
+                geminiKey={import.meta.env.VITE_GEMINI_API_KEY}
+              />
             </div>
           )}
 

@@ -29,7 +29,7 @@ const MODULES: ModuleCard[] = [
   {
     id: 'diagnostico',
     icon: BarChart3,
-    title: 'Diagnosticar campana',
+    title: 'Diagnosticar campaña',
     description: 'Cargas las metricas y la IA diagnostica que falla y como arreglarlo.',
     featured: true,
     badge: 'Activo',
@@ -53,7 +53,7 @@ const MODULES: ModuleCard[] = [
     id: 'historial',
     icon: FolderOpen,
     title: 'Historial',
-    description: 'Campanas guardadas con toda la info generada.',
+    description: 'Campañas guardadas con toda la info generada.',
     badge: 'Activo',
   },
   {
@@ -106,7 +106,7 @@ export default function CampanasHome({ campanas, creativos, perfil, onNavigate, 
             <Sparkles className="w-3 h-3" /> Recomendado
           </div>
           <div className="text-sm font-semibold text-[#FFFFFF] mb-1">
-            Crear campana completa — flujo paso a paso
+            Crear campaña completa — flujo paso a paso
           </div>
           <div className="text-xs text-[#FFFFFF]/40" style={{ fontFamily: 'var(--font-display)', fontStyle: 'italic' }}>
             Estrategia - Audiencias - Copies - Creativos - Montaje. Todo en un flujo guiado con KAI.
@@ -171,7 +171,7 @@ export default function CampanasHome({ campanas, creativos, perfil, onNavigate, 
       <div>
         <div className="flex items-center gap-3 mb-3">
           <span className="text-[10px] font-bold tracking-[0.15em] uppercase text-[#FFFFFF]/30">
-            Campanas recientes
+            Campañas recientes
           </span>
           <div className="flex-1 h-px bg-[rgba(245,166,35,0.1)]" />
         </div>
@@ -180,7 +180,7 @@ export default function CampanasHome({ campanas, creativos, perfil, onNavigate, 
           <div className="card-panel p-8 text-center">
             <FolderOpen className="w-8 h-8 text-[#FFFFFF]/20 mx-auto mb-3" />
             <p className="text-sm text-[#FFFFFF]/40">
-              Todavia no hay campanas.
+              Todavia no hay campañas.
               <br />
               Arranca el flujo completo o crea una desde un modulo.
             </p>

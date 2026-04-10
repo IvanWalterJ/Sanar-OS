@@ -15,7 +15,7 @@ interface NavItem {
 
 const NAV_ITEMS: NavItem[] = [
   { id: 'home', label: 'Inicio', icon: Home },
-  { id: 'nueva', label: 'Nueva campana', icon: Target },
+  { id: 'nueva', label: 'Nueva campaña', icon: Target },
   { id: 'copies', label: 'Copies', icon: PenTool },
   { id: 'diagnostico', label: 'Diagnosticar', icon: BarChart3 },
   { id: 'montaje', label: 'Montaje', icon: Wrench },

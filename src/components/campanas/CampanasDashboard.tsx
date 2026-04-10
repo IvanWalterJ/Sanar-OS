@@ -38,14 +38,14 @@ export default function CampanasDashboard({
             className="text-2xl font-bold text-[#FFFFFF]"
             style={{ fontFamily: "'DM Serif Display', serif", fontStyle: 'italic' }}
           >
-            Campanas & Creativos
+            Campañas & Creativos
           </h1>
           <p className="text-sm text-[#FFFFFF]/40 mt-1">
-            Crea campanas de Meta Ads y genera creativos con IA
+            Crea campañas de Meta Ads y genera creativos con IA
           </p>
         </div>
         <button onClick={onNewCampana} className="btn-primary flex items-center gap-2">
-          <Plus className="w-4 h-4" /> Nueva Campana
+          <Plus className="w-4 h-4" /> Nueva Campaña
         </button>
       </div>
 
@@ -121,7 +121,7 @@ export default function CampanasDashboard({
               className="flex flex-col items-center justify-center p-5 rounded-xl border-2 border-dashed border-[rgba(245,166,35,0.15)] hover:border-[rgba(245,166,35,0.3)] transition-all min-h-[160px]"
             >
               <Plus className="w-6 h-6 text-[#FFFFFF]/20 mb-2" />
-              <span className="text-sm text-[#FFFFFF]/30">Nueva Campana</span>
+              <span className="text-sm text-[#FFFFFF]/30">Nueva Campaña</span>
             </button>
           </div>
         )}

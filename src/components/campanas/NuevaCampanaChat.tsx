@@ -76,7 +76,7 @@ export default function NuevaCampanaChat({ userId, perfil, onComplete, onCancel 
       setMessages([{
         id: 'init',
         role: 'assistant',
-        content: `Hola${perfil?.nombre ? ` ${perfil.nombre.split(' ')[0]}` : ''}! Soy **KAI**, tu asistente de campanas.\n\nVamos a crear tu campana paso a paso. Empecemos:\n\n**Cual es el nombre de tu cliente o campana?**\n\n_Ej: "Dra. Garcia — Captacion Mayo"_`,
+        content: `Hola${perfil?.nombre ? ` ${perfil.nombre.split(' ')[0]}` : ''}! Soy **KAI**, tu asistente de campañas.\n\nVamos a crear tu campaña paso a paso. Empecemos:\n\n**Cual es el nombre de tu cliente o campaña?**\n\n_Ej: "Dra. Garcia — Captacion Mayo"_`,
         timestamp: new Date().toISOString(),
         phase: 'cliente',
       }]);
@@ -101,7 +101,7 @@ export default function NuevaCampanaChat({ userId, perfil, onComplete, onCancel 
     const phaseInstructions: Record<WizardPhase, string> = {
       cliente: `FASE ACTUAL: Cliente (1/6)
 Necesitas recopilar:
-- Nombre del cliente o campana
+- Nombre del cliente o campaña
 - Especialidad / rubro
 - Ciudad / pais
 - Ticket promedio del servicio
@@ -139,7 +139,7 @@ Recomienda:
 Cuando el usuario apruebe, responde con "FASE COMPLETADA".`,
 
       copies: `FASE ACTUAL: Copies (4/6)
-Genera los copies para la campana.
+Genera los copies para la campaña.
 
 Datos completos: ${JSON.stringify(campaignData, null, 2)}
 
@@ -164,12 +164,12 @@ Cuando el usuario apruebe, responde con "FASE COMPLETADA".`,
       montaje: `FASE ACTUAL: Montaje (6/6)
 Da las instrucciones finales de montaje en Meta Ads Manager.
 
-Resume la campana completa con un checklist de configuracion.
+Resume la campaña completa con un checklist de configuracion.
 Cuando el usuario confirme que esta listo, responde con "FASE COMPLETADA".`,
     };
 
     return `Eres KAI, un experto en Meta Ads para profesionales de la salud.
-Tu rol es guiar al usuario en la creacion de una campana, fase por fase.
+Tu rol es guiar al usuario en la creacion de una campaña, fase por fase.
 
 PROFESIONAL:
 - Nombre: ${perfil?.nombre ?? 'Profesional'}
@@ -402,7 +402,7 @@ REGLAS:
             {summaryTab === 'resumen' && (
               <div className="space-y-3">
                 <div className="text-[10px] font-bold tracking-[0.15em] uppercase text-[#FFFFFF]/30 mb-2 flex items-center gap-2">
-                  Campana actual <div className="flex-1 h-px bg-[rgba(245,166,35,0.1)]" />
+                  Campaña actual <div className="flex-1 h-px bg-[rgba(245,166,35,0.1)]" />
                 </div>
                 <div className="card-panel overflow-hidden">
                   <div className="bg-[#F5A623]/10 border-b border-[rgba(245,166,35,0.1)] px-3 py-2">

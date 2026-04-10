@@ -22,15 +22,15 @@ export default function HistorialView({ campanas, onSelectCampana }: Props) {
           <span style={{ fontFamily: 'var(--font-display)', fontStyle: 'italic' }} className="text-[#F5A623]">
             Historial
           </span>{' '}
-          de campanas
+          de campañas
         </h2>
       </div>
 
       {campanas.length === 0 ? (
         <div className="card-panel p-12 text-center">
           <FolderOpen className="w-10 h-10 text-[#FFFFFF]/15 mx-auto mb-3" />
-          <p className="text-sm text-[#FFFFFF]/40 mb-1">Todavia no hay campanas guardadas.</p>
-          <p className="text-xs text-[#FFFFFF]/25">Crea tu primera campana desde el flujo completo o un modulo directo.</p>
+          <p className="text-sm text-[#FFFFFF]/40 mb-1">Todavia no hay campañas guardadas.</p>
+          <p className="text-xs text-[#FFFFFF]/25">Crea tu primera campaña desde el flujo completo o un modulo directo.</p>
         </div>
       ) : (
         <div className="space-y-3">

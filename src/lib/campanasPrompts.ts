@@ -74,14 +74,14 @@ INSTRUCCIONES ESPECIALES:
 - Explicar como configurar la palabra clave en ManyChat (trigger por comentario y por DM)
 - Explicar como conectar ManyChat con GHL via webhook o Zapier
 - Detallar el flujo automatico: mensaje de bienvenida -> envio de recurso -> follow up a las 24h
-- Naming convention para la campana: [NICHO]_TRAFICO_[PALABRA-CLAVE]_[FECHA]`,
+- Naming convention para la campaña: [NICHO]_TRAFICO_[PALABRA-CLAVE]_[FECHA]`,
 
     mensajes_retargeting: `
-TIPO DE CAMPANA: Mensajes (Retargeting)
+TIPO DE CAMPAÑA: Mensajes (Retargeting)
 - Objetivo en Meta: MENSAJES
-- Audiencia: Custom audiences de personas que interactuaron con campana de trafico
+- Audiencia: Custom audiences de personas que interactuaron con campaña de trafico
 - Destino: Messenger o Instagram Direct
-- Estrategia: Segundo contacto con quienes ya vieron la campana de trafico pero no convirtieron
+- Estrategia: Segundo contacto con quienes ya vieron la campaña de trafico pero no convirtieron
 
 INSTRUCCIONES ESPECIALES:
 - Explicar como crear custom audiences: visitantes del perfil ultimos 30-60 dias, personas que interactuaron con posts/ads, video viewers 50%+
@@ -90,7 +90,7 @@ INSTRUCCIONES ESPECIALES:
 - Naming convention: [NICHO]_RETARGETING_MSG_[FECHA]`,
 
     clientes_potenciales: `
-TIPO DE CAMPANA: Clientes Potenciales (Lead Gen con Filtro API)
+TIPO DE CAMPAÑA: Clientes Potenciales (Lead Gen con Filtro API)
 - Objetivo en Meta: CLIENTES POTENCIALES (Lead Gen) o CONVERSIONES
 - Destino: Landing page con VSL
 - URL Landing: ${campana.url_landing || '[configurar]'}
@@ -111,13 +111,13 @@ INSTRUCCIONES ESPECIALES:
   };
 
   return `Eres un experto en Meta Ads especializado en marketing para profesionales de la salud.
-Tu tarea es generar una GUIA PASO A PASO DETALLADA para configurar una campana en Meta Ads Manager.
+Tu tarea es generar una GUIA PASO A PASO DETALLADA para configurar una campaña en Meta Ads Manager.
 
 ${adnContext(perfil)}
 
 ${knowledgeBase ? `\n=== CONOCIMIENTO ADICIONAL DEL PROFESIONAL ===\n${knowledgeBase}\n` : ''}
 
-=== CONFIGURACION DE LA CAMPANA ===
+=== CONFIGURACION DE LA CAMPAÑA ===
 - Nombre: ${campana.nombre}
 - Nicho objetivo: ${campana.nicho || perfil.nicho || 'general'}
 - Ubicacion: ${campana.ubicacion || 'a definir'}

@@ -32,12 +32,12 @@ export default function WizardStepAudiencia({ form, onChange }: Props) {
     <div className="space-y-6">
       <div>
         <h3 className="text-lg font-semibold text-[#FFFFFF] mb-1">Segmentacion y Audiencia</h3>
-        <p className="text-sm text-[#FFFFFF]/50">Configura a quien va dirigida tu campana</p>
+        <p className="text-sm text-[#FFFFFF]/50">Configura a quien va dirigida tu campaña</p>
       </div>
 
       {/* Nombre */}
       <div>
-        <label className="block text-xs text-[#FFFFFF]/60 mb-1.5 font-medium">Nombre de la Campana</label>
+        <label className="block text-xs text-[#FFFFFF]/60 mb-1.5 font-medium">Nombre de la Campaña</label>
         <input
           type="text"
           value={form.nombre}

@@ -35,7 +35,7 @@ export default function DiagnosticoView({ perfil }: Props) {
 
   const handleDiagnosticar = useCallback(async () => {
     if (!form.nombre_campana.trim()) {
-      toast.error('Ingresa el nombre de la campana.');
+      toast.error('Ingresa el nombre de la campaña.');
       return;
     }
     setGenerando(true);
@@ -44,16 +44,16 @@ export default function DiagnosticoView({ perfil }: Props) {
     const cpl = form.leads > 0 ? (form.gasto / form.leads).toFixed(2) : 'N/A';
     const cpc = form.clicks > 0 ? (form.gasto / form.clicks).toFixed(2) : 'N/A';
 
-    const prompt = `Eres un experto en Meta Ads especializado en campanas para profesionales de la salud.
+    const prompt = `Eres un experto en Meta Ads especializado en campañas para profesionales de la salud.
 
-Tu tarea es DIAGNOSTICAR una campana activa y dar recomendaciones accionables.
+Tu tarea es DIAGNOSTICAR una campaña activa y dar recomendaciones accionables.
 
 === DATOS DEL PROFESIONAL ===
 - Nombre: ${perfil.nombre ?? 'Profesional'}
 - Especialidad: ${perfil.especialidad ?? form.rubro}
 - Nicho: ${perfil.nicho ?? 'salud'}
 
-=== CAMPANA A DIAGNOSTICAR ===
+=== CAMPAÑA A DIAGNOSTICAR ===
 - Nombre: ${form.nombre_campana}
 - Rubro: ${form.rubro}
 
@@ -76,7 +76,7 @@ ${form.problema_observado ? `=== PROBLEMA OBSERVADO POR EL USUARIO ===\n${form.p
 Responde con las siguientes secciones:
 
 ## Diagnostico General
-(Estado general de la campana: buena, regular, necesita ajustes urgentes)
+(Estado general de la campaña: buena, regular, necesita ajustes urgentes)
 
 ## Metricas Clave — Analisis
 (Analiza cada metrica vs benchmarks del nicho salud. Indica si esta por encima, en rango, o por debajo)
@@ -88,7 +88,7 @@ Responde con las siguientes secciones:
 (Pasos concretos a seguir, ordenados por prioridad. Ser ESPECIFICO con acciones en Meta Ads Manager)
 
 ## Benchmarks de Referencia
-(Metricas tipicas para campanas del nicho salud para que el usuario pueda comparar)
+(Metricas tipicas para campañas del nicho salud para que el usuario pueda comparar)
 
 Escribe en espanol, tono directo y profesional. Se especifico con los numeros.`;
 
@@ -122,7 +122,7 @@ Escribe en espanol, tono directo y profesional. Se especifico con los numeros.`;
         <h2 className="text-xl font-light text-[#FFFFFF]">
           Diagnosticar{' '}
           <span style={{ fontFamily: 'var(--font-display)', fontStyle: 'italic' }} className="text-[#F5A623]">
-            campana
+            campaña
           </span>
         </h2>
         <p className="text-xs text-[#FFFFFF]/40 mt-1">
@@ -135,7 +135,7 @@ Escribe en espanol, tono directo y profesional. Se especifico con los numeros.`;
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="block text-[10px] font-bold tracking-wider uppercase text-[#FFFFFF]/40 mb-1.5">
-              Cliente / campana
+              Cliente / campaña
             </label>
             <input
               className="w-full bg-black/20 border border-[rgba(245,166,35,0.2)] rounded-xl p-3 text-[#FFFFFF] text-sm focus:border-[#F5A623]/50 focus:ring-1 focus:ring-[#F5A623]/30 transition-all placeholder-[#FFFFFF]/20"
@@ -214,7 +214,7 @@ Escribe en espanol, tono directo y profesional. Se especifico con los numeros.`;
           {generando ? (
             <><Loader2 className="w-4 h-4 animate-spin" /> Diagnosticando...</>
           ) : (
-            <><Sparkles className="w-4 h-4" /> Diagnosticar campana</>
+            <><Sparkles className="w-4 h-4" /> Diagnosticar campaña</>
           )}
         </button>
       </div>

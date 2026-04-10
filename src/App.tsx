@@ -16,7 +16,6 @@ import DiarioDirector from './pages/DiarioDirector';
 import Biblioteca from './pages/Biblioteca';
 import Agentes from './pages/Agentes';
 import ManualNegocio from './pages/ManualNegocio';
-import Campanas from './pages/Campanas';
 import Login from './pages/Login';
 import Admin from './pages/Admin';
 import WelcomeWizard from './components/WelcomeWizard';
@@ -276,13 +275,6 @@ export default function App() {
               {currentPage === 'biblioteca' && <Biblioteca userId={supabaseProfile?.id} />}
               {currentPage === 'agentes' && (
                 <Agentes
-                  userId={supabaseProfile?.id}
-                  perfil={supabaseProfile ?? undefined}
-                  geminiKey={import.meta.env.VITE_GEMINI_API_KEY}
-                />
-              )}
-              {currentPage === 'campanas' && (
-                <Campanas
                   userId={supabaseProfile?.id}
                   perfil={supabaseProfile ?? undefined}
                   geminiKey={import.meta.env.VITE_GEMINI_API_KEY}

@@ -69,7 +69,7 @@ export const OBJETIVO_LABELS: Record<ObjetivoCampana, { titulo: string; descripc
   },
   mensajes_retargeting: {
     titulo: 'Mensajes (Retargeting)',
-    descripcion: 'Campana de retargeting para personas que ya interactuaron con la campana de trafico. Segundo contacto estrategico.',
+    descripcion: 'Campaña de retargeting para personas que ya interactuaron con la campaña de trafico. Segundo contacto estrategico.',
   },
   clientes_potenciales: {
     titulo: 'Clientes Potenciales',

@@ -66,10 +66,10 @@ export default function CampanaWizard({ userId, perfil, geminiKey, onComplete, o
       });
 
       if (campana) {
-        toast.success('Campana creada correctamente');
+        toast.success('Campaña creada correctamente');
         onComplete(campana);
       } else {
-        toast.error('Error al guardar la campana');
+        toast.error('Error al guardar la campaña');
       }
     } catch {
       toast.error('Error inesperado al guardar');

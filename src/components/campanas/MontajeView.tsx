@@ -13,7 +13,7 @@ const MONTAJE_STEPS: MontajeStep[] = [
   { id: 1, label: 'Crear Business Manager', description: 'Configurar cuenta publicitaria y permisos', status: 'active' },
   { id: 2, label: 'Instalar Pixel de Meta', description: 'Pixel en el sitio web o landing page', status: 'locked' },
   { id: 3, label: 'Crear Audiencias', description: 'Custom audiences y lookalikes', status: 'locked' },
-  { id: 4, label: 'Configurar Campana', description: 'Objetivo, presupuesto, programacion', status: 'locked' },
+  { id: 4, label: 'Configurar Campaña', description: 'Objetivo, presupuesto, programacion', status: 'locked' },
   { id: 5, label: 'Configurar Conjunto de Anuncios', description: 'Audiencia, ubicaciones, placements', status: 'locked' },
   { id: 6, label: 'Configurar Anuncio', description: 'Creativos, copy, CTA, tracking', status: 'locked' },
   { id: 7, label: 'Automatizaciones', description: 'ManyChat, GHL, follow-ups', status: 'locked' },
@@ -39,7 +39,7 @@ export default function MontajeView({ perfil }: Props) {
       setMessages([{
         id: 'init',
         role: 'assistant',
-        content: `Hola! Soy **KAI**, tu asistente de montaje de campanas en Meta Ads.\n\nVamos a configurar tu campana paso a paso. Empezamos con el **paso 1: ${MONTAJE_STEPS[0].label}**.\n\nContame: ya tenes un Business Manager configurado o necesitas crear uno desde cero?`,
+        content: `Hola! Soy **KAI**, tu asistente de montaje de campañas en Meta Ads.\n\nVamos a configurar tu campaña paso a paso. Empezamos con el **paso 1: ${MONTAJE_STEPS[0].label}**.\n\nContame: ya tenes un Business Manager configurado o necesitas crear uno desde cero?`,
         timestamp: new Date().toISOString(),
       }]);
     }
@@ -74,9 +74,9 @@ export default function MontajeView({ perfil }: Props) {
     setInput('');
     setStreaming(true);
 
-    const systemInstruction = `Eres KAI, un experto en configuracion de campanas en Meta Ads Manager para profesionales de la salud.
+    const systemInstruction = `Eres KAI, un experto en configuracion de campañas en Meta Ads Manager para profesionales de la salud.
 
-Tu rol es guiar al usuario paso a paso para configurar su campana.
+Tu rol es guiar al usuario paso a paso para configurar su campaña.
 
 PASO ACTUAL: ${activeStep?.id ?? 1} - ${activeStep?.label ?? 'Crear Business Manager'}
 DESCRIPCION: ${activeStep?.description ?? ''}
