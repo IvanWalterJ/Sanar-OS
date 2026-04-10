@@ -2,7 +2,7 @@
  * Campanas.tsx — Orquestador principal del modulo de campanas
  * Sub-nav horizontal + router de vistas
  */
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { ArrowLeft } from 'lucide-react';
 import CampanasSubNav from '../components/campanas/CampanasSubNav';
 import CampanasHome from '../components/campanas/CampanasHome';
@@ -33,6 +33,7 @@ export default function Campanas({ userId, perfil, geminiKey }: CampanasProps) {
   const [selectedCampana, setSelectedCampana] = useState<Campana | null>(null);
   const [selectedCreativo, setSelectedCreativo] = useState<Creativo | null>(null);
   const [loading, setLoading] = useState(true);
+  const topRef = useRef<HTMLDivElement>(null);
 
   const loadData = useCallback(async () => {
     if (!userId) {
@@ -59,11 +60,8 @@ export default function Campanas({ userId, perfil, geminiKey }: CampanasProps) {
 
   // Scroll to top whenever view changes
   useEffect(() => {
-    const main = document.querySelector('main');
-    if (main) {
-      main.scrollTo({ top: 0 });
-    }
-    window.scrollTo({ top: 0 });
+    // Use scrollIntoView on the top ref — works regardless of scroll container
+    topRef.current?.scrollIntoView({ block: 'start' });
   }, [view]);
 
   const navigateTo = (target: CampanasView) => {
@@ -107,7 +105,10 @@ export default function Campanas({ userId, perfil, geminiKey }: CampanasProps) {
   }
 
   return (
-    <div className="w-full min-h-full flex flex-col">
+    <div>
+      {/* Invisible anchor for scroll-to-top */}
+      <div ref={topRef} />
+
       {/* Sub-nav */}
       <CampanasSubNav currentView={view} onNavigate={navigateTo} />
 
@@ -134,20 +135,16 @@ export default function Campanas({ userId, perfil, geminiKey }: CampanasProps) {
       )}
 
       {view === 'nueva' && (
-        <div className="flex-1 flex flex-col">
-          <NuevaCampanaChat
-            userId={userId}
-            perfil={perfil}
-            onComplete={handleCampanaCreated}
-            onCancel={() => navigateTo('home')}
-          />
-        </div>
+        <NuevaCampanaChat
+          userId={userId}
+          perfil={perfil}
+          onComplete={handleCampanaCreated}
+          onCancel={() => navigateTo('home')}
+        />
       )}
 
       {view === 'copies' && (
-        <div className="flex-1 flex flex-col">
-          <CopiesView perfil={perfil ?? {}} />
-        </div>
+        <CopiesView perfil={perfil ?? {}} />
       )}
 
       {view === 'diagnostico' && (
@@ -155,9 +152,7 @@ export default function Campanas({ userId, perfil, geminiKey }: CampanasProps) {
       )}
 
       {view === 'montaje' && (
-        <div className="flex-1 flex flex-col">
-          <MontajeView perfil={perfil ?? {}} />
-        </div>
+        <MontajeView perfil={perfil ?? {}} />
       )}
 
       {view === 'historial' && (

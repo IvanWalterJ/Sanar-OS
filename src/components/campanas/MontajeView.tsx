@@ -132,7 +132,7 @@ INSTRUCCIONES:
   }, [input, streaming, messages, activeStep, perfil]);
 
   return (
-    <div className="animate-in fade-in duration-500 flex-1 flex flex-col">
+    <div className="animate-in fade-in duration-500">
       <div className="mb-5">
         <p className="text-[10px] font-bold tracking-[0.2em] uppercase text-[#F5A623] mb-1">
           Configuracion guiada
@@ -145,7 +145,7 @@ INSTRUCCIONES:
         </h2>
       </div>
 
-      <div className="flex flex-col lg:flex-row gap-4 flex-1">
+      <div className="flex flex-col lg:flex-row gap-4">
         {/* Checklist izquierda */}
         <div className="lg:w-[300px] lg:min-w-[300px] card-panel p-4">
           <div className="flex items-center gap-3 mb-4">
@@ -199,7 +199,7 @@ INSTRUCCIONES:
         {/* Chat derecha */}
         <div className="flex-1 card-panel flex flex-col min-h-0">
           {/* Messages */}
-          <div className="flex-1 overflow-y-auto overscroll-contain p-4 space-y-3">
+          <div className="h-[60vh] overflow-y-auto overscroll-contain p-4 space-y-3">
             {messages.map((msg) => (
               <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'items-end gap-2'}`}>
                 {msg.role === 'assistant' && (

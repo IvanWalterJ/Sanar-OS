@@ -261,7 +261,7 @@ export default function App() {
               <Mensajes userId={supabaseProfile?.id} onUnreadChange={setUnreadMessages} />
             </div>
           ) : (
-            <div className={`p-6 ${currentPage === 'campanas' ? 'min-h-full flex flex-col' : ''}`}>
+            <div className="p-6">
               {currentPage === 'dashboard' && <Dashboard setCurrentPage={setCurrentPage} userId={supabaseProfile?.id} />}
               {currentPage === 'roadmap' && <Roadmap userId={supabaseProfile?.id} perfil={supabaseProfile ?? undefined} geminiKey={import.meta.env.VITE_GEMINI_API_KEY} onNavigate={setCurrentPage} onProfileFieldUpdate={(fields) => setSupabaseProfile(prev => prev ? { ...prev, ...fields } as typeof prev : prev)} />}
 {currentPage === 'coach' && <Coach userId={supabaseProfile?.id} />}
