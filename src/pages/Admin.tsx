@@ -11,7 +11,7 @@ import {
   Globe, Flame, Star, DollarSign, Pencil,
   Sprout, Target, Sunrise, UserCircle, Lightbulb, Triangle,
   Cog, Building2, Megaphone, Phone, Handshake, Palette, BarChart3,
-  Search, UsersRound, Check, ClipboardList, Menu,
+  Search, UsersRound, Check, ClipboardList, Menu, LayoutDashboard,
 } from 'lucide-react';
 
 const ADMIN_PILAR_ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -340,6 +340,8 @@ export default function Admin({ adminProfile, onSignOut }: AdminProps) {
   const [metricasOutputs, setMetricasOutputs] = useState<any[]>([]);
   const [metricasTareasLoading, setMetricasTareasLoading] = useState(false);
   const [pilarExpandido, setPilarExpandido] = useState<Record<number, boolean>>({});
+  const [satisfaccionGlobal, setSatisfaccionGlobal] = useState<number | null>(null);
+  const [clienteRatings, setClienteRatings] = useState<{ pilar_numero: number; pilar_titulo?: string; rating: number }[]>([]);
   const [tareaModal, setTareaModal] = useState<{ meta: any; tareaData: any; output: string; clienteNombre: string } | null>(null);
   const [tareaResumen, setTareaResumen] = useState('');
   const [tareaResumenLoading, setTareaResumenLoading] = useState(false);
@@ -401,6 +403,7 @@ export default function Admin({ adminProfile, onSignOut }: AdminProps) {
 
   useEffect(() => {
     if (mainTab === 'metricas' && !metricasGlobales) cargarMetricasGlobales();
+    if (mainTab === 'metricas') cargarSatisfaccionGlobal();
     if (mainTab === 'videos') cargarAdminVideos();
     if (mainTab === 'equipo') cargarEquipo();
     if (mainTab !== 'metricas') setFiltroMetricasId(null);
@@ -410,9 +413,11 @@ export default function Admin({ adminProfile, onSignOut }: AdminProps) {
     if (filtroMetricasId) {
       setPilarExpandido({});
       cargarTareasClienteMetricas(filtroMetricasId);
+      cargarRatingsCliente(filtroMetricasId);
     } else {
       setMetricasTareas([]);
       setMetricasOutputs([]);
+      setClienteRatings([]);
     }
   }, [filtroMetricasId]);
 
@@ -593,6 +598,27 @@ Sé directa, empática y concisa. Sin bullet points, solo texto corrido. Sin emo
     } finally {
       setMetricasLoading(false);
     }
+  }
+
+  async function cargarSatisfaccionGlobal() {
+    if (!supabase) return;
+    const { data } = await supabase.from('pilar_satisfaction_ratings').select('rating');
+    if (data && data.length > 0) {
+      const avg = data.reduce((sum: number, r: { rating: number }) => sum + r.rating, 0) / data.length;
+      setSatisfaccionGlobal(Math.round(avg * 10) / 10);
+    } else {
+      setSatisfaccionGlobal(null);
+    }
+  }
+
+  async function cargarRatingsCliente(userId: string) {
+    if (!supabase) return;
+    const { data } = await supabase
+      .from('pilar_satisfaction_ratings')
+      .select('pilar_numero, pilar_titulo, rating')
+      .eq('usuario_id', userId)
+      .order('pilar_numero');
+    setClienteRatings(data ?? []);
   }
 
   async function cargarClientes() {
@@ -2155,7 +2181,7 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
                   </button>
                 ))}
                 <button
-                  onClick={() => { setMetricasGlobales(null); cargarMetricasGlobales(); cargarClientes(); }}
+                  onClick={() => { setMetricasGlobales(null); cargarMetricasGlobales(); cargarSatisfaccionGlobal(); cargarClientes(); }}
                   className="ml-auto flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#1C1C1C]/50 border border-[rgba(245,166,35,0.14)] text-xs text-[#FFFFFF]/40 hover:text-[#FFFFFF] transition-colors"
                 >
                   <Loader2 className="w-3.5 h-3.5" /> Actualizar
@@ -2165,12 +2191,13 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
               {filtroMetricasId === null ? (
                 <>
                   {/* KPIs */}
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
                     {[
                       { label: 'Profesionales activos', value: clientes.length, icon: Users, color: 'text-[#F5A623]', border: 'border-[#F5A623]/20', bg: 'bg-[#F5A623]/5' },
                       { label: 'En ritmo', value: clientes.filter(c => c.semaforo === 'verde').length, icon: CheckCheck, color: 'text-[#22C55E]', border: 'border-[#22C55E]/20', bg: 'bg-[#22C55E]/5' },
                       { label: 'Necesitan atención', value: clientes.filter(c => c.semaforo === 'rojo' || c.semaforo === 'amarillo').length, icon: AlertTriangle, color: 'text-[#F5A623]', border: 'border-[#F5A623]/20', bg: 'bg-[#F5A623]/5' },
                       { label: 'Progreso promedio', value: clientes.length ? `${Math.round(clientes.reduce((a, c) => a + (c.tareas_total > 0 ? (c.tareas_completadas / c.tareas_total) * 100 : (c.progreso_porcentaje ?? 0)), 0) / clientes.length)}%` : '—', icon: TrendingUp, color: 'text-[#F5A623]', border: 'border-[#F5A623]/20', bg: 'bg-[#F5A623]/5' },
+                      { label: 'Satisfacción promedio', value: satisfaccionGlobal !== null ? `${satisfaccionGlobal.toFixed(1)} / 5` : '—', icon: Star, color: 'text-[#F5A623]', border: 'border-[#F5A623]/20', bg: 'bg-[#F5A623]/5' },
                     ].map((s, i) => (
                       <div key={i} className={`${s.bg} border ${s.border} rounded-2xl p-5`}>
                         <s.icon className={`w-5 h-5 ${s.color} mb-3`} />
@@ -2288,6 +2315,35 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
                         <div className="h-3 bg-[#F5A623]/5 rounded-full overflow-hidden mb-2">
                           <div className="h-full rounded-full bg-[#F5A623] transition-all duration-700" style={{ width: `${pct}%` }} />
                         </div>
+                      </div>
+
+                      {/* Satisfaction ratings per pilar */}
+                      <div className="bg-[#141414] border border-[rgba(245,166,35,0.12)] rounded-2xl p-5">
+                        <p className="text-xs font-bold uppercase tracking-widest text-[#FFFFFF]/60 mb-3 flex items-center gap-2">
+                          <Star className="w-3.5 h-3.5 text-[#F5A623]" /> Valoraciones por pilar
+                        </p>
+                        {clienteRatings.length === 0 ? (
+                          <p className="text-xs text-[#FFFFFF]/30">Sin valoraciones registradas aún.</p>
+                        ) : (
+                          <div className="space-y-0">
+                            {clienteRatings.map((r) => (
+                              <div key={r.pilar_numero} className="flex items-center justify-between py-2.5 border-b border-[rgba(255,255,255,0.05)] last:border-0">
+                                <span className="text-sm text-[#FFFFFF]/70">
+                                  Pilar {r.pilar_numero}{r.pilar_titulo ? ` — ${r.pilar_titulo}` : ''}
+                                </span>
+                                <div className="flex items-center gap-1">
+                                  {[1, 2, 3, 4, 5].map((s) => (
+                                    <Star
+                                      key={s}
+                                      className={`w-3.5 h-3.5 ${s <= r.rating ? 'text-[#F5A623] fill-[#F5A623]' : 'text-[#FFFFFF]/15'}`}
+                                    />
+                                  ))}
+                                  <span className="text-xs text-[#FFFFFF]/40 ml-1">{r.rating}/5</span>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
 
                       {/* Pilar accordion */}

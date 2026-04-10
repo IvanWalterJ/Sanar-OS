@@ -38,6 +38,15 @@ export interface AdminNote {
   created_at: string;
 }
 
+export interface PilarSatisfactionRating {
+  id: string;
+  usuario_id: string;
+  pilar_numero: number;
+  pilar_titulo?: string;
+  rating: 1 | 2 | 3 | 4 | 5;
+  created_at: string;
+}
+
 export interface TareaTemplate {
   id: string;
   fase: number;

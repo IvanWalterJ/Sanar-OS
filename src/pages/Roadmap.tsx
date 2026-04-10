@@ -876,6 +876,18 @@ export default function Roadmap({ userId, perfil, geminiKey, onNavigate, onProfi
               setTimeout(() => detalleRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 100);
             }
           }}
+          onRating={async (rating) => {
+            if (!isSupabaseReady() || !supabase || !userId) return;
+            await supabase.from('pilar_satisfaction_ratings').upsert(
+              {
+                usuario_id: userId,
+                pilar_numero: pilarUnlocked.numero,
+                pilar_titulo: pilarUnlocked.completado,
+                rating,
+              },
+              { onConflict: 'usuario_id,pilar_numero' },
+            );
+          }}
         />
       )}
     </div>
