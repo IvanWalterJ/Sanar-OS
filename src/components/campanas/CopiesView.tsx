@@ -237,7 +237,7 @@ Separa cada variante claramente con ---`;
         </div>
 
         {/* Output derecho */}
-        <div className="flex-1 card-panel flex flex-col min-h-[300px]">
+        <div className="flex-1 card-panel flex flex-col min-h-[200px]">
           <div className="flex items-center justify-between p-4 border-b border-[rgba(245,166,35,0.1)]">
             <div className="flex items-center gap-2">
               {generando && <div className="w-2 h-2 rounded-full bg-[#F5A623] animate-pulse" />}
@@ -256,7 +256,7 @@ Separa cada variante claramente con ---`;
             )}
           </div>
 
-          <div className="flex-1 p-4 overflow-y-auto max-h-[60vh] overscroll-contain">
+          <div className="flex-1 p-4">
             {output ? (
               <div className="prose prose-invert prose-sm max-w-none text-[#FFFFFF]/85 [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 [&_h1]:text-base [&_h2]:text-sm [&_h3]:text-sm [&_strong]:text-[#FFFFFF] [&_ul]:pl-4 [&_ol]:pl-4 [&_li]:my-1 [&_p]:my-2 [&_hr]:border-[rgba(245,166,35,0.2)]">
                 <Markdown>{output}</Markdown>

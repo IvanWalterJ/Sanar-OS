@@ -57,12 +57,18 @@ export default function Campanas({ userId, perfil, geminiKey }: CampanasProps) {
     loadData();
   }, [loadData]);
 
+  // Scroll to top whenever view changes
+  useEffect(() => {
+    const main = document.querySelector('main');
+    if (main) {
+      main.scrollTo({ top: 0 });
+    }
+    window.scrollTo({ top: 0 });
+  }, [view]);
+
   const navigateTo = (target: CampanasView) => {
     setPreviousView(view);
     setView(target);
-    // Scroll the main container back to top
-    const main = document.querySelector('main');
-    if (main) main.scrollTop = 0;
   };
 
   const handleSelectCampana = (campana: Campana) => {
@@ -101,7 +107,7 @@ export default function Campanas({ userId, perfil, geminiKey }: CampanasProps) {
   }
 
   return (
-    <div className="max-w-6xl mx-auto pb-16">
+    <div className="max-w-6xl mx-auto pb-6">
       {/* Sub-nav */}
       <CampanasSubNav currentView={view} onNavigate={navigateTo} />
 
