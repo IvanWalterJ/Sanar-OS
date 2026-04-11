@@ -338,23 +338,35 @@ NO cambies la apariencia de esta persona bajo ninguna circunstancia.\n`
     : '';
 
   const styleRefPrompt = options?.hasStyleRef
-    ? `\nREFERENCIA DE ESTILO (imagen adjunta):
-Copia SOLAMENTE el estilo visual, el estilo tipografico, la paleta de colores y la composicion de la imagen de referencia de estilo adjunta.
-NO copies NINGUN texto, palabras, logos ni nombres de marca que aparezcan en la referencia.
-Usa UNICAMENTE el texto proporcionado en este prompt, NO el texto que veas en la referencia.
-La referencia es SOLO para INSPIRACION VISUAL y TIPOGRAFICA.
-REGLA ABSOLUTA: Ignora TODO contenido textual de la referencia. Solo absorbe el ESTILO.\n`
+    ? `\nREFERENCIA DE ESTILO VISUAL (imagen adjunta — PRIORIDAD MAXIMA):
+REPLICA el diseño de la imagen de referencia de estilo lo mas fielmente posible:
+
+COPIAR EXACTAMENTE:
+- La MISMA tipografia (peso, tamaño relativo, tracking, estilo serif/sans-serif/display)
+- La MISMA paleta de colores (tonos exactos, gradientes, contrastes)
+- La MISMA composicion y layout (posicion de elementos, alineacion, spacing)
+- Los MISMOS efectos visuales (sombras, glows, overlays, mascaras, gradientes)
+- El MISMO tratamiento fotografico (filtros, temperatura de color, contraste)
+- La MISMA estetica general (premium, bold, minimalista, etc.)
+- El MISMO estilo de fondo y elementos decorativos
+
+NO COPIAR (PROHIBIDO):
+- NO copies el texto/palabras que aparecen en la referencia
+- NO copies logos ni marcas de la referencia
+- Usa UNICAMENTE el texto proporcionado en ESTE prompt
+
+El resultado debe verse como si el MISMO diseñador hubiera creado ambas piezas. Misma mano, mismo estilo, diferente contenido.\n`
     : '';
 
   return `Genera una imagen publicitaria de ALTO IMPACTO para Meta Ads (Instagram/Facebook).
 Esta imagen debe FRENAR EL SCROLL. Tiene que ser visualmente tan potente que el usuario deje de scrollear en menos de 1 segundo.
 
 NICHO: ${nicho}
-DIRECCION VISUAL: ${estiloPrompt}
+${options?.hasStyleRef ? 'DIRECCION VISUAL: Seguir la referencia de estilo adjunta (ver instrucciones abajo)' : `DIRECCION VISUAL: ${estiloPrompt}`}
 ANGULO COMUNICACIONAL: ${anguloVisual[angulo]}
-COLORES DE MARCA: ${colores}
+${options?.hasStyleRef ? 'COLORES: Usar la paleta de la referencia de estilo' : `COLORES DE MARCA: ${colores}`}
 TONO: ${tono}
-${instruccionesCustom}${characterRefPrompt}${styleRefPrompt}
+${characterRefPrompt}${styleRefPrompt}${instruccionesCustom}
 ${textoSection}
 
 ${slideInfo ? `SLIDE ${slideInfo.slideNumber} de ${slideInfo.totalSlides} (carrusel — mantener consistencia visual entre slides)` : 'FORMATO: Imagen unica para feed (1:1)'}

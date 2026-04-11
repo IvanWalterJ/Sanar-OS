@@ -471,7 +471,7 @@ export default function ImagenGenerator({ copies, angulo, perfil, geminiKey, onI
             </div>
           )}
 
-          <div className="relative rounded-xl overflow-hidden border border-[rgba(245,166,35,0.15)]">
+          <div className="relative rounded-xl overflow-hidden border border-[rgba(245,166,35,0.15)] max-w-sm mx-auto">
             <img src={base64ToDataUrl(images[previewIdx].base64, images[previewIdx].mimeType)} alt="Preview" className="w-full aspect-square object-cover" />
             {images.length > 1 && (
               <div className="absolute top-3 right-3 px-2 py-1 rounded-md bg-black/60 backdrop-blur-sm text-xs text-[#FFFFFF]">{previewIdx + 1} / {images.length}</div>
