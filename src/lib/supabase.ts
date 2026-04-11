@@ -422,3 +422,16 @@ export type {
   EstadoCreativo,
   CopyGenerado,
 } from './campanasTypes';
+
+// ─── Fetch ProfileV2 completo ────────────────────────────────────────────────
+
+export async function fetchProfileV2(userId: string): Promise<ProfileV2 | null> {
+  if (!supabase) return null;
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('id', userId)
+    .single();
+  if (error || !data) return null;
+  return data as ProfileV2;
+}

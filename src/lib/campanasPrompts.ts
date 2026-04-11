@@ -6,7 +6,7 @@ import type { CampanaFormState, AnguloCreativo, TipoCreativo, ObjetivoCampana } 
 
 // ─── Contexto ADN del profesional ────────────────────────────────────────────
 
-function adnContext(perfil: Partial<ProfileV2>): string {
+export function adnContext(perfil: Partial<ProfileV2>): string {
   const avatar = perfil.adn_avatar;
   const avatarStr = avatar
     ? `

@@ -19,7 +19,7 @@ const NAV_ITEMS: NavItem[] = [
   { id: 'copies', label: 'Copies', icon: PenTool },
   { id: 'diagnostico', label: 'Diagnosticar', icon: BarChart3 },
   { id: 'montaje', label: 'Montaje', icon: Wrench },
-  { id: 'creativos', label: 'Creativos', icon: ImageIcon, badge: 'Beta' },
+  { id: 'creativos', label: 'Creativos', icon: ImageIcon, badge: 'Activo' },
   { id: 'historial', label: 'Historial', icon: FolderOpen },
   { id: 'ganadores', label: 'Ganadores', icon: Trophy },
 ];

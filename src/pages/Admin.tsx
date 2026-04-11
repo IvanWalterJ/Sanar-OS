@@ -18,7 +18,7 @@ const ADMIN_PILAR_ICON_MAP: Record<string, React.ComponentType<{ className?: str
   Sprout, BookOpen, Target, Sunrise, UserCircle, Lightbulb, Triangle, Cog,
   Building2, Megaphone, Phone, Handshake, Palette, BarChart3,
 };
-import { supabase, type Profile, type Mensaje, type AdminNote, type UserStatus, type PilarId, isSupabaseReady, PILAR_ORDER } from '../lib/supabase';
+import { supabase, type Profile, type ProfileV2, type Mensaje, type AdminNote, type UserStatus, type PilarId, isSupabaseReady, PILAR_ORDER, fetchProfileV2 } from '../lib/supabase';
 import { SEED_ROADMAP_V3, SEED_ROADMAP_V2 } from '../lib/roadmapSeed';
 import { generateText } from '../lib/aiProvider';
 import { toast } from 'sonner';
@@ -335,6 +335,11 @@ export default function Admin({ adminProfile, onSignOut }: AdminProps) {
   const [clientSearch, setClientSearch] = useState('');
   const [filtroStatus, setFiltroStatus] = useState<UserStatus | 'ALL'>('ALL');
 
+  // Campanas — cliente seleccionado
+  const [campanasClienteId, setCampanasClienteId] = useState<string | null>(null);
+  const [campanasClientePerfil, setCampanasClientePerfil] = useState<ProfileV2 | null>(null);
+  const [campanasPerfilLoading, setCampanasPerfilLoading] = useState(false);
+
   // Detalle state
   const [detalleTareas, setDetalleTareas] = useState<any[]>([]);
   const [detalleDiario, setDetalleDiario] = useState<any[]>([]);
@@ -416,6 +421,16 @@ export default function Admin({ adminProfile, onSignOut }: AdminProps) {
   // ─── EFFECTS ──────────────────────────────────────────────────────────────────
 
   useEffect(() => { cargarClientes(); cargarRatingsResumen(); }, []);
+
+  useEffect(() => {
+    if (!campanasClienteId) { setCampanasClientePerfil(null); return; }
+    let cancelled = false;
+    setCampanasPerfilLoading(true);
+    fetchProfileV2(campanasClienteId).then((p) => {
+      if (!cancelled) { setCampanasClientePerfil(p); setCampanasPerfilLoading(false); }
+    });
+    return () => { cancelled = true; };
+  }, [campanasClienteId]);
 
   useEffect(() => {
     if (mainTab === 'metricas' && !metricasGlobales) cargarMetricasGlobales();
@@ -2872,11 +2887,49 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
               ═══════════════════════════════════════════════════════════════════════ */}
           {mainTab === 'campanas' && (
             <div className="max-w-6xl mx-auto">
-              <Campanas
-                userId={adminProfile.id}
-                perfil={adminProfile}
-                geminiKey={import.meta.env.VITE_GEMINI_API_KEY}
-              />
+              {/* Selector de cliente */}
+              <div className="mb-6 card-panel p-4">
+                <label className="block text-[10px] font-bold tracking-wider uppercase text-[#FFFFFF]/40 mb-2">
+                  Seleccionar cliente
+                </label>
+                <CustomSelect
+                  value={campanasClienteId ?? ''}
+                  onChange={(val) => setCampanasClienteId(val || null)}
+                  options={clientes.map(c => ({
+                    value: c.id,
+                    label: `${c.nombre} — ${c.especialidad ?? 'Sin especialidad'}`,
+                  }))}
+                />
+                {campanasPerfilLoading && (
+                  <div className="flex items-center gap-2 mt-2 text-xs text-[#FFFFFF]/40">
+                    <Loader2 className="w-3 h-3 animate-spin" /> Cargando perfil completo...
+                  </div>
+                )}
+                {campanasClientePerfil && !campanasPerfilLoading && (
+                  <div className="flex items-center gap-2 mt-2 text-xs text-[#22C55E]">
+                    <Check className="w-3 h-3" />
+                    Trabajando con: {campanasClientePerfil.nombre}
+                    {campanasClientePerfil.adn_avatar ? ' (ADN completo)' : ' (ADN parcial)'}
+                  </div>
+                )}
+              </div>
+
+              {/* Campanas module */}
+              {campanasClienteId && campanasClientePerfil ? (
+                <Campanas
+                  key={campanasClienteId}
+                  userId={campanasClienteId}
+                  perfil={campanasClientePerfil}
+                  geminiKey={import.meta.env.VITE_GEMINI_API_KEY}
+                />
+              ) : !campanasPerfilLoading && (
+                <div className="card-panel p-10 text-center">
+                  <Megaphone className="w-10 h-10 text-[#FFFFFF]/15 mx-auto mb-3" />
+                  <p className="text-sm text-[#FFFFFF]/40">
+                    Selecciona un cliente para comenzar a crear campanas con su ADN de negocio.
+                  </p>
+                </div>
+              )}
             </div>
           )}
 

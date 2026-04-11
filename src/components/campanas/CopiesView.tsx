@@ -5,7 +5,7 @@
 import React, { useState, useCallback } from 'react';
 import { PenTool, Loader2, Copy, CheckCircle2 } from 'lucide-react';
 import { streamText } from '../../lib/aiProvider';
-import { buildCopyPrompt } from '../../lib/campanasPrompts';
+import { buildCopyPrompt, adnContext } from '../../lib/campanasPrompts';
 import type { ProfileV2 } from '../../lib/supabase';
 import type { AnguloCreativo, TipoCreativo, ObjetivoCampana } from '../../lib/campanasTypes';
 import Markdown from 'react-markdown';
@@ -52,11 +52,13 @@ export default function CopiesView({ perfil }: Props) {
     setOutput('');
 
     const cantVariantes = parseInt(variantes) || 3;
+    const adnBlock = perfil.adn_avatar ? `\n\n${adnContext(perfil)}` : '';
     const prompt = `Eres un copywriter de elite especializado en Meta Ads para profesionales de la salud.
+${adnBlock}
 
 RUBRO / ESPECIALIDAD: ${rubro}
 PAIS / CIUDAD: ${pais || 'Argentina'}
-OFERTA: ${producto || 'Consulta gratuita'}
+OFERTA: ${producto || perfil.oferta_high || perfil.oferta_mid || 'Consulta gratuita'}
 TIPO DE ANUNCIO: ${tipo === 'carrusel' ? 'Carrusel' : 'Imagen unica'}
 TONO / ANGULO: ${tono}
 CANTIDAD DE VARIANTES: ${cantVariantes}
@@ -71,7 +73,7 @@ Para CADA variante incluye:
 
 REGLAS:
 - El hook debe frenar el scroll en 1-2 segundos
-- Usa lenguaje cercano, como si hablaras con un amigo
+- Usa el LENGUAJE EXACTO del avatar del cliente ideal si esta disponible
 - Incluye emojis estrategicos (max 3-4 por variante)
 - Cada variante debe tener un enfoque diferente
 - Tono profesional pero accesible
