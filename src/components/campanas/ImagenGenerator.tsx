@@ -146,7 +146,7 @@ export default function ImagenGenerator({ copies, angulo, perfil, geminiKey, onI
       : undefined;
 
     const baseOpts = {
-      estilo,
+      estilo: styleRef ? undefined : estilo,
       mode,
       instrucciones: instrucciones.trim() || undefined,
       hasCharacterRef: !!characterRef,
@@ -200,7 +200,7 @@ export default function ImagenGenerator({ copies, angulo, perfil, geminiKey, onI
   const isCarousel = copies.length > 1;
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-3">
       {hasNoCopy && (
         <div className="flex items-center gap-3 p-4 rounded-xl bg-[#F5A623]/5 border border-[#F5A623]/20">
           <AlertTriangle className="w-5 h-5 text-[#F5A623] shrink-0" />
@@ -215,12 +215,11 @@ export default function ImagenGenerator({ copies, angulo, perfil, geminiKey, onI
         </label>
         <div className="grid grid-cols-2 gap-3">
           {/* Character ref */}
-          <div className="card-panel p-3 space-y-2">
-            <div className="flex items-center gap-2">
-              <User className="w-4 h-4 text-[#FFFFFF]/40" />
+          <div className="card-panel p-2.5 space-y-1.5">
+            <div className="flex items-center gap-1.5">
+              <User className="w-3.5 h-3.5 text-[#FFFFFF]/40" />
               <span className="text-[10px] font-semibold text-[#FFFFFF]/70">Personaje</span>
             </div>
-            <p className="text-[9px] text-[#FFFFFF]/25 leading-tight">Sube una foto. La IA respetara su apariencia al 100%.</p>
             {characterRef ? (
               <div className="relative">
                 <img src={`data:${characterRef.mimeType};base64,${characterRef.base64}`} className="w-full h-20 object-cover rounded-lg" alt="Ref personaje" />
@@ -238,12 +237,11 @@ export default function ImagenGenerator({ copies, angulo, perfil, geminiKey, onI
           </div>
 
           {/* Style ref */}
-          <div className="card-panel p-3 space-y-2">
-            <div className="flex items-center gap-2">
-              <PaletteIcon className="w-4 h-4 text-[#FFFFFF]/40" />
+          <div className="card-panel p-2.5 space-y-1.5">
+            <div className="flex items-center gap-1.5">
+              <PaletteIcon className="w-3.5 h-3.5 text-[#FFFFFF]/40" />
               <span className="text-[10px] font-semibold text-[#FFFFFF]/70">Estilo de diseño</span>
             </div>
-            <p className="text-[9px] text-[#FFFFFF]/25 leading-tight">La IA copiara SOLO el estilo visual, NO texto ni logos.</p>
             {styleRef ? (
               <div className="relative">
                 <img src={`data:${styleRef.mimeType};base64,${styleRef.base64}`} className="w-full h-20 object-cover rounded-lg" alt="Ref estilo" />
@@ -268,42 +266,43 @@ export default function ImagenGenerator({ copies, angulo, perfil, geminiKey, onI
           Modo de generacion
         </label>
         <div className="grid grid-cols-2 gap-3">
-          <button onClick={() => setMode('completa')} className={`card-panel p-3 text-left transition-all ${mode === 'completa' ? 'border-[#F5A623]/50 bg-[#F5A623]/5' : 'hover:border-[#F5A623]/30'}`}>
-            <div className="flex items-center gap-2 mb-1">
-              <Sparkles className={`w-4 h-4 ${mode === 'completa' ? 'text-[#F5A623]' : 'text-[#FFFFFF]/40'}`} />
+          <button onClick={() => setMode('completa')} className={`card-panel p-2.5 text-left transition-all ${mode === 'completa' ? 'border-[#F5A623]/50 bg-[#F5A623]/5' : 'hover:border-[#F5A623]/30'}`}>
+            <div className="flex items-center gap-2">
+              <Sparkles className={`w-3.5 h-3.5 ${mode === 'completa' ? 'text-[#F5A623]' : 'text-[#FFFFFF]/40'}`} />
               <span className={`text-xs font-semibold ${mode === 'completa' ? 'text-[#F5A623]' : 'text-[#FFFFFF]'}`}>IA Completa</span>
+              <span className="text-[9px] text-[#FFFFFF]/25">con texto</span>
             </div>
-            <p className="text-[10px] text-[#FFFFFF]/30">Imagen con texto integrado</p>
           </button>
-          <button onClick={() => setMode('fondo')} className={`card-panel p-3 text-left transition-all ${mode === 'fondo' ? 'border-[#F5A623]/50 bg-[#F5A623]/5' : 'hover:border-[#F5A623]/30'}`}>
-            <div className="flex items-center gap-2 mb-1">
-              <Pencil className={`w-4 h-4 ${mode === 'fondo' ? 'text-[#F5A623]' : 'text-[#FFFFFF]/40'}`} />
+          <button onClick={() => setMode('fondo')} className={`card-panel p-2.5 text-left transition-all ${mode === 'fondo' ? 'border-[#F5A623]/50 bg-[#F5A623]/5' : 'hover:border-[#F5A623]/30'}`}>
+            <div className="flex items-center gap-2">
+              <Pencil className={`w-3.5 h-3.5 ${mode === 'fondo' ? 'text-[#F5A623]' : 'text-[#FFFFFF]/40'}`} />
               <span className={`text-xs font-semibold ${mode === 'fondo' ? 'text-[#F5A623]' : 'text-[#FFFFFF]'}`}>Fondo + Editor</span>
+              <span className="text-[9px] text-[#FFFFFF]/25">sin texto</span>
             </div>
-            <p className="text-[10px] text-[#FFFFFF]/30">Imagen sin texto, editas el copy encima</p>
           </button>
         </div>
       </div>
 
-      {/* ─── Style gallery ─── */}
-      <div>
-        <label className="block text-[10px] font-bold tracking-wider uppercase text-[#FFFFFF]/40 mb-2">
-          Estilo visual
-        </label>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-          {(Object.entries(ESTILO_VISUAL_OPTIONS) as [EstiloVisual, typeof ESTILO_VISUAL_OPTIONS[EstiloVisual]][]).map(([key, opt]) => {
-            const Icon = ESTILO_ICONS[key];
-            const isActive = estilo === key;
-            return (
-              <button key={key} onClick={() => setEstilo(key)} className={`p-2.5 rounded-xl border text-left transition-all ${isActive ? 'border-[#F5A623]/50 bg-[#F5A623]/10' : 'border-[#FFFFFF]/5 hover:border-[#F5A623]/25 hover:bg-[#FFFFFF]/[0.02]'}`}>
-                <Icon className={`w-4 h-4 mb-1 ${isActive ? 'text-[#F5A623]' : 'text-[#FFFFFF]/30'}`} />
-                <div className={`text-[10px] font-semibold ${isActive ? 'text-[#F5A623]' : 'text-[#FFFFFF]/70'}`}>{opt.titulo}</div>
-                <div className="text-[9px] text-[#FFFFFF]/25 leading-tight mt-0.5">{opt.descripcion}</div>
-              </button>
-            );
-          })}
+      {/* ─── Style gallery (hidden when style reference uploaded) ─── */}
+      {!styleRef && (
+        <div>
+          <label className="block text-[10px] font-bold tracking-wider uppercase text-[#FFFFFF]/40 mb-2">
+            Estilo visual
+          </label>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+            {(Object.entries(ESTILO_VISUAL_OPTIONS) as [EstiloVisual, typeof ESTILO_VISUAL_OPTIONS[EstiloVisual]][]).map(([key, opt]) => {
+              const Icon = ESTILO_ICONS[key];
+              const isActive = estilo === key;
+              return (
+                <button key={key} onClick={() => setEstilo(key)} className={`p-2 rounded-xl border text-left transition-all ${isActive ? 'border-[#F5A623]/50 bg-[#F5A623]/10' : 'border-[#FFFFFF]/5 hover:border-[#F5A623]/25 hover:bg-[#FFFFFF]/[0.02]'}`}>
+                  <Icon className={`w-3.5 h-3.5 mb-0.5 ${isActive ? 'text-[#F5A623]' : 'text-[#FFFFFF]/30'}`} />
+                  <div className={`text-[10px] font-semibold leading-tight ${isActive ? 'text-[#F5A623]' : 'text-[#FFFFFF]/70'}`}>{opt.titulo}</div>
+                </button>
+              );
+            })}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* ─── Text Source (single image) ─── */}
       {!isCarousel && mode === 'completa' && (
