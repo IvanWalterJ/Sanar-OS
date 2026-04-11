@@ -427,11 +427,9 @@ export type {
 
 export async function fetchProfileV2(userId: string): Promise<ProfileV2 | null> {
   if (!supabase) return null;
-  const { data, error } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', userId)
-    .single();
+  // Use RPC to bypass RLS (admin reading other users' profiles)
+  const { data, error } = await supabase.rpc('get_all_profiles');
   if (error || !data) return null;
-  return data as ProfileV2;
+  const profile = (data as ProfileV2[]).find((p) => p.id === userId);
+  return profile ?? null;
 }
