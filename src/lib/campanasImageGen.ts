@@ -32,15 +32,44 @@ export interface ImageGenProgress {
   error?: string;
 }
 
+// ─── Tipo para imagenes de referencia ────────────────────────────────────────
+
+export interface ReferenceImages {
+  characterRef?: { base64: string; mimeType: string };
+  styleRef?: { base64: string; mimeType: string };
+}
+
 // ─── Generador principal con cascada ─────────────────────────────────────────
 
 export async function generateImageWithFallback(
   apiKey: string,
   prompt: string,
   onProgress?: (progress: ImageGenProgress) => void,
+  referenceImages?: ReferenceImages,
 ): Promise<ImageGenResult> {
   const ai = new GoogleGenAI({ apiKey });
   let lastError: Error | null = null;
+
+  // Build parts array: text + optional reference images
+  const parts: { text?: string; inlineData?: { mimeType: string; data: string } }[] = [
+    { text: prompt },
+  ];
+  if (referenceImages?.characterRef) {
+    parts.push({
+      inlineData: {
+        mimeType: referenceImages.characterRef.mimeType,
+        data: referenceImages.characterRef.base64,
+      },
+    });
+  }
+  if (referenceImages?.styleRef) {
+    parts.push({
+      inlineData: {
+        mimeType: referenceImages.styleRef.mimeType,
+        data: referenceImages.styleRef.base64,
+      },
+    });
+  }
 
   for (let i = 0; i < IMAGE_MODELS.length; i++) {
     const model = IMAGE_MODELS[i];
@@ -55,17 +84,17 @@ export async function generateImageWithFallback(
     try {
       const response = await ai.models.generateContent({
         model: model.id,
-        contents: [{ role: 'user', parts: [{ text: prompt }] }],
+        contents: [{ role: 'user', parts: parts as never[] }],
         config: {
           responseModalities: ['TEXT', 'IMAGE'],
         },
       });
 
       // Buscar la parte de imagen en la respuesta
-      const parts = response.candidates?.[0]?.content?.parts;
-      if (!parts) throw new Error('No response parts');
+      const responseParts = response.candidates?.[0]?.content?.parts;
+      if (!responseParts) throw new Error('No response parts');
 
-      const imagePart = parts.find(
+      const imagePart = responseParts.find(
         (p: Record<string, unknown>) => p.inlineData && typeof p.inlineData === 'object',
       );
 
@@ -112,6 +141,7 @@ export async function generateCarouselImages(
   apiKey: string,
   prompts: string[],
   onProgress?: (slideIndex: number, progress: ImageGenProgress) => void,
+  referenceImages?: ReferenceImages,
 ): Promise<ImageGenResult[]> {
   const results: ImageGenResult[] = [];
 
@@ -120,6 +150,7 @@ export async function generateCarouselImages(
       apiKey,
       prompts[i],
       (progress) => onProgress?.(i, progress),
+      referenceImages,
     );
     results.push(result);
   }

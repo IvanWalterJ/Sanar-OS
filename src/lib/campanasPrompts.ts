@@ -2,7 +2,7 @@
  * campanasPrompts.ts — Prompts de IA para generacion de guias, copy e imagenes
  */
 import type { ProfileV2 } from './supabase';
-import type { CampanaFormState, AnguloCreativo, TipoCreativo, ObjetivoCampana, EstiloVisual, ImageMode } from './campanasTypes';
+import type { CampanaFormState, AnguloCreativo, TipoCreativo, ObjetivoCampana, EstiloVisual, ImageMode, CustomText } from './campanasTypes';
 import { ESTILO_VISUAL_OPTIONS } from './campanasTypes';
 
 // ─── Contexto ADN del profesional ────────────────────────────────────────────
@@ -276,6 +276,9 @@ export function buildImagePrompt(
     estilo?: EstiloVisual;
     mode?: ImageMode;
     instrucciones?: string;
+    hasCharacterRef?: boolean;
+    hasStyleRef?: boolean;
+    customText?: CustomText;
   },
 ): string {
   const nicho = perfil.nicho ?? perfil.adn_nicho ?? perfil.especialidad ?? 'salud y bienestar';
@@ -296,9 +299,24 @@ export function buildImagePrompt(
 
   const estiloPrompt = estilo ? ESTILO_VISUAL_OPTIONS[estilo].prompt : anguloVisual[angulo];
 
+  // Custom text with hierarchy
+  const customTextSection = options?.customText
+    ? `TEXTO A INCLUIR EN LA IMAGEN (JERARQUIA OBLIGATORIA):
+- H1 (titulo principal, MAS GRANDE Y BOLD): "${options.customText.h1}"
+- H2 (subtitulo, segundo en jerarquia): "${options.customText.h2}"
+${options.customText.h3 ? `- H3 (texto terciario, mas pequeño): "${options.customText.h3}"` : ''}
+- CTA (boton de accion, debe DESTACAR): "${options.customText.cta}"
+
+JERARQUIA TIPOGRAFICA CRITICA:
+- H1 es lo primero que el ojo ve — tamaño dominante, bold, maximo contraste
+- H2 complementa al H1 — menor tamaño, puede ser lighter
+- CTA debe parecer un BOTON real — fondo de color solido que contraste (ej: #F5A623 dorado), bordes redondeados, texto oscuro sobre fondo claro. Debe gritar "HAZ CLIC"
+- La jerarquia visual debe ser INMEDIATAMENTE clara en 1 segundo`
+    : null;
+
   const textoSection = mode === 'fondo'
     ? `IMPORTANTE: NO incluir NINGUN texto, letras, palabras, numeros ni tipografia en la imagen. Solo imagen visual pura. La imagen sera usada como fondo y el texto se agrega despues.`
-    : `TEXTO A INCLUIR EN LA IMAGEN: "${slideInfo?.slideTexto ?? copy.titulo}"
+    : customTextSection ?? `TEXTO A INCLUIR EN LA IMAGEN: "${slideInfo?.slideTexto ?? copy.titulo}"
 
 TIPOGRAFIA:
 - Texto principal grande, bold, legible desde el celular
@@ -311,6 +329,23 @@ TIPOGRAFIA:
     ? `\nINSTRUCCIONES ESPECIFICAS DEL USUARIO:\n${options.instrucciones}\n`
     : '';
 
+  const characterRefPrompt = options?.hasCharacterRef
+    ? `\nREFERENCIA DE PERSONAJE (imagen adjunta):
+La persona en la imagen generada DEBE verse EXACTAMENTE igual que la persona en la foto de referencia adjunta.
+Mismos rasgos faciales, mismo tono de piel, misma edad, misma estructura facial.
+Esto es INNEGOCIABLE — la identidad del personaje debe respetarse al 100%.
+NO cambies la apariencia de esta persona bajo ninguna circunstancia.\n`
+    : '';
+
+  const styleRefPrompt = options?.hasStyleRef
+    ? `\nREFERENCIA DE ESTILO (imagen adjunta):
+Copia SOLAMENTE el estilo visual, el estilo tipografico, la paleta de colores y la composicion de la imagen de referencia de estilo adjunta.
+NO copies NINGUN texto, palabras, logos ni nombres de marca que aparezcan en la referencia.
+Usa UNICAMENTE el texto proporcionado en este prompt, NO el texto que veas en la referencia.
+La referencia es SOLO para INSPIRACION VISUAL y TIPOGRAFICA.
+REGLA ABSOLUTA: Ignora TODO contenido textual de la referencia. Solo absorbe el ESTILO.\n`
+    : '';
+
   return `Genera una imagen publicitaria de ALTO IMPACTO para Meta Ads (Instagram/Facebook).
 Esta imagen debe FRENAR EL SCROLL. Tiene que ser visualmente tan potente que el usuario deje de scrollear en menos de 1 segundo.
 
@@ -319,7 +354,7 @@ DIRECCION VISUAL: ${estiloPrompt}
 ANGULO COMUNICACIONAL: ${anguloVisual[angulo]}
 COLORES DE MARCA: ${colores}
 TONO: ${tono}
-${instruccionesCustom}
+${instruccionesCustom}${characterRefPrompt}${styleRefPrompt}
 ${textoSection}
 
 ${slideInfo ? `SLIDE ${slideInfo.slideNumber} de ${slideInfo.totalSlides} (carrusel — mantener consistencia visual entre slides)` : 'FORMATO: Imagen unica para feed (1:1)'}

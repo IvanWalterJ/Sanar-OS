@@ -227,6 +227,28 @@ export const ESTILO_VISUAL_OPTIONS: Record<EstiloVisual, { titulo: string; descr
   },
 };
 
+// ─── Referencias, texto custom y control de slides ──────────────────────────
+
+export interface ReferenceImage {
+  base64: string;
+  mimeType: string;
+  fileName: string;
+}
+
+export type TextSource = 'ia' | 'personalizado';
+
+export interface CustomText {
+  h1: string;
+  h2: string;
+  h3?: string;
+  cta: string;
+}
+
+export interface SlideConfig {
+  textSource: TextSource;
+  customText?: CustomText;
+}
+
 // ─── Vistas internas de la pagina ────────────────────────────────────────────
 
 export type CampanasView =
