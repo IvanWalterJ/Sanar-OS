@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { Loader2, Sparkles, Copy, Check, RotateCcw, Image as ImageIcon, Layers } from 'lucide-react';
+import { Loader2, Sparkles, Copy, Check, RotateCcw, Image as ImageIcon, Layers, Youtube } from 'lucide-react';
 import { generateText } from '../../lib/aiProvider';
 import { toast } from 'sonner';
 import { buildCopyPrompt } from '../../lib/campanasPrompts';
@@ -31,13 +31,19 @@ export default function CopyGenerator({ perfil, geminiKey, objetivo, onCopyGener
     try {
       const prompt = buildCopyPrompt(angulo, tipo, perfil, objetivo, tipo === 'carrusel' ? slideCount : undefined);
       const text = await generateText({ prompt });
-      // Extraer JSON del response (puede venir envuelto en ```json ... ```)
-      const jsonMatch = text.match(/\[[\s\S]*\]/) ?? text.match(/\{[\s\S]*\}/);
+      // Extraer JSON del response — limpiar markdown code blocks
+      let cleaned = text.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
+      const jsonMatch = cleaned.match(/\[[\s\S]*\]/) ?? cleaned.match(/\{[\s\S]*\}/);
       if (!jsonMatch) {
         throw new Error('No se pudo extraer JSON del response');
       }
 
-      const parsed = JSON.parse(jsonMatch[0]);
+      // Limpiar caracteres de control y trailing commas antes de parsear
+      let jsonStr = jsonMatch[0]
+        .replace(/[\x00-\x1F\x7F]/g, (c) => c === '\n' || c === '\r' || c === '\t' ? c : '')
+        .replace(/,\s*([}\]])/g, '$1');
+
+      const parsed = JSON.parse(jsonStr);
       const result: CopyGenerado[] = Array.isArray(parsed) ? parsed : [parsed];
 
       setCopies(result);
@@ -64,21 +70,24 @@ export default function CopyGenerator({ perfil, geminiKey, objetivo, onCopyGener
       {/* Tipo selector */}
       <div>
         <label className="block text-xs text-[#FFFFFF]/60 mb-2 font-medium">Tipo de Creativo</label>
-        <div className="flex gap-2">
-          {(['imagen_single', 'carrusel'] as TipoCreativo[]).map((t) => (
-            <button
-              key={t}
-              onClick={() => setTipo(t)}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
-                tipo === t
-                  ? 'bg-[#F5A623]/15 text-[#F5A623] border border-[#F5A623]/30'
-                  : 'bg-[#141414] text-[#FFFFFF]/50 border border-[rgba(245,166,35,0.15)] hover:border-[rgba(245,166,35,0.3)]'
-              }`}
-            >
-              {t === 'imagen_single' ? <ImageIcon className="w-4 h-4" /> : <Layers className="w-4 h-4" />}
-              {TIPO_LABELS[t]}
-            </button>
-          ))}
+        <div className="flex flex-wrap gap-2">
+          {(['imagen_single', 'carrusel', 'yt_thumbnail'] as TipoCreativo[]).map((t) => {
+            const Icon = t === 'yt_thumbnail' ? Youtube : t === 'carrusel' ? Layers : ImageIcon;
+            return (
+              <button
+                key={t}
+                onClick={() => setTipo(t)}
+                className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium transition-all ${
+                  tipo === t
+                    ? 'bg-[#F5A623]/15 text-[#F5A623] border border-[#F5A623]/30'
+                    : 'bg-[#141414] text-[#FFFFFF]/50 border border-[rgba(245,166,35,0.15)] hover:border-[rgba(245,166,35,0.3)]'
+                }`}
+              >
+                <Icon className="w-4 h-4" />
+                {TIPO_LABELS[t]}
+              </button>
+            );
+          })}
           {tipo === 'carrusel' && (
             <div className="flex items-center gap-2 ml-2">
               <label className="text-xs text-[#FFFFFF]/40">Slides:</label>
@@ -132,7 +141,7 @@ export default function CopyGenerator({ perfil, geminiKey, objetivo, onCopyGener
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <span className="text-xs text-[#FFFFFF]/40">
-              {copies.length === 1 ? 'Copy generado' : `${copies.length} slides generados`}
+              {tipo === 'yt_thumbnail' ? `${copies.length} variantes de thumbnail` : copies.length === 1 ? 'Copy generado' : `${copies.length} slides generados`}
               {' '}— {ANGULO_LABELS[angulo].titulo}
             </span>
           </div>
@@ -141,7 +150,7 @@ export default function CopyGenerator({ perfil, geminiKey, objetivo, onCopyGener
             <div key={idx} className="bg-[#141414] border border-[rgba(245,166,35,0.15)] rounded-xl p-5 space-y-3">
               {copies.length > 1 && (
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs font-medium text-[#F5A623]">Slide {idx + 1}</span>
+                  <span className="text-xs font-medium text-[#F5A623]">{tipo === 'yt_thumbnail' ? `Variante ${idx + 1}` : `Slide ${idx + 1}`}</span>
                   <button
                     onClick={() => handleCopyCopy(idx)}
                     className="flex items-center gap-1 text-xs text-[#FFFFFF]/40 hover:text-[#FFFFFF] transition-colors"

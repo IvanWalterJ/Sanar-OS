@@ -220,7 +220,22 @@ export function buildCopyPrompt(
     clientes_potenciales: 'CTA: Invitar a hacer clic para ver la masterclass/VSL y agendar su llamada estrategica gratuita.',
   };
 
-  const formatoOutput = tipo === 'carrusel'
+  const formatoOutput = tipo === 'yt_thumbnail'
+    ? `Genera 3 variantes de texto para portada de YouTube.
+Cada variante es un hook visual diferente para testear cual genera mas clicks.
+
+Para CADA variante genera un JSON:
+{ "texto_principal": "Hook largo alternativo (una oracion que describe el video)", "titulo": "HOOK CORTO Y POTENTE para la portada (max 6-8 palabras, DEBE generar curiosidad)", "descripcion": "Subtitulo complementario (max 5 palabras)", "cta_texto": "Texto badge/sticker (ej: GRATIS, NUEVO, CASO REAL)" }
+
+REGLAS PARA YOUTUBE THUMBNAILS:
+- El titulo es lo MAS importante — debe generar CLICK irresistible
+- Usa numeros especificos, no genericos ("7 errores" no "errores comunes")
+- Genera curiosidad SIN revelar la respuesta
+- Emociones fuertes: sorpresa, miedo, ambicion, indignacion
+- Titulo MUY corto — en la portada se lee en 1 segundo
+
+Responde con un JSON array de 3 variantes: [{ variante1 }, { variante2 }, { variante3 }]`
+    : tipo === 'carrusel'
     ? `Genera un carrusel de ${slideCount ?? 5} slides.
 Para CADA slide genera un JSON con este formato:
 { "texto_principal": "...", "titulo": "...", "descripcion": "...", "cta_texto": "..." }

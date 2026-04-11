@@ -87,7 +87,7 @@ export const ESTADO_COLORS: Record<EstadoCampana, string> = {
 
 // ─── Creativos ───────────────────────────────────────────────────────────────
 
-export type TipoCreativo = 'imagen_single' | 'carrusel';
+export type TipoCreativo = 'imagen_single' | 'carrusel' | 'yt_thumbnail';
 export type AnguloCreativo = 'contraintuitivo' | 'directo' | 'emocional' | 'curiosidad' | 'autoridad' | 'dolor' | 'deseo';
 export type EstadoCreativo = 'generado' | 'aprobado' | 'descartado';
 
@@ -168,6 +168,7 @@ export const ANGULO_LABELS: Record<AnguloCreativo, { titulo: string; descripcion
 export const TIPO_LABELS: Record<TipoCreativo, string> = {
   imagen_single: 'Imagen Unica',
   carrusel: 'Carrusel',
+  yt_thumbnail: 'YouTube Thumbnail',
 };
 
 // ─── Estilos visuales y modos de imagen ─────────────────────────────────────
