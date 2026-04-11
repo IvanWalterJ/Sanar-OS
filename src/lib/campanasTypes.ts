@@ -170,6 +170,63 @@ export const TIPO_LABELS: Record<TipoCreativo, string> = {
   carrusel: 'Carrusel',
 };
 
+// ─── Estilos visuales y modos de imagen ─────────────────────────────────────
+
+export type EstiloVisual =
+  | 'fotografico_profesional'
+  | 'grafico_bold'
+  | 'minimalista'
+  | 'lifestyle'
+  | 'testimonio'
+  | 'educativo'
+  | 'antes_despues'
+  | 'urgencia';
+
+export type ImageMode = 'completa' | 'fondo';
+
+export const ESTILO_VISUAL_OPTIONS: Record<EstiloVisual, { titulo: string; descripcion: string; prompt: string }> = {
+  fotografico_profesional: {
+    titulo: 'Fotografico profesional',
+    descripcion: 'Foto realista premium, persona en consultorio o clinica',
+    prompt: 'Fotografia profesional de alta calidad tipo stock premium. Persona real en entorno de consultorio o clinica moderna. Iluminacion profesional de estudio, profundidad de campo. Estetica editorial de revista de salud. Colores calidos y naturales.',
+  },
+  grafico_bold: {
+    titulo: 'Grafico bold',
+    descripcion: 'Diseño impactante, colores fuertes, tipografia grande',
+    prompt: 'Diseño grafico BOLD e impactante. Colores vibrantes y contrastantes. Composicion asimetrica y dinamica. Elementos graficos geometricos. Estilo de agencia de publicidad premium. La imagen debe GRITAR y detener el scroll inmediatamente. Alto contraste, formas llamativas.',
+  },
+  minimalista: {
+    titulo: 'Minimalista',
+    descripcion: 'Fondo limpio, espacio negativo, elegante',
+    prompt: 'Diseño minimalista y elegante. Mucho espacio negativo. Fondo solido o gradiente suave. Un solo elemento visual central. Sensacion de premium y exclusividad. Tipografia fina y moderna. Menos es mas.',
+  },
+  lifestyle: {
+    titulo: 'Lifestyle',
+    descripcion: 'Persona en situacion cotidiana, natural, relatable',
+    prompt: 'Fotografia lifestyle natural y autentica. Persona en situacion cotidiana, sonriendo, en su elemento. Luz natural, ambiente calido. El espectador debe sentirse identificado. No parece publicidad, parece un momento real capturado. Estetica de Instagram organica.',
+  },
+  testimonio: {
+    titulo: 'Testimonio',
+    descripcion: 'Formato quote con foto, prueba social',
+    prompt: 'Formato de testimonio o caso de exito. Incluir comillas visuales grandes. Foto de persona satisfecha o resultado visible. Diseño que transmite confianza y credibilidad. Elementos de prueba social: estrellas, check marks, numeros. Fondo oscuro profesional.',
+  },
+  educativo: {
+    titulo: 'Educativo',
+    descripcion: 'Infografia, datos, formato didactico',
+    prompt: 'Infografia educativa limpia y profesional. Datos presentados visualmente con iconos, numeros destacados, listas visuales. Formato de "sabias que" o "X datos sobre...". Diseño que aporta valor inmediato. Colores institucionales y profesionales.',
+  },
+  antes_despues: {
+    titulo: 'Antes / Despues',
+    descripcion: 'Contraste visual problema vs solucion',
+    prompt: 'Composicion dividida en dos: lado izquierdo oscuro/gris representando el PROBLEMA (frustracion, dolor, confusion), lado derecho luminoso/colorido representando la SOLUCION (alivio, claridad, resultado). Transicion visual clara entre ambos estados. Flecha o elemento de transformacion en el centro.',
+  },
+  urgencia: {
+    titulo: 'Urgencia / FOMO',
+    descripcion: 'Colores de alerta, escasez, accion inmediata',
+    prompt: 'Diseño con sensacion de URGENCIA y escasez. Colores rojos/naranjas de alerta. Elementos de countdown, plazas limitadas, "ultima oportunidad". Contraste alto negro/rojo/dorado. Stickers de "AHORA", flechas, elementos que empujan a la accion inmediata. Energia alta.',
+  },
+};
+
 // ─── Vistas internas de la pagina ────────────────────────────────────────────
 
 export type CampanasView =

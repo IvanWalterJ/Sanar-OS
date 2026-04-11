@@ -48,8 +48,9 @@ export default function CreativoStudio({ campana, userId, perfil, geminiKey, onB
   );
 
   const handleImagesGenerated = useCallback(
-    (imgs: { base64: string; mimeType: string; modelUsed: string }[]) => {
+    (imgs: { base64: string; mimeType: string; modelUsed: string }[], mode?: string) => {
       setImages(imgs);
+      if (mode === 'fondo') setPreviewMode('editor');
     },
     [],
   );

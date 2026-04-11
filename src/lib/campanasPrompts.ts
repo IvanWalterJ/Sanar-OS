@@ -2,7 +2,8 @@
  * campanasPrompts.ts — Prompts de IA para generacion de guias, copy e imagenes
  */
 import type { ProfileV2 } from './supabase';
-import type { CampanaFormState, AnguloCreativo, TipoCreativo, ObjetivoCampana } from './campanasTypes';
+import type { CampanaFormState, AnguloCreativo, TipoCreativo, ObjetivoCampana, EstiloVisual, ImageMode } from './campanasTypes';
+import { ESTILO_VISUAL_OPTIONS } from './campanasTypes';
 
 // ─── Contexto ADN del profesional ────────────────────────────────────────────
 
@@ -271,14 +272,17 @@ export function buildImagePrompt(
   angulo: AnguloCreativo,
   perfil: Partial<ProfileV2>,
   slideInfo?: { slideNumber: number; totalSlides: number; slideTexto?: string },
+  options?: {
+    estilo?: EstiloVisual;
+    mode?: ImageMode;
+    instrucciones?: string;
+  },
 ): string {
   const nicho = perfil.nicho ?? perfil.adn_nicho ?? perfil.especialidad ?? 'salud y bienestar';
   const colores = perfil.identidad_colores ?? 'tonos profesionales, dorado y oscuro';
   const tono = perfil.identidad_tono ?? 'profesional y cercano';
-
-  const textoParaImagen = slideInfo?.slideTexto
-    ? slideInfo.slideTexto
-    : copy.titulo;
+  const mode = options?.mode ?? 'completa';
+  const estilo = options?.estilo;
 
   const anguloVisual: Record<AnguloCreativo, string> = {
     contraintuitivo: 'Visual impactante, colores contrastantes, elemento de sorpresa visual. Diseno bold y disruptivo.',
@@ -290,24 +294,42 @@ export function buildImagePrompt(
     deseo: 'Luminoso, aspiracional, resultado ideal. Colores vibrantes, sensacion de logro.',
   };
 
-  return `Genera una imagen publicitaria profesional para Meta Ads (Instagram/Facebook).
+  const estiloPrompt = estilo ? ESTILO_VISUAL_OPTIONS[estilo].prompt : anguloVisual[angulo];
+
+  const textoSection = mode === 'fondo'
+    ? `IMPORTANTE: NO incluir NINGUN texto, letras, palabras, numeros ni tipografia en la imagen. Solo imagen visual pura. La imagen sera usada como fondo y el texto se agrega despues.`
+    : `TEXTO A INCLUIR EN LA IMAGEN: "${slideInfo?.slideTexto ?? copy.titulo}"
+
+TIPOGRAFIA:
+- Texto principal grande, bold, legible desde el celular
+- Tipografia moderna sans-serif (tipo Montserrat o Inter)
+- Contraste MAXIMO entre texto y fondo
+- El texto debe DOMINAR la composicion, no ser un detalle pequeno
+- Incluir CTA visual si es relevante`;
+
+  const instruccionesCustom = options?.instrucciones
+    ? `\nINSTRUCCIONES ESPECIFICAS DEL USUARIO:\n${options.instrucciones}\n`
+    : '';
+
+  return `Genera una imagen publicitaria de ALTO IMPACTO para Meta Ads (Instagram/Facebook).
+Esta imagen debe FRENAR EL SCROLL. Tiene que ser visualmente tan potente que el usuario deje de scrollear en menos de 1 segundo.
 
 NICHO: ${nicho}
-ESTILO VISUAL: ${anguloVisual[angulo]}
+DIRECCION VISUAL: ${estiloPrompt}
+ANGULO COMUNICACIONAL: ${anguloVisual[angulo]}
 COLORES DE MARCA: ${colores}
 TONO: ${tono}
-
-TEXTO A INCLUIR EN LA IMAGEN: "${textoParaImagen}"
+${instruccionesCustom}
+${textoSection}
 
 ${slideInfo ? `SLIDE ${slideInfo.slideNumber} de ${slideInfo.totalSlides} (carrusel — mantener consistencia visual entre slides)` : 'FORMATO: Imagen unica para feed (1:1)'}
 
-REQUISITOS:
+REQUISITOS CRITICOS:
 - Formato cuadrado 1080x1080px
-- El texto debe ser LEGIBLE y estar bien posicionado
-- Tipografia limpia, moderna, sans-serif
-- Estetica profesional del sector salud/bienestar
+- La composicion debe ser PROFESIONAL, nivel agencia de publicidad
+- NO parecer imagen de stock generica — debe sentirse unica y con personalidad
 - NO incluir logos de Meta/Instagram
-- Fondo que no compita con el texto
-- Contraste alto entre texto y fondo
-- Si incluye personas, que reflejen el nicho y la audiencia objetivo`;
+- Si incluye personas: expresiones REALES, no poses artificiales
+- Iluminacion cinematografica, no plana
+- Jerarquia visual clara: el ojo va primero al elemento mas importante`;
 }

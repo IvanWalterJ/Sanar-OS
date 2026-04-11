@@ -5,7 +5,7 @@
 import React, { useState, useCallback } from 'react';
 import {
   ImageIcon, Target, MessageSquare, Users, Loader2,
-  CheckCircle2, Sparkles, Save,
+  CheckCircle2, Sparkles, Save, Pencil,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import CopyGenerator from './CopyGenerator';
@@ -13,8 +13,9 @@ import ImagenGenerator from './ImagenGenerator';
 import { saveCreativo, uploadCreativeImage, saveCreativoAsset } from '../../lib/campanasStorage';
 import { OBJETIVO_LABELS } from '../../lib/campanasTypes';
 import type {
-  ObjetivoCampana, AnguloCreativo, TipoCreativo, CopyGenerado,
+  ObjetivoCampana, AnguloCreativo, TipoCreativo, CopyGenerado, ImageMode,
 } from '../../lib/campanasTypes';
+import CreativoEditor from './CreativoEditor';
 import type { ProfileV2 } from '../../lib/supabase';
 
 const OBJETIVO_ICONS: Record<ObjetivoCampana, React.ComponentType<{ className?: string }>> = {
@@ -35,6 +36,8 @@ export default function CreativosView({ userId, perfil, geminiKey }: Props) {
   const [angulo, setAngulo] = useState<AnguloCreativo>('contraintuitivo');
   const [tipo, setTipo] = useState<TipoCreativo>('imagen_single');
   const [images, setImages] = useState<{ base64: string; mimeType: string; modelUsed: string }[]>([]);
+  const [imageMode, setImageMode] = useState<ImageMode>('completa');
+  const [showEditor, setShowEditor] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
@@ -46,9 +49,11 @@ export default function CreativosView({ userId, perfil, geminiKey }: Props) {
     setSaved(false);
   }, []);
 
-  const handleImagesGenerated = useCallback((newImages: { base64: string; mimeType: string; modelUsed: string }[]) => {
+  const handleImagesGenerated = useCallback((newImages: { base64: string; mimeType: string; modelUsed: string }[], mode: ImageMode) => {
     setImages(newImages);
+    setImageMode(mode);
     setSaved(false);
+    if (mode === 'fondo') setShowEditor(true);
   }, []);
 
   const handleSave = useCallback(async () => {
@@ -208,6 +213,37 @@ export default function CreativosView({ userId, perfil, geminiKey }: Props) {
             geminiKey={geminiKey}
             onImagesGenerated={handleImagesGenerated}
           />
+        </div>
+      )}
+
+      {/* Paso 4 — Editor (modo fondo o editar completa) */}
+      {images.length > 0 && showEditor && copies.length > 0 && (
+        <div>
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-5 h-5 rounded-full bg-[#F5A623]/20 flex items-center justify-center">
+              <Pencil className="w-3 h-3 text-[#F5A623]" />
+            </div>
+            <span className="text-[10px] font-bold tracking-[0.15em] uppercase text-[#FFFFFF]/30">
+              Editar texto
+            </span>
+            <div className="flex-1 h-px bg-[rgba(245,166,35,0.1)]" />
+          </div>
+          <CreativoEditor
+            image={{ base64: images[0].base64, mimeType: images[0].mimeType }}
+            copy={copies[0]}
+          />
+        </div>
+      )}
+
+      {/* Boton editar para modo completa */}
+      {images.length > 0 && !showEditor && imageMode === 'completa' && (
+        <div className="flex justify-center">
+          <button
+            onClick={() => setShowEditor(true)}
+            className="flex items-center gap-2 text-xs text-[#FFFFFF]/50 hover:text-[#F5A623] transition-colors px-4 py-2 rounded-xl border border-[#FFFFFF]/10 hover:border-[#F5A623]/30"
+          >
+            <Pencil className="w-3.5 h-3.5" /> Editar texto sobre la imagen
+          </button>
         </div>
       )}
 
