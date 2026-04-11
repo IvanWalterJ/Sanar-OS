@@ -2,8 +2,8 @@
  * campanasPrompts.ts — Prompts de IA para generacion de guias, copy e imagenes
  */
 import type { ProfileV2 } from './supabase';
-import type { CampanaFormState, AnguloCreativo, TipoCreativo, ObjetivoCampana, EstiloVisual, ImageMode, CustomText } from './campanasTypes';
-import { ESTILO_VISUAL_OPTIONS } from './campanasTypes';
+import type { CampanaFormState, AnguloCreativo, TipoCreativo, ObjetivoCampana, EstiloVisual, ImageMode, CustomText, ImageFormat } from './campanasTypes';
+import { ESTILO_VISUAL_OPTIONS, IMAGE_FORMAT_OPTIONS } from './campanasTypes';
 
 // ─── Contexto ADN del profesional ────────────────────────────────────────────
 
@@ -279,6 +279,7 @@ export function buildImagePrompt(
     hasCharacterRef?: boolean;
     hasStyleRef?: boolean;
     customText?: CustomText;
+    format?: ImageFormat;
   },
 ): string {
   const nicho = perfil.nicho ?? perfil.adn_nicho ?? perfil.especialidad ?? 'salud y bienestar';
@@ -358,8 +359,12 @@ NO COPIAR (PROHIBIDO):
 El resultado debe verse como si el MISMO diseñador hubiera creado ambas piezas. Misma mano, mismo estilo, diferente contenido.\n`
     : '';
 
-  return `Genera una imagen publicitaria de ALTO IMPACTO para Meta Ads (Instagram/Facebook).
-Esta imagen debe FRENAR EL SCROLL. Tiene que ser visualmente tan potente que el usuario deje de scrollear en menos de 1 segundo.
+  const fmt = options?.format ?? '1:1';
+  const fmtInfo = IMAGE_FORMAT_OPTIONS[fmt];
+  const isYouTube = fmt === 'yt_thumbnail';
+
+  return `Genera una imagen ${isYouTube ? 'de portada de YouTube' : 'publicitaria de ALTO IMPACTO para Meta Ads (Instagram/Facebook)'}.
+${isYouTube ? 'Esta portada debe generar CLICKS. El hook visual es CRITICO — el usuario decide en 1 segundo si hace clic o no.' : 'Esta imagen debe FRENAR EL SCROLL. Tiene que ser visualmente tan potente que el usuario deje de scrollear en menos de 1 segundo.'}
 
 NICHO: ${nicho}
 ${options?.hasStyleRef ? 'DIRECCION VISUAL: Seguir la referencia de estilo adjunta (ver instrucciones abajo)' : `DIRECCION VISUAL: ${estiloPrompt}`}
@@ -369,10 +374,10 @@ TONO: ${tono}
 ${characterRefPrompt}${styleRefPrompt}${instruccionesCustom}
 ${textoSection}
 
-${slideInfo ? `SLIDE ${slideInfo.slideNumber} de ${slideInfo.totalSlides} (carrusel — mantener consistencia visual entre slides)` : 'FORMATO: Imagen unica para feed (1:1)'}
+${slideInfo ? `SLIDE ${slideInfo.slideNumber} de ${slideInfo.totalSlides} (carrusel — mantener consistencia visual entre slides)` : `FORMATO: ${fmtInfo.label} — ${fmtInfo.descripcion}`}
 
 REQUISITOS CRITICOS:
-- Formato cuadrado 1080x1080px
+- Formato: ${fmtInfo.width}x${fmtInfo.height}px (aspect ratio ${fmt === 'yt_thumbnail' ? '16:9' : fmt})
 - La composicion debe ser PROFESIONAL, nivel agencia de publicidad
 - NO parecer imagen de stock generica — debe sentirse unica y con personalidad
 - NO incluir logos de Meta/Instagram

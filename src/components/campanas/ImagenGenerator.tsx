@@ -11,10 +11,10 @@ import type { ReferenceImages } from '../../lib/campanasImageGen';
 import { buildImagePrompt } from '../../lib/campanasPrompts';
 import type { ImageGenProgress } from '../../lib/campanasImageGen';
 import type {
-  CopyGenerado, AnguloCreativo, EstiloVisual, ImageMode,
+  CopyGenerado, AnguloCreativo, EstiloVisual, ImageMode, ImageFormat,
   ReferenceImage, TextSource, CustomText, SlideConfig,
 } from '../../lib/campanasTypes';
-import { ESTILO_VISUAL_OPTIONS } from '../../lib/campanasTypes';
+import { ESTILO_VISUAL_OPTIONS, IMAGE_FORMAT_OPTIONS } from '../../lib/campanasTypes';
 import type { ProfileV2 } from '../../lib/supabase';
 
 const ESTILO_ICONS: Record<EstiloVisual, React.ComponentType<{ className?: string }>> = {
@@ -57,6 +57,7 @@ export default function ImagenGenerator({ copies, angulo, perfil, geminiKey, onI
   const [previewIdx, setPreviewIdx] = useState(0);
 
   // Controls
+  const [format, setFormat] = useState<ImageFormat>('1:1');
   const [mode, setMode] = useState<ImageMode>('completa');
   const [estilo, setEstilo] = useState<EstiloVisual>('grafico_bold');
   const [instrucciones, setInstrucciones] = useState('');
@@ -151,6 +152,7 @@ export default function ImagenGenerator({ copies, angulo, perfil, geminiKey, onI
       instrucciones: instrucciones.trim() || undefined,
       hasCharacterRef: !!characterRef,
       hasStyleRef: !!styleRef,
+      format,
     };
 
     try {
@@ -194,7 +196,7 @@ export default function ImagenGenerator({ copies, angulo, perfil, geminiKey, onI
       setGenerating(false);
       setProgress(null);
     }
-  }, [copies, angulo, perfil, geminiKey, onImagesGenerated, estilo, mode, instrucciones, characterRef, styleRef, textSource, customText, slideConfigs]);
+  }, [copies, angulo, perfil, geminiKey, onImagesGenerated, estilo, mode, instrucciones, characterRef, styleRef, textSource, customText, slideConfigs, format]);
 
   const hasNoCopy = copies.length === 0;
   const isCarousel = copies.length > 1;
@@ -258,6 +260,24 @@ export default function ImagenGenerator({ copies, angulo, perfil, geminiKey, onI
             )}
           </div>
         </div>
+      </div>
+
+      {/* ─── Format selector ─── */}
+      <div>
+        <label className="block text-[10px] font-bold tracking-wider uppercase text-[#FFFFFF]/40 mb-2">
+          Formato
+        </label>
+        <div className="flex flex-wrap gap-1.5">
+          {(Object.entries(IMAGE_FORMAT_OPTIONS) as [ImageFormat, typeof IMAGE_FORMAT_OPTIONS[ImageFormat]][]).map(([key, opt]) => {
+            const isActive = format === key;
+            return (
+              <button key={key} onClick={() => setFormat(key)} className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${isActive ? 'bg-[#F5A623]/15 border-[#F5A623]/40 text-[#F5A623]' : 'border-[#FFFFFF]/10 text-[#FFFFFF]/40 hover:border-[#FFFFFF]/25 hover:text-[#FFFFFF]/60'}`}>
+                {opt.label}
+              </button>
+            );
+          })}
+        </div>
+        <p className="text-[9px] text-[#FFFFFF]/25 mt-1">{IMAGE_FORMAT_OPTIONS[format].descripcion} — {IMAGE_FORMAT_OPTIONS[format].width}x{IMAGE_FORMAT_OPTIONS[format].height}px</p>
       </div>
 
       {/* ─── Mode selector ─── */}
@@ -472,7 +492,7 @@ export default function ImagenGenerator({ copies, angulo, perfil, geminiKey, onI
           )}
 
           <div className="relative rounded-xl overflow-hidden border border-[rgba(245,166,35,0.15)] max-w-sm mx-auto">
-            <img src={base64ToDataUrl(images[previewIdx].base64, images[previewIdx].mimeType)} alt="Preview" className="w-full aspect-square object-cover" />
+            <img src={base64ToDataUrl(images[previewIdx].base64, images[previewIdx].mimeType)} alt="Preview" className="w-full object-cover" style={{ aspectRatio: `${IMAGE_FORMAT_OPTIONS[format].width}/${IMAGE_FORMAT_OPTIONS[format].height}` }} />
             {images.length > 1 && (
               <div className="absolute top-3 right-3 px-2 py-1 rounded-md bg-black/60 backdrop-blur-sm text-xs text-[#FFFFFF]">{previewIdx + 1} / {images.length}</div>
             )}

@@ -227,6 +227,23 @@ export const ESTILO_VISUAL_OPTIONS: Record<EstiloVisual, { titulo: string; descr
   },
 };
 
+// ─── Formatos de imagen ─────────────────────────────────────────────────────
+
+export type ImageFormat =
+  | '1:1'
+  | '4:5'
+  | '9:16'
+  | '16:9'
+  | 'yt_thumbnail';
+
+export const IMAGE_FORMAT_OPTIONS: Record<ImageFormat, { label: string; descripcion: string; width: number; height: number }> = {
+  '1:1':          { label: 'Cuadrado 1:1',      descripcion: 'Feed de Instagram',           width: 1080, height: 1080 },
+  '4:5':          { label: 'Vertical 4:5',       descripcion: 'Feed de Instagram (vertical)', width: 1080, height: 1350 },
+  '9:16':         { label: 'Story / Reel 9:16',  descripcion: 'Stories, Reels, TikTok',       width: 1080, height: 1920 },
+  '16:9':         { label: 'Horizontal 16:9',     descripcion: 'Facebook, LinkedIn',            width: 1920, height: 1080 },
+  'yt_thumbnail': { label: 'YouTube Thumbnail',   descripcion: 'Portada de video (1280x720)',   width: 1280, height: 720 },
+};
+
 // ─── Referencias, texto custom y control de slides ──────────────────────────
 
 export interface ReferenceImage {
