@@ -4,6 +4,7 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { Wrench, Send, Loader2, CheckCircle2, Circle, Lock } from 'lucide-react';
 import { streamText } from '../../lib/aiProvider';
+import { adnContext } from '../../lib/campanasPrompts';
 import type { ProfileV2 } from '../../lib/supabase';
 import type { MontajeStep, KaiMessage } from '../../lib/campanasTypes';
 import Markdown from 'react-markdown';
@@ -81,10 +82,7 @@ Tu rol es guiar al usuario paso a paso para configurar su campaña.
 PASO ACTUAL: ${activeStep?.id ?? 1} - ${activeStep?.label ?? 'Crear Business Manager'}
 DESCRIPCION: ${activeStep?.description ?? ''}
 
-PROFESIONAL:
-- Nombre: ${perfil.nombre ?? 'Profesional'}
-- Especialidad: ${perfil.especialidad ?? 'salud'}
-- Nicho: ${perfil.nicho ?? 'no definido'}
+${adnContext(perfil)}
 
 INSTRUCCIONES:
 - Responde de forma concisa y accionable

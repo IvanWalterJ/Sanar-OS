@@ -8,6 +8,7 @@ import {
   Target, Users, PenTool, ImageIcon, Wrench, Sparkles,
 } from 'lucide-react';
 import { streamText } from '../../lib/aiProvider';
+import { adnContext } from '../../lib/campanasPrompts';
 import { saveCampana } from '../../lib/campanasStorage';
 import type { ProfileV2 } from '../../lib/supabase';
 import type { KaiMessage, WizardPhase, Campana } from '../../lib/campanasTypes';
@@ -60,9 +61,17 @@ export default function NuevaCampanaChat({ userId, perfil, onComplete, onCancel 
   const [input, setInput] = useState('');
   const [streaming, setStreaming] = useState(false);
   const [campaignData, setCampaignData] = useState<CampaignData>({
-    nombre: '', rubro: perfil?.especialidad ?? '', ubicacion: '', ticket: '',
-    presupuesto: '', objetivo: '', estrategia: '', audiencias: '', copies: '',
-    creativos: '', montaje: '',
+    nombre: perfil?.nombre ? `${perfil.nombre} — Nueva campaña` : '',
+    rubro: perfil?.especialidad ?? '',
+    ubicacion: '',
+    ticket: '',
+    presupuesto: '',
+    objetivo: '',
+    estrategia: '',
+    audiencias: '',
+    copies: '',
+    creativos: '',
+    montaje: '',
   });
   const [summaryTab, setSummaryTab] = useState<'resumen' | 'salida' | 'tips'>('resumen');
   const [aiOutput, setAiOutput] = useState('');
@@ -76,7 +85,9 @@ export default function NuevaCampanaChat({ userId, perfil, onComplete, onCancel 
       setMessages([{
         id: 'init',
         role: 'assistant',
-        content: `Hola${perfil?.nombre ? ` ${perfil.nombre.split(' ')[0]}` : ''}! Soy **KAI**, tu asistente de campañas.\n\nVamos a crear tu campaña paso a paso. Empecemos:\n\n**Cual es el nombre de tu cliente o campaña?**\n\n_Ej: "Dra. Garcia — Captacion Mayo"_`,
+        content: perfil?.nombre
+          ? `Hola! Soy **KAI**, tu asistente de campañas.\n\nYa tengo el ADN de **${perfil.nombre}** (${perfil.especialidad ?? 'profesional de salud'}${perfil.nicho ? ` — ${perfil.nicho}` : ''}).\n\nPara crear la campaña solo necesito:\n1. **Nombre de la campaña**\n2. **Presupuesto publicitario**\n3. **Objetivo** (trafico al perfil, mensajes retargeting, o clientes potenciales)\n\nEmpezamos?`
+          : `Hola! Soy **KAI**, tu asistente de campañas.\n\nVamos a crear tu campaña paso a paso.\n\n**Cual es el nombre de tu cliente o campaña?**`,
         timestamp: new Date().toISOString(),
         phase: 'cliente',
       }]);
@@ -100,15 +111,14 @@ export default function NuevaCampanaChat({ userId, perfil, onComplete, onCancel 
   const buildSystemPrompt = (): string => {
     const phaseInstructions: Record<WizardPhase, string> = {
       cliente: `FASE ACTUAL: Cliente (1/6)
-Necesitas recopilar:
-- Nombre del cliente o campaña
-- Especialidad / rubro
-- Ciudad / pais
-- Ticket promedio del servicio
+Ya tenes el ADN del profesional arriba. Usa esos datos.
+Solo necesitas confirmar o completar:
+- Nombre de la campaña (sugerir uno basado en el nicho)
+- Ticket promedio del servicio (si no esta en las ofertas)
 - Presupuesto publicitario disponible
-- Objetivo principal (trafico, retargeting, leads)
+- Objetivo principal (trafico al perfil, retargeting por mensajes, o clientes potenciales)
 
-Pregunta UNA cosa a la vez. Cuando tengas toda la info, resume lo que entendiste y pregunta si es correcto.
+Resume lo que ya sabes del profesional gracias al ADN y pregunta SOLO lo que falta.
 Cuando el usuario confirme, responde con "FASE COMPLETADA" al final.`,
 
       estrategia: `FASE ACTUAL: Estrategia (2/6)
@@ -168,17 +178,19 @@ Resume la campaña completa con un checklist de configuracion.
 Cuando el usuario confirme que esta listo, responde con "FASE COMPLETADA".`,
     };
 
+    const adnBlock = perfil ? adnContext(perfil) : '';
+
     return `Eres KAI, un experto en Meta Ads para profesionales de la salud.
 Tu rol es guiar al usuario en la creacion de una campaña, fase por fase.
 
-PROFESIONAL:
-- Nombre: ${perfil?.nombre ?? 'Profesional'}
-- Especialidad: ${perfil?.especialidad ?? 'salud'}
-- Nicho: ${perfil?.nicho ?? 'no definido'}
+${adnBlock}
 
 ${phaseInstructions[currentPhase]}
 
 REGLAS:
+- IMPORTANTE: Ya tenes toda la info del ADN del profesional arriba. NO preguntes datos que ya conoces (nombre, especialidad, nicho, avatar, dolores, metodo, ofertas, etc.)
+- Si la fase requiere datos que ya tenes del ADN, usalos directamente y confirma con el usuario
+- Solo pregunta lo que NO esta en el ADN (presupuesto publicitario, nombre especifico de la campaña, etc.)
 - Pregunta UNA cosa a la vez
 - Se conciso pero completo
 - Usa markdown para formatear
