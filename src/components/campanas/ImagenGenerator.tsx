@@ -56,10 +56,13 @@ interface Props {
   angulo?: AnguloCreativo;
   perfil: Partial<ProfileV2>;
   geminiKey?: string;
+  initialFormat?: ImageFormat;
+  initialSlideCount?: number;
+  lockFormat?: boolean;
   onImagesGenerated: (images: { base64: string; mimeType: string; modelUsed: string }[], mode: ImageMode) => void;
 }
 
-export default function ImagenGenerator({ copies, angulo, perfil, geminiKey, onImagesGenerated }: Props) {
+export default function ImagenGenerator({ copies, angulo, perfil, geminiKey, initialFormat, initialSlideCount, lockFormat, onImagesGenerated }: Props) {
   const copyList = copies ?? [];
   const effectiveAngulo: AnguloCreativo = angulo ?? 'directo';
 
@@ -73,7 +76,7 @@ export default function ImagenGenerator({ copies, angulo, perfil, geminiKey, onI
   const [userPrompt, setUserPrompt] = useState('');
 
   // Controls
-  const [format, setFormat] = useState<ImageFormat>('1:1');
+  const [format, setFormat] = useState<ImageFormat>(initialFormat ?? '1:1');
   const [genMode, setGenMode] = useState<ImageGenerationMode>('ia_completa');
   const [estilo, setEstilo] = useState<EstiloVisual>('grafico_bold');
   const [instrucciones, setInstrucciones] = useState('');
@@ -87,7 +90,7 @@ export default function ImagenGenerator({ copies, angulo, perfil, geminiKey, onI
   const [customText, setCustomText] = useState<CustomText>({ h1: '', h2: '', cta: '' });
 
   // Carousel: cantidad de slides (1 = imagen unica, 2-10 = carrusel)
-  const [slideCount, setSlideCount] = useState(1);
+  const [slideCount, setSlideCount] = useState(initialSlideCount ?? 1);
 
   // Carousel slide control (config por slide)
   const [slideConfigs, setSlideConfigs] = useState<SlideConfig[]>([]);
@@ -348,22 +351,24 @@ export default function ImagenGenerator({ copies, angulo, perfil, geminiKey, onI
       </div>
 
       {/* ─── Format selector ─── */}
-      <div>
-        <label className="block text-[10px] font-bold tracking-wider uppercase text-[#FFFFFF]/40 mb-2">
-          Formato
-        </label>
-        <div className="flex flex-wrap gap-1.5">
-          {(Object.entries(IMAGE_FORMAT_OPTIONS) as [ImageFormat, typeof IMAGE_FORMAT_OPTIONS[ImageFormat]][]).map(([key, opt]) => {
-            const isActive = format === key;
-            return (
-              <button key={key} onClick={() => setFormat(key)} className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${isActive ? 'bg-[#F5A623]/15 border-[#F5A623]/40 text-[#F5A623]' : 'border-[#FFFFFF]/10 text-[#FFFFFF]/40 hover:border-[#FFFFFF]/25 hover:text-[#FFFFFF]/60'}`}>
-                {opt.label}
-              </button>
-            );
-          })}
+      {!lockFormat && (
+        <div>
+          <label className="block text-[10px] font-bold tracking-wider uppercase text-[#FFFFFF]/40 mb-2">
+            Formato
+          </label>
+          <div className="flex flex-wrap gap-1.5">
+            {(Object.entries(IMAGE_FORMAT_OPTIONS) as [ImageFormat, typeof IMAGE_FORMAT_OPTIONS[ImageFormat]][]).map(([key, opt]) => {
+              const isActive = format === key;
+              return (
+                <button key={key} onClick={() => setFormat(key)} className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${isActive ? 'bg-[#F5A623]/15 border-[#F5A623]/40 text-[#F5A623]' : 'border-[#FFFFFF]/10 text-[#FFFFFF]/40 hover:border-[#FFFFFF]/25 hover:text-[#FFFFFF]/60'}`}>
+                  {opt.label}
+                </button>
+              );
+            })}
+          </div>
+          <p className="text-[9px] text-[#FFFFFF]/25 mt-1">{IMAGE_FORMAT_OPTIONS[format].descripcion} — {IMAGE_FORMAT_OPTIONS[format].width}x{IMAGE_FORMAT_OPTIONS[format].height}px</p>
         </div>
-        <p className="text-[9px] text-[#FFFFFF]/25 mt-1">{IMAGE_FORMAT_OPTIONS[format].descripcion} — {IMAGE_FORMAT_OPTIONS[format].width}x{IMAGE_FORMAT_OPTIONS[format].height}px</p>
-      </div>
+      )}
 
       {/* ─── Cantidad de imagenes (single vs carrusel) ─── */}
       {copyList.length <= 1 && (
