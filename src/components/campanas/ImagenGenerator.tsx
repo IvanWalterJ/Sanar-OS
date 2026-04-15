@@ -86,18 +86,30 @@ export default function ImagenGenerator({ copies, angulo, perfil, geminiKey, onI
   // Text mode (single image)
   const [customText, setCustomText] = useState<CustomText>({ h1: '', h2: '', cta: '' });
 
-  // Carousel slide control (only used when copies drive carousel)
+  // Carousel: cantidad de slides (1 = imagen unica, 2-10 = carrusel)
+  const [slideCount, setSlideCount] = useState(1);
+
+  // Carousel slide control (config por slide)
   const [slideConfigs, setSlideConfigs] = useState<SlideConfig[]>([]);
   const [activeConfigSlide, setActiveConfigSlide] = useState(0);
 
+  const totalSlides = copyList.length > 1 ? copyList.length : slideCount;
+
   useEffect(() => {
-    if (copyList.length > 1) {
-      setSlideConfigs(copyList.map(() => ({ textSource: 'ia' as TextSource })));
-      setActiveConfigSlide(0);
+    if (totalSlides > 1) {
+      setSlideConfigs(prev => {
+        const next: SlideConfig[] = [];
+        for (let i = 0; i < totalSlides; i++) {
+          next.push(prev[i] ?? { textSource: 'ia' as TextSource });
+        }
+        return next;
+      });
+      setActiveConfigSlide(a => Math.min(a, totalSlides - 1));
     } else {
       setSlideConfigs([]);
+      setActiveConfigSlide(0);
     }
-  }, [copyList.length]);
+  }, [totalSlides]);
 
   const handleRefUpload = useCallback(async (
     e: React.ChangeEvent<HTMLInputElement>,
@@ -155,7 +167,7 @@ export default function ImagenGenerator({ copies, angulo, perfil, geminiKey, onI
 
   const mode: ImageMode = modeToImageMode(genMode);
   const textSource: TextSource = modeToTextSource(genMode);
-  const isCarousel = copyList.length > 1;
+  const isCarousel = totalSlides > 1;
   const styleGridDisabled = styleRefs.length > 0;
 
   const generate = useCallback(async () => {
@@ -170,12 +182,12 @@ export default function ImagenGenerator({ copies, angulo, perfil, geminiKey, onI
     }
 
     // Validate custom text for single image
-    if (copyList.length <= 1 && genMode === 'texto_personalizado') {
+    if (!isCarousel && genMode === 'texto_personalizado') {
       if (!customText.h1.trim() || !customText.h2.trim() || !customText.cta.trim()) {
         toast.error('Completa al menos Titulo, Subtitulo y CTA'); return;
       }
     }
-    if (copyList.length > 1) {
+    if (isCarousel) {
       const invalid = slideConfigs.findIndex(
         cfg => cfg.textSource === 'personalizado' && (!cfg.customText?.h1?.trim() || !cfg.customText?.h2?.trim() || !cfg.customText?.cta?.trim())
       );
@@ -204,7 +216,7 @@ export default function ImagenGenerator({ copies, angulo, perfil, geminiKey, onI
     };
 
     try {
-      if (copyList.length <= 1) {
+      if (!isCarousel) {
         const effectiveCustomText = genMode === 'texto_personalizado' ? customText : undefined;
         const copyForPrompt = copyList[0] ?? null;
         const prompt = buildImagePrompt(copyForPrompt, effectiveAngulo, perfil, undefined, {
@@ -217,13 +229,17 @@ export default function ImagenGenerator({ copies, angulo, perfil, geminiKey, onI
         onImagesGenerated(imgs, mode);
         toast.success(`Imagen generada con ${result.modelName}`);
       } else {
-        const prompts = copyList.map((c, i) => {
+        const prompts = Array.from({ length: totalSlides }).map((_, i) => {
+          const copyForSlide = copyList[i] ?? null;
           const cfg = slideConfigs[i] ?? { textSource: 'ia' };
           const slideCustomText = cfg.textSource === 'personalizado' ? cfg.customText : undefined;
-          return buildImagePrompt(c, effectiveAngulo, perfil, {
+          const slideTexto = slideCustomText
+            ? slideCustomText.h1
+            : copyForSlide?.titulo ?? userPrompt.trim() ?? '';
+          return buildImagePrompt(copyForSlide, effectiveAngulo, perfil, {
             slideNumber: i + 1,
-            totalSlides: copyList.length,
-            slideTexto: slideCustomText ? slideCustomText.h1 : c.titulo,
+            totalSlides,
+            slideTexto,
           }, {
             ...baseOpts,
             customText: slideCustomText,
@@ -245,7 +261,7 @@ export default function ImagenGenerator({ copies, angulo, perfil, geminiKey, onI
       setGenerating(false);
       setProgress(null);
     }
-  }, [copyList, effectiveAngulo, perfil, geminiKey, onImagesGenerated, estilo, mode, genMode, instrucciones, characterRefs, styleRefs, customText, slideConfigs, format, userPrompt, textSource]);
+  }, [copyList, effectiveAngulo, perfil, geminiKey, onImagesGenerated, estilo, mode, genMode, instrucciones, characterRefs, styleRefs, customText, slideConfigs, format, userPrompt, textSource, isCarousel, totalSlides]);
 
   return (
     <div className="space-y-3">
@@ -349,9 +365,38 @@ export default function ImagenGenerator({ copies, angulo, perfil, geminiKey, onI
         <p className="text-[9px] text-[#FFFFFF]/25 mt-1">{IMAGE_FORMAT_OPTIONS[format].descripcion} — {IMAGE_FORMAT_OPTIONS[format].width}x{IMAGE_FORMAT_OPTIONS[format].height}px</p>
       </div>
 
-      {/* ─── Unified mode selector (IA Completa / Texto personalizado / Solo fondo) ─── */}
-      {!isCarousel && (
+      {/* ─── Cantidad de imagenes (single vs carrusel) ─── */}
+      {copyList.length <= 1 && (
         <div>
+          <label className="block text-[10px] font-bold tracking-wider uppercase text-[#FFFFFF]/40 mb-2">
+            Cantidad de imagenes
+          </label>
+          <div className="flex flex-wrap gap-1.5">
+            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => {
+              const isActive = slideCount === n;
+              return (
+                <button
+                  key={n}
+                  onClick={() => setSlideCount(n)}
+                  className={`w-9 h-9 rounded-lg text-xs font-semibold border transition-all ${
+                    isActive
+                      ? 'bg-[#F5A623]/15 border-[#F5A623]/40 text-[#F5A623]'
+                      : 'border-[#FFFFFF]/10 text-[#FFFFFF]/40 hover:border-[#FFFFFF]/25 hover:text-[#FFFFFF]/60'
+                  }`}
+                >
+                  {n}
+                </button>
+              );
+            })}
+          </div>
+          <p className="text-[9px] text-[#FFFFFF]/25 mt-1">
+            {slideCount === 1 ? 'Una imagen' : `Carrusel de ${slideCount} slides — consistencia visual entre slides`}
+          </p>
+        </div>
+      )}
+
+      {/* ─── Unified mode selector (IA Completa / Texto personalizado / Solo fondo) ─── */}
+      <div>
           <label className="block text-[10px] font-bold tracking-wider uppercase text-[#FFFFFF]/40 mb-2">
             Modo de generacion
           </label>
@@ -378,8 +423,12 @@ export default function ImagenGenerator({ copies, angulo, perfil, geminiKey, onI
               <p className="text-[9px] text-[#FFFFFF]/30 leading-tight">Sin texto — lo agregas vos despues</p>
             </button>
           </div>
+          {isCarousel && genMode === 'texto_personalizado' && (
+            <p className="text-[9px] text-[#FFFFFF]/40 mt-1.5">
+              Configura el texto de cada slide abajo en "Control por slide"
+            </p>
+          )}
         </div>
-      )}
 
       {/* ─── Style gallery (disabled when style refs uploaded) ─── */}
       <div className={styleGridDisabled ? 'opacity-40' : ''}>
@@ -439,7 +488,7 @@ export default function ImagenGenerator({ copies, angulo, perfil, geminiKey, onI
           </div>
 
           <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-hide">
-            {copyList.map((_, idx) => (
+            {Array.from({ length: totalSlides }).map((_, idx) => (
               <button key={idx} onClick={() => setActiveConfigSlide(idx)} className={`px-3 py-1.5 rounded-lg text-xs font-medium shrink-0 transition-all ${activeConfigSlide === idx ? 'bg-[#F5A623]/15 text-[#F5A623] border border-[#F5A623]/30' : 'bg-[#FFFFFF]/5 text-[#FFFFFF]/30 hover:text-[#FFFFFF]/50 border border-transparent'}`}>
                 Slide {idx + 1}
               </button>
@@ -502,7 +551,7 @@ export default function ImagenGenerator({ copies, angulo, perfil, geminiKey, onI
       <button onClick={generate} disabled={generating} className="w-full btn-primary flex items-center justify-center gap-2 disabled:opacity-40">
         {generating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
         {generating
-          ? isCarousel ? `Generando slide ${currentSlide + 1} de ${copyList.length}...` : 'Generando imagen...'
+          ? isCarousel ? `Generando slide ${currentSlide + 1} de ${totalSlides}...` : 'Generando imagen...'
           : images.length > 0 ? 'Regenerar' : mode === 'fondo' ? 'Generar fondo' : 'Generar imagen'}
       </button>
 
