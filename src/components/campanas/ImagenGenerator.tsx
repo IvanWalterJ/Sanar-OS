@@ -178,25 +178,29 @@ export default function ImagenGenerator({ copies, angulo, perfil, geminiKey, ini
   const generate = useCallback(async () => {
     if (!geminiKey) { toast.error('API key de Gemini no configurada'); return; }
 
-    // New: no hard dependency on copies. Require EITHER userPrompt OR custom text OR copies.
-    const hasAnyInput = userPrompt.trim().length > 0 || copyList.length > 0 ||
-      (genMode === 'texto_personalizado' && (customText.h1.trim() || customText.h2.trim() || customText.cta.trim()));
+    // Hay input valido si: tema escrito, copies, custom text con H1, o imagenes de referencia.
+    const hasAnyInput =
+      userPrompt.trim().length > 0 ||
+      copyList.length > 0 ||
+      characterRefs.length > 0 ||
+      styleRefs.length > 0 ||
+      (genMode === 'texto_personalizado' && customText.h1.trim().length > 0);
     if (!hasAnyInput) {
-      toast.error('Describi que queres en la imagen (o completa el texto personalizado)');
+      toast.error('Escribi un tema, sumi una imagen de referencia o completa el texto personalizado');
       return;
     }
 
-    // Validate custom text for single image
+    // Validate custom text for single image: solo H1 obligatorio
     if (!isCarousel && genMode === 'texto_personalizado') {
-      if (!customText.h1.trim() || !customText.h2.trim() || !customText.cta.trim()) {
-        toast.error('Completa al menos Titulo, Subtitulo y CTA'); return;
+      if (!customText.h1.trim()) {
+        toast.error('Completa al menos el H1 (titulo principal)'); return;
       }
     }
     if (isCarousel) {
       const invalid = slideConfigs.findIndex(
-        cfg => cfg.textSource === 'personalizado' && (!cfg.customText?.h1?.trim() || !cfg.customText?.h2?.trim() || !cfg.customText?.cta?.trim())
+        cfg => cfg.textSource === 'personalizado' && !cfg.customText?.h1?.trim()
       );
-      if (invalid >= 0) { toast.error(`Completa Titulo, Subtitulo y CTA en slide ${invalid + 1}`); return; }
+      if (invalid >= 0) { toast.error(`Completa al menos el H1 (titulo) en slide ${invalid + 1}`); return; }
     }
 
     setGenerating(true);
@@ -319,16 +323,16 @@ export default function ImagenGenerator({ copies, angulo, perfil, geminiKey, ini
 
   return (
     <div className="space-y-3">
-      {/* ─── Prompt libre (input principal) ─── */}
+      {/* ─── Tema / contexto del contenido (input principal) ─── */}
       <div>
         <label className="block text-[10px] font-bold tracking-wider uppercase text-[#FFFFFF]/40 mb-2">
-          ¿Que queres en la imagen?
+          Tema o contexto del contenido <span className="text-[#FFFFFF]/25 normal-case font-normal tracking-normal">— opcional, no se usa como descripcion literal</span>
         </label>
         <textarea
           value={userPrompt}
           onChange={(e) => setUserPrompt(e.target.value)}
           rows={3}
-          placeholder="Ej: Una mujer de 35 años leyendo un libro en un sillon, luz calida de mañana, ambiente minimalista"
+          placeholder="Ej: estres en profesionales de la salud, transicion de carrera a las 40, importancia del descanso. Si subis una referencia visual, ese estilo manda — esto solo orienta el angulo del contenido."
           className="w-full bg-black/20 border border-[rgba(245,166,35,0.25)] rounded-xl p-3 text-[#FFFFFF] text-sm focus:border-[#F5A623]/60 focus:ring-1 focus:ring-[#F5A623]/30 transition-all placeholder-[#FFFFFF]/20 resize-none"
         />
       </div>
@@ -513,7 +517,7 @@ export default function ImagenGenerator({ copies, angulo, perfil, geminiKey, ini
             <input type="text" value={customText.h1} onChange={(e) => setCustomText(prev => ({ ...prev, h1: e.target.value }))} placeholder="Tu titulo principal..." className="w-full mt-1 bg-black/20 border border-[rgba(245,166,35,0.2)] rounded-xl px-3 py-2.5 text-[#FFFFFF] text-sm focus:border-[#F5A623]/50 focus:ring-1 focus:ring-[#F5A623]/30 placeholder-[#FFFFFF]/20" />
           </div>
           <div>
-            <label className="text-[10px] font-bold text-[#FFFFFF]/50 uppercase tracking-wider">H2 — Subtitulo *</label>
+            <label className="text-[10px] font-bold text-[#FFFFFF]/50 uppercase tracking-wider">H2 — Subtitulo (opcional)</label>
             <input type="text" value={customText.h2} onChange={(e) => setCustomText(prev => ({ ...prev, h2: e.target.value }))} placeholder="Subtitulo..." className="w-full mt-1 bg-black/20 border border-[rgba(245,166,35,0.2)] rounded-xl px-3 py-2.5 text-[#FFFFFF] text-sm focus:border-[#F5A623]/50 focus:ring-1 focus:ring-[#F5A623]/30 placeholder-[#FFFFFF]/20" />
           </div>
           <div>
@@ -521,7 +525,7 @@ export default function ImagenGenerator({ copies, angulo, perfil, geminiKey, ini
             <input type="text" value={customText.h3 ?? ''} onChange={(e) => setCustomText(prev => ({ ...prev, h3: e.target.value || undefined }))} placeholder="Texto adicional..." className="w-full mt-1 bg-black/20 border border-[rgba(245,166,35,0.15)] rounded-xl px-3 py-2.5 text-[#FFFFFF] text-sm focus:border-[#F5A623]/50 focus:ring-1 focus:ring-[#F5A623]/30 placeholder-[#FFFFFF]/20" />
           </div>
           <div>
-            <label className="text-[10px] font-bold text-[#F5A623] uppercase tracking-wider">CTA — Boton *</label>
+            <label className="text-[10px] font-bold text-[#F5A623] uppercase tracking-wider">CTA — Boton (opcional)</label>
             <input type="text" value={customText.cta} onChange={(e) => setCustomText(prev => ({ ...prev, cta: e.target.value }))} placeholder="Ej: Reserva tu lugar" className="w-full mt-1 bg-black/20 border border-[#F5A623]/30 rounded-xl px-3 py-2.5 text-[#F5A623] text-sm font-semibold focus:border-[#F5A623]/50 focus:ring-1 focus:ring-[#F5A623]/30 placeholder-[#F5A623]/20" />
           </div>
         </div>
@@ -568,7 +572,7 @@ export default function ImagenGenerator({ copies, angulo, perfil, geminiKey, ini
                   <input type="text" value={slideConfigs[activeConfigSlide]?.customText?.h1 ?? ''} onChange={(e) => updateSlideCustomText(activeConfigSlide, 'h1', e.target.value)} placeholder="Titulo del slide..." className="w-full mt-1 bg-black/20 border border-[rgba(245,166,35,0.2)] rounded-xl px-3 py-2 text-[#FFFFFF] text-xs focus:border-[#F5A623]/50 placeholder-[#FFFFFF]/20" />
                 </div>
                 <div>
-                  <label className="text-[10px] font-bold text-[#FFFFFF]/50 uppercase tracking-wider">H2 *</label>
+                  <label className="text-[10px] font-bold text-[#FFFFFF]/50 uppercase tracking-wider">H2 (opcional)</label>
                   <input type="text" value={slideConfigs[activeConfigSlide]?.customText?.h2 ?? ''} onChange={(e) => updateSlideCustomText(activeConfigSlide, 'h2', e.target.value)} placeholder="Subtitulo..." className="w-full mt-1 bg-black/20 border border-[rgba(245,166,35,0.2)] rounded-xl px-3 py-2 text-[#FFFFFF] text-xs focus:border-[#F5A623]/50 placeholder-[#FFFFFF]/20" />
                 </div>
                 <div>
@@ -576,7 +580,7 @@ export default function ImagenGenerator({ copies, angulo, perfil, geminiKey, ini
                   <input type="text" value={slideConfigs[activeConfigSlide]?.customText?.h3 ?? ''} onChange={(e) => updateSlideCustomText(activeConfigSlide, 'h3', e.target.value)} placeholder="Opcional..." className="w-full mt-1 bg-black/20 border border-[rgba(245,166,35,0.15)] rounded-xl px-3 py-2 text-[#FFFFFF] text-xs focus:border-[#F5A623]/50 placeholder-[#FFFFFF]/20" />
                 </div>
                 <div>
-                  <label className="text-[10px] font-bold text-[#F5A623] uppercase tracking-wider">CTA *</label>
+                  <label className="text-[10px] font-bold text-[#F5A623] uppercase tracking-wider">CTA (opcional)</label>
                   <input type="text" value={slideConfigs[activeConfigSlide]?.customText?.cta ?? ''} onChange={(e) => updateSlideCustomText(activeConfigSlide, 'cta', e.target.value)} placeholder="Boton de accion..." className="w-full mt-1 bg-black/20 border border-[#F5A623]/30 rounded-xl px-3 py-2 text-[#F5A623] text-xs font-semibold focus:border-[#F5A623]/50 placeholder-[#F5A623]/20" />
                 </div>
               </div>

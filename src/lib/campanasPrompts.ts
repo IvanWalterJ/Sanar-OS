@@ -396,19 +396,30 @@ export function buildImagePrompt(
 
   const estiloPrompt = estilo ? ESTILO_VISUAL_OPTIONS[estilo].prompt : anguloVisual[angulo];
 
-  // Custom text with hierarchy
+  // Custom text with hierarchy — H2 y CTA son opcionales
   const customTextSection = options?.customText
-    ? `TEXTO A INCLUIR EN LA IMAGEN (JERARQUIA OBLIGATORIA):
-- H1 (titulo principal, MAS GRANDE Y BOLD): "${options.customText.h1}"
-- H2 (subtitulo, segundo en jerarquia): "${options.customText.h2}"
-${options.customText.h3 ? `- H3 (texto terciario, mas pequeño): "${options.customText.h3}"` : ''}
-- CTA (boton de accion, debe DESTACAR): "${options.customText.cta}"
-
-JERARQUIA TIPOGRAFICA CRITICA:
-- H1 es lo primero que el ojo ve — tamaño dominante, bold, maximo contraste
-- H2 complementa al H1 — menor tamaño, puede ser lighter
-- CTA debe parecer un BOTON real — fondo de color solido que contraste (ej: #F5A623 dorado), bordes redondeados, texto oscuro sobre fondo claro. Debe gritar "HAZ CLIC"
-- La jerarquia visual debe ser INMEDIATAMENTE clara en 1 segundo`
+    ? (() => {
+        const ct = options.customText!;
+        const h2Trim = ct.h2?.trim();
+        const ctaTrim = ct.cta?.trim();
+        const h3Trim = ct.h3?.trim();
+        const lines = [`- H1 (titulo principal, MAS GRANDE Y BOLD): "${ct.h1}"`];
+        if (h2Trim) lines.push(`- H2 (subtitulo, segundo en jerarquia): "${h2Trim}"`);
+        if (h3Trim) lines.push(`- H3 (texto terciario, mas pequeño): "${h3Trim}"`);
+        if (ctaTrim) lines.push(`- CTA (boton de accion, debe DESTACAR): "${ctaTrim}"`);
+        const jerarquia = [
+          '- H1 es lo primero que el ojo ve — tamaño dominante, bold, maximo contraste',
+        ];
+        if (h2Trim) jerarquia.push('- H2 complementa al H1 — menor tamaño, puede ser lighter');
+        if (ctaTrim) jerarquia.push('- CTA debe parecer un BOTON real — fondo de color solido que contraste (ej: #F5A623 dorado), bordes redondeados, texto oscuro sobre fondo claro. Debe gritar "HAZ CLIC"');
+        jerarquia.push('- La jerarquia visual debe ser INMEDIATAMENTE clara en 1 segundo');
+        const restriction = (!h2Trim && !ctaTrim && !h3Trim)
+          ? '\n\nIMPORTANTE: Renderizar SOLO el H1. NO inventar subtitulos, badges, CTA ni textos adicionales.'
+          : !ctaTrim
+            ? '\n\nIMPORTANTE: NO incluir CTA ni botones — el usuario eligio no incluirlos.'
+            : '';
+        return `TEXTO A INCLUIR EN LA IMAGEN (JERARQUIA OBLIGATORIA):\n${lines.join('\n')}\n\nJERARQUIA TIPOGRAFICA CRITICA:\n${jerarquia.join('\n')}${restriction}`;
+      })()
     : null;
 
   // El texto a renderizar SOLO sale de fuentes explicitas (copy generado, slide texto explicito, o custom text).
@@ -456,8 +467,11 @@ ${tipografiaBlock}`;
 ${tipografiaBlock}`
         : inventaTextoBlock;
 
+  const hasStyleRef = (options?.styleRefCount ?? 0) > 0;
   const userPromptSection = options?.userPrompt?.trim()
-    ? `\nDESCRIPCION DEL USUARIO (que quiere ver en la imagen):\n${options.userPrompt.trim()}\n`
+    ? hasStyleRef
+      ? `\nTEMA / CONTEXTO DEL CONTENIDO (orienta el angulo del mensaje, NO la estetica — la estetica viene de la referencia visual adjunta):\n${options.userPrompt.trim()}\n`
+      : `\nTEMA / CONTEXTO DEL CONTENIDO (orienta el angulo del mensaje, NO descripcion literal de que dibujar):\n${options.userPrompt.trim()}\n`
     : '';
 
   const instruccionesCustom = options?.instrucciones
