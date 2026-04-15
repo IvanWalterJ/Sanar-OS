@@ -2,7 +2,7 @@
  * CampanasSubNav.tsx — Tabs horizontales para navegar modulos de campanas
  */
 import {
-  Home, Target, PenTool, BarChart3, Wrench, FolderOpen, Trophy, ImageIcon,
+  Home, Target, PenTool, BarChart3, Wrench, FolderOpen, Trophy,
 } from 'lucide-react';
 import type { CampanasView } from '../../lib/campanasTypes';
 
@@ -19,7 +19,6 @@ const NAV_ITEMS: NavItem[] = [
   { id: 'copies', label: 'Copies', icon: PenTool },
   { id: 'diagnostico', label: 'Diagnosticar', icon: BarChart3 },
   { id: 'montaje', label: 'Montaje', icon: Wrench },
-  { id: 'creativos', label: 'Creativos', icon: ImageIcon, badge: 'Activo' },
   { id: 'historial', label: 'Historial', icon: FolderOpen },
   { id: 'ganadores', label: 'Ganadores', icon: Trophy },
 ];

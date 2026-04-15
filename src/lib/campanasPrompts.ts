@@ -283,7 +283,7 @@ REGLAS:
 // ─── Prompt para generacion de imagenes ──────────────────────────────────────
 
 export function buildImagePrompt(
-  copy: { texto_principal: string; titulo: string },
+  copy: { texto_principal: string; titulo: string } | null | undefined,
   angulo: AnguloCreativo,
   perfil: Partial<ProfileV2>,
   slideInfo?: { slideNumber: number; totalSlides: number; slideTexto?: string },
@@ -291,8 +291,9 @@ export function buildImagePrompt(
     estilo?: EstiloVisual;
     mode?: ImageMode;
     instrucciones?: string;
-    hasCharacterRef?: boolean;
-    hasStyleRef?: boolean;
+    userPrompt?: string;
+    characterRefCount?: number;
+    styleRefCount?: number;
     customText?: CustomText;
     format?: ImageFormat;
   },
@@ -330,9 +331,10 @@ JERARQUIA TIPOGRAFICA CRITICA:
 - La jerarquia visual debe ser INMEDIATAMENTE clara en 1 segundo`
     : null;
 
+  const fallbackTextoImagen = slideInfo?.slideTexto ?? copy?.titulo ?? options?.userPrompt ?? '';
   const textoSection = mode === 'fondo'
     ? `IMPORTANTE: NO incluir NINGUN texto, letras, palabras, numeros ni tipografia en la imagen. Solo imagen visual pura. La imagen sera usada como fondo y el texto se agrega despues.`
-    : customTextSection ?? `TEXTO A INCLUIR EN LA IMAGEN: "${slideInfo?.slideTexto ?? copy.titulo}"
+    : customTextSection ?? `TEXTO A INCLUIR EN LA IMAGEN: "${fallbackTextoImagen}"
 
 TIPOGRAFIA:
 - Texto principal grande, bold, legible desde el celular
@@ -341,20 +343,26 @@ TIPOGRAFIA:
 - El texto debe DOMINAR la composicion, no ser un detalle pequeno
 - Incluir CTA visual si es relevante`;
 
+  const userPromptSection = options?.userPrompt?.trim()
+    ? `\nDESCRIPCION DEL USUARIO (que quiere ver en la imagen):\n${options.userPrompt.trim()}\n`
+    : '';
+
   const instruccionesCustom = options?.instrucciones
     ? `\nINSTRUCCIONES ESPECIFICAS DEL USUARIO:\n${options.instrucciones}\n`
     : '';
 
-  const characterRefPrompt = options?.hasCharacterRef
-    ? `\nREFERENCIA DE PERSONAJE (imagen adjunta):
-La persona en la imagen generada DEBE verse EXACTAMENTE igual que la persona en la foto de referencia adjunta.
+  const characterCount = options?.characterRefCount ?? 0;
+  const characterRefPrompt = characterCount > 0
+    ? `\nREFERENCIA DE PERSONAJE (${characterCount} ${characterCount === 1 ? 'imagen adjunta' : 'imagenes adjuntas de la MISMA persona desde distintos angulos'}):
+La persona en la imagen generada DEBE verse EXACTAMENTE igual que la persona en ${characterCount === 1 ? 'la foto de referencia' : 'las fotos de referencia'} adjuntas.
 Mismos rasgos faciales, mismo tono de piel, misma edad, misma estructura facial.
-Esto es INNEGOCIABLE — la identidad del personaje debe respetarse al 100%.
+${characterCount > 1 ? 'Usa las multiples fotos para capturar la identidad consistente desde cualquier angulo.\n' : ''}Esto es INNEGOCIABLE — la identidad del personaje debe respetarse al 100%.
 NO cambies la apariencia de esta persona bajo ninguna circunstancia.\n`
     : '';
 
-  const styleRefPrompt = options?.hasStyleRef
-    ? `\nREFERENCIA DE ESTILO VISUAL (imagen adjunta — PRIORIDAD MAXIMA):
+  const styleCount = options?.styleRefCount ?? 0;
+  const styleRefPrompt = styleCount > 0
+    ? `\nREFERENCIA DE ESTILO VISUAL (${styleCount} ${styleCount === 1 ? 'imagen adjunta' : 'imagenes adjuntas de referencia estetica'} — PRIORIDAD MAXIMA):
 REPLICA el diseño de la imagen de referencia de estilo lo mas fielmente posible:
 
 COPIAR EXACTAMENTE:
@@ -382,11 +390,11 @@ El resultado debe verse como si el MISMO diseñador hubiera creado ambas piezas.
 ${isYouTube ? 'Esta portada debe generar CLICKS. El hook visual es CRITICO — el usuario decide en 1 segundo si hace clic o no.' : 'Esta imagen debe FRENAR EL SCROLL. Tiene que ser visualmente tan potente que el usuario deje de scrollear en menos de 1 segundo.'}
 
 NICHO: ${nicho}
-${options?.hasStyleRef ? 'DIRECCION VISUAL: Seguir la referencia de estilo adjunta (ver instrucciones abajo)' : `DIRECCION VISUAL: ${estiloPrompt}`}
+${styleCount > 0 ? 'DIRECCION VISUAL: Seguir la referencia de estilo adjunta (ver instrucciones abajo)' : `DIRECCION VISUAL: ${estiloPrompt}`}
 ANGULO COMUNICACIONAL: ${anguloVisual[angulo]}
-${options?.hasStyleRef ? 'COLORES: Usar la paleta de la referencia de estilo' : `COLORES DE MARCA: ${colores}`}
+${styleCount > 0 ? 'COLORES: Usar la paleta de la referencia de estilo' : `COLORES DE MARCA: ${colores}`}
 TONO: ${tono}
-${characterRefPrompt}${styleRefPrompt}${instruccionesCustom}
+${userPromptSection}${characterRefPrompt}${styleRefPrompt}${instruccionesCustom}
 ${textoSection}
 
 ${slideInfo ? `SLIDE ${slideInfo.slideNumber} de ${slideInfo.totalSlides} (carrusel — mantener consistencia visual entre slides)` : `FORMATO: ${fmtInfo.label} — ${fmtInfo.descripcion}`}

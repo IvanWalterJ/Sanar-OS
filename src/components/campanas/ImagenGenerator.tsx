@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import {
-  Loader2, Sparkles, RotateCcw, AlertTriangle,
+  Loader2, Sparkles, RotateCcw,
   Pencil, Camera, Zap, Heart, Eye, Award, BookOpen,
   ArrowLeftRight, Bell, ChevronDown, ChevronUp,
   Upload, X, User, Palette as PaletteIcon, Type,
@@ -12,10 +12,12 @@ import { buildImagePrompt } from '../../lib/campanasPrompts';
 import type { ImageGenProgress } from '../../lib/campanasImageGen';
 import type {
   CopyGenerado, AnguloCreativo, EstiloVisual, ImageMode, ImageFormat,
-  ReferenceImage, TextSource, CustomText, SlideConfig,
+  ReferenceImage, TextSource, CustomText, SlideConfig, ImageGenerationMode,
 } from '../../lib/campanasTypes';
 import { ESTILO_VISUAL_OPTIONS, IMAGE_FORMAT_OPTIONS } from '../../lib/campanasTypes';
 import type { ProfileV2 } from '../../lib/supabase';
+
+const MAX_REFS = 5;
 
 const ESTILO_ICONS: Record<EstiloVisual, React.ComponentType<{ className?: string }>> = {
   fotografico_profesional: Camera,
@@ -41,61 +43,94 @@ function fileToBase64(file: File): Promise<ReferenceImage> {
   });
 }
 
+function modeToImageMode(m: ImageGenerationMode): ImageMode {
+  return m === 'solo_fondo' ? 'fondo' : 'completa';
+}
+
+function modeToTextSource(m: ImageGenerationMode): TextSource {
+  return m === 'texto_personalizado' ? 'personalizado' : 'ia';
+}
+
 interface Props {
-  copies: CopyGenerado[];
-  angulo: AnguloCreativo;
+  copies?: CopyGenerado[];
+  angulo?: AnguloCreativo;
   perfil: Partial<ProfileV2>;
   geminiKey?: string;
   onImagesGenerated: (images: { base64: string; mimeType: string; modelUsed: string }[], mode: ImageMode) => void;
 }
 
 export default function ImagenGenerator({ copies, angulo, perfil, geminiKey, onImagesGenerated }: Props) {
+  const copyList = copies ?? [];
+  const effectiveAngulo: AnguloCreativo = angulo ?? 'directo';
+
   const [generating, setGenerating] = useState(false);
   const [progress, setProgress] = useState<ImageGenProgress | null>(null);
   const [currentSlide, setCurrentSlide] = useState(0);
   const [images, setImages] = useState<{ base64: string; mimeType: string; modelUsed: string }[]>([]);
   const [previewIdx, setPreviewIdx] = useState(0);
 
+  // Free-text prompt (the main input now)
+  const [userPrompt, setUserPrompt] = useState('');
+
   // Controls
   const [format, setFormat] = useState<ImageFormat>('1:1');
-  const [mode, setMode] = useState<ImageMode>('completa');
+  const [genMode, setGenMode] = useState<ImageGenerationMode>('ia_completa');
   const [estilo, setEstilo] = useState<EstiloVisual>('grafico_bold');
   const [instrucciones, setInstrucciones] = useState('');
   const [showInstrucciones, setShowInstrucciones] = useState(false);
 
-  // Reference images
-  const [characterRef, setCharacterRef] = useState<ReferenceImage | null>(null);
-  const [styleRef, setStyleRef] = useState<ReferenceImage | null>(null);
+  // Reference images (multi, up to 5 each)
+  const [characterRefs, setCharacterRefs] = useState<ReferenceImage[]>([]);
+  const [styleRefs, setStyleRefs] = useState<ReferenceImage[]>([]);
 
   // Text mode (single image)
-  const [textSource, setTextSource] = useState<TextSource>('ia');
   const [customText, setCustomText] = useState<CustomText>({ h1: '', h2: '', cta: '' });
 
-  // Carousel slide control
+  // Carousel slide control (only used when copies drive carousel)
   const [slideConfigs, setSlideConfigs] = useState<SlideConfig[]>([]);
   const [activeConfigSlide, setActiveConfigSlide] = useState(0);
 
-  // Init slide configs when copies change
   useEffect(() => {
-    if (copies.length > 1) {
-      setSlideConfigs(copies.map(() => ({ textSource: 'ia' as TextSource })));
+    if (copyList.length > 1) {
+      setSlideConfigs(copyList.map(() => ({ textSource: 'ia' as TextSource })));
       setActiveConfigSlide(0);
     } else {
       setSlideConfigs([]);
     }
-  }, [copies.length]);
+  }, [copyList.length]);
 
   const handleRefUpload = useCallback(async (
     e: React.ChangeEvent<HTMLInputElement>,
-    setter: (ref: ReferenceImage | null) => void,
+    current: ReferenceImage[],
+    setter: (refs: ReferenceImage[]) => void,
   ) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (!file.type.startsWith('image/')) { toast.error('Solo se permiten imagenes'); return; }
-    if (file.size > 10 * 1024 * 1024) { toast.error('Maximo 10MB por imagen'); return; }
-    const ref = await fileToBase64(file);
-    setter(ref);
+    const files = Array.from(e.target.files ?? []);
+    if (files.length === 0) return;
+
+    const remaining = MAX_REFS - current.length;
+    if (remaining <= 0) {
+      toast.error(`Maximo ${MAX_REFS} imagenes`);
+      e.target.value = '';
+      return;
+    }
+
+    const toProcess = files.slice(0, remaining);
+    if (files.length > remaining) {
+      toast.error(`Solo se agregaron ${remaining} de ${files.length} (maximo ${MAX_REFS})`);
+    }
+
+    const newRefs: ReferenceImage[] = [];
+    for (const file of toProcess) {
+      if (!file.type.startsWith('image/')) { toast.error(`${file.name}: solo imagenes`); continue; }
+      if (file.size > 10 * 1024 * 1024) { toast.error(`${file.name}: maximo 10MB`); continue; }
+      newRefs.push(await fileToBase64(file));
+    }
+    if (newRefs.length > 0) setter([...current, ...newRefs]);
     e.target.value = '';
+  }, []);
+
+  const removeRef = useCallback((refs: ReferenceImage[], setter: (r: ReferenceImage[]) => void, idx: number) => {
+    setter(refs.filter((_, i) => i !== idx));
   }, []);
 
   const updateSlideConfig = useCallback((idx: number, patch: Partial<SlideConfig>) => {
@@ -118,17 +153,29 @@ export default function ImagenGenerator({ copies, angulo, perfil, geminiKey, onI
     });
   }, []);
 
+  const mode: ImageMode = modeToImageMode(genMode);
+  const textSource: TextSource = modeToTextSource(genMode);
+  const isCarousel = copyList.length > 1;
+  const styleGridDisabled = styleRefs.length > 0;
+
   const generate = useCallback(async () => {
     if (!geminiKey) { toast.error('API key de Gemini no configurada'); return; }
-    if (copies.length === 0) { toast.error('Genera el copy primero'); return; }
 
-    // Validate custom text
-    if (copies.length <= 1 && textSource === 'personalizado') {
+    // New: no hard dependency on copies. Require EITHER userPrompt OR custom text OR copies.
+    const hasAnyInput = userPrompt.trim().length > 0 || copyList.length > 0 ||
+      (genMode === 'texto_personalizado' && (customText.h1.trim() || customText.h2.trim() || customText.cta.trim()));
+    if (!hasAnyInput) {
+      toast.error('Describi que queres en la imagen (o completa el texto personalizado)');
+      return;
+    }
+
+    // Validate custom text for single image
+    if (copyList.length <= 1 && genMode === 'texto_personalizado') {
       if (!customText.h1.trim() || !customText.h2.trim() || !customText.cta.trim()) {
         toast.error('Completa al menos Titulo, Subtitulo y CTA'); return;
       }
     }
-    if (copies.length > 1) {
+    if (copyList.length > 1) {
       const invalid = slideConfigs.findIndex(
         cfg => cfg.textSource === 'personalizado' && (!cfg.customText?.h1?.trim() || !cfg.customText?.h2?.trim() || !cfg.customText?.cta?.trim())
       );
@@ -139,26 +186,28 @@ export default function ImagenGenerator({ copies, angulo, perfil, geminiKey, onI
     setImages([]);
     setPreviewIdx(0);
 
-    const refs: ReferenceImages | undefined = (characterRef || styleRef)
+    const refs: ReferenceImages | undefined = (characterRefs.length > 0 || styleRefs.length > 0)
       ? {
-          characterRef: characterRef ? { base64: characterRef.base64, mimeType: characterRef.mimeType } : undefined,
-          styleRef: styleRef ? { base64: styleRef.base64, mimeType: styleRef.mimeType } : undefined,
+          characterRefs: characterRefs.map(r => ({ base64: r.base64, mimeType: r.mimeType })),
+          styleRefs: styleRefs.map(r => ({ base64: r.base64, mimeType: r.mimeType })),
         }
       : undefined;
 
     const baseOpts = {
-      estilo: styleRef ? undefined : estilo,
+      estilo: styleRefs.length > 0 ? undefined : estilo,
       mode,
       instrucciones: instrucciones.trim() || undefined,
-      hasCharacterRef: !!characterRef,
-      hasStyleRef: !!styleRef,
+      userPrompt: userPrompt.trim() || undefined,
+      characterRefCount: characterRefs.length,
+      styleRefCount: styleRefs.length,
       format,
     };
 
     try {
-      if (copies.length === 1) {
-        const effectiveCustomText = textSource === 'personalizado' ? customText : undefined;
-        const prompt = buildImagePrompt(copies[0], angulo, perfil, undefined, {
+      if (copyList.length <= 1) {
+        const effectiveCustomText = genMode === 'texto_personalizado' ? customText : undefined;
+        const copyForPrompt = copyList[0] ?? null;
+        const prompt = buildImagePrompt(copyForPrompt, effectiveAngulo, perfil, undefined, {
           ...baseOpts,
           customText: effectiveCustomText,
         });
@@ -168,12 +217,12 @@ export default function ImagenGenerator({ copies, angulo, perfil, geminiKey, onI
         onImagesGenerated(imgs, mode);
         toast.success(`Imagen generada con ${result.modelName}`);
       } else {
-        const prompts = copies.map((c, i) => {
+        const prompts = copyList.map((c, i) => {
           const cfg = slideConfigs[i] ?? { textSource: 'ia' };
           const slideCustomText = cfg.textSource === 'personalizado' ? cfg.customText : undefined;
-          return buildImagePrompt(c, angulo, perfil, {
+          return buildImagePrompt(c, effectiveAngulo, perfil, {
             slideNumber: i + 1,
-            totalSlides: copies.length,
+            totalSlides: copyList.length,
             slideTexto: slideCustomText ? slideCustomText.h1 : c.titulo,
           }, {
             ...baseOpts,
@@ -196,66 +245,86 @@ export default function ImagenGenerator({ copies, angulo, perfil, geminiKey, onI
       setGenerating(false);
       setProgress(null);
     }
-  }, [copies, angulo, perfil, geminiKey, onImagesGenerated, estilo, mode, instrucciones, characterRef, styleRef, textSource, customText, slideConfigs, format]);
-
-  const hasNoCopy = copies.length === 0;
-  const isCarousel = copies.length > 1;
+  }, [copyList, effectiveAngulo, perfil, geminiKey, onImagesGenerated, estilo, mode, genMode, instrucciones, characterRefs, styleRefs, customText, slideConfigs, format, userPrompt, textSource]);
 
   return (
     <div className="space-y-3">
-      {hasNoCopy && (
-        <div className="flex items-center gap-3 p-4 rounded-xl bg-[#F5A623]/5 border border-[#F5A623]/20">
-          <AlertTriangle className="w-5 h-5 text-[#F5A623] shrink-0" />
-          <p className="text-sm text-[#FFFFFF]/60">Genera el copy primero</p>
-        </div>
-      )}
-
-      {/* ─── Reference Images ─── */}
+      {/* ─── Prompt libre (input principal) ─── */}
       <div>
         <label className="block text-[10px] font-bold tracking-wider uppercase text-[#FFFFFF]/40 mb-2">
-          Imagenes de referencia (opcional)
+          ¿Que queres en la imagen?
+        </label>
+        <textarea
+          value={userPrompt}
+          onChange={(e) => setUserPrompt(e.target.value)}
+          rows={3}
+          placeholder="Ej: Una mujer de 35 años leyendo un libro en un sillon, luz calida de mañana, ambiente minimalista"
+          className="w-full bg-black/20 border border-[rgba(245,166,35,0.25)] rounded-xl p-3 text-[#FFFFFF] text-sm focus:border-[#F5A623]/60 focus:ring-1 focus:ring-[#F5A623]/30 transition-all placeholder-[#FFFFFF]/20 resize-none"
+        />
+      </div>
+
+      {/* ─── Reference Images (multi, up to 5 each) ─── */}
+      <div>
+        <label className="block text-[10px] font-bold tracking-wider uppercase text-[#FFFFFF]/40 mb-2">
+          Imagenes de referencia (opcional — hasta {MAX_REFS} por tipo)
         </label>
         <div className="grid grid-cols-2 gap-3">
-          {/* Character ref */}
-          <div className="card-panel p-2.5 space-y-1.5">
-            <div className="flex items-center gap-1.5">
-              <User className="w-3.5 h-3.5 text-[#FFFFFF]/40" />
-              <span className="text-[10px] font-semibold text-[#FFFFFF]/70">Personaje</span>
-            </div>
-            {characterRef ? (
-              <div className="relative">
-                <img src={`data:${characterRef.mimeType};base64,${characterRef.base64}`} className="w-full h-20 object-cover rounded-lg" alt="Ref personaje" />
-                <button onClick={() => setCharacterRef(null)} className="absolute top-1 right-1 p-0.5 rounded-full bg-black/60 text-white hover:bg-red-500/80 transition-colors">
-                  <X className="w-3 h-3" />
-                </button>
+          {/* Character refs */}
+          <div className="card-panel p-2.5 space-y-2">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1.5">
+                <User className="w-3.5 h-3.5 text-[#FFFFFF]/40" />
+                <span className="text-[10px] font-semibold text-[#FFFFFF]/70">Personaje</span>
               </div>
-            ) : (
-              <label className="flex items-center justify-center gap-2 p-3 border border-dashed border-[#FFFFFF]/10 rounded-lg cursor-pointer hover:border-[#F5A623]/30 transition-colors">
+              <span className="text-[9px] text-[#FFFFFF]/30">{characterRefs.length}/{MAX_REFS}</span>
+            </div>
+            {characterRefs.length > 0 && (
+              <div className="grid grid-cols-3 gap-1.5">
+                {characterRefs.map((ref, idx) => (
+                  <div key={idx} className="relative">
+                    <img src={`data:${ref.mimeType};base64,${ref.base64}`} className="w-full h-14 object-cover rounded-md" alt={`Ref personaje ${idx + 1}`} />
+                    <button onClick={() => removeRef(characterRefs, setCharacterRefs, idx)} className="absolute top-0.5 right-0.5 p-0.5 rounded-full bg-black/70 text-white hover:bg-red-500/80 transition-colors">
+                      <X className="w-2.5 h-2.5" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+            {characterRefs.length < MAX_REFS && (
+              <label className="flex items-center justify-center gap-2 p-2.5 border border-dashed border-[#FFFFFF]/10 rounded-lg cursor-pointer hover:border-[#F5A623]/30 transition-colors">
                 <Upload className="w-4 h-4 text-[#FFFFFF]/20" />
                 <span className="text-[10px] text-[#FFFFFF]/30">Subir foto</span>
-                <input type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={(e) => handleRefUpload(e, setCharacterRef)} />
+                <input type="file" multiple accept="image/jpeg,image/png,image/webp" className="hidden" onChange={(e) => handleRefUpload(e, characterRefs, setCharacterRefs)} />
               </label>
             )}
           </div>
 
-          {/* Style ref */}
-          <div className="card-panel p-2.5 space-y-1.5">
-            <div className="flex items-center gap-1.5">
-              <PaletteIcon className="w-3.5 h-3.5 text-[#FFFFFF]/40" />
-              <span className="text-[10px] font-semibold text-[#FFFFFF]/70">Estilo de diseño</span>
-            </div>
-            {styleRef ? (
-              <div className="relative">
-                <img src={`data:${styleRef.mimeType};base64,${styleRef.base64}`} className="w-full h-20 object-cover rounded-lg" alt="Ref estilo" />
-                <button onClick={() => setStyleRef(null)} className="absolute top-1 right-1 p-0.5 rounded-full bg-black/60 text-white hover:bg-red-500/80 transition-colors">
-                  <X className="w-3 h-3" />
-                </button>
+          {/* Style refs */}
+          <div className="card-panel p-2.5 space-y-2">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1.5">
+                <PaletteIcon className="w-3.5 h-3.5 text-[#FFFFFF]/40" />
+                <span className="text-[10px] font-semibold text-[#FFFFFF]/70">Estilo de diseño</span>
               </div>
-            ) : (
-              <label className="flex items-center justify-center gap-2 p-3 border border-dashed border-[#FFFFFF]/10 rounded-lg cursor-pointer hover:border-[#F5A623]/30 transition-colors">
+              <span className="text-[9px] text-[#FFFFFF]/30">{styleRefs.length}/{MAX_REFS}</span>
+            </div>
+            {styleRefs.length > 0 && (
+              <div className="grid grid-cols-3 gap-1.5">
+                {styleRefs.map((ref, idx) => (
+                  <div key={idx} className="relative">
+                    <img src={`data:${ref.mimeType};base64,${ref.base64}`} className="w-full h-14 object-cover rounded-md" alt={`Ref estilo ${idx + 1}`} />
+                    <button onClick={() => removeRef(styleRefs, setStyleRefs, idx)} className="absolute top-0.5 right-0.5 p-0.5 rounded-full bg-black/70 text-white hover:bg-red-500/80 transition-colors">
+                      <X className="w-2.5 h-2.5" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+            {styleRefs.length < MAX_REFS && (
+              <label className="flex items-center justify-center gap-2 p-2.5 border border-dashed border-[#FFFFFF]/10 rounded-lg cursor-pointer hover:border-[#F5A623]/30 transition-colors">
                 <Upload className="w-4 h-4 text-[#FFFFFF]/20" />
                 <span className="text-[10px] text-[#FFFFFF]/30">Subir diseño</span>
-                <input type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={(e) => handleRefUpload(e, setStyleRef)} />
+                <input type="file" multiple accept="image/jpeg,image/png,image/webp" className="hidden" onChange={(e) => handleRefUpload(e, styleRefs, setStyleRefs)} />
               </label>
             )}
           </div>
@@ -280,98 +349,81 @@ export default function ImagenGenerator({ copies, angulo, perfil, geminiKey, onI
         <p className="text-[9px] text-[#FFFFFF]/25 mt-1">{IMAGE_FORMAT_OPTIONS[format].descripcion} — {IMAGE_FORMAT_OPTIONS[format].width}x{IMAGE_FORMAT_OPTIONS[format].height}px</p>
       </div>
 
-      {/* ─── Mode selector ─── */}
-      <div>
+      {/* ─── Unified mode selector (IA Completa / Texto personalizado / Solo fondo) ─── */}
+      {!isCarousel && (
+        <div>
+          <label className="block text-[10px] font-bold tracking-wider uppercase text-[#FFFFFF]/40 mb-2">
+            Modo de generacion
+          </label>
+          <div className="grid grid-cols-3 gap-2">
+            <button onClick={() => setGenMode('ia_completa')} className={`card-panel p-2.5 text-left transition-all ${genMode === 'ia_completa' ? 'border-[#F5A623]/50 bg-[#F5A623]/5' : 'hover:border-[#F5A623]/30'}`}>
+              <div className="flex items-center gap-1.5 mb-0.5">
+                <Sparkles className={`w-3.5 h-3.5 ${genMode === 'ia_completa' ? 'text-[#F5A623]' : 'text-[#FFFFFF]/40'}`} />
+                <span className={`text-xs font-semibold ${genMode === 'ia_completa' ? 'text-[#F5A623]' : 'text-[#FFFFFF]'}`}>IA Completa</span>
+              </div>
+              <p className="text-[9px] text-[#FFFFFF]/30 leading-tight">La IA elige el texto segun tu prompt y angulo</p>
+            </button>
+            <button onClick={() => setGenMode('texto_personalizado')} className={`card-panel p-2.5 text-left transition-all ${genMode === 'texto_personalizado' ? 'border-[#F5A623]/50 bg-[#F5A623]/5' : 'hover:border-[#F5A623]/30'}`}>
+              <div className="flex items-center gap-1.5 mb-0.5">
+                <Type className={`w-3.5 h-3.5 ${genMode === 'texto_personalizado' ? 'text-[#F5A623]' : 'text-[#FFFFFF]/40'}`} />
+                <span className={`text-xs font-semibold ${genMode === 'texto_personalizado' ? 'text-[#F5A623]' : 'text-[#FFFFFF]'}`}>Texto personalizado</span>
+              </div>
+              <p className="text-[9px] text-[#FFFFFF]/30 leading-tight">Vos escribis el texto que va en la imagen</p>
+            </button>
+            <button onClick={() => setGenMode('solo_fondo')} className={`card-panel p-2.5 text-left transition-all ${genMode === 'solo_fondo' ? 'border-[#F5A623]/50 bg-[#F5A623]/5' : 'hover:border-[#F5A623]/30'}`}>
+              <div className="flex items-center gap-1.5 mb-0.5">
+                <Pencil className={`w-3.5 h-3.5 ${genMode === 'solo_fondo' ? 'text-[#F5A623]' : 'text-[#FFFFFF]/40'}`} />
+                <span className={`text-xs font-semibold ${genMode === 'solo_fondo' ? 'text-[#F5A623]' : 'text-[#FFFFFF]'}`}>Solo fondo</span>
+              </div>
+              <p className="text-[9px] text-[#FFFFFF]/30 leading-tight">Sin texto — lo agregas vos despues</p>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ─── Style gallery (disabled when style refs uploaded) ─── */}
+      <div className={styleGridDisabled ? 'opacity-40' : ''}>
         <label className="block text-[10px] font-bold tracking-wider uppercase text-[#FFFFFF]/40 mb-2">
-          Modo de generacion
+          Estilo visual {styleGridDisabled && <span className="text-[9px] font-normal normal-case tracking-normal text-[#FFFFFF]/30">— desactivado (hay referencia de estilo cargada)</span>}
         </label>
-        <div className="grid grid-cols-2 gap-3">
-          <button onClick={() => setMode('completa')} className={`card-panel p-2.5 text-left transition-all ${mode === 'completa' ? 'border-[#F5A623]/50 bg-[#F5A623]/5' : 'hover:border-[#F5A623]/30'}`}>
-            <div className="flex items-center gap-2">
-              <Sparkles className={`w-3.5 h-3.5 ${mode === 'completa' ? 'text-[#F5A623]' : 'text-[#FFFFFF]/40'}`} />
-              <span className={`text-xs font-semibold ${mode === 'completa' ? 'text-[#F5A623]' : 'text-[#FFFFFF]'}`}>IA Completa</span>
-              <span className="text-[9px] text-[#FFFFFF]/25">con texto</span>
-            </div>
-          </button>
-          <button onClick={() => setMode('fondo')} className={`card-panel p-2.5 text-left transition-all ${mode === 'fondo' ? 'border-[#F5A623]/50 bg-[#F5A623]/5' : 'hover:border-[#F5A623]/30'}`}>
-            <div className="flex items-center gap-2">
-              <Pencil className={`w-3.5 h-3.5 ${mode === 'fondo' ? 'text-[#F5A623]' : 'text-[#FFFFFF]/40'}`} />
-              <span className={`text-xs font-semibold ${mode === 'fondo' ? 'text-[#F5A623]' : 'text-[#FFFFFF]'}`}>Fondo + Editor</span>
-              <span className="text-[9px] text-[#FFFFFF]/25">sin texto</span>
-            </div>
-          </button>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+          {(Object.entries(ESTILO_VISUAL_OPTIONS) as [EstiloVisual, typeof ESTILO_VISUAL_OPTIONS[EstiloVisual]][]).map(([key, opt]) => {
+            const Icon = ESTILO_ICONS[key];
+            const isActive = estilo === key && !styleGridDisabled;
+            return (
+              <button key={key} onClick={() => setEstilo(key)} disabled={styleGridDisabled} className={`p-2 rounded-xl border text-left transition-all disabled:cursor-not-allowed ${isActive ? 'border-[#F5A623]/50 bg-[#F5A623]/10' : 'border-[#FFFFFF]/5 hover:border-[#F5A623]/25 hover:bg-[#FFFFFF]/[0.02]'}`}>
+                <Icon className={`w-3.5 h-3.5 mb-0.5 ${isActive ? 'text-[#F5A623]' : 'text-[#FFFFFF]/30'}`} />
+                <div className={`text-[10px] font-semibold leading-tight ${isActive ? 'text-[#F5A623]' : 'text-[#FFFFFF]/70'}`}>{opt.titulo}</div>
+              </button>
+            );
+          })}
         </div>
       </div>
 
-      {/* ─── Style gallery (hidden when style reference uploaded) ─── */}
-      {!styleRef && (
-        <div>
-          <label className="block text-[10px] font-bold tracking-wider uppercase text-[#FFFFFF]/40 mb-2">
-            Estilo visual
-          </label>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
-            {(Object.entries(ESTILO_VISUAL_OPTIONS) as [EstiloVisual, typeof ESTILO_VISUAL_OPTIONS[EstiloVisual]][]).map(([key, opt]) => {
-              const Icon = ESTILO_ICONS[key];
-              const isActive = estilo === key;
-              return (
-                <button key={key} onClick={() => setEstilo(key)} className={`p-2 rounded-xl border text-left transition-all ${isActive ? 'border-[#F5A623]/50 bg-[#F5A623]/10' : 'border-[#FFFFFF]/5 hover:border-[#F5A623]/25 hover:bg-[#FFFFFF]/[0.02]'}`}>
-                  <Icon className={`w-3.5 h-3.5 mb-0.5 ${isActive ? 'text-[#F5A623]' : 'text-[#FFFFFF]/30'}`} />
-                  <div className={`text-[10px] font-semibold leading-tight ${isActive ? 'text-[#F5A623]' : 'text-[#FFFFFF]/70'}`}>{opt.titulo}</div>
-                </button>
-              );
-            })}
+      {/* ─── Custom text inputs (single image, texto_personalizado) ─── */}
+      {!isCarousel && genMode === 'texto_personalizado' && (
+        <div className="space-y-2.5 p-4 rounded-xl bg-[#141414] border border-[rgba(245,166,35,0.15)]">
+          <div>
+            <label className="text-[10px] font-bold text-[#F5A623] uppercase tracking-wider">H1 — Titulo *</label>
+            <input type="text" value={customText.h1} onChange={(e) => setCustomText(prev => ({ ...prev, h1: e.target.value }))} placeholder="Tu titulo principal..." className="w-full mt-1 bg-black/20 border border-[rgba(245,166,35,0.2)] rounded-xl px-3 py-2.5 text-[#FFFFFF] text-sm focus:border-[#F5A623]/50 focus:ring-1 focus:ring-[#F5A623]/30 placeholder-[#FFFFFF]/20" />
+          </div>
+          <div>
+            <label className="text-[10px] font-bold text-[#FFFFFF]/50 uppercase tracking-wider">H2 — Subtitulo *</label>
+            <input type="text" value={customText.h2} onChange={(e) => setCustomText(prev => ({ ...prev, h2: e.target.value }))} placeholder="Subtitulo..." className="w-full mt-1 bg-black/20 border border-[rgba(245,166,35,0.2)] rounded-xl px-3 py-2.5 text-[#FFFFFF] text-sm focus:border-[#F5A623]/50 focus:ring-1 focus:ring-[#F5A623]/30 placeholder-[#FFFFFF]/20" />
+          </div>
+          <div>
+            <label className="text-[10px] font-bold text-[#FFFFFF]/30 uppercase tracking-wider">H3 — Terciario (opcional)</label>
+            <input type="text" value={customText.h3 ?? ''} onChange={(e) => setCustomText(prev => ({ ...prev, h3: e.target.value || undefined }))} placeholder="Texto adicional..." className="w-full mt-1 bg-black/20 border border-[rgba(245,166,35,0.15)] rounded-xl px-3 py-2.5 text-[#FFFFFF] text-sm focus:border-[#F5A623]/50 focus:ring-1 focus:ring-[#F5A623]/30 placeholder-[#FFFFFF]/20" />
+          </div>
+          <div>
+            <label className="text-[10px] font-bold text-[#F5A623] uppercase tracking-wider">CTA — Boton *</label>
+            <input type="text" value={customText.cta} onChange={(e) => setCustomText(prev => ({ ...prev, cta: e.target.value }))} placeholder="Ej: Reserva tu lugar" className="w-full mt-1 bg-black/20 border border-[#F5A623]/30 rounded-xl px-3 py-2.5 text-[#F5A623] text-sm font-semibold focus:border-[#F5A623]/50 focus:ring-1 focus:ring-[#F5A623]/30 placeholder-[#F5A623]/20" />
           </div>
         </div>
       )}
 
-      {/* ─── Text Source (single image) ─── */}
-      {!isCarousel && mode === 'completa' && (
-        <div>
-          <label className="block text-[10px] font-bold tracking-wider uppercase text-[#FFFFFF]/40 mb-2">
-            Texto de la imagen
-          </label>
-          <div className="grid grid-cols-2 gap-3">
-            <button onClick={() => setTextSource('ia')} className={`card-panel p-3 text-left transition-all ${textSource === 'ia' ? 'border-[#F5A623]/50 bg-[#F5A623]/5' : 'hover:border-[#F5A623]/30'}`}>
-              <div className="flex items-center gap-2 mb-1">
-                <Sparkles className={`w-4 h-4 ${textSource === 'ia' ? 'text-[#F5A623]' : 'text-[#FFFFFF]/40'}`} />
-                <span className={`text-xs font-semibold ${textSource === 'ia' ? 'text-[#F5A623]' : 'text-[#FFFFFF]'}`}>Texto de IA</span>
-              </div>
-              <p className="text-[10px] text-[#FFFFFF]/30">Usa el copy generado</p>
-            </button>
-            <button onClick={() => setTextSource('personalizado')} className={`card-panel p-3 text-left transition-all ${textSource === 'personalizado' ? 'border-[#F5A623]/50 bg-[#F5A623]/5' : 'hover:border-[#F5A623]/30'}`}>
-              <div className="flex items-center gap-2 mb-1">
-                <Type className={`w-4 h-4 ${textSource === 'personalizado' ? 'text-[#F5A623]' : 'text-[#FFFFFF]/40'}`} />
-                <span className={`text-xs font-semibold ${textSource === 'personalizado' ? 'text-[#F5A623]' : 'text-[#FFFFFF]'}`}>Texto personalizado</span>
-              </div>
-              <p className="text-[10px] text-[#FFFFFF]/30">Escribi tu propio texto</p>
-            </button>
-          </div>
-
-          {textSource === 'personalizado' && (
-            <div className="mt-3 space-y-2.5 p-4 rounded-xl bg-[#141414] border border-[rgba(245,166,35,0.15)]">
-              <div>
-                <label className="text-[10px] font-bold text-[#F5A623] uppercase tracking-wider">H1 — Titulo *</label>
-                <input type="text" value={customText.h1} onChange={(e) => setCustomText(prev => ({ ...prev, h1: e.target.value }))} placeholder="Tu titulo principal..." className="w-full mt-1 bg-black/20 border border-[rgba(245,166,35,0.2)] rounded-xl px-3 py-2.5 text-[#FFFFFF] text-sm focus:border-[#F5A623]/50 focus:ring-1 focus:ring-[#F5A623]/30 placeholder-[#FFFFFF]/20" />
-              </div>
-              <div>
-                <label className="text-[10px] font-bold text-[#FFFFFF]/50 uppercase tracking-wider">H2 — Subtitulo *</label>
-                <input type="text" value={customText.h2} onChange={(e) => setCustomText(prev => ({ ...prev, h2: e.target.value }))} placeholder="Subtitulo..." className="w-full mt-1 bg-black/20 border border-[rgba(245,166,35,0.2)] rounded-xl px-3 py-2.5 text-[#FFFFFF] text-sm focus:border-[#F5A623]/50 focus:ring-1 focus:ring-[#F5A623]/30 placeholder-[#FFFFFF]/20" />
-              </div>
-              <div>
-                <label className="text-[10px] font-bold text-[#FFFFFF]/30 uppercase tracking-wider">H3 — Terciario (opcional)</label>
-                <input type="text" value={customText.h3 ?? ''} onChange={(e) => setCustomText(prev => ({ ...prev, h3: e.target.value || undefined }))} placeholder="Texto adicional..." className="w-full mt-1 bg-black/20 border border-[rgba(245,166,35,0.15)] rounded-xl px-3 py-2.5 text-[#FFFFFF] text-sm focus:border-[#F5A623]/50 focus:ring-1 focus:ring-[#F5A623]/30 placeholder-[#FFFFFF]/20" />
-              </div>
-              <div>
-                <label className="text-[10px] font-bold text-[#F5A623] uppercase tracking-wider">CTA — Boton *</label>
-                <input type="text" value={customText.cta} onChange={(e) => setCustomText(prev => ({ ...prev, cta: e.target.value }))} placeholder="Ej: Reserva tu lugar" className="w-full mt-1 bg-black/20 border border-[#F5A623]/30 rounded-xl px-3 py-2.5 text-[#F5A623] text-sm font-semibold focus:border-[#F5A623]/50 focus:ring-1 focus:ring-[#F5A623]/30 placeholder-[#F5A623]/20" />
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* ─── Carousel Slide Control ─── */}
-      {isCarousel && mode === 'completa' && slideConfigs.length > 0 && (
+      {/* ─── Carousel Slide Control (when copies.length > 1) ─── */}
+      {isCarousel && slideConfigs.length > 0 && (
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <label className="text-[10px] font-bold tracking-wider uppercase text-[#FFFFFF]/40">Control por slide</label>
@@ -387,7 +439,7 @@ export default function ImagenGenerator({ copies, angulo, perfil, geminiKey, onI
           </div>
 
           <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-hide">
-            {copies.map((_, idx) => (
+            {copyList.map((_, idx) => (
               <button key={idx} onClick={() => setActiveConfigSlide(idx)} className={`px-3 py-1.5 rounded-lg text-xs font-medium shrink-0 transition-all ${activeConfigSlide === idx ? 'bg-[#F5A623]/15 text-[#F5A623] border border-[#F5A623]/30' : 'bg-[#FFFFFF]/5 text-[#FFFFFF]/30 hover:text-[#FFFFFF]/50 border border-transparent'}`}>
                 Slide {idx + 1}
               </button>
@@ -425,10 +477,10 @@ export default function ImagenGenerator({ copies, angulo, perfil, geminiKey, onI
               </div>
             )}
 
-            {slideConfigs[activeConfigSlide]?.textSource === 'ia' && copies[activeConfigSlide] && (
+            {slideConfigs[activeConfigSlide]?.textSource === 'ia' && copyList[activeConfigSlide] && (
               <div className="text-xs text-[#FFFFFF]/40 space-y-1">
-                <p><span className="text-[#FFFFFF]/20">Titulo:</span> {copies[activeConfigSlide].titulo}</p>
-                <p><span className="text-[#FFFFFF]/20">CTA:</span> {copies[activeConfigSlide].cta_texto}</p>
+                <p><span className="text-[#FFFFFF]/20">Titulo:</span> {copyList[activeConfigSlide].titulo}</p>
+                <p><span className="text-[#FFFFFF]/20">CTA:</span> {copyList[activeConfigSlide].cta_texto}</p>
               </div>
             )}
           </div>
@@ -447,10 +499,10 @@ export default function ImagenGenerator({ copies, angulo, perfil, geminiKey, onI
       </div>
 
       {/* ─── Generate button ─── */}
-      <button onClick={generate} disabled={generating || hasNoCopy} className="w-full btn-primary flex items-center justify-center gap-2 disabled:opacity-40">
+      <button onClick={generate} disabled={generating} className="w-full btn-primary flex items-center justify-center gap-2 disabled:opacity-40">
         {generating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
         {generating
-          ? isCarousel ? `Generando slide ${currentSlide + 1} de ${copies.length}...` : 'Generando imagen...'
+          ? isCarousel ? `Generando slide ${currentSlide + 1} de ${copyList.length}...` : 'Generando imagen...'
           : images.length > 0 ? 'Regenerar' : mode === 'fondo' ? 'Generar fondo' : 'Generar imagen'}
       </button>
 

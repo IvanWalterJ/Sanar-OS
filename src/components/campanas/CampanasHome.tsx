@@ -2,7 +2,7 @@
  * CampanasHome.tsx — Dashboard home con modulos de acceso directo y campanas recientes
  */
 import {
-  Target, PenTool, BarChart3, Wrench, ImageIcon, FolderOpen, Trophy,
+  Target, PenTool, BarChart3, Wrench, FolderOpen, Trophy,
   Sparkles, ArrowRight, Calendar,
 } from 'lucide-react';
 import type { CampanasView, Campana, Creativo } from '../../lib/campanasTypes';
@@ -40,14 +40,6 @@ const MODULES: ModuleCard[] = [
     title: 'Montaje paso a paso',
     description: 'KAI te guia para configurar en Meta Ads Manager sin errores.',
     badge: 'Activo',
-  },
-  {
-    id: 'creativos',
-    icon: ImageIcon,
-    title: 'Creativos con IA',
-    description: 'Imagenes generadas con IA, listas para Instagram Ads.',
-    badge: 'Beta',
-    badgeColor: '#3B82F6',
   },
   {
     id: 'historial',

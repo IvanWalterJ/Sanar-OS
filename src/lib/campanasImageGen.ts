@@ -35,8 +35,8 @@ export interface ImageGenProgress {
 // ─── Tipo para imagenes de referencia ────────────────────────────────────────
 
 export interface ReferenceImages {
-  characterRef?: { base64: string; mimeType: string };
-  styleRef?: { base64: string; mimeType: string };
+  characterRefs?: { base64: string; mimeType: string }[];
+  styleRefs?: { base64: string; mimeType: string }[];
 }
 
 // ─── Generador principal con cascada ─────────────────────────────────────────
@@ -54,20 +54,14 @@ export async function generateImageWithFallback(
   const parts: { text?: string; inlineData?: { mimeType: string; data: string } }[] = [
     { text: prompt },
   ];
-  if (referenceImages?.characterRef) {
+  for (const ref of referenceImages?.characterRefs ?? []) {
     parts.push({
-      inlineData: {
-        mimeType: referenceImages.characterRef.mimeType,
-        data: referenceImages.characterRef.base64,
-      },
+      inlineData: { mimeType: ref.mimeType, data: ref.base64 },
     });
   }
-  if (referenceImages?.styleRef) {
+  for (const ref of referenceImages?.styleRefs ?? []) {
     parts.push({
-      inlineData: {
-        mimeType: referenceImages.styleRef.mimeType,
-        data: referenceImages.styleRef.base64,
-      },
+      inlineData: { mimeType: ref.mimeType, data: ref.base64 },
     });
   }
 

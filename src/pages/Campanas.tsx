@@ -134,13 +134,22 @@ export default function Campanas({ userId, perfil, geminiKey }: CampanasProps) {
 
       {/* Views */}
       {view === 'home' && (
-        <CampanasHome
-          campanas={campanas}
-          creativos={creativos}
-          perfil={perfil}
-          onNavigate={navigateTo}
-          onSelectCampana={handleSelectCampana}
-        />
+        <>
+          <CampanasHome
+            campanas={campanas}
+            creativos={creativos}
+            perfil={perfil}
+            onNavigate={navigateTo}
+            onSelectCampana={handleSelectCampana}
+          />
+          <div className="mt-12 pt-8 border-t border-[rgba(245,166,35,0.1)]">
+            <CreativosView
+              userId={userId}
+              perfil={perfil}
+              geminiKey={geminiKey}
+            />
+          </div>
+        </>
       )}
 
       {view === 'nueva' && (
@@ -176,14 +185,6 @@ export default function Campanas({ userId, perfil, geminiKey }: CampanasProps) {
         <GanadoresView
           creativos={creativos}
           onSelectCreativo={handleSelectCreativo}
-        />
-      )}
-
-      {view === 'creativos' && (
-        <CreativosView
-          userId={userId}
-          perfil={perfil}
-          geminiKey={geminiKey}
         />
       )}
 

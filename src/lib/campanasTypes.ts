@@ -255,6 +255,8 @@ export interface ReferenceImage {
 
 export type TextSource = 'ia' | 'personalizado';
 
+export type ImageGenerationMode = 'ia_completa' | 'texto_personalizado' | 'solo_fondo';
+
 export interface CustomText {
   h1: string;
   h2: string;
