@@ -4,9 +4,10 @@ import {
   Pencil, Camera, Zap, Heart, Eye, Award, BookOpen,
   ArrowLeftRight, Bell, ChevronDown, ChevronUp,
   Upload, X, User, Palette as PaletteIcon, Type,
+  RefreshCw, Wand2,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { generateImageWithFallback, generateCarouselImages, base64ToDataUrl } from '../../lib/campanasImageGen';
+import { generateImageWithFallback, generateCarouselImages, base64ToDataUrl, editImage } from '../../lib/campanasImageGen';
 import type { ReferenceImages } from '../../lib/campanasImageGen';
 import { buildImagePrompt, buildCarouselNarrativePrompt } from '../../lib/campanasPrompts';
 import type { CarouselNarrative, CarouselConceptoVisual } from '../../lib/campanasPrompts';
@@ -97,6 +98,15 @@ export default function ImagenGenerator({ copies, angulo, perfil, geminiKey, ini
   // Carousel slide control (config por slide)
   const [slideConfigs, setSlideConfigs] = useState<SlideConfig[]>([]);
   const [activeConfigSlide, setActiveConfigSlide] = useState(0);
+
+  // Prompts y refs por slide (para regeneracion individual y edicion)
+  const [slidePrompts, setSlidePrompts] = useState<string[]>([]);
+  const [slideRefsUsed, setSlideRefsUsed] = useState<(ReferenceImages | undefined)[]>([]);
+  const [regeneratingIdx, setRegeneratingIdx] = useState<number | null>(null);
+
+  // Edicion sutil con IA
+  const [editPrompt, setEditPrompt] = useState('');
+  const [editing, setEditing] = useState(false);
 
   const totalSlides = copyList.length > 1 ? copyList.length : slideCount;
 
@@ -235,6 +245,8 @@ export default function ImagenGenerator({ copies, angulo, perfil, geminiKey, ini
         const result = await generateImageWithFallback(geminiKey, prompt, setProgress, refs);
         const imgs = [{ base64: result.imageBase64, mimeType: result.mimeType, modelUsed: result.modelUsed }];
         setImages(imgs);
+        setSlidePrompts([prompt]);
+        setSlideRefsUsed([refs]);
         onImagesGenerated(imgs, mode);
         toast.success(`Imagen generada con ${result.modelName}`);
       } else {
@@ -307,6 +319,8 @@ export default function ImagenGenerator({ copies, angulo, perfil, geminiKey, ini
         }, refs);
         const imgs = results.map((r) => ({ base64: r.imageBase64, mimeType: r.mimeType, modelUsed: r.modelUsed }));
         setImages(imgs);
+        setSlidePrompts(prompts);
+        setSlideRefsUsed(prompts.map(() => refs));
         onImagesGenerated(imgs, mode);
         toast.success(narrative
           ? `${results.length} slides con hilo narrativo generadas`
@@ -320,6 +334,64 @@ export default function ImagenGenerator({ copies, angulo, perfil, geminiKey, ini
       setProgress(null);
     }
   }, [copyList, effectiveAngulo, perfil, geminiKey, onImagesGenerated, estilo, mode, genMode, instrucciones, characterRefs, styleRefs, customText, slideConfigs, format, userPrompt, textSource, isCarousel, totalSlides]);
+
+  // ─── Regenerar UNA sola slide ──────────────────────────────────────────────
+  const regenerateSingle = useCallback(async (idx: number) => {
+    if (!geminiKey) { toast.error('API key de Gemini no configurada'); return; }
+    const prompt = slidePrompts[idx];
+    if (!prompt) { toast.error('No hay prompt guardado para esta slide'); return; }
+
+    setRegeneratingIdx(idx);
+    try {
+      const result = await generateImageWithFallback(geminiKey, prompt, setProgress, slideRefsUsed[idx]);
+      setImages(prev => {
+        const next = [...prev];
+        next[idx] = { base64: result.imageBase64, mimeType: result.mimeType, modelUsed: result.modelUsed };
+        onImagesGenerated(next, mode);
+        return next;
+      });
+      toast.success(`Slide ${idx + 1} regenerada`);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Error desconocido';
+      toast.error(`Error regenerando slide ${idx + 1}: ${msg}`);
+    } finally {
+      setRegeneratingIdx(null);
+      setProgress(null);
+    }
+  }, [geminiKey, slidePrompts, slideRefsUsed, mode, onImagesGenerated]);
+
+  // ─── Edicion sutil con IA ──────────────────────────────────────────────────
+  const applyEdit = useCallback(async () => {
+    if (!geminiKey) { toast.error('API key de Gemini no configurada'); return; }
+    if (!editPrompt.trim()) { toast.error('Describi el cambio que queres aplicar'); return; }
+    if (images.length === 0) return;
+
+    const idx = previewIdx;
+    const baseImg = images[idx];
+    setEditing(true);
+    try {
+      const result = await editImage(
+        geminiKey,
+        { base64: baseImg.base64, mimeType: baseImg.mimeType },
+        editPrompt.trim(),
+        setProgress,
+      );
+      setImages(prev => {
+        const next = [...prev];
+        next[idx] = { base64: result.imageBase64, mimeType: result.mimeType, modelUsed: result.modelUsed };
+        onImagesGenerated(next, mode);
+        return next;
+      });
+      setEditPrompt('');
+      toast.success('Edicion aplicada');
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Error desconocido';
+      toast.error(`Error en la edicion: ${msg}`);
+    } finally {
+      setEditing(false);
+      setProgress(null);
+    }
+  }, [geminiKey, editPrompt, images, previewIdx, mode, onImagesGenerated]);
 
   return (
     <div className="space-y-3">
@@ -645,20 +717,78 @@ export default function ImagenGenerator({ copies, angulo, perfil, geminiKey, ini
           {images.length > 1 && (
             <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
               {images.map((img, idx) => (
-                <button key={idx} onClick={() => setPreviewIdx(idx)} className={`w-16 h-16 rounded-lg overflow-hidden border-2 shrink-0 transition-all ${previewIdx === idx ? 'border-[#F5A623]' : 'border-transparent opacity-60 hover:opacity-100'}`}>
-                  <img src={base64ToDataUrl(img.base64, img.mimeType)} alt={`Slide ${idx + 1}`} className="w-full h-full object-cover" />
-                </button>
+                <div key={idx} className="relative shrink-0 group">
+                  <button
+                    onClick={() => setPreviewIdx(idx)}
+                    className={`w-16 h-16 rounded-lg overflow-hidden border-2 transition-all ${previewIdx === idx ? 'border-[#F5A623]' : 'border-transparent opacity-60 hover:opacity-100'}`}
+                  >
+                    <img src={base64ToDataUrl(img.base64, img.mimeType)} alt={`Pieza ${idx + 1}`} className="w-full h-full object-cover" />
+                  </button>
+                  {slidePrompts[idx] && (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); regenerateSingle(idx); }}
+                      disabled={regeneratingIdx !== null || generating || editing}
+                      title={`Regenerar pieza ${idx + 1}`}
+                      className="absolute -top-1.5 -right-1.5 w-6 h-6 rounded-full bg-[#0F0F0F] border border-[#F5A623]/40 text-[#F5A623] flex items-center justify-center opacity-0 group-hover:opacity-100 hover:bg-[#F5A623]/15 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                      {regeneratingIdx === idx
+                        ? <Loader2 className="w-3 h-3 animate-spin" />
+                        : <RefreshCw className="w-3 h-3" />
+                      }
+                    </button>
+                  )}
+                </div>
               ))}
             </div>
           )}
 
           <div className="relative rounded-xl overflow-hidden border border-[rgba(245,166,35,0.15)] max-w-sm mx-auto">
             <img src={base64ToDataUrl(images[previewIdx].base64, images[previewIdx].mimeType)} alt="Preview" className="w-full object-cover" style={{ aspectRatio: `${IMAGE_FORMAT_OPTIONS[format].width}/${IMAGE_FORMAT_OPTIONS[format].height}` }} />
-            {images.length > 1 && (
-              <div className="absolute top-3 right-3 px-2 py-1 rounded-md bg-black/60 backdrop-blur-sm text-xs text-[#FFFFFF]">{previewIdx + 1} / {images.length}</div>
+            {images.length > 1 && slidePrompts[previewIdx] && (
+              <button
+                onClick={() => regenerateSingle(previewIdx)}
+                disabled={regeneratingIdx !== null || generating || editing}
+                className="absolute top-3 left-3 flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-black/70 backdrop-blur-sm text-xs text-[#F5A623] hover:bg-black/85 border border-[#F5A623]/30 transition-all disabled:opacity-40"
+              >
+                {regeneratingIdx === previewIdx
+                  ? <><Loader2 className="w-3 h-3 animate-spin" /> Regenerando...</>
+                  : <><RefreshCw className="w-3 h-3" /> Regenerar esta</>
+                }
+              </button>
             )}
           </div>
           <p className="text-[10px] text-[#FFFFFF]/30 text-center">Modelo: {images[previewIdx].modelUsed}</p>
+
+          {/* ─── Edicion sutil con IA (Nano Banana edit mode) ─── */}
+          <div className="p-4 rounded-xl bg-[#141414] border border-[rgba(245,166,35,0.15)] space-y-2">
+            <div className="flex items-center gap-2">
+              <Wand2 className="w-3.5 h-3.5 text-[#F5A623]" />
+              <span className="text-[10px] font-bold tracking-wider uppercase text-[#F5A623]">
+                Editar con IA {images.length > 1 ? `(pieza ${previewIdx + 1})` : ''}
+              </span>
+              <span className="text-[9px] text-[#FFFFFF]/30 normal-case font-normal">— retoque sutil, mantiene composicion</span>
+            </div>
+            <textarea
+              value={editPrompt}
+              onChange={(e) => setEditPrompt(e.target.value)}
+              rows={2}
+              placeholder="Ej: quita el logo de la esquina inferior derecha; cambia el color del boton a dorado; borra el icono pequeño del costado izquierdo"
+              className="w-full bg-black/30 border border-[rgba(245,166,35,0.2)] rounded-xl p-2.5 text-[#FFFFFF] text-xs focus:border-[#F5A623]/50 focus:ring-1 focus:ring-[#F5A623]/30 placeholder-[#FFFFFF]/20 resize-none"
+              disabled={editing || regeneratingIdx !== null || generating}
+            />
+            <div className="flex justify-end">
+              <button
+                onClick={applyEdit}
+                disabled={editing || !editPrompt.trim() || regeneratingIdx !== null || generating}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#F5A623]/15 text-[#F5A623] border border-[#F5A623]/40 text-xs font-semibold hover:bg-[#F5A623]/25 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                {editing
+                  ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Aplicando edicion...</>
+                  : <><Wand2 className="w-3.5 h-3.5" /> Aplicar edicion</>
+                }
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

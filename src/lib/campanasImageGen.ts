@@ -129,6 +129,42 @@ export async function generateImageWithFallback(
   );
 }
 
+// ─── Edicion sutil de imagen existente (Nano Banana edit mode) ───────────────
+
+/**
+ * Edita una imagen ya generada con instrucciones precisas.
+ * La imagen original va como input + un prompt de edicion; el modelo devuelve
+ * la misma imagen con SOLO los cambios pedidos (no rehace la imagen entera).
+ */
+export async function editImage(
+  apiKey: string,
+  baseImage: { base64: string; mimeType: string },
+  editInstruction: string,
+  onProgress?: (progress: ImageGenProgress) => void,
+): Promise<ImageGenResult> {
+  const editPrompt = `EDICION SUTIL DE IMAGEN — modo edit/inpainting.
+
+INSTRUCCION DE EDICION DEL USUARIO:
+"${editInstruction.trim()}"
+
+REGLAS CRITICAS:
+- La imagen base esta adjunta como referencia obligatoria.
+- Devolver la MISMA imagen con SOLO el cambio pedido aplicado.
+- Mantener IDENTICOS: composicion, encuadre, iluminacion, paleta, personajes, tipografia, textos que no se hayan pedido cambiar, fondo, todos los demas elementos.
+- NO rehacer la imagen desde cero. NO cambiar el estilo. NO mover elementos que no se hayan pedido mover.
+- Si la instruccion pide quitar algo (logo, icono, elemento), borrarlo limpiamente respetando el fondo que estaba debajo.
+- Si pide cambiar un color, cambiar SOLO ese color, todo lo demas igual.
+- Si pide agregar algo, integrarlo respetando la estetica y la iluminacion existentes.
+- Resultado: la imagen debe verse como si alguien hubiera retocado un detalle en Photoshop, no como una nueva generacion.`;
+
+  return generateImageWithFallback(
+    apiKey,
+    editPrompt,
+    onProgress,
+    { styleRefs: [{ base64: baseImage.base64, mimeType: baseImage.mimeType }] },
+  );
+}
+
 // ─── Generar multiples imagenes para carrusel ────────────────────────────────
 
 export async function generateCarouselImages(

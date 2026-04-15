@@ -396,29 +396,36 @@ export function buildImagePrompt(
 
   const estiloPrompt = estilo ? ESTILO_VISUAL_OPTIONS[estilo].prompt : anguloVisual[angulo];
 
-  // Custom text with hierarchy — H2 y CTA son opcionales
+  // Custom text with hierarchy — H2/H3/CTA opcionales.
+  // CRITICO: los nombres "H1/H2/H3/CTA" son metadata interna — la imagen renderiza SOLO
+  // el contenido entre comillas, NUNCA las etiquetas.
   const customTextSection = options?.customText
     ? (() => {
         const ct = options.customText!;
         const h2Trim = ct.h2?.trim();
         const ctaTrim = ct.cta?.trim();
         const h3Trim = ct.h3?.trim();
-        const lines = [`- H1 (titulo principal, MAS GRANDE Y BOLD): "${ct.h1}"`];
-        if (h2Trim) lines.push(`- H2 (subtitulo, segundo en jerarquia): "${h2Trim}"`);
-        if (h3Trim) lines.push(`- H3 (texto terciario, mas pequeño): "${h3Trim}"`);
-        if (ctaTrim) lines.push(`- CTA (boton de accion, debe DESTACAR): "${ctaTrim}"`);
+
+        // Bloques con descripciones en prosa (no labels code-like que el modelo pueda echo-ear).
+        const lines = [`  Texto principal (jerarquia 1, dominante): "${ct.h1}"`];
+        if (h2Trim) lines.push(`  Texto secundario (jerarquia 2, complementa al principal): "${h2Trim}"`);
+        if (h3Trim) lines.push(`  Texto terciario (jerarquia 3, pequeño): "${h3Trim}"`);
+        if (ctaTrim) lines.push(`  Texto del boton CTA (debe verse como boton): "${ctaTrim}"`);
+
         const jerarquia = [
-          '- H1 es lo primero que el ojo ve — tamaño dominante, bold, maximo contraste',
+          '- El texto principal es lo primero que el ojo ve — tamaño dominante, bold, maximo contraste',
         ];
-        if (h2Trim) jerarquia.push('- H2 complementa al H1 — menor tamaño, puede ser lighter');
-        if (ctaTrim) jerarquia.push('- CTA debe parecer un BOTON real — fondo de color solido que contraste (ej: #F5A623 dorado), bordes redondeados, texto oscuro sobre fondo claro. Debe gritar "HAZ CLIC"');
+        if (h2Trim) jerarquia.push('- El texto secundario complementa al principal — menor tamaño, puede ser lighter');
+        if (ctaTrim) jerarquia.push('- El boton CTA debe parecer un BOTON real — fondo de color solido que contraste (ej: #F5A623 dorado), bordes redondeados, texto oscuro sobre fondo claro. Debe gritar "HAZ CLIC"');
         jerarquia.push('- La jerarquia visual debe ser INMEDIATAMENTE clara en 1 segundo');
+
         const restriction = (!h2Trim && !ctaTrim && !h3Trim)
-          ? '\n\nIMPORTANTE: Renderizar SOLO el H1. NO inventar subtitulos, badges, CTA ni textos adicionales.'
+          ? '\n\nIMPORTANTE: Renderizar UNICAMENTE el texto principal. NO inventar subtitulos, badges, CTA ni textos adicionales.'
           : !ctaTrim
             ? '\n\nIMPORTANTE: NO incluir CTA ni botones — el usuario eligio no incluirlos.'
             : '';
-        return `TEXTO A INCLUIR EN LA IMAGEN (JERARQUIA OBLIGATORIA):\n${lines.join('\n')}\n\nJERARQUIA TIPOGRAFICA CRITICA:\n${jerarquia.join('\n')}${restriction}`;
+
+        return `TEXTOS A RENDERIZAR EN LA IMAGEN (renderizar SOLO el contenido entre comillas, NUNCA las etiquetas "Texto principal", "secundario", "terciario", "boton CTA" ni similares — esos son nombres internos):\n${lines.join('\n')}\n\nJERARQUIA TIPOGRAFICA CRITICA:\n${jerarquia.join('\n')}${restriction}\n\nPROHIBIDO ABSOLUTO: NO renderizar las palabras "H1", "H2", "H3", "CTA", "Titulo", "Subtitulo", "Texto principal", "Texto secundario", "Texto terciario" ni ninguna etiqueta de campo. SOLO el contenido textual real entre comillas.`;
       })()
     : null;
 
@@ -523,11 +530,11 @@ ${nc.conceptoVisual ? `CONCEPTO VISUAL UNIFICADO (aplicar identico a TODAS las s
 - Tipografia: ${nc.conceptoVisual.tipografia}
 - Tratamiento fotografico: ${nc.conceptoVisual.tratamiento}
 
-` : ''}${nc.allSlideTitles && nc.allSlideTitles.length > 0 ? `NARRATIVA COMPLETA DEL CARRUSEL (asi se lee de izquierda a derecha):
-${nc.allSlideTitles.map((t, i) => `  Slide ${i + 1}: "${t}"`).join('\n')}
+` : ''}${nc.allSlideTitles && nc.allSlideTitles.length > 0 ? `NARRATIVA COMPLETA DEL CARRUSEL (asi se lee de izquierda a derecha — contexto interno SOLAMENTE, no renderizar):
+${nc.allSlideTitles.map((t) => `  - "${t}"`).join('\n')}
 
-` : ''}${nc.previousSlideTitle ? `Slide ANTERIOR decia: "${nc.previousSlideTitle}" — esta slide debe encadenar visualmente y argumentalmente con esa.\n` : ''}${nc.nextSlideTitle ? `Slide SIGUIENTE dira: "${nc.nextSlideTitle}" — esta slide debe construir hacia esa idea.\n` : ''}
-REGLA DE CONTINUIDAD VISUAL: misma paleta exacta, misma escena/encuadre, misma tipografia, mismo tratamiento, mismo personaje (si hay) entre todas las slides. Solo cambia el TEXTO y micro-detalles de la composicion. Que se vea claramente que es UN SOLO carrusel, no piezas sueltas.\n`
+` : ''}${nc.previousSlideTitle ? `La pieza ANTERIOR decia: "${nc.previousSlideTitle}" — esta debe encadenar visualmente y argumentalmente con esa.\n` : ''}${nc.nextSlideTitle ? `La pieza SIGUIENTE dira: "${nc.nextSlideTitle}" — esta debe construir hacia esa idea.\n` : ''}
+REGLA DE CONTINUIDAD VISUAL: misma paleta exacta, misma escena/encuadre, misma tipografia, mismo tratamiento, mismo personaje (si hay) entre todas las piezas. Solo cambia el TEXTO y micro-detalles de la composicion.\n`
     : '';
 
   return `Genera una imagen ${isYouTube ? 'de portada de YouTube' : 'publicitaria de ALTO IMPACTO para Meta Ads (Instagram/Facebook)'}.
@@ -541,7 +548,7 @@ TONO: ${tono}
 ${userPromptSection}${narrativeBlock}${characterRefPrompt}${styleRefPrompt}${instruccionesCustom}
 ${textoSection}
 
-${slideInfo ? `SLIDE ${slideInfo.slideNumber} de ${slideInfo.totalSlides} (carrusel — mantener consistencia visual ABSOLUTA entre slides)` : `FORMATO: ${fmtInfo.label} — ${fmtInfo.descripcion}`}
+${slideInfo ? `(Esta es la pieza ${slideInfo.slideNumber} de un set de ${slideInfo.totalSlides} — mantener consistencia visual ABSOLUTA entre piezas. La numeracion es metadata interna, NO se renderiza.)` : `FORMATO: ${fmtInfo.label} — ${fmtInfo.descripcion}`}
 
 REQUISITOS CRITICOS:
 - Formato: ${fmtInfo.width}x${fmtInfo.height}px (aspect ratio ${fmt === 'yt_thumbnail' ? '16:9' : fmt})
@@ -550,5 +557,14 @@ REQUISITOS CRITICOS:
 - NO incluir logos de Meta/Instagram
 - Si incluye personas: expresiones REALES, no poses artificiales
 - Iluminacion cinematografica, no plana
-- Jerarquia visual clara: el ojo va primero al elemento mas importante`;
+- Jerarquia visual clara: el ojo va primero al elemento mas importante
+
+PROHIBIDO RENDERIZAR (texto que NUNCA debe aparecer en la imagen):
+- Numeros de slide / paginadores tipo "1/5", "Slide 3/5", "3 de 5", etc.
+- Etiquetas de jerarquia tipografica tipo "H1", "H2", "H3", "CTA", "Titulo", "Subtitulo"
+- Nombres de campos del prompt — solo renderizar el CONTENIDO de los textos, nunca su etiqueta
+- Badges automaticos tipo "Carrusel", "Consejo #N", "Tema:", "Ansiedad y estres", "Slide X"
+- Watermarks, marcas de agua, "@usuario", handles de redes
+- Logos de marcas, Meta, Instagram, OpenAI, Gemini, "Generated by AI"
+- Cualquier texto que sirva de metadata interna del sistema y no haya sido pedido EXPLICITAMENTE como contenido a mostrar`;
 }
