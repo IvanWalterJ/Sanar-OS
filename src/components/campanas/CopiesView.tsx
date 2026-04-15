@@ -5,9 +5,9 @@
 import React, { useState, useCallback } from 'react';
 import { PenTool, Loader2, Copy, CheckCircle2 } from 'lucide-react';
 import { streamText } from '../../lib/aiProvider';
-import { buildCopyPrompt, adnContext } from '../../lib/campanasPrompts';
+import { adnContext } from '../../lib/campanasPrompts';
 import type { ProfileV2 } from '../../lib/supabase';
-import type { AnguloCreativo, TipoCreativo, ObjetivoCampana } from '../../lib/campanasTypes';
+import type { AnguloCreativo, TipoCreativo } from '../../lib/campanasTypes';
 import Markdown from 'react-markdown';
 import { toast } from 'sonner';
 
@@ -53,33 +53,109 @@ export default function CopiesView({ perfil }: Props) {
 
     const cantVariantes = parseInt(variantes) || 3;
     const adnBlock = perfil.adn_avatar ? `\n\n${adnContext(perfil)}` : '';
-    const prompt = `Eres un copywriter de elite especializado en Meta Ads para profesionales de la salud.
+    const oferta = producto || perfil.oferta_high || perfil.oferta_mid || 'Consulta gratuita';
+
+    const baseContext = `Eres un copywriter de elite especializado en Meta Ads para profesionales de la salud.
 ${adnBlock}
 
 RUBRO / ESPECIALIDAD: ${rubro}
 PAIS / CIUDAD: ${pais || 'Argentina'}
-OFERTA: ${producto || perfil.oferta_high || perfil.oferta_mid || 'Consulta gratuita'}
-TIPO DE ANUNCIO: ${tipo === 'carrusel' ? 'Carrusel' : 'Imagen unica'}
-TONO / ANGULO: ${tono}
-CANTIDAD DE VARIANTES: ${cantVariantes}
+OFERTA: ${oferta}
+TONO / ANGULO: ${tono}`;
 
-Genera ${cantVariantes} variantes de copy para Meta Ads (Instagram/Facebook).
+    const carruselPrompt = `${baseContext}
 
-Para CADA variante incluye:
-1. **Texto principal** (2-4 parrafos, maximo 300 palabras con hook + desarrollo + CTA)
-2. **Titulo** (corto, max 40 caracteres)
-3. **Descripcion** (max 90 caracteres)
-4. **Texto del boton CTA** (2-4 palabras)
+TIPO DE ANUNCIO: Carrusel de Meta Ads (Instagram/Facebook)
+
+Tu tarea: armar UN SOLO carrusel bien trabajado (NO variantes). Vos decidis cuantos slides necesita el carrusel para contar la historia completa, con un MAXIMO ABSOLUTO de 10 slides. Usa la cantidad minima necesaria — si la idea cierra en 6, usa 6.
+
+ESTRUCTURA DEL CARRUSEL:
+- Slide 1: HOOK que frena el scroll (puede ser una afirmacion contraintuitiva, una pregunta, un dato impactante)
+- Slides intermedios: desarrollo del argumento. Una idea por slide. Sin relleno.
+- Slide final (ULTIMO): CTA con PALABRA CLAVE para activar automatizacion en ManyChat. Ejemplo: "Comenta la palabra GUIA y te mando el recurso por DM". La palabra clave debe ser corta, en mayusculas y memorable.
+
+FORMATO DE RESPUESTA (Markdown — respeta esta estructura EXACTA):
+
+## Carrusel — ${tono.toUpperCase()}
+**Cantidad de slides:** [N] (entre 4 y 10)
+
+---
+
+### SLIDE 1 — Hook
+- **H1:** [titulo principal, 4-7 palabras, dominante]
+- **H2:** [subtitulo de apoyo, 6-10 palabras]
+- **H3 (opcional):** [detalle terciario si suma]
+- **Copy del slide (texto sobre la imagen):** [lo que se va a leer en el diseño]
+- **Notas visuales:** [breve indicacion de tono visual o elemento clave]
+
+---
+
+### SLIDE 2 — [titulo de la idea]
+[mismos campos: H1, H2, H3 si suma, Copy del slide, Notas visuales]
+
+---
+
+[... repetir hasta el slide final]
+
+---
+
+### SLIDE [N] — CTA + Palabra clave ManyChat
+- **H1:** [CTA principal corto y accionable]
+- **H2:** [refuerzo del beneficio inmediato]
+- **H3 (opcional):** [recordatorio de escasez o urgencia si aplica]
+- **Copy del slide:** [llamada explicita: "Comenta la palabra X y te mando Y por DM"]
+- **PALABRA CLAVE MANYCHAT:** \`[PALABRA]\` (en mayusculas, una sola palabra, facil de tipear)
+- **Mensaje de respuesta automatica sugerido:** [1-2 lineas que ManyChat enviara cuando detecte la palabra clave]
+
+---
+
+## Texto principal del posteo (caption del carrusel)
+[2-3 parrafos, maximo 220 palabras. Hook + desarrollo + CTA repitiendo la palabra clave del ultimo slide. Maximo 3 emojis estrategicos.]
 
 REGLAS:
-- El hook debe frenar el scroll en 1-2 segundos
-- Usa el LENGUAJE EXACTO del avatar del cliente ideal si esta disponible
-- Incluye emojis estrategicos (max 3-4 por variante)
-- Cada variante debe tener un enfoque diferente
-- Tono profesional pero accesible
-- Escribe en espanol
+- Usa el LENGUAJE EXACTO del avatar si esta disponible
+- Tono profesional pero cercano, en espanol
+- NO uses jerga medica compleja
+- Cada slide debe poder leerse SOLO en 2 segundos
+- La palabra clave del slide final DEBE coincidir con la del caption`;
 
-Separa cada variante claramente con ---`;
+    const imagenPrompt = `${baseContext}
+
+TIPO DE ANUNCIO: Imagen unica para Meta Ads (Instagram/Facebook)
+CANTIDAD DE VARIANTES: ${cantVariantes}
+
+Genera ${cantVariantes} variantes de copy. Cada variante incluye TANTO el copy que va dentro de la imagen (con jerarquia tipografica) COMO el texto principal del posteo.
+
+FORMATO DE RESPUESTA (Markdown — respeta esta estructura EXACTA por cada variante):
+
+## Variante 1 — [enfoque corto, 3-5 palabras]
+
+### Copy en la imagen
+- **H1:** [titulo principal, 3-6 palabras, dominante visual]
+- **H2:** [subtitulo de apoyo, 5-8 palabras]
+- **H3 (opcional):** [detalle terciario si suma]
+- **CTA en la imagen:** [boton, 2-4 palabras, accionable]
+
+### Texto principal del posteo
+[2-4 parrafos, maximo 300 palabras. Hook + desarrollo + CTA. Maximo 3-4 emojis estrategicos.]
+
+### Datos para Meta Ads
+- **Titulo (headline):** [max 40 caracteres]
+- **Descripcion:** [max 90 caracteres]
+- **Boton CTA:** [Mas informacion / Reservar / Enviar mensaje / etc.]
+
+---
+
+[Repetir para cada variante separando con ---]
+
+REGLAS:
+- Cada variante debe tener un enfoque DIFERENTE entre si (no repetir hooks)
+- Usa el LENGUAJE EXACTO del avatar si esta disponible
+- El H1 de la imagen debe frenar el scroll en 1-2 segundos
+- Tono profesional pero accesible, en espanol
+- NO uses jerga medica compleja`;
+
+    const prompt = tipo === 'carrusel' ? carruselPrompt : imagenPrompt;
 
     try {
       let textoCompleto = '';
@@ -203,27 +279,39 @@ Separa cada variante claramente con ---`;
             </div>
           </div>
 
-          {/* Variantes chips */}
-          <div>
-            <label className="block text-[10px] font-bold tracking-wider uppercase text-[#FFFFFF]/40 mb-1.5">
-              Variantes
-            </label>
-            <div className="flex flex-wrap gap-2">
-              {VARIANTES.map((v) => (
-                <button
-                  key={v}
-                  onClick={() => setVariantes(v)}
-                  className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
-                    variantes === v
-                      ? 'bg-[#F5A623]/15 border-[#F5A623]/40 text-[#F5A623]'
-                      : 'border-[#FFFFFF]/10 text-[#FFFFFF]/40 hover:border-[#FFFFFF]/25 hover:text-[#FFFFFF]/60'
-                  }`}
-                >
-                  {v}
-                </button>
-              ))}
+          {/* Variantes chips — solo para imagen unica */}
+          {tipo === 'imagen_single' ? (
+            <div>
+              <label className="block text-[10px] font-bold tracking-wider uppercase text-[#FFFFFF]/40 mb-1.5">
+                Variantes
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {VARIANTES.map((v) => (
+                  <button
+                    key={v}
+                    onClick={() => setVariantes(v)}
+                    className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
+                      variantes === v
+                        ? 'bg-[#F5A623]/15 border-[#F5A623]/40 text-[#F5A623]'
+                        : 'border-[#FFFFFF]/10 text-[#FFFFFF]/40 hover:border-[#FFFFFF]/25 hover:text-[#FFFFFF]/60'
+                    }`}
+                  >
+                    {v}
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="rounded-xl border border-[rgba(245,166,35,0.2)] bg-[#F5A623]/5 p-3">
+              <p className="text-[10px] font-bold tracking-wider uppercase text-[#F5A623] mb-1">
+                Carrusel unico
+              </p>
+              <p className="text-xs text-[#FFFFFF]/60 leading-relaxed">
+                Generamos un solo carrusel bien trabajado (hasta 10 slides). El ultimo slide
+                incluye una palabra clave para activar la automatizacion en ManyChat.
+              </p>
+            </div>
+          )}
 
           <button
             onClick={handleGenerar}
