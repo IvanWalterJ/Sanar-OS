@@ -134,22 +134,13 @@ export default function Campanas({ userId, perfil, geminiKey }: CampanasProps) {
 
       {/* Views */}
       {view === 'home' && (
-        <>
-          <CampanasHome
-            campanas={campanas}
-            creativos={creativos}
-            perfil={perfil}
-            onNavigate={navigateTo}
-            onSelectCampana={handleSelectCampana}
-          />
-          <div className="mt-12 pt-8 border-t border-[rgba(245,166,35,0.1)]">
-            <CreativosView
-              userId={userId}
-              perfil={perfil}
-              geminiKey={geminiKey}
-            />
-          </div>
-        </>
+        <CampanasHome
+          campanas={campanas}
+          creativos={creativos}
+          perfil={perfil}
+          onNavigate={navigateTo}
+          onSelectCampana={handleSelectCampana}
+        />
       )}
 
       {view === 'nueva' && (
@@ -206,6 +197,17 @@ export default function Campanas({ userId, perfil, geminiKey }: CampanasProps) {
           onBack={handleBack}
           onDeleted={handleBack}
         />
+      )}
+
+      {/* Panel de Creativos — siempre visible debajo de cualquier vista del modulo (excepto drill-downs) */}
+      {view !== 'studio' && view !== 'detail' && (
+        <div className="mt-12 pt-8 border-t border-[rgba(245,166,35,0.1)]">
+          <CreativosView
+            userId={userId}
+            perfil={perfil}
+            geminiKey={geminiKey}
+          />
+        </div>
       )}
     </div>
   );
