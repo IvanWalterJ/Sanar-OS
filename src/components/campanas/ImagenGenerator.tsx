@@ -236,9 +236,12 @@ export default function ImagenGenerator({ copies, angulo, perfil, geminiKey, ini
           const copyForSlide = copyList[i] ?? null;
           const cfg = slideConfigs[i] ?? { textSource: 'ia' };
           const slideCustomText = cfg.textSource === 'personalizado' ? cfg.customText : undefined;
+          // Si hay texto custom o copy explicito, usarlo como texto del slide.
+          // Si no, dejar undefined: el brief (userPrompt) NO debe ir como overlay,
+          // el prompt builder instruira a la IA a inventar un copy corto por slide.
           const slideTexto = slideCustomText
             ? slideCustomText.h1
-            : copyForSlide?.titulo ?? userPrompt.trim() ?? '';
+            : copyForSlide?.titulo;
           return buildImagePrompt(copyForSlide, effectiveAngulo, perfil, {
             slideNumber: i + 1,
             totalSlides,

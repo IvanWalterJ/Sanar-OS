@@ -331,17 +331,50 @@ JERARQUIA TIPOGRAFICA CRITICA:
 - La jerarquia visual debe ser INMEDIATAMENTE clara en 1 segundo`
     : null;
 
-  const fallbackTextoImagen = slideInfo?.slideTexto ?? copy?.titulo ?? options?.userPrompt ?? '';
-  const textoSection = mode === 'fondo'
-    ? `IMPORTANTE: NO incluir NINGUN texto, letras, palabras, numeros ni tipografia en la imagen. Solo imagen visual pura. La imagen sera usada como fondo y el texto se agrega despues.`
-    : customTextSection ?? `TEXTO A INCLUIR EN LA IMAGEN: "${fallbackTextoImagen}"
+  // El texto a renderizar SOLO sale de fuentes explicitas (copy generado, slide texto explicito, o custom text).
+  // El userPrompt es un BRIEF de intencion, NO texto a renderizar literal.
+  const realTexto = (slideInfo?.slideTexto ?? copy?.titulo ?? '').trim();
+  const hasRealTexto = realTexto.length > 0;
 
-TIPOGRAFIA:
+  const tipografiaBlock = `TIPOGRAFIA:
 - Texto principal grande, bold, legible desde el celular
 - Tipografia moderna sans-serif (tipo Montserrat o Inter)
 - Contraste MAXIMO entre texto y fondo
 - El texto debe DOMINAR la composicion, no ser un detalle pequeno
 - Incluir CTA visual si es relevante`;
+
+  const inventaTextoBlock = slideInfo
+    ? `TEXTO A INCLUIR EN LA IMAGEN (INVENTALO TU):
+- Generar un titular CORTO y punchy (maximo 6-8 palabras) para ESTE slide
+- Slide ${slideInfo.slideNumber} de ${slideInfo.totalSlides}: ${
+        slideInfo.slideNumber === 1
+          ? 'HOOK que detiene el scroll, abre la curiosidad o nombra el dolor'
+          : slideInfo.slideNumber === slideInfo.totalSlides
+            ? 'CTA claro y accionable (ej: "Aplica ahora", "Reservar diagnostico")'
+            : 'Desarrollo del argumento — aporta UNA idea concreta, no resumen'
+      }
+- El copy debe ser COHERENTE con la DESCRIPCION DEL USUARIO de arriba (esa es la INTENCION)
+- NO copies literalmente la descripcion del usuario — generala TU como copywriter pro
+- Mantener narrativa y estilo visual consistentes con los demas slides
+
+${tipografiaBlock}`
+    : `TEXTO A INCLUIR EN LA IMAGEN (INVENTALO TU):
+- Generar un titular CORTO y punchy (maximo 6-8 palabras) que detenga el scroll
+- Coherente con la DESCRIPCION DEL USUARIO de arriba (esa es la INTENCION, no el texto literal)
+- NO copies la descripcion del usuario — generala TU como copywriter pro
+- Si aplica, incluir un CTA breve y claro
+
+${tipografiaBlock}`;
+
+  const textoSection = mode === 'fondo'
+    ? `IMPORTANTE: NO incluir NINGUN texto, letras, palabras, numeros ni tipografia en la imagen. Solo imagen visual pura. La imagen sera usada como fondo y el texto se agrega despues.`
+    : customTextSection
+      ? customTextSection
+      : hasRealTexto
+        ? `TEXTO A INCLUIR EN LA IMAGEN: "${realTexto}"
+
+${tipografiaBlock}`
+        : inventaTextoBlock;
 
   const userPromptSection = options?.userPrompt?.trim()
     ? `\nDESCRIPCION DEL USUARIO (que quiere ver en la imagen):\n${options.userPrompt.trim()}\n`
