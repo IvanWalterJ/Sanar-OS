@@ -8,7 +8,9 @@ import {
 import { toast } from 'sonner';
 import { generateImageWithFallback, generateCarouselImages, base64ToDataUrl } from '../../lib/campanasImageGen';
 import type { ReferenceImages } from '../../lib/campanasImageGen';
-import { buildImagePrompt } from '../../lib/campanasPrompts';
+import { buildImagePrompt, buildCarouselNarrativePrompt } from '../../lib/campanasPrompts';
+import type { CarouselNarrative, CarouselConceptoVisual } from '../../lib/campanasPrompts';
+import { generateText } from '../../lib/aiProvider';
 import type { ImageGenProgress } from '../../lib/campanasImageGen';
 import type {
   CopyGenerado, AnguloCreativo, EstiloVisual, ImageMode, ImageFormat,
@@ -232,16 +234,54 @@ export default function ImagenGenerator({ copies, angulo, perfil, geminiKey, ini
         onImagesGenerated(imgs, mode);
         toast.success(`Imagen generada con ${result.modelName}`);
       } else {
+        // ─── HILO NARRATIVO DEL CARRUSEL ─────────────────────────────────────
+        // Si la IA debe generar todo (no hay copies ni textos custom slide-a-slide),
+        // pedimos PRIMERO una narrativa coherente: N titulos encadenados + concepto
+        // visual unificado. Esto garantiza copy + visual con hilo entre slides.
+        let narrative: CarouselNarrative | null = null;
+        const allSlidesUsanIA = slideConfigs.every((c) => (c?.textSource ?? 'ia') === 'ia');
+        const necesitaNarrativa =
+          copyList.length === 0 && allSlidesUsanIA && userPrompt.trim().length > 0 && mode !== 'fondo';
+
+        if (necesitaNarrativa) {
+          try {
+            setProgress({ modelName: 'Gemini (narrativa)', attempt: 1, total: 1, status: 'trying' });
+            const narrPrompt = buildCarouselNarrativePrompt(userPrompt.trim(), totalSlides, effectiveAngulo, perfil);
+            const text = await generateText({ prompt: narrPrompt });
+            const cleaned = text.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
+            const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
+            if (jsonMatch) {
+              const jsonStr = jsonMatch[0]
+                .replace(/[\x00-\x1F\x7F]/g, (c) => (c === '\n' || c === '\r' || c === '\t' ? c : ''))
+                .replace(/,\s*([}\]])/g, '$1');
+              const parsed = JSON.parse(jsonStr) as CarouselNarrative;
+              if (Array.isArray(parsed.slides) && parsed.slides.length > 0) {
+                narrative = parsed;
+              }
+            }
+          } catch (err) {
+            console.warn('Narrativa de carrusel fallo, sigo sin hilo:', err);
+          }
+        }
+
+        const conceptoVisual: CarouselConceptoVisual | undefined = narrative?.concepto_visual;
+        const allSlideTitles: string[] = narrative
+          ? Array.from({ length: totalSlides }).map((_, i) => narrative!.slides[i]?.titulo ?? '')
+          : Array.from({ length: totalSlides }).map((_, i) => {
+              const cfg = slideConfigs[i];
+              if (cfg?.textSource === 'personalizado' && cfg.customText?.h1) return cfg.customText.h1;
+              return copyList[i]?.titulo ?? '';
+            });
+
         const prompts = Array.from({ length: totalSlides }).map((_, i) => {
           const copyForSlide = copyList[i] ?? null;
           const cfg = slideConfigs[i] ?? { textSource: 'ia' };
           const slideCustomText = cfg.textSource === 'personalizado' ? cfg.customText : undefined;
-          // Si hay texto custom o copy explicito, usarlo como texto del slide.
-          // Si no, dejar undefined: el brief (userPrompt) NO debe ir como overlay,
-          // el prompt builder instruira a la IA a inventar un copy corto por slide.
+          // Prioridad: customText → copy explicito → titulo de la narrativa generada
           const slideTexto = slideCustomText
             ? slideCustomText.h1
-            : copyForSlide?.titulo;
+            : copyForSlide?.titulo ?? narrative?.slides[i]?.titulo;
+
           return buildImagePrompt(copyForSlide, effectiveAngulo, perfil, {
             slideNumber: i + 1,
             totalSlides,
@@ -249,6 +289,12 @@ export default function ImagenGenerator({ copies, angulo, perfil, geminiKey, ini
           }, {
             ...baseOpts,
             customText: slideCustomText,
+            narrativeContext: {
+              conceptoVisual,
+              allSlideTitles: allSlideTitles.some((t) => t) ? allSlideTitles : undefined,
+              previousSlideTitle: i > 0 ? allSlideTitles[i - 1] || undefined : undefined,
+              nextSlideTitle: i < totalSlides - 1 ? allSlideTitles[i + 1] || undefined : undefined,
+            },
           });
         });
         const results = await generateCarouselImages(geminiKey, prompts, (slideIdx, prog) => {
@@ -258,7 +304,9 @@ export default function ImagenGenerator({ copies, angulo, perfil, geminiKey, ini
         const imgs = results.map((r) => ({ base64: r.imageBase64, mimeType: r.mimeType, modelUsed: r.modelUsed }));
         setImages(imgs);
         onImagesGenerated(imgs, mode);
-        toast.success(`${results.length} imagenes de carrusel generadas`);
+        toast.success(narrative
+          ? `${results.length} slides con hilo narrativo generadas`
+          : `${results.length} imagenes de carrusel generadas`);
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Error desconocido';

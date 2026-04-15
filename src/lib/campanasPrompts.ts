@@ -280,6 +280,80 @@ REGLAS:
 - SOLO responde con el JSON, sin texto adicional`;
 }
 
+// ─── Prompt para narrativa coherente de carrusel (1 sola llamada de texto) ──
+
+export interface CarouselConceptoVisual {
+  paleta: string;
+  escena: string;
+  tipografia: string;
+  tratamiento: string;
+}
+
+export interface CarouselSlideCopy {
+  titulo: string;
+  subtitulo?: string;
+}
+
+export interface CarouselNarrative {
+  concepto_visual: CarouselConceptoVisual;
+  slides: CarouselSlideCopy[];
+}
+
+export function buildCarouselNarrativePrompt(
+  brief: string,
+  totalSlides: number,
+  angulo: AnguloCreativo,
+  perfil: Partial<ProfileV2>,
+): string {
+  return `Eres un copywriter senior + director creativo especializado en carruseles de Instagram para profesionales de la salud.
+Tu trabajo: crear un carrusel con HILO NARRATIVO COHERENTE — copy y direccion visual unificados.
+
+${adnContext(perfil)}
+
+=== ANGULO DE COMUNICACION ===
+${ANGULO_INSTRUCTIONS[angulo]}
+
+=== BRIEF DEL USUARIO (intencion del carrusel) ===
+${brief}
+
+=== TAREA ===
+1) Crea ${totalSlides} titulares encadenados que se LEAN como una sola historia de izquierda a derecha.
+2) Define UN concepto visual UNICO compartido por TODAS las slides.
+
+Estructura narrativa obligatoria:
+- Slide 1 = HOOK que detiene el scroll (curiosidad, dolor o promesa fuerte)
+- Slides intermedios = desarrollo PROGRESIVO — UNA idea concreta por slide, encadenada con la anterior
+- Slide ${totalSlides} = CTA claro y accionable
+
+Reglas de copy:
+- Cada titulo: maximo 6-8 palabras, bold y punchy
+- Lenguaje del avatar, no jerga medica
+- Que se entienda LEYENDO SOLO los titulos en orden — debe contar UNA historia
+- Cada slide ENGANCHA con la siguiente (frase suspendida, pregunta, "pero...", numero que avanza)
+- Sin repetir conceptos entre slides
+
+Concepto visual compartido (DEBE poder aplicarse identico a las ${totalSlides} slides):
+- paleta: 2-3 colores hex especificos (ej: "#0F1419 fondo, #F5A623 acento, #FFFFFF texto")
+- escena: tipo de escena dominante repetible en cada slide (ej: "primer plano de mujer 35-45 con fondo neutro warm desenfocado", "flatlay minimalista de elementos del nicho", "retrato del especialista con overlay de texto")
+- tipografia: estilo tipografico unificado (ej: "sans-serif bold blanco con fino outline negro, alineacion izquierda")
+- tratamiento: tratamiento fotografico repetible (ej: "filtro warm cinematografico, blur de fondo, alto contraste, vineteado sutil")
+
+Responde SOLO con este JSON, sin markdown, sin texto adicional:
+{
+  "concepto_visual": {
+    "paleta": "...",
+    "escena": "...",
+    "tipografia": "...",
+    "tratamiento": "..."
+  },
+  "slides": [
+    { "titulo": "...", "subtitulo": "..." }
+  ]
+}
+
+El array "slides" DEBE tener exactamente ${totalSlides} elementos.`;
+}
+
 // ─── Prompt para generacion de imagenes ──────────────────────────────────────
 
 export function buildImagePrompt(
@@ -296,6 +370,12 @@ export function buildImagePrompt(
     styleRefCount?: number;
     customText?: CustomText;
     format?: ImageFormat;
+    narrativeContext?: {
+      conceptoVisual?: CarouselConceptoVisual;
+      allSlideTitles?: string[];
+      previousSlideTitle?: string;
+      nextSlideTitle?: string;
+    };
   },
 ): string {
   const nicho = perfil.nicho ?? perfil.adn_nicho ?? perfil.especialidad ?? 'salud y bienestar';
@@ -419,18 +499,35 @@ El resultado debe verse como si el MISMO diseñador hubiera creado ambas piezas.
   const fmtInfo = IMAGE_FORMAT_OPTIONS[fmt];
   const isYouTube = fmt === 'yt_thumbnail';
 
+  // Bloque de continuidad narrativa/visual del carrusel
+  const nc = options?.narrativeContext;
+  const narrativeBlock = nc
+    ? `\n=== HILO NARRATIVO Y VISUAL DEL CARRUSEL (CRITICO — RESPETAR AL 100%) ===
+${nc.conceptoVisual ? `CONCEPTO VISUAL UNIFICADO (aplicar identico a TODAS las slides del carrusel):
+- Paleta: ${nc.conceptoVisual.paleta}
+- Escena dominante: ${nc.conceptoVisual.escena}
+- Tipografia: ${nc.conceptoVisual.tipografia}
+- Tratamiento fotografico: ${nc.conceptoVisual.tratamiento}
+
+` : ''}${nc.allSlideTitles && nc.allSlideTitles.length > 0 ? `NARRATIVA COMPLETA DEL CARRUSEL (asi se lee de izquierda a derecha):
+${nc.allSlideTitles.map((t, i) => `  Slide ${i + 1}: "${t}"`).join('\n')}
+
+` : ''}${nc.previousSlideTitle ? `Slide ANTERIOR decia: "${nc.previousSlideTitle}" — esta slide debe encadenar visualmente y argumentalmente con esa.\n` : ''}${nc.nextSlideTitle ? `Slide SIGUIENTE dira: "${nc.nextSlideTitle}" — esta slide debe construir hacia esa idea.\n` : ''}
+REGLA DE CONTINUIDAD VISUAL: misma paleta exacta, misma escena/encuadre, misma tipografia, mismo tratamiento, mismo personaje (si hay) entre todas las slides. Solo cambia el TEXTO y micro-detalles de la composicion. Que se vea claramente que es UN SOLO carrusel, no piezas sueltas.\n`
+    : '';
+
   return `Genera una imagen ${isYouTube ? 'de portada de YouTube' : 'publicitaria de ALTO IMPACTO para Meta Ads (Instagram/Facebook)'}.
 ${isYouTube ? 'Esta portada debe generar CLICKS. El hook visual es CRITICO — el usuario decide en 1 segundo si hace clic o no.' : 'Esta imagen debe FRENAR EL SCROLL. Tiene que ser visualmente tan potente que el usuario deje de scrollear en menos de 1 segundo.'}
 
 NICHO: ${nicho}
-${styleCount > 0 ? 'DIRECCION VISUAL: Seguir la referencia de estilo adjunta (ver instrucciones abajo)' : `DIRECCION VISUAL: ${estiloPrompt}`}
+${nc?.conceptoVisual ? 'DIRECCION VISUAL: Seguir el CONCEPTO VISUAL UNIFICADO del carrusel (ver bloque abajo) — tiene PRIORIDAD sobre cualquier estilo por defecto' : styleCount > 0 ? 'DIRECCION VISUAL: Seguir la referencia de estilo adjunta (ver instrucciones abajo)' : `DIRECCION VISUAL: ${estiloPrompt}`}
 ANGULO COMUNICACIONAL: ${anguloVisual[angulo]}
-${styleCount > 0 ? 'COLORES: Usar la paleta de la referencia de estilo' : `COLORES DE MARCA: ${colores}`}
+${nc?.conceptoVisual ? 'COLORES: Usar la paleta del concepto visual unificado' : styleCount > 0 ? 'COLORES: Usar la paleta de la referencia de estilo' : `COLORES DE MARCA: ${colores}`}
 TONO: ${tono}
-${userPromptSection}${characterRefPrompt}${styleRefPrompt}${instruccionesCustom}
+${userPromptSection}${narrativeBlock}${characterRefPrompt}${styleRefPrompt}${instruccionesCustom}
 ${textoSection}
 
-${slideInfo ? `SLIDE ${slideInfo.slideNumber} de ${slideInfo.totalSlides} (carrusel — mantener consistencia visual entre slides)` : `FORMATO: ${fmtInfo.label} — ${fmtInfo.descripcion}`}
+${slideInfo ? `SLIDE ${slideInfo.slideNumber} de ${slideInfo.totalSlides} (carrusel — mantener consistencia visual ABSOLUTA entre slides)` : `FORMATO: ${fmtInfo.label} — ${fmtInfo.descripcion}`}
 
 REQUISITOS CRITICOS:
 - Formato: ${fmtInfo.width}x${fmtInfo.height}px (aspect ratio ${fmt === 'yt_thumbnail' ? '16:9' : fmt})
