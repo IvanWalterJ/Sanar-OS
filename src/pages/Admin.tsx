@@ -24,12 +24,13 @@ import { generateText } from '../lib/aiProvider';
 import { toast } from 'sonner';
 import { createClient } from '@supabase/supabase-js';
 import Campanas from './Campanas';
+import CreativosView from '../components/campanas/CreativosView';
 import Markdown from 'react-markdown';
 
 // ─── TIPOS Y CONSTANTES ─────────────────────────────────────────────────────────
 
 type AdminRol = 'owner' | 'manager' | 'staff';
-type MainTab = 'clientes' | 'pipeline' | 'mensajes' | 'metricas' | 'videos' | 'equipo' | 'campanas';
+type MainTab = 'clientes' | 'pipeline' | 'mensajes' | 'metricas' | 'videos' | 'equipo' | 'campanas' | 'creativos';
 type DetalleTab = 'resumen' | 'diario' | 'metricas' | 'mensajes' | 'notas';
 type MensajesChannel = 'comunidad' | 'victorias' | 'consultas' | 'privados';
 
@@ -1306,6 +1307,7 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
     { id: 'videos',    label: 'Videos',    icon: Video },
     { id: 'equipo',    label: 'Equipo',    icon: UsersRound, ownerOnly: true },
     { id: 'campanas',  label: 'Campañas',  icon: Megaphone },
+    { id: 'creativos', label: 'Creativos', icon: Image },
   ];
 
   const headerTitles: Record<MainTab, string> = {
@@ -1316,6 +1318,7 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
     videos: 'Gestión de Videos',
     equipo: 'Gestión de Equipo',
     campanas: 'Campañas & Creativos',
+    creativos: 'Generador de Creativos',
   };
 
   // ─── RENDER ───────────────────────────────────────────────────────────────────
@@ -2927,6 +2930,55 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
                   <Megaphone className="w-10 h-10 text-[#FFFFFF]/15 mx-auto mb-3" />
                   <p className="text-sm text-[#FFFFFF]/40">
                     Selecciona un cliente para comenzar a crear campanas con su ADN de negocio.
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ═══════════════════════════════════════════════════════════════════════
+              TAB: CREATIVOS (generador standalone, sin paso de copy)
+              ═══════════════════════════════════════════════════════════════════════ */}
+          {mainTab === 'creativos' && (
+            <div className="max-w-6xl mx-auto">
+              {/* Selector de cliente (reusa el state de campanas) */}
+              <div className="mb-6 card-panel p-4">
+                <label className="block text-[10px] font-bold tracking-wider uppercase text-[#FFFFFF]/40 mb-2">
+                  Seleccionar cliente
+                </label>
+                <CustomSelect
+                  value={campanasClienteId ?? ''}
+                  onChange={(val) => setCampanasClienteId(val || null)}
+                  options={clientes.map(c => ({
+                    value: c.id,
+                    label: `${c.nombre} — ${c.especialidad ?? 'Sin especialidad'}`,
+                  }))}
+                />
+                {campanasPerfilLoading && (
+                  <div className="flex items-center gap-2 mt-2 text-xs text-[#FFFFFF]/40">
+                    <Loader2 className="w-3 h-3 animate-spin" /> Cargando perfil completo...
+                  </div>
+                )}
+                {campanasClientePerfil && !campanasPerfilLoading && (
+                  <div className="flex items-center gap-2 mt-2 text-xs text-[#22C55E]">
+                    <Check className="w-3 h-3" />
+                    Trabajando con: {campanasClientePerfil.nombre}
+                  </div>
+                )}
+              </div>
+
+              {campanasClienteId && campanasClientePerfil ? (
+                <CreativosView
+                  key={campanasClienteId}
+                  userId={campanasClienteId}
+                  perfil={campanasClientePerfil}
+                  geminiKey={import.meta.env.VITE_GEMINI_API_KEY}
+                />
+              ) : !campanasPerfilLoading && (
+                <div className="card-panel p-10 text-center">
+                  <Image className="w-10 h-10 text-[#FFFFFF]/15 mx-auto mb-3" />
+                  <p className="text-sm text-[#FFFFFF]/40">
+                    Selecciona un cliente para generar creativos con su ADN de negocio.
                   </p>
                 </div>
               )}

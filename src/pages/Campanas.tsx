@@ -12,7 +12,6 @@ import NuevaCampanaChat from '../components/campanas/NuevaCampanaChat';
 import MontajeView from '../components/campanas/MontajeView';
 import HistorialView from '../components/campanas/HistorialView';
 import GanadoresView from '../components/campanas/GanadoresView';
-import CreativosView from '../components/campanas/CreativosView';
 import CreativoStudio from '../components/campanas/CreativoStudio';
 import CreativoDetalle from '../components/campanas/CreativoDetalle';
 import { fetchCampanas, fetchCreativos } from '../lib/campanasStorage';
@@ -197,17 +196,6 @@ export default function Campanas({ userId, perfil, geminiKey }: CampanasProps) {
           onBack={handleBack}
           onDeleted={handleBack}
         />
-      )}
-
-      {/* Panel de Creativos — siempre visible debajo de cualquier vista del modulo (excepto drill-downs) */}
-      {view !== 'studio' && view !== 'detail' && (
-        <div className="mt-12 pt-8 border-t border-[rgba(245,166,35,0.1)]">
-          <CreativosView
-            userId={userId}
-            perfil={perfil}
-            geminiKey={geminiKey}
-          />
-        </div>
       )}
     </div>
   );
