@@ -5,6 +5,7 @@ import Markdown from 'react-markdown';
 import { toast } from 'sonner';
 import { buildCoachSystemPrompt, detectarContextoConversacion, loadCoachExtraContext } from '../lib/coachPrompt';
 import { getUserKnowledgeBase, getUserKnowledgeBaseSync } from '../lib/userKnowledgeBase';
+import { supabase, isSupabaseReady } from '../lib/supabase';
 
 interface Message {
   role: 'assistant' | 'user';
@@ -52,6 +53,7 @@ export default function Coach({ userId }: { userId?: string }) {
   const [isTyping, setIsTyping] = useState(false);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const knowledgeBaseRef = useRef<string>(getUserKnowledgeBaseSync());
+  const supabaseProfileRef = useRef<Record<string, unknown> | null>(null);
 
   useEffect(() => {
     if (!isTyping) {
@@ -67,6 +69,21 @@ export default function Coach({ userId }: { userId?: string }) {
 
   useEffect(() => {
     getUserKnowledgeBase(userId).then(kb => { knowledgeBaseRef.current = kb; });
+  }, [userId]);
+
+  // Cargar perfil fresco desde Supabase — el localStorage puede estar obsoleto
+  // (ej. cliente recién migrado) y el prompt del Coach depende de nicho,
+  // historia, posicionamiento, etc. para no responder "Aún no definido".
+  useEffect(() => {
+    if (!userId || !isSupabaseReady() || !supabase) return;
+    supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', userId)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data) supabaseProfileRef.current = data as Record<string, unknown>;
+      });
   }, [userId]);
 
   const resetConversation = () => {
@@ -92,7 +109,9 @@ export default function Coach({ userId }: { userId?: string }) {
 
       const extraCtx = detectarContextoConversacion(text);
       const coachExtra = loadCoachExtraContext();
-      const perfil = JSON.parse(localStorage.getItem('tcd_profile') || '{}');
+      const localPerfil = JSON.parse(localStorage.getItem('tcd_profile') || '{}');
+      // Supabase pisa localStorage (datos frescos para clientes migrados).
+      const perfil = { ...localPerfil, ...(supabaseProfileRef.current ?? {}) };
       const systemPrompt = buildCoachSystemPrompt({ perfil, ...extraCtx, ...coachExtra, baseDeConocimiento: knowledgeBaseRef.current || undefined });
 
       let fullResponse = '';
