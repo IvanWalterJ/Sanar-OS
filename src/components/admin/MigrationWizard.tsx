@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { X, Loader2, Sparkles, ChevronRight, ChevronLeft, Check } from 'lucide-react';
+import { X, Loader2, Sparkles, ChevronRight, ChevronLeft, Check, RefreshCw, UserPlus } from 'lucide-react';
 import { toast } from 'sonner';
 import { createClient } from '@supabase/supabase-js';
 import { supabase } from '../../lib/supabase';
@@ -58,6 +58,7 @@ const LABEL_CLASS = 'block text-[10px] font-bold text-[#FFFFFF]/40 uppercase tra
 
 export default function MigrationWizard({ onClose, onSuccess }: MigrationWizardProps) {
   const [step, setStep] = useState(0);
+  const [resyncMode, setResyncMode] = useState(false);
 
   // Step 1
   const [form, setForm] = useState<MigrationStep1Data>({
@@ -88,7 +89,10 @@ export default function MigrationWizard({ onClose, onSuccess }: MigrationWizardP
   }
 
   function canGoNext(): boolean {
-    if (step === 0) return !!(form.nombre.trim() && form.email.trim() && form.password.trim());
+    if (step === 0) {
+      if (resyncMode) return !!(form.email.trim());
+      return !!(form.nombre.trim() && form.email.trim() && form.password.trim());
+    }
     if (step === 1) return true;
     if (step === 2) return true;
     return false;
@@ -112,29 +116,49 @@ export default function MigrationWizard({ onClose, onSuccess }: MigrationWizardP
   }
 
   async function handleCreate() {
-    if (!form.nombre.trim() || !form.email.trim() || !form.password.trim()) return;
     setCreating(true);
     try {
-      const url = import.meta.env.VITE_SUPABASE_URL;
-      const key = import.meta.env.VITE_SUPABASE_ANON_KEY;
+      if (!supabase) throw new Error('Supabase no está configurado');
 
-      const tempClient = createClient(url, key, {
-        auth: {
-          persistSession: false,
-          storageKey: 'temp_auth_migration',
-          storage: { getItem: () => null, setItem: () => null, removeItem: () => null },
-        },
-      });
+      let profileId: string;
 
-      const { data: signUpData, error: signUpError } = await tempClient.auth.signUp({
-        email: form.email.trim(),
-        password: form.password.trim(),
-        options: { data: { nombre: form.nombre.trim() } },
-      });
-      if (signUpError) throw signUpError;
-      if (!signUpData.user) throw new Error('No se pudo crear el usuario');
+      if (resyncMode) {
+        // Buscar perfil existente por email
+        const { data: existing, error: searchError } = await supabase
+          .from('profiles')
+          .select('id, nombre')
+          .eq('email', form.email.trim())
+          .single();
+        if (searchError || !existing) {
+          throw new Error(`No se encontró ningún cliente con el email ${form.email.trim()}`);
+        }
+        profileId = existing.id;
+      } else {
+        if (!form.nombre.trim() || !form.email.trim() || !form.password.trim()) {
+          throw new Error('Completá todos los campos requeridos');
+        }
+        const url = import.meta.env.VITE_SUPABASE_URL;
+        const key = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-      await new Promise(r => setTimeout(r, 1500));
+        const tempClient = createClient(url, key, {
+          auth: {
+            persistSession: false,
+            storageKey: 'temp_auth_migration',
+            storage: { getItem: () => null, setItem: () => null, removeItem: () => null },
+          },
+        });
+
+        const { data: signUpData, error: signUpError } = await tempClient.auth.signUp({
+          email: form.email.trim(),
+          password: form.password.trim(),
+          options: { data: { nombre: form.nombre.trim() } },
+        });
+        if (signUpError) throw signUpError;
+        if (!signUpData.user) throw new Error('No se pudo crear el usuario');
+
+        await new Promise(r => setTimeout(r, 1500));
+        profileId = signUpData.user.id;
+      }
 
       const adnFields = Object.fromEntries(
         (Object.entries(extracted) as [keyof ExtractedProfile, string][])
@@ -143,31 +167,33 @@ export default function MigrationWizard({ onClose, onSuccess }: MigrationWizardP
       );
 
       const profileUpdate: Record<string, unknown> = {
-        especialidad: form.especialidad.trim() || null,
+        ...(form.especialidad.trim() && { especialidad: form.especialidad.trim() }),
         plan: form.plan,
         fecha_inicio: form.fecha_inicio,
         status: 'ACTIVE',
         onboarding_completed: true,
         pilar_actual: form.pilar_actual,
-        migration_source: 'admin_migration',
+        migration_source: resyncMode ? 'admin_resync' : 'admin_migration',
         migrated_at: new Date().toISOString(),
         migration_raw_json: { texto: textoLibre, extracted },
         ...adnFields,
       };
 
-      if (!supabase) throw new Error('Supabase no está configurado');
-
       const { error: updateError } = await supabase
         .from('profiles')
         .update(profileUpdate)
-        .eq('id', signUpData.user.id);
+        .eq('id', profileId);
       if (updateError) throw updateError;
 
-      toast.success(`Cliente ${form.nombre} migrado exitosamente`);
+      toast.success(
+        resyncMode
+          ? `Perfil de ${form.email} sincronizado con ${Object.keys(adnFields).length} campos ADN`
+          : `Cliente ${form.nombre} migrado exitosamente`
+      );
       onSuccess();
       onClose();
     } catch (e: unknown) {
-      toast.error(e instanceof Error ? e.message : 'Error creando cliente');
+      toast.error(e instanceof Error ? e.message : 'Error en la migración');
     } finally {
       setCreating(false);
     }
@@ -182,7 +208,9 @@ export default function MigrationWizard({ onClose, onSuccess }: MigrationWizardP
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-[rgba(245,166,35,0.1)] flex-shrink-0">
           <div>
-            <h2 className="text-base font-semibold text-[#FFFFFF]">Migrar cliente existente</h2>
+            <h2 className="text-base font-semibold text-[#FFFFFF]">
+              {resyncMode ? 'Re-sincronizar cliente existente' : 'Migrar cliente existente'}
+            </h2>
             <p className="text-[11px] text-[#FFFFFF]/40 mt-0.5">Paso {step + 1} de {STEPS.length} — {STEPS[step]}</p>
           </div>
           <button onClick={onClose} className="w-8 h-8 rounded-lg flex items-center justify-center text-[#FFFFFF]/40 hover:text-[#FFFFFF] hover:bg-[#FFFFFF]/5 transition-all">
@@ -211,44 +239,108 @@ export default function MigrationWizard({ onClose, onSuccess }: MigrationWizardP
           {/* ── PASO 1: Datos básicos ── */}
           {step === 0 && (
             <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="col-span-2">
-                  <label className={LABEL_CLASS}>Nombre completo *</label>
-                  <input type="text" value={form.nombre} onChange={e => setFormField('nombre', e.target.value)}
-                    placeholder="Ej: María González" className={INPUT_CLASS} />
-                </div>
-                <div>
-                  <label className={LABEL_CLASS}>Email *</label>
-                  <input type="email" value={form.email} onChange={e => setFormField('email', e.target.value)}
-                    placeholder="cliente@ejemplo.com" className={INPUT_CLASS} />
-                </div>
-                <div>
-                  <label className={LABEL_CLASS}>Contraseña temporal *</label>
-                  <input type="password" value={form.password} onChange={e => setFormField('password', e.target.value)}
-                    placeholder="Mínimo 8 caracteres" className={INPUT_CLASS} />
-                </div>
-                <div>
-                  <label className={LABEL_CLASS}>Plan</label>
-                  <select value={form.plan} onChange={e => setFormField('plan', e.target.value as MigrationStep1Data['plan'])} className={INPUT_CLASS}>
-                    <option value="DWY">DWY</option>
-                    <option value="DFY">DFY</option>
-                    <option value="IMPLEMENTACION">Implementación</option>
-                  </select>
-                </div>
-                <div>
-                  <label className={LABEL_CLASS}>Especialidad</label>
-                  <input type="text" value={form.especialidad} onChange={e => setFormField('especialidad', e.target.value)}
-                    placeholder="Ej: Nutricionista" className={INPUT_CLASS} />
-                </div>
-                <div>
-                  <label className={LABEL_CLASS}>Fecha de inicio</label>
-                  <input type="date" value={form.fecha_inicio} onChange={e => setFormField('fecha_inicio', e.target.value)} className={INPUT_CLASS} />
-                </div>
-                <div>
-                  <label className={LABEL_CLASS}>Pilar actual (0–11)</label>
-                  <input type="number" min={0} max={11} value={form.pilar_actual} onChange={e => setFormField('pilar_actual', Number(e.target.value))} className={INPUT_CLASS} />
-                </div>
+              {/* Toggle modo */}
+              <div className="flex gap-2 p-1 bg-[#0A0A0A] rounded-xl">
+                <button
+                  type="button"
+                  onClick={() => setResyncMode(false)}
+                  className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-semibold transition-all ${
+                    !resyncMode ? 'bg-[#F5A623] text-black' : 'text-[#FFFFFF]/50 hover:text-[#FFFFFF]/80'
+                  }`}
+                >
+                  <UserPlus className="w-3.5 h-3.5" />
+                  Nueva cuenta
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setResyncMode(true)}
+                  className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-semibold transition-all ${
+                    resyncMode ? 'bg-[#F5A623] text-black' : 'text-[#FFFFFF]/50 hover:text-[#FFFFFF]/80'
+                  }`}
+                >
+                  <RefreshCw className="w-3.5 h-3.5" />
+                  Re-sincronizar existente
+                </button>
               </div>
+
+              {resyncMode ? (
+                /* Modo re-sync: solo email */
+                <div className="space-y-4">
+                  <div className="bg-[#F5A623]/5 border border-[#F5A623]/20 rounded-xl px-4 py-3">
+                    <p className="text-[11px] text-[#F5A623]/80">
+                      La cuenta ya existe. Ingresá el email del cliente para buscarla y actualizar su perfil ADN con la nueva información.
+                    </p>
+                  </div>
+                  <div>
+                    <label className={LABEL_CLASS}>Email del cliente *</label>
+                    <input type="email" value={form.email} onChange={e => setFormField('email', e.target.value)}
+                      placeholder="cliente@ejemplo.com" className={INPUT_CLASS} />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className={LABEL_CLASS}>Plan</label>
+                      <select value={form.plan} onChange={e => setFormField('plan', e.target.value as MigrationStep1Data['plan'])} className={INPUT_CLASS}>
+                        <option value="DWY">DWY</option>
+                        <option value="DFY">DFY</option>
+                        <option value="IMPLEMENTACION">Implementación</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className={LABEL_CLASS}>Especialidad</label>
+                      <input type="text" value={form.especialidad} onChange={e => setFormField('especialidad', e.target.value)}
+                        placeholder="Ej: Nutricionista" className={INPUT_CLASS} />
+                    </div>
+                    <div>
+                      <label className={LABEL_CLASS}>Fecha de inicio</label>
+                      <input type="date" value={form.fecha_inicio} onChange={e => setFormField('fecha_inicio', e.target.value)} className={INPUT_CLASS} />
+                    </div>
+                    <div>
+                      <label className={LABEL_CLASS}>Pilar actual (0–11)</label>
+                      <input type="number" min={0} max={11} value={form.pilar_actual} onChange={e => setFormField('pilar_actual', Number(e.target.value))} className={INPUT_CLASS} />
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                /* Modo nueva cuenta */
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="col-span-2">
+                    <label className={LABEL_CLASS}>Nombre completo *</label>
+                    <input type="text" value={form.nombre} onChange={e => setFormField('nombre', e.target.value)}
+                      placeholder="Ej: María González" className={INPUT_CLASS} />
+                  </div>
+                  <div>
+                    <label className={LABEL_CLASS}>Email *</label>
+                    <input type="email" value={form.email} onChange={e => setFormField('email', e.target.value)}
+                      placeholder="cliente@ejemplo.com" className={INPUT_CLASS} />
+                  </div>
+                  <div>
+                    <label className={LABEL_CLASS}>Contraseña temporal *</label>
+                    <input type="password" value={form.password} onChange={e => setFormField('password', e.target.value)}
+                      placeholder="Mínimo 8 caracteres" className={INPUT_CLASS} />
+                  </div>
+                  <div>
+                    <label className={LABEL_CLASS}>Plan</label>
+                    <select value={form.plan} onChange={e => setFormField('plan', e.target.value as MigrationStep1Data['plan'])} className={INPUT_CLASS}>
+                      <option value="DWY">DWY</option>
+                      <option value="DFY">DFY</option>
+                      <option value="IMPLEMENTACION">Implementación</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className={LABEL_CLASS}>Especialidad</label>
+                    <input type="text" value={form.especialidad} onChange={e => setFormField('especialidad', e.target.value)}
+                      placeholder="Ej: Nutricionista" className={INPUT_CLASS} />
+                  </div>
+                  <div>
+                    <label className={LABEL_CLASS}>Fecha de inicio</label>
+                    <input type="date" value={form.fecha_inicio} onChange={e => setFormField('fecha_inicio', e.target.value)} className={INPUT_CLASS} />
+                  </div>
+                  <div>
+                    <label className={LABEL_CLASS}>Pilar actual (0–11)</label>
+                    <input type="number" min={0} max={11} value={form.pilar_actual} onChange={e => setFormField('pilar_actual', Number(e.target.value))} className={INPUT_CLASS} />
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -336,7 +428,7 @@ export default function MigrationWizard({ onClose, onSuccess }: MigrationWizardP
                         value={(extracted[fieldKey] as string) ?? ''}
                         onChange={e => setExtractedField(fieldKey, e.target.value)}
                         rows={isLong ? 5 : 2}
-                        placeholder={`Completar manualmente...`}
+                        placeholder="Completar manualmente..."
                         className={`${INPUT_CLASS} resize-none`}
                       />
                     </div>
@@ -350,9 +442,13 @@ export default function MigrationWizard({ onClose, onSuccess }: MigrationWizardP
           {step === 3 && (
             <div className="space-y-4">
               <div className="bg-[#0A0A0A] border border-[rgba(245,166,35,0.2)] rounded-2xl p-5 space-y-3">
-                <h3 className="text-sm font-semibold text-[#FFFFFF]">Resumen de la migración</h3>
+                <h3 className="text-sm font-semibold text-[#FFFFFF]">
+                  {resyncMode ? 'Resumen de la re-sincronización' : 'Resumen de la migración'}
+                </h3>
                 <div className="grid grid-cols-2 gap-3 text-[11px]">
-                  <div><span className="text-[#FFFFFF]/40">Nombre:</span> <span className="text-[#FFFFFF] font-medium">{form.nombre}</span></div>
+                  {!resyncMode && (
+                    <div><span className="text-[#FFFFFF]/40">Nombre:</span> <span className="text-[#FFFFFF] font-medium">{form.nombre}</span></div>
+                  )}
                   <div><span className="text-[#FFFFFF]/40">Email:</span> <span className="text-[#FFFFFF] font-medium">{form.email}</span></div>
                   <div><span className="text-[#FFFFFF]/40">Plan:</span> <span className="text-[#F5A623] font-bold">{form.plan}</span></div>
                   <div><span className="text-[#FFFFFF]/40">Pilar inicial:</span> <span className="text-[#FFFFFF] font-medium">P{form.pilar_actual}</span></div>
@@ -369,7 +465,10 @@ export default function MigrationWizard({ onClose, onSuccess }: MigrationWizardP
 
               <div className="bg-[#F5A623]/5 border border-[#F5A623]/20 rounded-xl px-4 py-3">
                 <p className="text-[11px] text-[#F5A623]/80">
-                  Se creará la cuenta con acceso directo a la plataforma. El cliente no necesitará completar el onboarding desde cero.
+                  {resyncMode
+                    ? 'Se actualizará el perfil ADN del cliente sin tocar su cuenta ni contraseña.'
+                    : 'Se creará la cuenta con acceso directo a la plataforma. El cliente no necesitará completar el onboarding desde cero.'
+                  }
                 </p>
               </div>
             </div>
@@ -401,7 +500,10 @@ export default function MigrationWizard({ onClose, onSuccess }: MigrationWizardP
               className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-[#F5A623] hover:bg-[#FFB94D] disabled:opacity-50 text-black text-sm font-bold transition-all"
             >
               {creating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
-              {creating ? 'Creando cuenta...' : 'Crear cliente migrado'}
+              {creating
+                ? (resyncMode ? 'Sincronizando...' : 'Creando cuenta...')
+                : (resyncMode ? 'Sincronizar perfil' : 'Crear cliente migrado')
+              }
             </button>
           )}
         </div>
