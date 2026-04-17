@@ -1,11 +1,16 @@
-import { useState } from 'react';
-import { X, Loader2, Sparkles, ChevronRight, ChevronLeft, Check, RefreshCw, UserPlus } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { Loader2, Sparkles, ChevronRight, ChevronLeft, Check, RefreshCw, UserPlus, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { createClient } from '@supabase/supabase-js';
 import { supabase } from '../../lib/supabase';
 import type { Profile } from '../../lib/supabase';
 import type { ExtractedProfile, MigrationStep1Data } from '../../lib/migrationTypes';
 import { extractFromText } from '../../lib/migrationExtractor';
+import {
+  buildHojaDeRutaFromExtracted,
+  getPilarOptions,
+} from '../../lib/migrationHojaDeRuta';
+import CustomSelect from '../CustomSelect';
 
 interface MigrationWizardProps {
   onClose: () => void;
@@ -61,8 +66,10 @@ const LABEL_CLASS = 'block text-[10px] font-bold text-[#FFFFFF]/40 uppercase tra
 export default function MigrationWizard({ onClose, onSuccess, clientes = [] }: MigrationWizardProps) {
   const [step, setStep] = useState(0);
   const [resyncMode, setResyncMode] = useState(false);
+  const pilarOptions = useMemo(() => getPilarOptions(), []);
 
-  // Step 1
+  // `pilar_actual` acá representa `numero_orden` (0–13) — secuencial sin ambigüedad
+  // entre P9A/P9B/P9C. Al guardar en profile se convierte al `numero` correspondiente.
   const [form, setForm] = useState<MigrationStep1Data>({
     nombre: '', email: '', password: '', plan: 'DWY', especialidad: '',
     fecha_inicio: new Date().toISOString().split('T')[0], pilar_actual: 0,
@@ -164,29 +171,57 @@ export default function MigrationWizard({ onClose, onSuccess, clientes = [] }: M
           .map(([k, v]) => [k, v.trim()])
       );
 
+      // `form.pilar_actual` es `numero_orden` (0–13). El profile column espera
+      // el `numero` (0–11) por compat con código existente.
+      const pilarOrden = form.pilar_actual;
+      const pilarSel = pilarOptions.find(p => p.numero_orden === pilarOrden);
+      const pilarNumeroForProfile = pilarSel?.numero ?? 0;
+
       const profileUpdate: Record<string, unknown> = {
         ...(form.especialidad.trim() && { especialidad: form.especialidad.trim() }),
         plan: form.plan,
         fecha_inicio: form.fecha_inicio,
         status: 'ACTIVE',
         onboarding_completed: true,
-        pilar_actual: form.pilar_actual,
+        pilar_actual: pilarNumeroForProfile,
         migration_source: resyncMode ? 'admin_resync' : 'admin_migration',
         migrated_at: new Date().toISOString(),
         migration_raw_json: { texto: textoLibre, extracted },
         ...adnFields,
       };
 
-      const { error: updateError } = await supabase
-        .from('profiles')
-        .update(profileUpdate)
-        .eq('id', profileId);
-      if (updateError) throw updateError;
+      // 1) Perfil: RPC con SECURITY DEFINER (el UPDATE directo vía cliente
+      //    Supabase es filtrado silenciosamente por RLS, afecta 0 filas sin error).
+      const { data: rpcResult, error: rpcError } = await supabase.rpc(
+        'admin_migrate_profile',
+        { target_user_id: profileId, updates: profileUpdate }
+      );
+      if (rpcError) throw rpcError;
+      if (!rpcResult) {
+        throw new Error('La actualización no devolvió resultado — verificá permisos admin');
+      }
+
+      const updatedCount =
+        (rpcResult as { updated_fields?: string[] } | null)?.updated_fields?.length ?? 0;
+
+      // 2) Hoja de ruta: sembrar progreso para que Dashboard, Roadmap y Coach
+      //    muestren los pilares anteriores como completados, con los outputs
+      //    extraídos inyectados en las metas que corresponden.
+      const hojaRows = buildHojaDeRutaFromExtracted(pilarOrden, extracted);
+      let seededRows = 0;
+      if (hojaRows.length > 0) {
+        const { data: seedResult, error: seedError } = await supabase.rpc(
+          'admin_bulk_upsert_hoja_de_ruta',
+          { target_user_id: profileId, rows_data: hojaRows }
+        );
+        if (seedError) throw seedError;
+        seededRows = typeof seedResult === 'number' ? seedResult : 0;
+      }
 
       toast.success(
         resyncMode
-          ? `Perfil de ${form.email} sincronizado con ${Object.keys(adnFields).length} campos ADN`
-          : `Cliente ${form.nombre} migrado exitosamente`
+          ? `Sincronizado: ${updatedCount} campos perfil, ${seededRows} tareas de hoja de ruta (${Object.keys(adnFields).length} ADN)`
+          : `Cliente ${form.nombre} migrado: ${seededRows} tareas completadas + ${Object.keys(adnFields).length} campos ADN`
       );
       onSuccess();
       onClose();
@@ -293,8 +328,15 @@ export default function MigrationWizard({ onClose, onSuccess, clientes = [] }: M
                       <input type="date" value={form.fecha_inicio} onChange={e => setFormField('fecha_inicio', e.target.value)} className={INPUT_CLASS} />
                     </div>
                     <div>
-                      <label className={LABEL_CLASS}>Pilar actual (0–11)</label>
-                      <input type="number" min={0} max={11} value={form.pilar_actual} onChange={e => setFormField('pilar_actual', Number(e.target.value))} className={INPUT_CLASS} />
+                      <label className={LABEL_CLASS}>¿En qué pilar está el cliente?</label>
+                      <CustomSelect
+                        value={String(form.pilar_actual)}
+                        onChange={v => setFormField('pilar_actual', Number(v))}
+                        options={pilarOptions}
+                      />
+                      <p className="text-[10px] text-[#FFFFFF]/30 mt-1">
+                        Marcaremos como completadas todas las tareas de pilares anteriores.
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -334,8 +376,12 @@ export default function MigrationWizard({ onClose, onSuccess, clientes = [] }: M
                     <input type="date" value={form.fecha_inicio} onChange={e => setFormField('fecha_inicio', e.target.value)} className={INPUT_CLASS} />
                   </div>
                   <div>
-                    <label className={LABEL_CLASS}>Pilar actual (0–11)</label>
-                    <input type="number" min={0} max={11} value={form.pilar_actual} onChange={e => setFormField('pilar_actual', Number(e.target.value))} className={INPUT_CLASS} />
+                    <label className={LABEL_CLASS}>¿En qué pilar empieza?</label>
+                    <CustomSelect
+                      value={String(form.pilar_actual)}
+                      onChange={v => setFormField('pilar_actual', Number(v))}
+                      options={pilarOptions}
+                    />
                   </div>
                 </div>
               )}
