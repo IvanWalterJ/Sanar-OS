@@ -1,16 +1,14 @@
 import React, { useState, useCallback } from 'react';
-import { FileText, Image as ImageIcon, Eye, Loader2, Check, ArrowLeft, PenTool } from 'lucide-react';
+import { FileText, Image as ImageIcon, Eye, Loader2, Check, ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
 import CopyGenerator from './CopyGenerator';
 import ImagenGenerator from './ImagenGenerator';
 import CreativoPreviewAuto from './CreativoPreviewAuto';
-import CreativoEditor from './CreativoEditor';
 import { saveCreativo, uploadCreativeImage, saveCreativoAsset } from '../../lib/campanasStorage';
 import type { Campana, CopyGenerado, AnguloCreativo, TipoCreativo, Creativo } from '../../lib/campanasTypes';
 import type { ProfileV2 } from '../../lib/supabase';
 
 type StudioTab = 'copy' | 'imagen' | 'preview';
-type PreviewMode = 'auto' | 'editor';
 
 interface Props {
   campana: Campana;
@@ -33,7 +31,6 @@ export default function CreativoStudio({ campana, userId, perfil, geminiKey, onB
   const [angulo, setAngulo] = useState<AnguloCreativo>('directo');
   const [tipo, setTipo] = useState<TipoCreativo>('imagen_single');
   const [images, setImages] = useState<{ base64: string; mimeType: string; modelUsed: string }[]>([]);
-  const [previewMode, setPreviewMode] = useState<PreviewMode>('auto');
   const [activeSlide, setActiveSlide] = useState(0);
   const [saving, setSaving] = useState(false);
 
@@ -50,7 +47,6 @@ export default function CreativoStudio({ campana, userId, perfil, geminiKey, onB
   const handleImagesGenerated = useCallback(
     (imgs: { base64: string; mimeType: string; modelUsed: string }[], mode?: string) => {
       setImages(imgs);
-      if (mode === 'fondo') setPreviewMode('editor');
     },
     [],
   );
@@ -181,30 +177,6 @@ export default function CreativoStudio({ campana, userId, perfil, geminiKey, onB
 
         {tab === 'preview' && canPreview && (
           <div className="space-y-4">
-            {/* Mode selector */}
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setPreviewMode('auto')}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                  previewMode === 'auto'
-                    ? 'bg-[#F5A623]/15 text-[#F5A623] border border-[#F5A623]/30'
-                    : 'bg-[#FFFFFF]/5 text-[#FFFFFF]/40 border border-transparent hover:text-[#FFFFFF]/60'
-                }`}
-              >
-                <Eye className="w-3.5 h-3.5" /> Overlay Automatico
-              </button>
-              <button
-                onClick={() => setPreviewMode('editor')}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                  previewMode === 'editor'
-                    ? 'bg-[#F5A623]/15 text-[#F5A623] border border-[#F5A623]/30'
-                    : 'bg-[#FFFFFF]/5 text-[#FFFFFF]/40 border border-transparent hover:text-[#FFFFFF]/60'
-                }`}
-              >
-                <PenTool className="w-3.5 h-3.5" /> Editor
-              </button>
-            </div>
-
             {/* Slide selector for carousel */}
             {images.length > 1 && (
               <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
@@ -224,20 +196,11 @@ export default function CreativoStudio({ campana, userId, perfil, geminiKey, onB
               </div>
             )}
 
-            {/* Preview component */}
-            {previewMode === 'auto' ? (
-              <CreativoPreviewAuto
-                image={images[activeSlide]}
-                copy={copies[activeSlide] ?? copies[0]}
-                slideIndex={images.length > 1 ? activeSlide : undefined}
-              />
-            ) : (
-              <CreativoEditor
-                image={images[activeSlide]}
-                copy={copies[activeSlide] ?? copies[0]}
-                slideIndex={images.length > 1 ? activeSlide : undefined}
-              />
-            )}
+            <CreativoPreviewAuto
+              image={images[activeSlide]}
+              copy={copies[activeSlide] ?? copies[0]}
+              slideIndex={images.length > 1 ? activeSlide : undefined}
+            />
           </div>
         )}
       </div>

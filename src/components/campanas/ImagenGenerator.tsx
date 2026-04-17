@@ -1,10 +1,10 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import {
   Loader2, Sparkles, RotateCcw,
-  Pencil, Camera, Zap, Heart, Eye, Award, BookOpen,
-  ArrowLeftRight, Bell, ChevronDown, ChevronUp,
-  Upload, X, User, Palette as PaletteIcon, Type,
-  RefreshCw, Wand2,
+  Camera, Zap, Smile, Tv, Twitter,
+  ChevronDown, ChevronUp,
+  Upload, X, Palette as PaletteIcon, Type,
+  RefreshCw, Wand2, Cookie, Layers, User, Pencil,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { generateImageWithFallback, generateCarouselImages, base64ToDataUrl, editImage } from '../../lib/campanasImageGen';
@@ -23,14 +23,14 @@ import type { ProfileV2 } from '../../lib/supabase';
 const MAX_REFS = 5;
 
 const ESTILO_ICONS: Record<EstiloVisual, React.ComponentType<{ className?: string }>> = {
-  fotografico_profesional: Camera,
-  grafico_bold: Zap,
-  minimalista: Eye,
-  lifestyle: Heart,
-  testimonio: Award,
-  educativo: BookOpen,
-  antes_despues: ArrowLeftRight,
-  urgencia: Bell,
+  foto_real: Camera,
+  bold: Zap,
+  pixar: Sparkles,
+  caricatura: Smile,
+  comic: Layers,
+  plasticina: Cookie,
+  noticias: Tv,
+  twitter: Twitter,
 };
 
 function fileToBase64(file: File): Promise<ReferenceImage> {
@@ -81,7 +81,7 @@ export default function ImagenGenerator({ copies, angulo, perfil, geminiKey, ini
   // Controls
   const [format, setFormat] = useState<ImageFormat>(initialFormat ?? '1:1');
   const [genMode, setGenMode] = useState<ImageGenerationMode>('ia_completa');
-  const [estilo, setEstilo] = useState<EstiloVisual>('grafico_bold');
+  const [estilo, setEstilo] = useState<EstiloVisual>('foto_real');
   const [instrucciones, setInstrucciones] = useState('');
   const [showInstrucciones, setShowInstrucciones] = useState(false);
 

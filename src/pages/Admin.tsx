@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import CustomSelect from '../components/CustomSelect';
+import TasksPipeline from '../components/admin/TasksPipeline';
+import MigrationWizard from '../components/admin/MigrationWizard';
 import {
   Users, Send, ChevronRight, X, Plus, Loader2,
   Stethoscope, CheckCircle2, Circle, LogOut,
@@ -11,7 +13,7 @@ import {
   Globe, Flame, Star, DollarSign, Pencil,
   Sprout, Target, Sunrise, UserCircle, Lightbulb, Triangle,
   Cog, Building2, Megaphone, Phone, Handshake, Palette, BarChart3,
-  Search, UsersRound, Check, ClipboardList, Menu, LayoutDashboard,
+  Search, UsersRound, Check, ClipboardList, Menu, LayoutDashboard, ClipboardCheck,
 } from 'lucide-react';
 
 const ADMIN_PILAR_ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -30,7 +32,7 @@ import Markdown from 'react-markdown';
 // ─── TIPOS Y CONSTANTES ─────────────────────────────────────────────────────────
 
 type AdminRol = 'owner' | 'manager' | 'staff';
-type MainTab = 'clientes' | 'pipeline' | 'mensajes' | 'metricas' | 'videos' | 'equipo' | 'campanas' | 'creativos';
+type MainTab = 'clientes' | 'pipeline' | 'mensajes' | 'metricas' | 'videos' | 'equipo' | 'campanas' | 'creativos' | 'tareas';
 type DetalleTab = 'resumen' | 'diario' | 'metricas' | 'mensajes' | 'notas';
 type MensajesChannel = 'comunidad' | 'victorias' | 'consultas' | 'privados';
 
@@ -333,6 +335,7 @@ export default function Admin({ adminProfile, onSignOut }: AdminProps) {
   const [selectedCliente, setSelectedCliente] = useState<ClienteConEstado | null>(null);
   const [detalleTab, setDetalleTab] = useState<DetalleTab>('resumen');
   const [showNuevoCliente, setShowNuevoCliente] = useState(false);
+  const [showMigrationWizard, setShowMigrationWizard] = useState(false);
   const [clientSearch, setClientSearch] = useState('');
   const [filtroStatus, setFiltroStatus] = useState<UserStatus | 'ALL'>('ALL');
 
@@ -1308,6 +1311,7 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
     { id: 'equipo',    label: 'Equipo',    icon: UsersRound, ownerOnly: true },
     { id: 'campanas',  label: 'Campañas',  icon: Megaphone },
     { id: 'creativos', label: 'Creativos', icon: Image },
+    { id: 'tareas',    label: 'Tareas',    icon: ClipboardCheck },
   ];
 
   const headerTitles: Record<MainTab, string> = {
@@ -1319,6 +1323,7 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
     equipo: 'Gestión de Equipo',
     campanas: 'Campañas & Creativos',
     creativos: 'Generador de Creativos',
+    tareas: 'Pipeline de Tareas Internas',
   };
 
   // ─── RENDER ───────────────────────────────────────────────────────────────────
@@ -1589,6 +1594,12 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
                     className="w-48"
                   />
                 </div>
+                <button
+                  onClick={() => setShowMigrationWizard(true)}
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-[rgba(245,166,35,0.3)] text-sm font-semibold text-[#F5A623] hover:bg-[#F5A623]/10 transition-all"
+                >
+                  <Sparkles className="w-4 h-4" /> Migrar cliente
+                </button>
                 <button
                   onClick={() => setShowNuevoCliente(true)}
                   className="btn-primary flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold shadow-lg shadow-[#F5A623]/20"
@@ -2985,6 +2996,18 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
             </div>
           )}
 
+          {/* ═══════════════════════════════════════════════════════════════
+              TAB: TAREAS INTERNAS
+              ═══════════════════════════════════════════════════════════════ */}
+          {mainTab === 'tareas' && (
+            <TasksPipeline
+              currentAdminId={adminProfile?.id ?? ''}
+              adminRol={adminRol}
+              teamMembers={teamMembers}
+              clientes={clientes}
+            />
+          )}
+
         </div>
       </main>
 
@@ -3056,6 +3079,14 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
             </div>
           </div>
         </div>
+      )}
+
+      {/* ─── MODAL MIGRACIÓN CLIENTE ────────────────────────────────────────────── */}
+      {showMigrationWizard && (
+        <MigrationWizard
+          onClose={() => setShowMigrationWizard(false)}
+          onSuccess={cargarClientes}
+        />
       )}
 
       {/* ─── MODAL NUEVO CLIENTE ────────────────────────────────────────────────── */}

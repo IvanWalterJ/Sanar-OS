@@ -4,12 +4,11 @@
  */
 import { useState, useCallback, useEffect } from 'react';
 import {
-  ImageIcon, Loader2, CheckCircle2, Save, Pencil, Sparkles,
+  ImageIcon, Loader2, CheckCircle2, Save, Sparkles,
   Layers, Youtube, FolderOpen, Image as ImageLucide,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import ImagenGenerator from './ImagenGenerator';
-import CreativoEditor from './CreativoEditor';
 import CreativoGallery from './CreativoGallery';
 import CreativoDetalle from './CreativoDetalle';
 import {
@@ -110,7 +109,6 @@ export default function CreativosView({ userId, perfil, geminiKey }: Props) {
   const [angulo, setAngulo] = useState<AnguloCreativo>('directo');
   const [images, setImages] = useState<{ base64: string; mimeType: string; modelUsed: string }[]>([]);
   const [imageMode, setImageMode] = useState<ImageMode>('completa');
-  const [showEditor, setShowEditor] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
@@ -124,7 +122,6 @@ export default function CreativosView({ userId, perfil, geminiKey }: Props) {
   // Reset preview cuando cambias de tab
   useEffect(() => {
     setImages([]);
-    setShowEditor(false);
     setSaved(false);
   }, [activeTab]);
 
@@ -153,7 +150,6 @@ export default function CreativosView({ userId, perfil, geminiKey }: Props) {
       setImages(newImages);
       setImageMode(mode);
       setSaved(false);
-      if (mode === 'fondo') setShowEditor(true);
     },
     [],
   );
@@ -332,41 +328,6 @@ export default function CreativosView({ userId, perfil, geminiKey }: Props) {
               onImagesGenerated={handleImagesGenerated}
             />
           </div>
-
-          {/* Editor */}
-          {images.length > 0 && showEditor && (
-            <div>
-              <div className="flex items-center gap-3 mb-3">
-                <div className="w-5 h-5 rounded-full bg-[#F5A623]/20 flex items-center justify-center">
-                  <Pencil className="w-3 h-3 text-[#F5A623]" />
-                </div>
-                <span className="text-[10px] font-bold tracking-[0.15em] uppercase text-[#FFFFFF]/30">
-                  Editar texto
-                </span>
-                <div className="flex-1 h-px bg-[rgba(245,166,35,0.1)]" />
-              </div>
-              <CreativoEditor
-                image={{ base64: images[0].base64, mimeType: images[0].mimeType }}
-                copy={{
-                  texto_principal: '',
-                  titulo: '',
-                  descripcion: '',
-                  cta_texto: '',
-                }}
-              />
-            </div>
-          )}
-
-          {images.length > 0 && !showEditor && imageMode === 'completa' && (
-            <div className="flex justify-center">
-              <button
-                onClick={() => setShowEditor(true)}
-                className="flex items-center gap-2 text-xs text-[#FFFFFF]/50 hover:text-[#F5A623] transition-colors px-4 py-2 rounded-xl border border-[#FFFFFF]/10 hover:border-[#F5A623]/30"
-              >
-                <Pencil className="w-3.5 h-3.5" /> Editar texto sobre la imagen
-              </button>
-            </div>
-          )}
 
           {/* Guardar */}
           {images.length > 0 && (

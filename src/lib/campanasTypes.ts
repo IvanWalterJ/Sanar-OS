@@ -174,57 +174,75 @@ export const TIPO_LABELS: Record<TipoCreativo, string> = {
 // ─── Estilos visuales y modos de imagen ─────────────────────────────────────
 
 export type EstiloVisual =
-  | 'fotografico_profesional'
-  | 'grafico_bold'
-  | 'minimalista'
-  | 'lifestyle'
-  | 'testimonio'
-  | 'educativo'
-  | 'antes_despues'
-  | 'urgencia';
+  | 'foto_real'
+  | 'bold'
+  | 'pixar'
+  | 'caricatura'
+  | 'comic'
+  | 'plasticina'
+  | 'noticias'
+  | 'twitter';
+
+// Maps legacy keys (stored in old prompt_imagen strings or passed externally) to current keys
+export const LEGACY_ESTILO_MAP: Record<string, EstiloVisual> = {
+  fotografico_profesional: 'foto_real',
+  grafico_bold: 'bold',
+  minimalista: 'foto_real',
+  lifestyle: 'foto_real',
+  testimonio: 'foto_real',
+  educativo: 'bold',
+  antes_despues: 'bold',
+  urgencia: 'bold',
+};
+
+export function normalizeEstilo(value: string): EstiloVisual {
+  const valid: EstiloVisual[] = ['foto_real', 'bold', 'pixar', 'caricatura', 'comic', 'plasticina', 'noticias', 'twitter'];
+  if (valid.includes(value as EstiloVisual)) return value as EstiloVisual;
+  return LEGACY_ESTILO_MAP[value] ?? 'foto_real';
+}
 
 export type ImageMode = 'completa' | 'fondo';
 
 export const ESTILO_VISUAL_OPTIONS: Record<EstiloVisual, { titulo: string; descripcion: string; prompt: string }> = {
-  fotografico_profesional: {
-    titulo: 'Fotografico profesional',
-    descripcion: 'Foto realista premium, persona en consultorio o clinica',
-    prompt: 'Fotografia profesional de alta calidad tipo stock premium. Persona real en entorno de consultorio o clinica moderna. Iluminacion profesional de estudio, profundidad de campo. Estetica editorial de revista de salud. Colores calidos y naturales.',
+  foto_real: {
+    titulo: 'Estilo Foto Real',
+    descripcion: 'Fotografia profesional, naturalista, editorial',
+    prompt: 'High-end editorial photography. Full-frame DSLR look, natural key light, shallow depth of field with smooth bokeh. Photorealistic skin tones and materials. Magazine-cover commercial quality. Premium stock photo aesthetic. No illustration, no CGI — pure photographic realism.',
   },
-  grafico_bold: {
-    titulo: 'Grafico bold',
-    descripcion: 'Diseño impactante, colores fuertes, tipografia grande',
-    prompt: 'Diseño grafico BOLD e impactante. Colores vibrantes y contrastantes. Composicion asimetrica y dinamica. Elementos graficos geometricos. Estilo de agencia de publicidad premium. La imagen debe GRITAR y detener el scroll inmediatamente. Alto contraste, formas llamativas.',
+  bold: {
+    titulo: 'Estilo Bold',
+    descripcion: 'Grafico de alto contraste, colores fuertes, scroll-stopping',
+    prompt: 'Bold graphic design, maximum contrast, oversized sans-serif typography treatment area, flat vector shapes, asymmetric dynamic layout, limited aggressive color palette (black + one saturated accent). Scroll-stopping poster aesthetic. Behance editorial design quality. Clean geometric composition.',
   },
-  minimalista: {
-    titulo: 'Minimalista',
-    descripcion: 'Fondo limpio, espacio negativo, elegante',
-    prompt: 'Diseño minimalista y elegante. Mucho espacio negativo. Fondo solido o gradiente suave. Un solo elemento visual central. Sensacion de premium y exclusividad. Tipografia fina y moderna. Menos es mas.',
+  pixar: {
+    titulo: 'Estilo PIXAR',
+    descripcion: '3D animado cinematografico, personajes expresivos',
+    prompt: 'Pixar-Disney 3D animated style. Cinematic soft lighting with subsurface scattering on skin. Expressive stylized characters with large eyes and smooth skin. Rich saturated color palette. Depth of field, volumetric light. Polished render quality matching Toy Story or Up. Warm, friendly, family-safe aesthetic.',
   },
-  lifestyle: {
-    titulo: 'Lifestyle',
-    descripcion: 'Persona en situacion cotidiana, natural, relatable',
-    prompt: 'Fotografia lifestyle natural y autentica. Persona en situacion cotidiana, sonriendo, en su elemento. Luz natural, ambiente calido. El espectador debe sentirse identificado. No parece publicidad, parece un momento real capturado. Estetica de Instagram organica.',
+  caricatura: {
+    titulo: 'Estilo Caricatura',
+    descripcion: 'Ilustracion 2D cartoon, contornos marcados, colores planos',
+    prompt: '2D cartoon illustration style. Bold clean black outlines. Flat cel-shaded colors with minimal shadow. Exaggerated expressive features. Vibrant Saturday-morning animation palette. Hand-drawn feel with high readability. Similar to modern animated series. No photorealism, pure 2D illustration.',
   },
-  testimonio: {
-    titulo: 'Testimonio',
-    descripcion: 'Formato quote con foto, prueba social',
-    prompt: 'Formato de testimonio o caso de exito. Incluir comillas visuales grandes. Foto de persona satisfecha o resultado visible. Diseño que transmite confianza y credibilidad. Elementos de prueba social: estrellas, check marks, numeros. Fondo oscuro profesional.',
+  comic: {
+    titulo: 'Estilo Comic',
+    descripcion: 'Comic book americano, halftone dots, contornos gruesos',
+    prompt: 'American comic book style. Thick bold ink outlines. Halftone dot shading (Ben-Day dots). Limited saturated primary palette. Dynamic action-style composition. Marvel or DC aesthetic quality. Strong dramatic shadows with cross-hatching details. Panel-ready framing. Pure comic art, no photography.',
   },
-  educativo: {
-    titulo: 'Educativo',
-    descripcion: 'Infografia, datos, formato didactico',
-    prompt: 'Infografia educativa limpia y profesional. Datos presentados visualmente con iconos, numeros destacados, listas visuales. Formato de "sabias que" o "X datos sobre...". Diseño que aporta valor inmediato. Colores institucionales y profesionales.',
+  plasticina: {
+    titulo: 'Estilo Plasticina',
+    descripcion: 'Claymation 3D, texturas de arcilla, estilo artesanal',
+    prompt: 'Handmade claymation stop-motion aesthetic. Visible fingerprint and tool-mark textures on clay surfaces. Imperfect charming organic shapes. Warm studio lighting with shallow depth of field. Aardman Studios quality (Wallace and Gromit). Tactile plasticine 3D feel. Soft colors, handmade charm.',
   },
-  antes_despues: {
-    titulo: 'Antes / Despues',
-    descripcion: 'Contraste visual problema vs solucion',
-    prompt: 'Composicion dividida en dos: lado izquierdo oscuro/gris representando el PROBLEMA (frustracion, dolor, confusion), lado derecho luminoso/colorido representando la SOLUCION (alivio, claridad, resultado). Transicion visual clara entre ambos estados. Flecha o elemento de transformacion en el centro.',
+  noticias: {
+    titulo: 'Estilo Noticias',
+    descripcion: 'Cobertura periodistica TV, chyron, presentador profesional',
+    prompt: 'TV news broadcast graphic style. Lower-third chyron bar with urgent headline. Breaking-news red and blue color palette. Serif headline typography. News studio backdrop or on-location feel. CNN or Telemundo broadcast aesthetic. Editorial urgency. Professional anchor presentation layout.',
   },
-  urgencia: {
-    titulo: 'Urgencia / FOMO',
-    descripcion: 'Colores de alerta, escasez, accion inmediata',
-    prompt: 'Diseño con sensacion de URGENCIA y escasez. Colores rojos/naranjas de alerta. Elementos de countdown, plazas limitadas, "ultima oportunidad". Contraste alto negro/rojo/dorado. Stickers de "AHORA", flechas, elementos que empujan a la accion inmediata. Energia alta.',
+  twitter: {
+    titulo: 'Estilo Twitter/X',
+    descripcion: 'Screenshot viral de red social, formato autentico',
+    prompt: 'Authentic social media screenshot style — looks exactly like a real X (Twitter) post. White or dark mode UI. Verified blue checkmark badge. Profile avatar circle. System font (Segoe UI or SF Pro). Timestamp, like and retweet counters visible. Pixel-perfect platform card replica. No borders or effects — pure platform UI.',
   },
 };
 

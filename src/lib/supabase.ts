@@ -410,6 +410,57 @@ export const PILAR_MIGRATION_MAP: Record<number, PilarId> = {
   6: 'P6', 7: 'P7', 8: 'P8', 9: 'P9A', 10: 'P10',
 };
 
+// ─── Admin Task Pipeline ─────────────────────────────────────────────────────
+
+export type AdminTareaStatus =
+  | 'asignadas'
+  | 'por_hacer'
+  | 'en_proceso'
+  | 'completadas'
+  | 'en_revision'
+  | 'aprobadas';
+
+export type AdminTareaPrioridad = 'baja' | 'media' | 'alta' | 'urgente';
+
+export interface AdminTarea {
+  id: string;
+  titulo: string;
+  descripcion: string | null;
+  asignado_a: string | null;
+  creado_por: string;
+  cliente_id: string | null;
+  prioridad: AdminTareaPrioridad;
+  fecha_vencimiento: string | null;
+  status: AdminTareaStatus;
+  completada_at: string | null;
+  created_at: string;
+  updated_at: string;
+  // Joined fields (optional, populated by queries with select)
+  asignado_nombre?: string;
+  cliente_nombre?: string;
+  creador_nombre?: string;
+}
+
+export const ADMIN_TAREA_STATUSES: AdminTareaStatus[] = [
+  'asignadas', 'por_hacer', 'en_proceso', 'completadas', 'en_revision', 'aprobadas',
+];
+
+export const ADMIN_TAREA_STATUS_LABELS: Record<AdminTareaStatus, string> = {
+  asignadas: 'Asignadas',
+  por_hacer: 'Por Hacer',
+  en_proceso: 'En Proceso',
+  completadas: 'Completadas',
+  en_revision: 'En Revisión',
+  aprobadas: 'Aprobadas',
+};
+
+export const ADMIN_TAREA_PRIORIDAD_LABELS: Record<AdminTareaPrioridad, string> = {
+  baja: 'Baja',
+  media: 'Media',
+  alta: 'Alta',
+  urgente: 'Urgente',
+};
+
 // ─── Re-export tipos de Campañas & Creativos ─────────────────────────────────
 export type {
   Campana,
