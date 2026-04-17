@@ -262,7 +262,13 @@ export default function ImagenGenerator({ copies, angulo, perfil, geminiKey, ini
         if (necesitaNarrativa) {
           try {
             setProgress({ modelName: 'Gemini (narrativa)', attempt: 1, total: 1, status: 'trying' });
-            const narrPrompt = buildCarouselNarrativePrompt(userPrompt.trim(), totalSlides, effectiveAngulo, perfil);
+            const narrPrompt = buildCarouselNarrativePrompt(
+              userPrompt.trim(),
+              totalSlides,
+              effectiveAngulo,
+              perfil,
+              styleRefs.length > 0 ? undefined : estilo,
+            );
             const text = await generateText({ prompt: narrPrompt });
             const cleaned = text.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
             const jsonMatch = cleaned.match(/\{[\s\S]*\}/);

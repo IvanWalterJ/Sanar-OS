@@ -304,7 +304,21 @@ export function buildCarouselNarrativePrompt(
   totalSlides: number,
   angulo: AnguloCreativo,
   perfil: Partial<ProfileV2>,
+  estilo?: EstiloVisual,
 ): string {
+  const estiloInfo = estilo ? ESTILO_VISUAL_OPTIONS[estilo] : null;
+  const estiloBlock = estiloInfo
+    ? `
+=== ESTILO VISUAL OBLIGATORIO (definido por el usuario — NO sustituir) ===
+Nombre del estilo: ${estiloInfo.titulo}
+Descripcion: ${estiloInfo.descripcion}
+Direccion estetica (debe condicionar paleta, escena, tipografia y tratamiento):
+${estiloInfo.prompt}
+
+El concepto visual unificado que generes DEBE quedar claramente dentro de este estilo. La paleta, escena, tipografia y tratamiento elegidos tienen que ser coherentes con esta direccion estetica.
+`
+    : '';
+
   return `Eres un copywriter senior + director creativo especializado en carruseles de Instagram para profesionales de la salud.
 Tu trabajo: crear un carrusel con HILO NARRATIVO COHERENTE — copy y direccion visual unificados.
 
@@ -312,13 +326,13 @@ ${adnContext(perfil)}
 
 === ANGULO DE COMUNICACION ===
 ${ANGULO_INSTRUCTIONS[angulo]}
-
+${estiloBlock}
 === BRIEF DEL USUARIO (intencion del carrusel) ===
 ${brief}
 
 === TAREA ===
 1) Crea ${totalSlides} titulares encadenados que se LEAN como una sola historia de izquierda a derecha.
-2) Define UN concepto visual UNICO compartido por TODAS las slides.
+2) Define UN concepto visual UNICO compartido por TODAS las slides${estiloInfo ? `, respetando el ESTILO VISUAL OBLIGATORIO "${estiloInfo.titulo}"` : ''}.
 
 Estructura narrativa obligatoria:
 - Slide 1 = HOOK que detiene el scroll (curiosidad, dolor o promesa fuerte)
@@ -541,7 +555,14 @@ REGLA DE CONTINUIDAD VISUAL: misma paleta exacta, misma escena/encuadre, misma t
 ${isYouTube ? 'Esta portada debe generar CLICKS. El hook visual es CRITICO — el usuario decide en 1 segundo si hace clic o no.' : 'Esta imagen debe FRENAR EL SCROLL. Tiene que ser visualmente tan potente que el usuario deje de scrollear en menos de 1 segundo.'}
 
 NICHO: ${nicho}
-${nc?.conceptoVisual ? 'DIRECCION VISUAL: Seguir el CONCEPTO VISUAL UNIFICADO del carrusel (ver bloque abajo) — tiene PRIORIDAD sobre cualquier estilo por defecto' : styleCount > 0 ? 'DIRECCION VISUAL: Seguir la referencia de estilo adjunta (ver instrucciones abajo)' : `DIRECCION VISUAL: ${estiloPrompt}`}
+${nc?.conceptoVisual
+  ? (estilo
+      ? `ESTILO VISUAL BASE (del usuario, OBLIGATORIO — condiciona tecnica, render, tipografia y tratamiento): ${ESTILO_VISUAL_OPTIONS[estilo].prompt}
+DIRECCION VISUAL (concepto unificado del carrusel, aplicar DENTRO del estilo base): Seguir el CONCEPTO VISUAL UNIFICADO (ver bloque abajo) respetando siempre el estilo visual base. El estilo base define la tecnica (foto real, 3D pixar, comic, etc.); el concepto unificado define paleta, escena y tipografia especificas compartidas entre slides.`
+      : 'DIRECCION VISUAL: Seguir el CONCEPTO VISUAL UNIFICADO del carrusel (ver bloque abajo)')
+  : styleCount > 0
+    ? 'DIRECCION VISUAL: Seguir la referencia de estilo adjunta (ver instrucciones abajo)'
+    : `DIRECCION VISUAL: ${estiloPrompt}`}
 ANGULO COMUNICACIONAL: ${anguloVisual[angulo]}
 ${nc?.conceptoVisual ? 'COLORES: Usar la paleta del concepto visual unificado' : styleCount > 0 ? 'COLORES: Usar la paleta de la referencia de estilo' : `COLORES DE MARCA: ${colores}`}
 TONO: ${tono}
