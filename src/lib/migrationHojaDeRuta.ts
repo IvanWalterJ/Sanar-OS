@@ -15,6 +15,7 @@ export interface HojaDeRutaSeedRow {
 type AdnMapping = keyof ExtractedProfile | (keyof ExtractedProfile)[];
 
 const ADN_FIELD_TO_EXTRACTED: Record<string, AdnMapping> = {
+  // Matches directos (misma semántica)
   historia_300: 'historia_300',
   proposito: 'proposito',
   legado: 'legado',
@@ -29,6 +30,15 @@ const ADN_FIELD_TO_EXTRACTED: Record<string, AdnMapping> = {
     'identidad_logo',
     'identidad_tono',
   ],
+  // Derivaciones razonables para que la hoja de ruta no quede con outputs
+  // vacíos tras migrar — contenido aproximado a partir de los campos extraídos.
+  adn_linea_tiempo: 'historia_300',
+  adn_formulario_bienvenida: ['proposito', 'nicho', 'posicionamiento'],
+  adn_cinco_por_que: ['por_que_oficial', 'proposito'],
+  adn_carta_futuro: 'legado',
+  adn_avatar: ['nicho', 'posicionamiento'],
+  adn_transformaciones: ['matriz_b', 'matriz_c'],
+  adn_proceso_actual: ['metodo_nombre', 'metodo_pasos'],
 };
 
 function formatLabel(key: keyof ExtractedProfile): string {
