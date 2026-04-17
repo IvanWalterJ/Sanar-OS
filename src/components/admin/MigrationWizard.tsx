@@ -3,12 +3,14 @@ import { X, Loader2, Sparkles, ChevronRight, ChevronLeft, Check, RefreshCw, User
 import { toast } from 'sonner';
 import { createClient } from '@supabase/supabase-js';
 import { supabase } from '../../lib/supabase';
+import type { Profile } from '../../lib/supabase';
 import type { ExtractedProfile, MigrationStep1Data } from '../../lib/migrationTypes';
 import { extractFromText } from '../../lib/migrationExtractor';
 
 interface MigrationWizardProps {
   onClose: () => void;
   onSuccess: () => void;
+  clientes?: Profile[];
 }
 
 const STEPS = ['Datos básicos', 'Información del cliente', 'Revisar campos', 'Confirmar'];
@@ -56,7 +58,7 @@ const TAB_FIELDS: Record<ReviewTab, (keyof ExtractedProfile)[]> = {
 const INPUT_CLASS = 'w-full bg-[#0A0A0A] border border-[rgba(245,166,35,0.2)] rounded-xl px-4 py-2.5 text-sm text-[#FFFFFF] placeholder-[#FFFFFF]/20 focus:outline-none focus:border-[#F5A623]/50 transition-colors';
 const LABEL_CLASS = 'block text-[10px] font-bold text-[#FFFFFF]/40 uppercase tracking-wider mb-1.5';
 
-export default function MigrationWizard({ onClose, onSuccess }: MigrationWizardProps) {
+export default function MigrationWizard({ onClose, onSuccess, clientes = [] }: MigrationWizardProps) {
   const [step, setStep] = useState(0);
   const [resyncMode, setResyncMode] = useState(false);
 
@@ -123,13 +125,9 @@ export default function MigrationWizard({ onClose, onSuccess }: MigrationWizardP
       let profileId: string;
 
       if (resyncMode) {
-        // Buscar perfil existente por email
-        const { data: existing, error: searchError } = await supabase
-          .from('profiles')
-          .select('id, nombre')
-          .eq('email', form.email.trim())
-          .single();
-        if (searchError || !existing) {
+        const emailNorm = form.email.trim().toLowerCase();
+        const existing = clientes.find(c => c.email?.toLowerCase() === emailNorm);
+        if (!existing) {
           throw new Error(`No se encontró ningún cliente con el email ${form.email.trim()}`);
         }
         profileId = existing.id;

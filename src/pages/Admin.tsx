@@ -3086,6 +3086,7 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
         <MigrationWizard
           onClose={() => setShowMigrationWizard(false)}
           onSuccess={cargarClientes}
+          clientes={clientes}
         />
       )}
 
