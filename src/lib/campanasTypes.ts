@@ -236,13 +236,13 @@ export const ESTILO_VISUAL_OPTIONS: Record<EstiloVisual, { titulo: string; descr
   },
   noticias: {
     titulo: 'Estilo Noticias',
-    descripcion: 'Cobertura periodistica TV, chyron, presentador profesional',
-    prompt: 'TV news broadcast graphic style. Lower-third chyron bar with urgent headline. Breaking-news red and blue color palette. Serif headline typography. News studio backdrop or on-location feel. CNN or Telemundo broadcast aesthetic. Editorial urgency. Professional anchor presentation layout.',
+    descripcion: 'Captura tipo medio viral: foto real + titular bold + badge urgente + dato/estadistica',
+    prompt: 'Viral news/media post style — looks like an authentic screenshot of a viral news outlet post on Instagram (in the vein of El Kilombo, Infobae viral, FilterNews). Real photographic image as background (a person reacting, a relevant scene, candid documentary photo — NOT a TV anchor in a studio). Bold uppercase sans-serif headline overlaid at the bottom over a subtle dark gradient — headline includes a SHOCKING DATA POINT, percentage, statistic, or surprising claim (ej: "EL 67% DE LOS USUARIOS...", "ESPANA ES EL PAIS CON MAS..."). Small colored rectangular badge at the top-left of the headline area saying "VIRAL", "ULTIMO MOMENTO", "URGENTE" or similar in red/yellow. Optional small fake media logo bottom-left and small swipe arrow ">>" bottom-right. Vertical 4:5 or 9:16 framing. The vibe is tabloid digital, scroll-stopping, data-driven shock value — NOT a TV news broadcast, NOT a studio, NOT an anchor with chyron.',
   },
   twitter: {
     titulo: 'Estilo Twitter/X',
-    descripcion: 'Screenshot viral de red social, formato autentico',
-    prompt: 'Authentic social media screenshot style — looks exactly like a real X (Twitter) post. White or dark mode UI. Verified blue checkmark badge. Profile avatar circle. System font (Segoe UI or SF Pro). Timestamp, like and retweet counters visible. Pixel-perfect platform card replica. No borders or effects — pure platform UI.',
+    descripcion: 'Screenshot organico de un post real en X — texto a tamano normal, no titular gigante',
+    prompt: 'AUTHENTIC X (Twitter) post screenshot — must look like a real screenshot taken from the X mobile or desktop app. Pixel-perfect replica of the platform UI: profile avatar circle (40-48px), display name in bold sans-serif at NORMAL size (~15-17px equivalent), verified blue checkmark next to name, gray @handle and timestamp on the same row, post body text rendered at 15-16px equivalent (NORMAL reading size — NOT giant headline-size text, NOT poster typography, NOT bold display). The post body uses regular weight sans-serif (system font: Segoe UI / SF Pro / Helvetica), left-aligned, with normal line-height. Below the text: small action row (reply, retweet, like, view counts) in muted gray. Dark mode (#15202B background, #FFFFFF text) or light mode (white background, #0F1419 text). The post should occupy a card with subtle border. ABSOLUTE RULES: text in the body must be the same size as a real tweet — small enough that you could fit 280 characters. No oversized typography, no poster design, no decorative effects, no gradients, no extra graphics. Just a clean, organic, believable Twitter/X post screenshot.',
   },
 };
 

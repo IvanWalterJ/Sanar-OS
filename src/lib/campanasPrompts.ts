@@ -342,16 +342,16 @@ const ESTILO_NARRATIVE_EXAMPLES: Record<EstiloVisual, {
     tratamiento: '"claymation stop-motion, textura visible de arcilla y huellas digitales, Aardman Wallace and Gromit"',
   },
   noticias: {
-    paleta: '"rojo breaking news #C8102E, azul oscuro #003566, blanco y gris acero"',
-    escena: '"presentador en set de noticias con chyron inferior y backdrop urbano"',
-    tipografia: '"serif noticiero titular + sans-serif chyron, estilo CNN/BBC"',
-    tratamiento: '"grafica broadcast TV noticias, lower third, lente de camara profesional broadcast"',
+    paleta: '"foto real de fondo + overlay negro semi-transparente, badge rojo #E63946, texto blanco, acento amarillo #FFD60A"',
+    escena: '"foto documental de una persona reaccionando o escena candid relevante al tema, con titular bold uppercase sobre gradient negro inferior y badge VIRAL/URGENTE arriba"',
+    tipografia: '"sans-serif condensed bold uppercase para titular grande, badge en sans-serif bold con fondo de color"',
+    tratamiento: '"screenshot tipo medio viral de Instagram (El Kilombo / Infobae viral / FilterNews), foto real candid + overlay editorial bold, NO presentador en estudio, NO chyron de TV"',
   },
   twitter: {
-    paleta: '"fondo blanco UI o dark mode #15202B, acento azul verificado #1D9BF0, texto #0F1419"',
-    escena: '"screenshot autentico de post de X/Twitter, pixel-perfect UI"',
-    tipografia: '"system font (Segoe UI / SF Pro), sin efectos, tamanos exactos del UI real"',
-    tratamiento: '"replica exacta del UI de X/Twitter, sin bordes, sin fotografia, sin ilustracion — solo captura"',
+    paleta: '"dark mode #15202B fondo, texto #FFFFFF, handle/timestamp gris #71767B, azul verificado #1D9BF0"',
+    escena: '"screenshot organico de un post real en la app de X/Twitter, card unica del tweet visible"',
+    tipografia: '"system font (Segoe UI / SF Pro) tamanos REALES de la app — display name ~16px bold, post body ~15-16px regular, handle ~14px gris. JAMAS texto display gigante"',
+    tratamiento: '"replica pixel-perfect de un screenshot autentico de X/Twitter, texto a tamano de lectura normal (no de poster), sin efectos, sin gradientes, sin tipografia decorativa — debe parecer captura real"',
   },
 };
 
@@ -497,12 +497,24 @@ export function buildImagePrompt(
         if (h3Trim) lines.push(`  Texto terciario (jerarquia 3, pequeño): "${h3Trim}"`);
         if (ctaTrim) lines.push(`  Texto del boton CTA (debe verse como boton): "${ctaTrim}"`);
 
-        const jerarquia = [
-          '- El texto principal es lo primero que el ojo ve — tamaño dominante, bold, maximo contraste',
-        ];
-        if (h2Trim) jerarquia.push('- El texto secundario complementa al principal — menor tamaño, puede ser lighter');
-        if (ctaTrim) jerarquia.push('- El boton CTA debe parecer un BOTON real — fondo de color solido que contraste (ej: #F5A623 dorado), bordes redondeados, texto oscuro sobre fondo claro. Debe gritar "HAZ CLIC"');
-        jerarquia.push('- La jerarquia visual debe ser INMEDIATAMENTE clara en 1 segundo');
+        const jerarquia = estilo === 'twitter'
+          ? [
+              '- El texto principal es el body del tweet — tamano de lectura NORMAL (~15-16px equivalente), regular weight, system font, alineado a la izquierda',
+              '- PROHIBIDO texto display gigante o poster style — debe verse organico dentro del card del tweet',
+            ]
+          : estilo === 'noticias'
+            ? [
+                '- El texto principal es el TITULAR del post viral — sans-serif condensed bold UPPERCASE, ocupa el tercio inferior sobre gradient negro',
+                '- Si hay un dato/cifra (porcentaje, ranking), destacarlo en color amarillo o acento',
+                ...(h2Trim ? ['- El texto secundario complementa el titular en menor tamano'] : []),
+                ...(ctaTrim ? ['- El CTA aparece como badge tipo "VIRAL" / "ULTIMO MOMENTO" en sans-serif bold mayusculas'] : []),
+              ]
+            : [
+                '- El texto principal es lo primero que el ojo ve — tamano dominante, bold, maximo contraste',
+                ...(h2Trim ? ['- El texto secundario complementa al principal — menor tamano, puede ser lighter'] : []),
+                ...(ctaTrim ? ['- El boton CTA debe parecer un BOTON real — fondo de color solido que contraste (ej: #F5A623 dorado), bordes redondeados, texto oscuro sobre fondo claro. Debe gritar "HAZ CLIC"'] : []),
+                '- La jerarquia visual debe ser INMEDIATAMENTE clara en 1 segundo',
+              ];
 
         const restriction = (!h2Trim && !ctaTrim && !h3Trim)
           ? '\n\nIMPORTANTE: Renderizar UNICAMENTE el texto principal. NO inventar subtitulos, badges, CTA ni textos adicionales.'
@@ -519,7 +531,20 @@ export function buildImagePrompt(
   const realTexto = (slideInfo?.slideTexto ?? copy?.titulo ?? '').trim();
   const hasRealTexto = realTexto.length > 0;
 
-  const tipografiaBlock = `TIPOGRAFIA:
+  const tipografiaBlock = estilo === 'twitter'
+    ? `TIPOGRAFIA (estilo Twitter/X — debe parecer captura real, NO poster):
+- Tamano de lectura NORMAL — system font (Segoe UI / SF Pro / Helvetica)
+- Body del tweet en regular weight ~15-16px equivalente, alineado a la izquierda
+- Display name en bold ~16px, handle y timestamp en gris ~14px
+- PROHIBIDO texto display gigante, oversized, poster style o tipografia decorativa
+- El texto NO debe dominar la imagen — debe verse organico dentro del card del tweet`
+    : estilo === 'noticias'
+      ? `TIPOGRAFIA (estilo medio viral — overlay editorial sobre foto):
+- Titular en sans-serif condensed BOLD UPPERCASE, ocupa el tercio inferior sobre gradient negro
+- Si hay subtitulo o cifra clave (ej: "67%", "8 de cada 10"), destacarla en color amarillo o acento
+- Badge superior pequeno tipo "VIRAL" / "ULTIMO MOMENTO" / "URGENTE" en sans-serif bold mayusculas, fondo de color solido
+- Sin tipografia decorativa, sin serifs ornamentales — debe parecer post real de medio viral de Instagram`
+      : `TIPOGRAFIA:
 - Texto principal grande, bold, legible desde el celular
 - Tipografia moderna sans-serif (tipo Montserrat o Inter)
 - Contraste MAXIMO entre texto y fondo
