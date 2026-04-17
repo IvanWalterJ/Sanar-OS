@@ -14,6 +14,7 @@ import {
   Sprout, Target, Sunrise, UserCircle, Lightbulb, Triangle,
   Cog, Building2, Megaphone, Phone, Handshake, Palette, BarChart3,
   Search, UsersRound, Check, ClipboardList, Menu, LayoutDashboard, ClipboardCheck,
+  Mail, KeyRound,
 } from 'lucide-react';
 
 const ADMIN_PILAR_ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -1087,6 +1088,59 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
     }
   }
 
+  const [showChangeEmailModal, setShowChangeEmailModal] = useState(false);
+  const [newEmailInput, setNewEmailInput] = useState('');
+  const [changingEmail, setChangingEmail] = useState(false);
+  const [sendingReset, setSendingReset] = useState(false);
+
+  async function handleChangeEmail() {
+    if (!supabase || !selectedCliente) return;
+    const newEmail = newEmailInput.trim().toLowerCase();
+    if (!newEmail || !newEmail.includes('@')) {
+      toast.error('Ingresá un email válido');
+      return;
+    }
+    if (newEmail === selectedCliente.email?.toLowerCase()) {
+      toast.error('El nuevo email es igual al actual');
+      return;
+    }
+    setChangingEmail(true);
+    try {
+      const { error } = await supabase.rpc('admin_change_client_email', {
+        target_user_id: selectedCliente.id,
+        new_email: newEmail,
+      });
+      if (error) throw error;
+      setClientes(prev => prev.map(c => c.id === selectedCliente.id ? { ...c, email: newEmail } : c));
+      setSelectedCliente(prev => prev ? { ...prev, email: newEmail } : prev);
+      toast.success(`Email cambiado a ${newEmail}`);
+      setShowChangeEmailModal(false);
+      setNewEmailInput('');
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'Error desconocido';
+      toast.error(`No se pudo cambiar el email: ${msg}`);
+    } finally {
+      setChangingEmail(false);
+    }
+  }
+
+  async function handleSendReset() {
+    if (!supabase || !selectedCliente?.email) return;
+    if (!window.confirm(`¿Enviar mail de recuperación de contraseña a ${selectedCliente.email}?`)) return;
+    setSendingReset(true);
+    try {
+      const redirectTo = `${window.location.origin}${window.location.pathname}`;
+      const { error } = await supabase.auth.resetPasswordForEmail(selectedCliente.email, { redirectTo });
+      if (error) throw error;
+      toast.success(`Mail de recuperación enviado a ${selectedCliente.email}`);
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'Error desconocido';
+      toast.error(`No se pudo enviar: ${msg}`);
+    } finally {
+      setSendingReset(false);
+    }
+  }
+
   async function toggleFullAgentAccess() {
     if (!supabase || !selectedCliente) return;
     const newVal = !selectedCliente.full_agent_access;
@@ -1766,6 +1820,23 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
                       >
                         <Bot className="w-4 h-4" />
                         {selectedCliente.full_agent_access ? 'Agentes Activados' : 'Activar Agentes'}
+                      </button>
+                      {/* Cambiar email */}
+                      <button
+                        onClick={() => { setNewEmailInput(''); setShowChangeEmailModal(true); }}
+                        className="flex items-center gap-2 px-4 py-1.5 rounded-xl text-xs font-bold transition-all border bg-[#F5A623]/10 text-[#F5A623] border-[#F5A623]/30 hover:bg-[#F5A623]/20"
+                      >
+                        <Mail className="w-4 h-4" />
+                        Cambiar email
+                      </button>
+                      {/* Reset de contraseña */}
+                      <button
+                        onClick={handleSendReset}
+                        disabled={sendingReset}
+                        className="flex items-center gap-2 px-4 py-1.5 rounded-xl text-xs font-bold transition-all border bg-[#FFFFFF]/5 text-[#FFFFFF]/70 border-[#FFFFFF]/10 hover:bg-[#FFFFFF]/10 disabled:opacity-50"
+                      >
+                        {sendingReset ? <Loader2 className="w-4 h-4 animate-spin" /> : <KeyRound className="w-4 h-4" />}
+                        Enviar reset
                       </button>
                     </div>
                     <p className="text-xs text-[#FFFFFF]/60 flex items-center gap-2">
@@ -3088,6 +3159,65 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
           onSuccess={cargarClientes}
           clientes={clientes}
         />
+      )}
+
+      {/* ─── MODAL CAMBIAR EMAIL DEL CLIENTE ────────────────────────────────────── */}
+      {showChangeEmailModal && selectedCliente && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+          <div className="bg-[#141414] border border-[rgba(245,166,35,0.2)] rounded-2xl w-full max-w-sm shadow-2xl">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-[rgba(245,166,35,0.1)]">
+              <div>
+                <h3 className="text-sm font-semibold text-[#FFFFFF]">Cambiar email</h3>
+                <p className="text-[11px] text-[#FFFFFF]/50 mt-0.5">{selectedCliente.nombre}</p>
+              </div>
+              <button
+                onClick={() => setShowChangeEmailModal(false)}
+                className="w-7 h-7 rounded-lg flex items-center justify-center text-[#FFFFFF]/40 hover:text-[#FFFFFF] hover:bg-[#FFFFFF]/5 transition-all"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="p-5 space-y-4">
+              <div>
+                <label className="block text-[10px] font-bold text-[#FFFFFF]/40 uppercase tracking-wider mb-1.5">Email actual</label>
+                <p className="text-sm text-[#FFFFFF]/60 px-3 py-2 bg-black/20 rounded-lg border border-[rgba(245,166,35,0.1)]">{selectedCliente.email ?? '—'}</p>
+              </div>
+              <div>
+                <label className="block text-[10px] font-bold text-[#FFFFFF]/40 uppercase tracking-wider mb-1.5">Nuevo email *</label>
+                <input
+                  type="email"
+                  value={newEmailInput}
+                  onChange={(e) => setNewEmailInput(e.target.value)}
+                  placeholder="cliente@ejemplo.com"
+                  autoFocus
+                  disabled={changingEmail}
+                  className="w-full bg-black/20 border border-[rgba(245,166,35,0.2)] rounded-xl px-4 py-2.5 text-sm text-[#FFFFFF] placeholder-[#FFFFFF]/30 focus:outline-none focus:border-[#F5A623]/50 transition-colors disabled:opacity-50"
+                />
+              </div>
+              <div className="bg-[#F5A623]/5 border border-[#F5A623]/20 rounded-xl px-3 py-2">
+                <p className="text-[11px] text-[#F5A623]/80">
+                  El cliente usará este email para hacer login. La contraseña actual se mantiene — si querés que la cambie, mandá "Enviar reset" después.
+                </p>
+              </div>
+              <div className="flex gap-2 pt-2">
+                <button
+                  onClick={() => setShowChangeEmailModal(false)}
+                  disabled={changingEmail}
+                  className="flex-1 py-2.5 rounded-xl border border-[#FFFFFF]/10 text-sm text-[#FFFFFF]/60 hover:text-[#FFFFFF] transition-colors disabled:opacity-50"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleChangeEmail}
+                  disabled={changingEmail || !newEmailInput.trim()}
+                  className="flex-1 py-2.5 rounded-xl bg-[#F5A623] hover:bg-[#FFB94D] disabled:opacity-50 text-black text-sm font-bold transition-all flex items-center justify-center gap-2"
+                >
+                  {changingEmail ? <><Loader2 className="w-4 h-4 animate-spin" /> Cambiando...</> : 'Confirmar cambio'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* ─── MODAL NUEVO CLIENTE ────────────────────────────────────────────────── */}

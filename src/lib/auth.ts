@@ -14,6 +14,31 @@ export async function signOut(): Promise<void> {
   await supabase.auth.signOut();
 }
 
+/**
+ * Envía un mail de reset de contraseña. Supabase manda un link al mail con
+ * token de recovery; al hacer click, el usuario vuelve a la app con una
+ * sesión temporal + evento PASSWORD_RECOVERY, y el app muestra el modal
+ * para fijar la nueva contraseña.
+ */
+export async function sendPasswordReset(email: string): Promise<{ error: string | null }> {
+  if (!isSupabaseReady() || !supabase) return { error: 'Supabase no configurado' };
+  const redirectTo = `${window.location.origin}${window.location.pathname}`;
+  const { error } = await supabase.auth.resetPasswordForEmail(email.trim().toLowerCase(), { redirectTo });
+  if (error) return { error: error.message };
+  return { error: null };
+}
+
+/**
+ * Actualiza la contraseña del usuario logueado. Solo funciona con sesión
+ * activa — usado dentro del flujo PASSWORD_RECOVERY tras click en el mail.
+ */
+export async function updatePassword(newPassword: string): Promise<{ error: string | null }> {
+  if (!isSupabaseReady() || !supabase) return { error: 'Supabase no configurado' };
+  const { error } = await supabase.auth.updateUser({ password: newPassword });
+  if (error) return { error: error.message };
+  return { error: null };
+}
+
 export async function getSession() {
   if (!isSupabaseReady() || !supabase) return null;
   const { data } = await supabase.auth.getSession();

@@ -19,9 +19,9 @@ import ManualNegocio from './pages/ManualNegocio';
 import Login from './pages/Login';
 import Admin from './pages/Admin';
 import WelcomeWizard from './components/WelcomeWizard';
-import { X, User, Bell, Shield, CreditCard, LogOut, Camera } from 'lucide-react';
+import { X, User, Bell, Shield, CreditCard, LogOut, Camera, Lock, Loader2, Eye, EyeOff } from 'lucide-react';
 import { supabase, isSupabaseReady, type Profile as SupabaseProfile } from './lib/supabase';
-import { signOut, syncProfileToLocalStorage } from './lib/auth';
+import { signOut, syncProfileToLocalStorage, updatePassword } from './lib/auth';
 import { toast } from 'sonner';
 
 type SettingsTab = 'perfil' | 'notificaciones' | 'seguridad' | 'facturacion';
@@ -61,6 +61,13 @@ export default function App() {
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const mainRef = useRef<HTMLElement>(null);
 
+  // Password recovery (post-click en mail de reset)
+  const [showRecoveryModal, setShowRecoveryModal] = useState(false);
+  const [recoveryPassword, setRecoveryPassword] = useState('');
+  const [recoveryPassword2, setRecoveryPassword2] = useState('');
+  const [recoveryShowPwd, setRecoveryShowPwd] = useState(false);
+  const [recoveryLoading, setRecoveryLoading] = useState(false);
+
   // ─── Auth init ──────────────────────────────────────────────────────────────
   useEffect(() => {
     if (!isSupabaseReady() || !supabase) {
@@ -88,6 +95,13 @@ export default function App() {
       if (event === 'TOKEN_REFRESHED') {
         // Token silently refreshed — user is still logged in, no UI update needed
         clearTimeout(safetyTimer);
+        return;
+      }
+      if (event === 'PASSWORD_RECOVERY') {
+        // El usuario llegó desde el mail de reset — pedir nueva contraseña antes
+        // de cargar el resto de la app.
+        clearTimeout(safetyTimer);
+        setShowRecoveryModal(true);
         return;
       }
       if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN') {
@@ -193,35 +207,133 @@ export default function App() {
     setAuthState('logged_out');
   };
 
+  const handleRecoverySubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (recoveryPassword.length < 8) {
+      toast.error('La contraseña debe tener al menos 8 caracteres.');
+      return;
+    }
+    if (recoveryPassword !== recoveryPassword2) {
+      toast.error('Las contraseñas no coinciden.');
+      return;
+    }
+    setRecoveryLoading(true);
+    const { error } = await updatePassword(recoveryPassword);
+    setRecoveryLoading(false);
+    if (error) {
+      toast.error(`Error: ${error}`);
+      return;
+    }
+    toast.success('Contraseña actualizada. Ya podés usar la app.');
+    setShowRecoveryModal(false);
+    setRecoveryPassword('');
+    setRecoveryPassword2('');
+  };
+
+  const RecoveryModal = showRecoveryModal ? (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+      <div className="bg-[#141414] border border-[rgba(245,166,35,0.3)] rounded-2xl w-full max-w-sm shadow-2xl">
+        <div className="px-5 py-4 border-b border-[rgba(245,166,35,0.1)]">
+          <h3 className="text-sm font-semibold text-[#FFFFFF]">Fijar nueva contraseña</h3>
+          <p className="text-[11px] text-[#FFFFFF]/50 mt-0.5">Elegí una contraseña nueva para tu cuenta.</p>
+        </div>
+        <form onSubmit={handleRecoverySubmit} className="p-5 space-y-4">
+          <div>
+            <label className="block text-[10px] font-bold text-[#FFFFFF]/40 uppercase tracking-wider mb-1.5">Nueva contraseña</label>
+            <div className="relative">
+              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#FFFFFF]/40" />
+              <input
+                type={recoveryShowPwd ? 'text' : 'password'}
+                value={recoveryPassword}
+                onChange={(e) => setRecoveryPassword(e.target.value)}
+                placeholder="Mínimo 8 caracteres"
+                required
+                minLength={8}
+                disabled={recoveryLoading}
+                autoFocus
+                className="w-full bg-black/20 border border-[rgba(245,166,35,0.2)] rounded-xl py-2.5 pl-10 pr-10 text-sm text-[#FFFFFF] placeholder-[#FFFFFF]/30 focus:outline-none focus:border-[#F5A623]/50 transition-colors disabled:opacity-50"
+              />
+              <button
+                type="button"
+                onClick={() => setRecoveryShowPwd(v => !v)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-[#FFFFFF]/40 hover:text-[#FFFFFF]/70 transition-colors"
+              >
+                {recoveryShowPwd ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
+          </div>
+          <div>
+            <label className="block text-[10px] font-bold text-[#FFFFFF]/40 uppercase tracking-wider mb-1.5">Confirmar contraseña</label>
+            <div className="relative">
+              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#FFFFFF]/40" />
+              <input
+                type={recoveryShowPwd ? 'text' : 'password'}
+                value={recoveryPassword2}
+                onChange={(e) => setRecoveryPassword2(e.target.value)}
+                placeholder="Repetí la contraseña"
+                required
+                disabled={recoveryLoading}
+                className="w-full bg-black/20 border border-[rgba(245,166,35,0.2)] rounded-xl py-2.5 pl-10 pr-4 text-sm text-[#FFFFFF] placeholder-[#FFFFFF]/30 focus:outline-none focus:border-[#F5A623]/50 transition-colors disabled:opacity-50"
+              />
+            </div>
+          </div>
+          <button
+            type="submit"
+            disabled={recoveryLoading || !recoveryPassword || !recoveryPassword2}
+            className="w-full py-2.5 rounded-xl bg-[#F5A623] hover:bg-[#FFB94D] disabled:opacity-50 text-black text-sm font-bold transition-all flex items-center justify-center gap-2"
+          >
+            {recoveryLoading ? <><Loader2 className="w-4 h-4 animate-spin" /> Guardando...</> : 'Guardar contraseña'}
+          </button>
+        </form>
+      </div>
+    </div>
+  ) : null;
+
   // ─── Loading state ──────────────────────────────────────────────────────────
   if (authState === 'loading') {
     return (
-      <div className="min-h-screen bg-[#0A0A0A] flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-[#F5A623]/30 border-t-[#F5A623] rounded-full animate-spin" />
-      </div>
+      <>
+        <div className="min-h-screen bg-[#0A0A0A] flex items-center justify-center">
+          <div className="w-8 h-8 border-2 border-[#F5A623]/30 border-t-[#F5A623] rounded-full animate-spin" />
+        </div>
+        {RecoveryModal}
+      </>
     );
   }
 
   // ─── Not logged in ──────────────────────────────────────────────────────────
   if (authState === 'logged_out') {
-    return <Login onLogin={() => { /* noop: onAuthStateChange handles state */ }} />;
+    return (
+      <>
+        <Login onLogin={() => { /* noop: onAuthStateChange handles state */ }} />
+        {RecoveryModal}
+      </>
+    );
   }
 
   // ─── Admin view ─────────────────────────────────────────────────────────────
   if (supabaseProfile?.rol === 'admin') {
-    return <Admin adminProfile={supabaseProfile} onSignOut={handleSignOut} />;
+    return (
+      <>
+        <Admin adminProfile={supabaseProfile} onSignOut={handleSignOut} />
+        {RecoveryModal}
+      </>
+    );
   }
 
   // ─── Onboarding wizard (primer login) ──────────────────────────────────────
   if (supabaseProfile && supabaseProfile.onboarding_completed === false) {
     return (
-      <WelcomeWizard
-        profile={supabaseProfile}
-        onComplete={(firstPage) => {
-          if (firstPage) setCurrentPage(firstPage);
-          loadSupabaseProfile(supabaseProfile.id);
-        }}
-      />
+      <>
+        <WelcomeWizard
+          profile={supabaseProfile}
+          onComplete={(firstPage) => {
+            if (firstPage) setCurrentPage(firstPage);
+            loadSupabaseProfile(supabaseProfile.id);
+          }}
+        />
+        {RecoveryModal}
+      </>
     );
   }
 
@@ -437,6 +549,7 @@ export default function App() {
           </div>
         </div>
       )}
+      {RecoveryModal}
     </div>
   );
 }
