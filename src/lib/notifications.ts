@@ -84,6 +84,22 @@ export async function crearNotificacion(input: CrearNotificacionInput): Promise<
   }
 }
 
+// ─── Notificaciones de equipo ───────────────────────────────────────────────────
+
+export async function notificarTareaAsignada(
+  assignedToId: string,
+  tituloTarea: string,
+  asignadoPorNombre: string,
+): Promise<void> {
+  await crearNotificacion({
+    usuario_id: assignedToId,
+    tipo: 'tarea',
+    titulo: 'Nueva tarea asignada',
+    descripcion: `${asignadoPorNombre} te asignó: "${tituloTarea}"`,
+    accion_url: '/admin?tab=tareas',
+  });
+}
+
 // ─── Notificaciones de cliente ──────────────────────────────────────────────────
 
 export async function notificarPilarCompletado(

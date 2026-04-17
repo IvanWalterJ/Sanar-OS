@@ -441,7 +441,7 @@ export default function Admin({ adminProfile, onSignOut }: AdminProps) {
     if (mainTab === 'metricas') { cargarSatisfaccionGlobal(); cargarRatingsResumen(); }
     if (mainTab === 'pipeline') cargarRatingsResumen();
     if (mainTab === 'videos') cargarAdminVideos();
-    if (mainTab === 'equipo') cargarEquipo();
+    if (mainTab === 'equipo' || mainTab === 'tareas') cargarEquipo();
     if (mainTab !== 'metricas') setFiltroMetricasId(null);
   }, [mainTab]);
 

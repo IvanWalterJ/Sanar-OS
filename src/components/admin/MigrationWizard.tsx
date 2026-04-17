@@ -136,6 +136,12 @@ export default function MigrationWizard({ onClose, onSuccess }: MigrationWizardP
 
       await new Promise(r => setTimeout(r, 1500));
 
+      const adnFields = Object.fromEntries(
+        (Object.entries(extracted) as [keyof ExtractedProfile, string][])
+          .filter(([, v]) => v && v.trim())
+          .map(([k, v]) => [k, v.trim()])
+      );
+
       const profileUpdate: Record<string, unknown> = {
         especialidad: form.especialidad.trim() || null,
         plan: form.plan,
@@ -143,21 +149,19 @@ export default function MigrationWizard({ onClose, onSuccess }: MigrationWizardP
         status: 'ACTIVE',
         onboarding_completed: true,
         pilar_actual: form.pilar_actual,
-        // ADN extraído
-        ...Object.fromEntries(
-          (Object.entries(extracted) as [keyof ExtractedProfile, string][])
-            .filter(([, v]) => v && v.trim())
-            .map(([k, v]) => [k, v.trim()])
-        ),
+        migration_source: 'admin_migration',
+        migrated_at: new Date().toISOString(),
+        migration_raw_json: { texto: textoLibre, extracted },
+        ...adnFields,
       };
 
-      if (supabase) {
-        const { error: updateError } = await supabase
-          .from('profiles')
-          .update(profileUpdate)
-          .eq('id', signUpData.user.id);
-        if (updateError) throw updateError;
-      }
+      if (!supabase) throw new Error('Supabase no está configurado');
+
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update(profileUpdate)
+        .eq('id', signUpData.user.id);
+      if (updateError) throw updateError;
 
       toast.success(`Cliente ${form.nombre} migrado exitosamente`);
       onSuccess();

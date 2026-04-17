@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { X, Loader2 } from 'lucide-react';
 import type { AdminTarea, AdminTareaStatus, AdminTareaPrioridad } from '../../lib/supabase';
 import { ADMIN_TAREA_STATUS_LABELS, ADMIN_TAREA_PRIORIDAD_LABELS, ADMIN_TAREA_STATUSES } from '../../lib/supabase';
 import type { Profile } from '../../lib/supabase';
+import CustomSelect from '../CustomSelect';
 
 interface TaskModalProps {
   tarea?: AdminTarea | null;
@@ -97,30 +98,25 @@ export default function TaskModal({ tarea, teamMembers, clientes, currentAdminId
             {/* Asignado a */}
             <div>
               <label className="block text-[10px] font-bold text-[#FFFFFF]/40 uppercase tracking-wider mb-1.5">Asignar a</label>
-              <select
+              <CustomSelect
                 value={asignadoA}
-                onChange={e => setAsignadoA(e.target.value)}
-                className="w-full bg-[#0A0A0A] border border-[rgba(245,166,35,0.2)] rounded-xl px-3 py-2.5 text-sm text-[#FFFFFF] focus:outline-none focus:border-[#F5A623]/50 transition-colors"
-              >
-                <option value="">Sin asignar</option>
-                {teamMembers.map(m => (
-                  <option key={m.id} value={m.id}>{m.nombre}</option>
-                ))}
-              </select>
+                onChange={setAsignadoA}
+                placeholder="Sin asignar"
+                options={[
+                  { value: '', label: 'Sin asignar' },
+                  ...teamMembers.map(m => ({ value: m.id, label: m.nombre ?? m.email })),
+                ]}
+              />
             </div>
 
             {/* Prioridad */}
             <div>
               <label className="block text-[10px] font-bold text-[#FFFFFF]/40 uppercase tracking-wider mb-1.5">Prioridad</label>
-              <select
+              <CustomSelect
                 value={prioridad}
-                onChange={e => setPrioridad(e.target.value as AdminTareaPrioridad)}
-                className="w-full bg-[#0A0A0A] border border-[rgba(245,166,35,0.2)] rounded-xl px-3 py-2.5 text-sm text-[#FFFFFF] focus:outline-none focus:border-[#F5A623]/50 transition-colors"
-              >
-                {PRIORIDADES.map(p => (
-                  <option key={p} value={p}>{ADMIN_TAREA_PRIORIDAD_LABELS[p]}</option>
-                ))}
-              </select>
+                onChange={v => setPrioridad(v as AdminTareaPrioridad)}
+                options={PRIORIDADES.map(p => ({ value: p, label: ADMIN_TAREA_PRIORIDAD_LABELS[p] }))}
+              />
             </div>
           </div>
 
@@ -128,15 +124,11 @@ export default function TaskModal({ tarea, teamMembers, clientes, currentAdminId
             {/* Estado */}
             <div>
               <label className="block text-[10px] font-bold text-[#FFFFFF]/40 uppercase tracking-wider mb-1.5">Estado</label>
-              <select
+              <CustomSelect
                 value={status}
-                onChange={e => setStatus(e.target.value as AdminTareaStatus)}
-                className="w-full bg-[#0A0A0A] border border-[rgba(245,166,35,0.2)] rounded-xl px-3 py-2.5 text-sm text-[#FFFFFF] focus:outline-none focus:border-[#F5A623]/50 transition-colors"
-              >
-                {ADMIN_TAREA_STATUSES.map(s => (
-                  <option key={s} value={s}>{ADMIN_TAREA_STATUS_LABELS[s]}</option>
-                ))}
-              </select>
+                onChange={v => setStatus(v as AdminTareaStatus)}
+                options={ADMIN_TAREA_STATUSES.map(s => ({ value: s, label: ADMIN_TAREA_STATUS_LABELS[s] }))}
+              />
             </div>
 
             {/* Fecha vencimiento */}
@@ -154,16 +146,15 @@ export default function TaskModal({ tarea, teamMembers, clientes, currentAdminId
           {/* Cliente (opcional) */}
           <div>
             <label className="block text-[10px] font-bold text-[#FFFFFF]/40 uppercase tracking-wider mb-1.5">Cliente relacionado <span className="normal-case font-normal">(opcional)</span></label>
-            <select
+            <CustomSelect
               value={clienteId}
-              onChange={e => setClienteId(e.target.value)}
-              className="w-full bg-[#0A0A0A] border border-[rgba(245,166,35,0.2)] rounded-xl px-3 py-2.5 text-sm text-[#FFFFFF] focus:outline-none focus:border-[#F5A623]/50 transition-colors"
-            >
-              <option value="">Sin cliente</option>
-              {clientes.map(c => (
-                <option key={c.id} value={c.id}>{c.nombre}</option>
-              ))}
-            </select>
+              onChange={setClienteId}
+              placeholder="Sin cliente"
+              options={[
+                { value: '', label: 'Sin cliente' },
+                ...clientes.map(c => ({ value: c.id, label: c.nombre ?? c.email })),
+              ]}
+            />
           </div>
         </div>
 

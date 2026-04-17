@@ -13,6 +13,7 @@ import {
   updateAdminTareaStatus,
   deleteAdminTarea,
 } from '../../lib/adminTasks';
+import { notificarTareaAsignada } from '../../lib/notifications';
 
 interface TasksPipelineProps {
   currentAdminId: string;
@@ -71,12 +72,19 @@ export default function TasksPipeline({ currentAdminId, adminRol, teamMembers, c
   }
 
   async function handleSave(data: Parameters<typeof createAdminTarea>[0] & { status: AdminTareaStatus }) {
+    const adminNombre = teamMembers.find(m => m.id === currentAdminId)?.nombre ?? 'El equipo';
     if (editingTarea) {
       await updateAdminTarea(editingTarea.id, data);
       toast.success('Tarea actualizada');
+      if (data.asignado_a && data.asignado_a !== editingTarea.asignado_a && data.asignado_a !== currentAdminId) {
+        notificarTareaAsignada(data.asignado_a, data.titulo, adminNombre).catch(() => null);
+      }
     } else {
       await createAdminTarea({ ...data, creado_por: currentAdminId });
       toast.success('Tarea creada');
+      if (data.asignado_a && data.asignado_a !== currentAdminId) {
+        notificarTareaAsignada(data.asignado_a, data.titulo, adminNombre).catch(() => null);
+      }
     }
     await cargar();
     setEditingTarea(null);
