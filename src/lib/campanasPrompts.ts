@@ -299,6 +299,62 @@ export interface CarouselNarrative {
   slides: CarouselSlideCopy[];
 }
 
+const ESTILO_NARRATIVE_EXAMPLES: Record<EstiloVisual, {
+  paleta: string;
+  escena: string;
+  tipografia: string;
+  tratamiento: string;
+}> = {
+  foto_real: {
+    paleta: '"#0F1419 fondo, #F5A623 acento, #FFFFFF texto"',
+    escena: '"primer plano editorial de mujer 35-45 con fondo warm desenfocado"',
+    tipografia: '"sans-serif bold blanco con outline fino, alineacion izquierda"',
+    tratamiento: '"fotografia editorial DSLR, luz natural, shallow depth of field, tono warm cinematografico"',
+  },
+  bold: {
+    paleta: '"#000000 fondo, #F5A623 acento saturado, #FFFFFF texto"',
+    escena: '"composicion grafica con formas planas y tipografia oversized como protagonista, sin foto"',
+    tipografia: '"sans-serif display ultra-bold, tamanos masivos, asimetrica"',
+    tratamiento: '"diseño grafico flat vector, alto contraste, poster editorial Behance, sin fotografia"',
+  },
+  pixar: {
+    paleta: '"tonos calidos saturados, pastel con acentos vivos (#FFB347, #4A90E2, #FFF8E1)"',
+    escena: '"personaje estilizado 3D con ojos grandes expresivos en escena calida"',
+    tipografia: '"sans-serif rounded bold, legible, con leve sombra suave"',
+    tratamiento: '"render 3D estilo Pixar/Disney, subsurface scattering en piel, iluminacion cinematografica volumetrica, saturacion alta"',
+  },
+  caricatura: {
+    paleta: '"colores planos saturados tipo animacion (#FF6B6B, #4ECDC4, #FFE66D, #1A1A2E)"',
+    escena: '"personaje cartoon 2D con rasgos exagerados en fondo simple de color plano"',
+    tipografia: '"sans-serif bold con contornos marcados, tipo caption de animacion"',
+    tratamiento: '"ilustracion 2D cel-shaded, contornos negros gruesos, colores planos sin fotografia ni 3D"',
+  },
+  comic: {
+    paleta: '"primarios saturados tipo comic (#E63946, #1D3557, #F1FAEE, negro tinta)"',
+    escena: '"personaje en pose dinamica accion comic con lineas de velocidad, sin fotografia"',
+    tipografia: '"display comic bold con outline grueso, mayusculas, onomatopeyas estilo Marvel/DC"',
+    tratamiento: '"ilustracion comic book americano, tinta gruesa, halftone Ben-Day dots, cross-hatching, panel dinamico"',
+  },
+  plasticina: {
+    paleta: '"tonos calidos tipo plastilina (#E8A87C, #C38D9E, #85DCBA, #41B3A3)"',
+    escena: '"personaje/objeto hecho de plastilina con texturas visibles de dedos en fondo de masa"',
+    tipografia: '"sans-serif redonda con sombra suave, como letras modeladas en arcilla"',
+    tratamiento: '"claymation stop-motion, textura visible de arcilla y huellas digitales, Aardman Wallace and Gromit"',
+  },
+  noticias: {
+    paleta: '"rojo breaking news #C8102E, azul oscuro #003566, blanco y gris acero"',
+    escena: '"presentador en set de noticias con chyron inferior y backdrop urbano"',
+    tipografia: '"serif noticiero titular + sans-serif chyron, estilo CNN/BBC"',
+    tratamiento: '"grafica broadcast TV noticias, lower third, lente de camara profesional broadcast"',
+  },
+  twitter: {
+    paleta: '"fondo blanco UI o dark mode #15202B, acento azul verificado #1D9BF0, texto #0F1419"',
+    escena: '"screenshot autentico de post de X/Twitter, pixel-perfect UI"',
+    tipografia: '"system font (Segoe UI / SF Pro), sin efectos, tamanos exactos del UI real"',
+    tratamiento: '"replica exacta del UI de X/Twitter, sin bordes, sin fotografia, sin ilustracion — solo captura"',
+  },
+};
+
 export function buildCarouselNarrativePrompt(
   brief: string,
   totalSlides: number,
@@ -307,17 +363,31 @@ export function buildCarouselNarrativePrompt(
   estilo?: EstiloVisual,
 ): string {
   const estiloInfo = estilo ? ESTILO_VISUAL_OPTIONS[estilo] : null;
+  const examples = estilo ? ESTILO_NARRATIVE_EXAMPLES[estilo] : null;
   const estiloBlock = estiloInfo
     ? `
-=== ESTILO VISUAL OBLIGATORIO (definido por el usuario — NO sustituir) ===
-Nombre del estilo: ${estiloInfo.titulo}
-Descripcion: ${estiloInfo.descripcion}
-Direccion estetica (debe condicionar paleta, escena, tipografia y tratamiento):
+=== ESTILO VISUAL OBLIGATORIO — "${estiloInfo.titulo}" (NO sustituir, NO derivar hacia foto cinematografica si el estilo no lo pide) ===
 ${estiloInfo.prompt}
 
-El concepto visual unificado que generes DEBE quedar claramente dentro de este estilo. La paleta, escena, tipografia y tratamiento elegidos tienen que ser coherentes con esta direccion estetica.
+IMPORTANTE: El concepto visual unificado que generes DEBE describir literalmente una pieza en este estilo. Si el estilo es ilustracion, 3D, comic, plastilina o UI — NO uses palabras como "fotografia", "DSLR", "cinematografico", "filtro warm", "shallow depth of field", "lente" salvo que el estilo sea foto_real. Los campos paleta/escena/tipografia/tratamiento deben estar redactados en vocabulario del estilo (ej: "ilustracion 2D cel-shaded", "render 3D con subsurface scattering", "halftone Ben-Day", "claymation stop-motion").
 `
     : '';
+
+  const exampleBlock = examples
+    ? `
+
+Ejemplos concretos para el estilo "${estiloInfo!.titulo}" (usa este vocabulario, no palabras fotograficas si el estilo no es foto_real):
+- paleta: ${examples.paleta}
+- escena: ${examples.escena}
+- tipografia: ${examples.tipografia}
+- tratamiento: ${examples.tratamiento}`
+    : `
+
+Ejemplos genericos:
+- paleta: "#0F1419 fondo, #F5A623 acento, #FFFFFF texto"
+- escena: "primer plano de mujer 35-45 con fondo neutro warm desenfocado"
+- tipografia: "sans-serif bold blanco con fino outline negro, alineacion izquierda"
+- tratamiento: "filtro warm cinematografico, blur de fondo, alto contraste, vineteado sutil"`;
 
   return `Eres un copywriter senior + director creativo especializado en carruseles de Instagram para profesionales de la salud.
 Tu trabajo: crear un carrusel con HILO NARRATIVO COHERENTE — copy y direccion visual unificados.
@@ -332,7 +402,7 @@ ${brief}
 
 === TAREA ===
 1) Crea ${totalSlides} titulares encadenados que se LEAN como una sola historia de izquierda a derecha.
-2) Define UN concepto visual UNICO compartido por TODAS las slides${estiloInfo ? `, respetando el ESTILO VISUAL OBLIGATORIO "${estiloInfo.titulo}"` : ''}.
+2) Define UN concepto visual UNICO compartido por TODAS las slides${estiloInfo ? `, escrito en el vocabulario del estilo "${estiloInfo.titulo}"` : ''}.
 
 Estructura narrativa obligatoria:
 - Slide 1 = HOOK que detiene el scroll (curiosidad, dolor o promesa fuerte)
@@ -347,10 +417,11 @@ Reglas de copy:
 - Sin repetir conceptos entre slides
 
 Concepto visual compartido (DEBE poder aplicarse identico a las ${totalSlides} slides):
-- paleta: 2-3 colores hex especificos (ej: "#0F1419 fondo, #F5A623 acento, #FFFFFF texto")
-- escena: tipo de escena dominante repetible en cada slide (ej: "primer plano de mujer 35-45 con fondo neutro warm desenfocado", "flatlay minimalista de elementos del nicho", "retrato del especialista con overlay de texto")
-- tipografia: estilo tipografico unificado (ej: "sans-serif bold blanco con fino outline negro, alineacion izquierda")
-- tratamiento: tratamiento fotografico repetible (ej: "filtro warm cinematografico, blur de fondo, alto contraste, vineteado sutil")
+- paleta: 2-3 colores hex especificos, coherentes con el estilo obligatorio
+- escena: tipo de escena repetible en cada slide, EN EL ESTILO obligatorio
+- tipografia: estilo tipografico unificado, coherente con el estilo obligatorio
+- tratamiento: tecnica de render/tratamiento visual repetible, EXPLICITAMENTE en el estilo obligatorio (si es comic, decir "ilustracion comic"; si es pixar, decir "render 3D Pixar"; si es foto_real, decir "fotografia editorial"; etc.)
+${exampleBlock}
 
 Responde SOLO con este JSON, sin markdown, sin texto adicional:
 {
@@ -538,32 +609,43 @@ El resultado debe verse como si el MISMO diseñador hubiera creado ambas piezas.
   const nc = options?.narrativeContext;
   const narrativeBlock = nc
     ? `\n=== HILO NARRATIVO Y VISUAL DEL CARRUSEL (CRITICO — RESPETAR AL 100%) ===
-${nc.conceptoVisual ? `CONCEPTO VISUAL UNIFICADO (aplicar identico a TODAS las slides del carrusel):
+${nc.conceptoVisual ? `CONCEPTO VISUAL UNIFICADO (aplicar identico a TODAS las slides del carrusel${estilo ? ` — SIEMPRE dentro de la tecnica "${ESTILO_VISUAL_OPTIONS[estilo].titulo}"` : ''}):
 - Paleta: ${nc.conceptoVisual.paleta}
 - Escena dominante: ${nc.conceptoVisual.escena}
 - Tipografia: ${nc.conceptoVisual.tipografia}
-- Tratamiento fotografico: ${nc.conceptoVisual.tratamiento}
+- Tratamiento visual: ${nc.conceptoVisual.tratamiento}
 
 ` : ''}${nc.allSlideTitles && nc.allSlideTitles.length > 0 ? `NARRATIVA COMPLETA DEL CARRUSEL (asi se lee de izquierda a derecha — contexto interno SOLAMENTE, no renderizar):
 ${nc.allSlideTitles.map((t) => `  - "${t}"`).join('\n')}
 
 ` : ''}${nc.previousSlideTitle ? `La pieza ANTERIOR decia: "${nc.previousSlideTitle}" — esta debe encadenar visualmente y argumentalmente con esa.\n` : ''}${nc.nextSlideTitle ? `La pieza SIGUIENTE dira: "${nc.nextSlideTitle}" — esta debe construir hacia esa idea.\n` : ''}
-REGLA DE CONTINUIDAD VISUAL: misma paleta exacta, misma escena/encuadre, misma tipografia, mismo tratamiento, mismo personaje (si hay) entre todas las piezas. Solo cambia el TEXTO y micro-detalles de la composicion.\n`
+REGLA DE CONTINUIDAD VISUAL: misma paleta exacta, misma escena/encuadre, misma tipografia, mismo tratamiento, mismo personaje (si hay) entre todas las piezas. Solo cambia el TEXTO y micro-detalles de la composicion.${estilo && estilo !== 'foto_real' ? `\n\nREGLA DE ESTILO (NO NEGOCIABLE): La tecnica de render es "${ESTILO_VISUAL_OPTIONS[estilo].titulo}". Si el CONCEPTO VISUAL arriba contiene palabras tipo "fotografia", "DSLR", "cinematografico", "lente", "warm filter", IGNORALAS — el estilo base manda. Usa solo la PALETA, ESCENA y TIPOGRAFIA del concepto, pero RENDERIZA siempre en "${ESTILO_VISUAL_OPTIONS[estilo].titulo}".` : ''}\n`
     : '';
+
+  const hasEstiloOverride = estilo && nc?.conceptoVisual;
+  const estiloOverrideHeader = hasEstiloOverride
+    ? `\n=== TECNICA DE RENDER OBLIGATORIA — "${ESTILO_VISUAL_OPTIONS[estilo!].titulo}" (PRIORIDAD #1, INNEGOCIABLE) ===
+${ESTILO_VISUAL_OPTIONS[estilo!].prompt}
+
+Esta es la tecnica visual con la que debes renderizar la imagen. Todo lo demas (concepto unificado del carrusel, angulo, tono) se aplica DENTRO de esta tecnica. Si alguna otra instruccion sugiere una tecnica diferente (ej: "fotografia editorial" cuando el estilo es comic), IGNORALA — esta tecnica manda.\n`
+    : '';
+
+  const shouldSuppressAnguloVisual = estilo && estilo !== 'foto_real' && nc?.conceptoVisual;
 
   return `Genera una imagen ${isYouTube ? 'de portada de YouTube' : 'publicitaria de ALTO IMPACTO para Meta Ads (Instagram/Facebook)'}.
 ${isYouTube ? 'Esta portada debe generar CLICKS. El hook visual es CRITICO — el usuario decide en 1 segundo si hace clic o no.' : 'Esta imagen debe FRENAR EL SCROLL. Tiene que ser visualmente tan potente que el usuario deje de scrollear en menos de 1 segundo.'}
-
+${estiloOverrideHeader}
 NICHO: ${nicho}
-${nc?.conceptoVisual
-  ? (estilo
-      ? `ESTILO VISUAL BASE (del usuario, OBLIGATORIO — condiciona tecnica, render, tipografia y tratamiento): ${ESTILO_VISUAL_OPTIONS[estilo].prompt}
-DIRECCION VISUAL (concepto unificado del carrusel, aplicar DENTRO del estilo base): Seguir el CONCEPTO VISUAL UNIFICADO (ver bloque abajo) respetando siempre el estilo visual base. El estilo base define la tecnica (foto real, 3D pixar, comic, etc.); el concepto unificado define paleta, escena y tipografia especificas compartidas entre slides.`
-      : 'DIRECCION VISUAL: Seguir el CONCEPTO VISUAL UNIFICADO del carrusel (ver bloque abajo)')
-  : styleCount > 0
-    ? 'DIRECCION VISUAL: Seguir la referencia de estilo adjunta (ver instrucciones abajo)'
-    : `DIRECCION VISUAL: ${estiloPrompt}`}
-ANGULO COMUNICACIONAL: ${anguloVisual[angulo]}
+${hasEstiloOverride
+  ? 'DIRECCION VISUAL: Aplicar el CONCEPTO VISUAL UNIFICADO del carrusel (paleta, escena, tipografia) ESTRICTAMENTE dentro de la TECNICA DE RENDER OBLIGATORIA definida arriba.'
+  : nc?.conceptoVisual
+    ? 'DIRECCION VISUAL: Seguir el CONCEPTO VISUAL UNIFICADO del carrusel (ver bloque abajo)'
+    : styleCount > 0
+      ? 'DIRECCION VISUAL: Seguir la referencia de estilo adjunta (ver instrucciones abajo)'
+      : `DIRECCION VISUAL: ${estiloPrompt}`}
+${shouldSuppressAnguloVisual
+  ? `ANGULO COMUNICACIONAL (aplicar SOLO como guia emocional/narrativa, NO como direccion fotografica — la tecnica de render de arriba manda): ${anguloVisual[angulo].replace(/foto|fotografia|cinematografic[oa]|DSLR|lente|warm|filtro/gi, '').trim() || 'guiar la emocion y el enfasis de la composicion'}`
+  : `ANGULO COMUNICACIONAL: ${anguloVisual[angulo]}`}
 ${nc?.conceptoVisual ? 'COLORES: Usar la paleta del concepto visual unificado' : styleCount > 0 ? 'COLORES: Usar la paleta de la referencia de estilo' : `COLORES DE MARCA: ${colores}`}
 TONO: ${tono}
 ${userPromptSection}${narrativeBlock}${characterRefPrompt}${styleRefPrompt}${instruccionesCustom}
