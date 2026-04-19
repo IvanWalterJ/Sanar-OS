@@ -1243,10 +1243,9 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
     if (!supabase) return;
     setTeamLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('rol', 'admin');
+      // RPC SECURITY DEFINER — la RLS de profiles solo deja ver el propio
+      // profile, por eso un SELECT directo devuelve 1 solo miembro.
+      const { data, error } = await supabase.rpc('get_team_members');
       if (error) throw error;
       setTeamMembers(data ?? []);
     } catch {
