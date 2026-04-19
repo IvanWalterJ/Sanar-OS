@@ -107,9 +107,16 @@ export default function App() {
       if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN') {
         // Only do a full profile load on real login / first load, not on tab refocus
         setProfileLoading(true);
-        await loadSupabaseProfile(session.user.id);
+        const ok = await loadSupabaseProfile(session.user.id);
         clearTimeout(safetyTimer);
         setProfileLoading(false);
+        if (!ok) {
+          // Si no pudimos leer el profile (timeout/RLS), forzamos logout en vez
+          // de renderizar el panel equivocado (cliente) por defecto.
+          if (supabase) await supabase.auth.signOut();
+          setAuthState('logged_out');
+          return;
+        }
         setAuthState('logged_in');
       }
     });
@@ -120,8 +127,8 @@ export default function App() {
     };
   }, []);
 
-  async function loadSupabaseProfile(userId: string) {
-    if (!supabase) return;
+  async function loadSupabaseProfile(userId: string): Promise<boolean> {
+    if (!supabase) return false;
     try {
       const fetchPromise = supabase
         .from('profiles')
@@ -147,11 +154,13 @@ export default function App() {
         };
         setProfile(p);
         setProfileDraft(p);
-      } else {
-        console.warn('loadSupabaseProfile: no data or timeout.', error?.message);
+        return true;
       }
+      console.warn('loadSupabaseProfile: no data or timeout.', error?.message);
+      return false;
     } catch (err) {
       console.error('loadSupabaseProfile exception:', err);
+      return false;
     }
   }
 
@@ -290,7 +299,10 @@ export default function App() {
   ) : null;
 
   // ─── Loading state ──────────────────────────────────────────────────────────
-  if (authState === 'loading') {
+  // Importante: tambien mostramos spinner mientras hacemos el fetch del profile.
+  // Sin esto se veia un flash del panel de cliente antes de resolver que el
+  // usuario era admin.
+  if (authState === 'loading' || profileLoading) {
     return (
       <>
         <div className="min-h-screen bg-[#0A0A0A] flex items-center justify-center">

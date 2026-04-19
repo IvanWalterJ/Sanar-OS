@@ -2863,7 +2863,7 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
               TAB: EQUIPO (owner only)
               ═══════════════════════════════════════════════════════════════════════ */}
           {mainTab === 'equipo' && (adminRol === 'owner' || !adminRol) && (
-            <div className="max-w-4xl mx-auto space-y-6">
+            <div className="w-full space-y-6">
               <div className="flex items-center justify-between">
                 <div>
                   <h2 className="text-2xl font-light text-white tracking-tight" style={{ fontFamily: 'var(--font-display)', fontStyle: 'italic' }}>Gestión de Equipo</h2>
@@ -2874,7 +2874,7 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
                 </button>
               </div>
 
-              <div className="card-panel border border-[rgba(245,166,35,0.2)] rounded-2xl overflow-hidden">
+              <div className="card-panel border border-[rgba(245,166,35,0.2)] rounded-2xl overflow-visible">
                 {teamLoading ? (
                   <div className="flex justify-center py-16"><Loader2 className="w-6 h-6 text-[#F5A623] animate-spin" /></div>
                 ) : teamMembers.length === 0 ? (
