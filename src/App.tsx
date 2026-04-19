@@ -293,10 +293,12 @@ export default function App() {
   ) : null;
 
   // ─── Loading state ──────────────────────────────────────────────────────────
-  // Importante: tambien mostramos spinner mientras hacemos el fetch del profile.
-  // Sin esto se veia un flash del panel de cliente antes de resolver que el
-  // usuario era admin.
-  if (authState === 'loading' || profileLoading) {
+  // Solo mostramos el loader cuando no tenemos profile todavia. Si Supabase
+  // refresca el token al volver el foco al browser, profileLoading pega un
+  // flash pero ya tenemos el profile cargado — no hay que re-renderizar el
+  // loader en ese caso (sino la app parece que recarga cada vez que cambias
+  // de pestaña).
+  if (authState === 'loading' || (profileLoading && !supabaseProfile)) {
     return (
       <>
         <LoadingScreen />

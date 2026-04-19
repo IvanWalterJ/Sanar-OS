@@ -419,6 +419,11 @@ export default function Admin({ adminProfile, onSignOut }: AdminProps) {
   const [teamForm, setTeamForm] = useState({ nombre: '', email: '', password: '', admin_rol: 'manager' as AdminRol });
   const [creandoTeam, setCreandoTeam] = useState(false);
 
+  // Eliminar cliente / miembro (owner only) — confirmacion + ejecucion
+  const [clienteAEliminar, setClienteAEliminar] = useState<ClienteConEstado | null>(null);
+  const [miembroAEliminar, setMiembroAEliminar] = useState<{ id: string; nombre: string; email: string } | null>(null);
+  const [eliminando, setEliminando] = useState(false);
+
   // Manager checklist
   const [checklistItems, setChecklistItems] = useState<AdminChecklistItem[]>([]);
   const [checklistLoading, setChecklistLoading] = useState(false);
@@ -1307,15 +1312,58 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
   async function cambiarRolAdmin(targetId: string, newRol: AdminRol) {
     if (!supabase) return;
     try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({ admin_rol: newRol })
-        .eq('id', targetId);
+      // UPDATE directo no funciona por RLS (auth.uid() != target.id). Usamos la
+      // misma RPC promover_a_admin — es idempotente: si ya es admin, solo
+      // actualiza admin_rol.
+      const { error } = await supabase.rpc('promover_a_admin', {
+        p_user_id: targetId,
+        p_admin_rol: newRol,
+      });
       if (error) throw error;
       setTeamMembers(prev => prev.map(m => m.id === targetId ? { ...m, admin_rol: newRol } : m));
       toast.success('Rol actualizado');
-    } catch {
-      toast.error('Error actualizando rol');
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Error desconocido';
+      toast.error(`Error actualizando rol: ${msg}`);
+    }
+  }
+
+  async function confirmarEliminarCliente() {
+    if (!supabase || !clienteAEliminar) return;
+    setEliminando(true);
+    try {
+      const { error } = await supabase.rpc('admin_delete_cliente', { p_user_id: clienteAEliminar.id });
+      if (error) throw error;
+      const deletedId = clienteAEliminar.id;
+      setClientes(prev => prev.filter(c => c.id !== deletedId));
+      if (selectedCliente?.id === deletedId) setSelectedCliente(null);
+      if (chatCliente?.id === deletedId) setChatCliente(null);
+      if (campanasClienteId === deletedId) setCampanasClienteId(null);
+      if (filtroMetricasId === deletedId) setFiltroMetricasId(null);
+      setClienteAEliminar(null);
+      toast.success(`Cliente ${clienteAEliminar.nombre} eliminado`);
+    } catch (e: any) {
+      toast.error(`Error eliminando cliente: ${e?.message ?? 'desconocido'}`);
+    } finally {
+      setEliminando(false);
+    }
+  }
+
+  async function confirmarEliminarMiembro() {
+    if (!supabase || !miembroAEliminar) return;
+    setEliminando(true);
+    try {
+      const { error } = await supabase.rpc('admin_delete_team_member', { p_user_id: miembroAEliminar.id });
+      if (error) throw error;
+      const deletedId = miembroAEliminar.id;
+      setTeamMembers(prev => prev.filter(m => m.id !== deletedId));
+      const nombre = miembroAEliminar.nombre;
+      setMiembroAEliminar(null);
+      toast.success(`Miembro ${nombre} eliminado del equipo`);
+    } catch (e: any) {
+      toast.error(`Error eliminando miembro: ${e?.message ?? 'desconocido'}`);
+    } finally {
+      setEliminando(false);
     }
   }
 
@@ -1693,6 +1741,9 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
                         {['Nombre', 'Email', 'Plan', 'Inicio', 'Días', 'Pilar', 'Estado', 'Progreso'].map(h => (
                           <th key={h} className="text-left px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-[#FFFFFF]/40">{h}</th>
                         ))}
+                        {adminRol === 'owner' && (
+                          <th className="text-right px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-[#FFFFFF]/40">Acciones</th>
+                        )}
                       </tr>
                     </thead>
                     <tbody>
@@ -1749,6 +1800,18 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
                                 <span className="text-[10px] text-[#FFFFFF]/50 w-8 text-right">{pct}%</span>
                               </div>
                             </td>
+                            {adminRol === 'owner' && (
+                              <td className="px-4 py-3 text-right">
+                                <button
+                                  type="button"
+                                  onClick={(e) => { e.stopPropagation(); setClienteAEliminar(c); }}
+                                  title="Eliminar cliente"
+                                  className="p-2 rounded-lg text-[#FFFFFF]/40 hover:text-[#EF4444] hover:bg-[#EF4444]/10 transition-colors"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </td>
+                            )}
                           </tr>
                         );
                       })}
@@ -2889,6 +2952,7 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
                         {['Nombre', 'Rol', 'Estado'].map(h => (
                           <th key={h} className="text-left px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-[#FFFFFF]/40">{h}</th>
                         ))}
+                        <th className="text-right px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-[#FFFFFF]/40">Acciones</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -2929,6 +2993,20 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
                               <span className="text-[10px] font-bold px-2 py-1 rounded-md uppercase tracking-wider bg-[#22C55E]/10 text-[#22C55E] border border-[#22C55E]/20">
                                 Activo
                               </span>
+                            </td>
+                            <td className="px-5 py-4 text-right">
+                              {member.id === adminProfile.id ? (
+                                <span className="text-[10px] text-[#FFFFFF]/30 italic">Vos</span>
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={() => setMiembroAEliminar({ id: member.id, nombre: member.nombre ?? 'Miembro', email: member.email ?? '' })}
+                                  title="Eliminar miembro"
+                                  className="p-2 rounded-lg text-[#FFFFFF]/40 hover:text-[#EF4444] hover:bg-[#EF4444]/10 transition-colors"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              )}
                             </td>
                           </tr>
                         );
@@ -3475,6 +3553,100 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
                   <p className="text-xs text-gray-700 mt-1">El cliente completó esta tarea pero no hay contenido generado por IA asociado.</p>
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ═══════════════════════════════════════════════════════════════
+          MODAL: confirmar eliminacion de cliente (owner only)
+          ═══════════════════════════════════════════════════════════════ */}
+      {clienteAEliminar && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/85 backdrop-blur-md p-4">
+          <div className="w-full max-w-md bg-[#141414] border border-[#EF4444]/30 rounded-3xl p-8 shadow-2xl relative">
+            <div className="absolute top-0 left-0 right-0 h-1 bg-[#EF4444] rounded-t-3xl" />
+            <div className="flex items-start gap-4 mb-6">
+              <div className="w-12 h-12 rounded-2xl bg-[#EF4444]/15 border border-[#EF4444]/30 flex items-center justify-center shrink-0">
+                <AlertTriangle className="w-6 h-6 text-[#EF4444]" />
+              </div>
+              <div>
+                <h3 className="text-xl font-semibold text-white tracking-tight">Eliminar cliente</h3>
+                <p className="text-sm text-white/60 mt-1">Esta acción no se puede deshacer.</p>
+              </div>
+            </div>
+            <div className="bg-black/30 border border-[#EF4444]/20 rounded-xl p-4 mb-6 space-y-1">
+              <p className="text-sm text-white">
+                <span className="text-white/50">Cliente:</span> <span className="font-semibold">{clienteAEliminar.nombre}</span>
+              </p>
+              <p className="text-xs text-white/50 truncate">{clienteAEliminar.email}</p>
+            </div>
+            <p className="text-xs text-white/50 mb-6 leading-relaxed">
+              Se eliminará la cuenta, el profile, diario, métricas, tareas, mensajes, notas, ratings, campañas y creativos asociados. El email quedará libre para reutilizarse.
+            </p>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setClienteAEliminar(null)}
+                disabled={eliminando}
+                className="btn-secondary flex-1 py-3 rounded-xl text-sm font-semibold transition-colors disabled:opacity-50"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={confirmarEliminarCliente}
+                disabled={eliminando}
+                className="flex-1 py-3 rounded-xl text-sm font-bold bg-[#EF4444] hover:bg-[#DC2626] text-white transition-colors flex items-center justify-center gap-2 disabled:opacity-60"
+              >
+                {eliminando ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Trash2 className="w-4 h-4" /> Eliminar</>}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ═══════════════════════════════════════════════════════════════
+          MODAL: confirmar eliminacion de miembro del equipo (owner only)
+          ═══════════════════════════════════════════════════════════════ */}
+      {miembroAEliminar && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/85 backdrop-blur-md p-4">
+          <div className="w-full max-w-md bg-[#141414] border border-[#EF4444]/30 rounded-3xl p-8 shadow-2xl relative">
+            <div className="absolute top-0 left-0 right-0 h-1 bg-[#EF4444] rounded-t-3xl" />
+            <div className="flex items-start gap-4 mb-6">
+              <div className="w-12 h-12 rounded-2xl bg-[#EF4444]/15 border border-[#EF4444]/30 flex items-center justify-center shrink-0">
+                <AlertTriangle className="w-6 h-6 text-[#EF4444]" />
+              </div>
+              <div>
+                <h3 className="text-xl font-semibold text-white tracking-tight">Eliminar miembro</h3>
+                <p className="text-sm text-white/60 mt-1">Esta acción no se puede deshacer.</p>
+              </div>
+            </div>
+            <div className="bg-black/30 border border-[#EF4444]/20 rounded-xl p-4 mb-6 space-y-1">
+              <p className="text-sm text-white">
+                <span className="text-white/50">Miembro:</span> <span className="font-semibold">{miembroAEliminar.nombre}</span>
+              </p>
+              {miembroAEliminar.email && <p className="text-xs text-white/50 truncate">{miembroAEliminar.email}</p>}
+            </div>
+            <p className="text-xs text-white/50 mb-6 leading-relaxed">
+              Se revocará el acceso y se eliminará la cuenta del equipo. Las tareas que tuviera asignadas quedarán sin responsable.
+            </p>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setMiembroAEliminar(null)}
+                disabled={eliminando}
+                className="btn-secondary flex-1 py-3 rounded-xl text-sm font-semibold transition-colors disabled:opacity-50"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={confirmarEliminarMiembro}
+                disabled={eliminando}
+                className="flex-1 py-3 rounded-xl text-sm font-bold bg-[#EF4444] hover:bg-[#DC2626] text-white transition-colors flex items-center justify-center gap-2 disabled:opacity-60"
+              >
+                {eliminando ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Trash2 className="w-4 h-4" /> Eliminar</>}
+              </button>
             </div>
           </div>
         </div>
