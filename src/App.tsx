@@ -19,6 +19,7 @@ import ManualNegocio from './pages/ManualNegocio';
 import Login from './pages/Login';
 import Admin from './pages/Admin';
 import WelcomeWizard from './components/WelcomeWizard';
+import LoadingScreen from './components/LoadingScreen';
 import { X, User, Bell, Shield, CreditCard, LogOut, Camera, Lock, Loader2, Eye, EyeOff } from 'lucide-react';
 import { supabase, isSupabaseReady, type Profile as SupabaseProfile } from './lib/supabase';
 import { signOut, syncProfileToLocalStorage, updatePassword } from './lib/auth';
@@ -107,16 +108,9 @@ export default function App() {
       if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN') {
         // Only do a full profile load on real login / first load, not on tab refocus
         setProfileLoading(true);
-        const ok = await loadSupabaseProfile(session.user.id);
+        await loadSupabaseProfile(session.user.id);
         clearTimeout(safetyTimer);
         setProfileLoading(false);
-        if (!ok) {
-          // Si no pudimos leer el profile (timeout/RLS), forzamos logout en vez
-          // de renderizar el panel equivocado (cliente) por defecto.
-          if (supabase) await supabase.auth.signOut();
-          setAuthState('logged_out');
-          return;
-        }
         setAuthState('logged_in');
       }
     });
@@ -305,9 +299,7 @@ export default function App() {
   if (authState === 'loading' || profileLoading) {
     return (
       <>
-        <div className="min-h-screen bg-[#0A0A0A] flex items-center justify-center">
-          <div className="w-8 h-8 border-2 border-[#F5A623]/30 border-t-[#F5A623] rounded-full animate-spin" />
-        </div>
+        <LoadingScreen />
         {RecoveryModal}
       </>
     );
