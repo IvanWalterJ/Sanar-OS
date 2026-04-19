@@ -1272,12 +1272,27 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
       });
       if (error) throw error;
       if (signUpData.user && supabase) {
-        await new Promise(r => setTimeout(r, 1500));
-        await supabase.from('profiles').update({
-          rol: 'admin',
-          admin_rol: teamForm.admin_rol,
-          onboarding_completed: true,
-        }).eq('id', signUpData.user.id);
+        // El trigger on_auth_user_created crea el profile con rol='cliente'.
+        // Via RPC SECURITY DEFINER lo promovemos a admin — el update directo no
+        // pasa por RLS (auth.uid() != target.id). Reintentamos por la carrera
+        // con el trigger (puede tardar 1-3 seg).
+        let promoted = false;
+        let lastErr: string | null = null;
+        for (let attempt = 0; attempt < 4 && !promoted; attempt++) {
+          await new Promise(r => setTimeout(r, attempt === 0 ? 1500 : 1000));
+          const { error: rpcErr } = await supabase.rpc('promover_a_admin', {
+            p_user_id: signUpData.user.id,
+            p_admin_rol: teamForm.admin_rol,
+          });
+          if (!rpcErr) {
+            promoted = true;
+          } else {
+            lastErr = rpcErr.message;
+          }
+        }
+        if (!promoted) {
+          throw new Error(`No se pudo promover el miembro a admin: ${lastErr ?? 'error desconocido'}`);
+        }
       }
       toast.success(`Miembro ${teamForm.nombre} agregado al equipo.`);
       setShowAddTeamMember(false);

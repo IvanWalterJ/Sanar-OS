@@ -211,6 +211,19 @@ export default function ImagenGenerator({ copies, angulo, perfil, geminiKey, ini
         cfg => cfg.textSource === 'personalizado' && !cfg.customText?.h1?.trim()
       );
       if (invalid >= 0) { toast.error(`Completa al menos el H1 (titulo) en slide ${invalid + 1}`); return; }
+
+      // Carrusel con IA: sin tema + sin copies = 10 slides identicos.
+      // Forzamos tema escrito o copies explicitos para que cada slide sea distinto.
+      const allSlidesUsanIAInit = slideConfigs.every((c) => (c?.textSource ?? 'ia') === 'ia');
+      if (
+        copyList.length === 0 &&
+        allSlidesUsanIAInit &&
+        genMode === 'ia_completa' &&
+        userPrompt.trim().length === 0
+      ) {
+        toast.error('Para un carrusel con IA escribi el tema o contexto — sino todos los slides salen iguales.');
+        return;
+      }
     }
 
     setGenerating(true);
@@ -257,9 +270,10 @@ export default function ImagenGenerator({ copies, angulo, perfil, geminiKey, ini
         let narrative: CarouselNarrative | null = null;
         const allSlidesUsanIA = slideConfigs.every((c) => (c?.textSource ?? 'ia') === 'ia');
         const necesitaNarrativa =
-          copyList.length === 0 && allSlidesUsanIA && userPrompt.trim().length > 0 && mode !== 'fondo';
+          copyList.length === 0 && allSlidesUsanIA && mode !== 'fondo';
 
         if (necesitaNarrativa) {
+          let narrativeError: string | null = null;
           try {
             setProgress({ modelName: 'Gemini (narrativa)', attempt: 1, total: 1, status: 'trying' });
             const narrPrompt = buildCarouselNarrativePrompt(
@@ -277,12 +291,22 @@ export default function ImagenGenerator({ copies, angulo, perfil, geminiKey, ini
                 .replace(/[\x00-\x1F\x7F]/g, (c) => (c === '\n' || c === '\r' || c === '\t' ? c : ''))
                 .replace(/,\s*([}\]])/g, '$1');
               const parsed = JSON.parse(jsonStr) as CarouselNarrative;
-              if (Array.isArray(parsed.slides) && parsed.slides.length > 0) {
+              if (Array.isArray(parsed.slides) && parsed.slides.length >= totalSlides) {
                 narrative = parsed;
+              } else {
+                narrativeError = `Narrativa devolvio ${parsed.slides?.length ?? 0} slides en vez de ${totalSlides}`;
               }
+            } else {
+              narrativeError = 'Narrativa no devolvio JSON valido';
             }
           } catch (err) {
-            console.warn('Narrativa de carrusel fallo, sigo sin hilo:', err);
+            narrativeError = err instanceof Error ? err.message : String(err);
+          }
+          // Si no se pudo armar narrativa, abortamos en vez de generar 10 slides identicos.
+          if (!narrative) {
+            throw new Error(
+              `No se pudo armar el hilo narrativo del carrusel${narrativeError ? ` (${narrativeError})` : ''}. Probá de nuevo o simplifica el tema.`
+            );
           }
         }
 

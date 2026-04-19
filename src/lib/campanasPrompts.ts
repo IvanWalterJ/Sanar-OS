@@ -398,7 +398,9 @@ ${adnContext(perfil)}
 ${ANGULO_INSTRUCTIONS[angulo]}
 ${estiloBlock}
 === BRIEF DEL USUARIO (intencion del carrusel) ===
-${brief}
+${brief.trim().length > 0
+  ? brief
+  : `(sin brief explicito — inventa una historia coherente al nicho "${perfil.nicho ?? perfil.adn_nicho ?? perfil.especialidad ?? 'salud y bienestar'}" y al angulo elegido. Asegurate de que cada slide avance el argumento: Slide 1 = hook fuerte distinto al resto, slides intermedios = una idea concreta diferente cada uno, slide final = CTA accionable.)`}
 
 === TAREA ===
 1) Crea ${totalSlides} titulares encadenados que se LEAN como una sola historia de izquierda a derecha.
