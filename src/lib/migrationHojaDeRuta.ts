@@ -81,9 +81,9 @@ function buildOutputForMeta(
 
 /**
  * Construye las filas de `hoja_de_ruta` a insertar cuando se migra un cliente.
- * Marca como completadas todas las metas de pilares ANTERIORES al pilar actual
- * (usando `numero_orden` para progreso secuencial real), inyectando los outputs
- * ADN extraídos por la IA en las metas que tienen `adn_field`.
+ * Marca como completadas todas las metas hasta el pilar seleccionado (inclusivo),
+ * inyectando los outputs ADN extraídos por la IA en las metas que tienen `adn_field`.
+ * `pilarActualOrden` representa el último pilar completado por el cliente.
  */
 export function buildHojaDeRutaFromExtracted(
   pilarActualOrden: number,
@@ -93,7 +93,7 @@ export function buildHojaDeRutaFromExtracted(
   const today = new Date().toISOString().split('T')[0];
 
   for (const pilar of SEED_ROADMAP_V3) {
-    if (pilar.numero_orden >= pilarActualOrden) continue;
+    if (pilar.numero_orden > pilarActualOrden) continue;
     for (const meta of pilar.metas) {
       const texto = meta.adn_field ? buildOutputForMeta(meta.adn_field, extracted) : null;
       rows.push({

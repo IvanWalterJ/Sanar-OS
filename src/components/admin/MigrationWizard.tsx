@@ -336,14 +336,14 @@ export default function MigrationWizard({ onClose, onSuccess, clientes = [] }: M
                       <input type="date" value={form.fecha_inicio} onChange={e => setFormField('fecha_inicio', e.target.value)} className={INPUT_CLASS} />
                     </div>
                     <div>
-                      <label className={LABEL_CLASS}>¿En qué pilar está el cliente?</label>
+                      <label className={LABEL_CLASS}>¿Hasta qué pilar completó el cliente?</label>
                       <CustomSelect
                         value={String(form.pilar_actual)}
                         onChange={v => setFormField('pilar_actual', Number(v))}
                         options={pilarOptions}
                       />
                       <p className="text-[10px] text-[#FFFFFF]/30 mt-1">
-                        Marcaremos como completadas todas las tareas de pilares anteriores.
+                        Se marcan como completadas todas las tareas hasta ese pilar inclusive.
                       </p>
                     </div>
                   </div>
@@ -384,12 +384,15 @@ export default function MigrationWizard({ onClose, onSuccess, clientes = [] }: M
                     <input type="date" value={form.fecha_inicio} onChange={e => setFormField('fecha_inicio', e.target.value)} className={INPUT_CLASS} />
                   </div>
                   <div>
-                    <label className={LABEL_CLASS}>¿En qué pilar empieza?</label>
+                    <label className={LABEL_CLASS}>¿Hasta qué pilar completó?</label>
                     <CustomSelect
                       value={String(form.pilar_actual)}
                       onChange={v => setFormField('pilar_actual', Number(v))}
                       options={pilarOptions}
                     />
+                    <p className="text-[10px] text-[#FFFFFF]/30 mt-1">
+                      Se marcan como completadas todas las tareas hasta ese pilar.
+                    </p>
                   </div>
                 </div>
               )}
