@@ -161,8 +161,10 @@ export default function MigrationWizard({ onClose, onSuccess, clientes = [] }: M
         if (signUpError) throw signUpError;
         if (!signUpData.user) throw new Error('No se pudo crear el usuario');
 
-        await new Promise(r => setTimeout(r, 1500));
         profileId = signUpData.user.id;
+        // Pequeña pausa para que Auth propague el user_id antes del RPC.
+        // El RPC v2 crea el profile si no existe, sin depender del trigger.
+        await new Promise(r => setTimeout(r, 1000));
       }
 
       const adnFields = Object.fromEntries(
@@ -226,7 +228,13 @@ export default function MigrationWizard({ onClose, onSuccess, clientes = [] }: M
       onSuccess();
       onClose();
     } catch (e: unknown) {
-      toast.error(e instanceof Error ? e.message : 'Error en la migración');
+      const msg =
+        e instanceof Error
+          ? e.message
+          : typeof (e as { message?: unknown })?.message === 'string'
+            ? (e as { message: string }).message
+            : 'Error en la migración';
+      toast.error(msg);
     } finally {
       setCreating(false);
     }
