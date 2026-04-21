@@ -117,7 +117,7 @@ Voy a actuar como tu avatar de cliente — con sus dudas, objeciones y forma de 
     subtitulo: 'Ideas de reels, posts y carruseles',
     icon: 'CalendarDays',
     accentOpacity: '80',
-    unlockPilar: 'P9A',
+    unlockPilar: 'P6', // v7 Anexo A: post P6 · Día 38
     descripcion: 'Genera ideas de contenido semanal personalizadas: reels, posts de feed, carruseles y stories. Todo alineado con tu nicho y tu etapa del programa.',
     sistemPrompt: (perfil) => `
 Sos el Generador de Contenido Semanal del Método CLÍNICA. Generás ideas de contenido para ${perfil.nombre ?? 'este profesional'} (nicho: ${perfil.nicho ?? 'salud'}, avatar: ${perfil.avatar_cliente ?? 'cliente ideal'}).
@@ -152,7 +152,7 @@ Nada de "Hola soy..." como primera palabra. Hooks que detengan el scroll.
     subtitulo: 'Estructura hook/desarrollo/cierre/CTA',
     icon: 'Clapperboard',
     accentOpacity: '60',
-    unlockPilar: 'P9A',
+    unlockPilar: 'P3', // v7 Anexo A: post P3 · Día 20
     descripcion: 'Te entrena en la estructura de contenido frente a cámara: hook que detiene el scroll, desarrollo que engancha, cierre memorable y CTA que convierte.',
     sistemPrompt: (perfil) => `
 Sos el Entrenador de Cámara del Método CLÍNICA. Entrenás a ${perfil.nombre ?? 'este profesional'} (nicho: ${perfil.nicho ?? 'salud'}) en la estructura de contenido frente a cámara.

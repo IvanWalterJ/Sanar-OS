@@ -2,11 +2,56 @@
  * CampanasHome.tsx — Dashboard home con modulos de acceso directo y campanas recientes
  */
 import {
-  Target, PenTool, BarChart3, Wrench, FolderOpen, Trophy,
+  PenTool, BarChart3, Wrench, FolderOpen, Trophy,
   Sparkles, ArrowRight, Calendar,
+  Building2, Megaphone, Repeat,
 } from 'lucide-react';
 import type { CampanasView, Campana, Creativo } from '../../lib/campanasTypes';
 import { OBJETIVO_LABELS, ESTADO_COLORS } from '../../lib/campanasTypes';
+
+// ─── Mapa v7 · 3 sub-pilares de Fase 4 ──────────────────────────────────────
+const SUB_PILARES_V7: Array<{
+  id: 'P9A' | 'P9B' | 'P9C';
+  titulo: string;
+  dias: string;
+  subtitulo: string;
+  icon: React.ComponentType<{ className?: string }>;
+  modulos: Array<{ id: CampanasView; label: string }>;
+}> = [
+  {
+    id: 'P9A',
+    titulo: 'Infraestructura',
+    dias: 'Días 45-55',
+    subtitulo: 'El embudo mínimo viable · landing · 6 creativos N1/N2/N3 · Meta Ads · Skool.',
+    icon: Building2,
+    modulos: [
+      { id: 'copies', label: 'Generar copies' },
+      { id: 'montaje', label: 'Montaje paso a paso' },
+      { id: 'diagnostico', label: 'Diagnosticar campaña' },
+    ],
+  },
+  {
+    id: 'P9B',
+    titulo: 'Captación',
+    dias: 'Días 55-70',
+    subtitulo: 'Campañas activas · la W · triage WhatsApp · masterclass · primera llamada real.',
+    icon: Megaphone,
+    modulos: [
+      { id: 'nueva', label: 'Crear campaña' },
+      { id: 'historial', label: 'Historial' },
+    ],
+  },
+  {
+    id: 'P9C',
+    titulo: 'Seguimiento',
+    dias: 'Días 70-75',
+    subtitulo: 'Emails nurture · plan de contenido · retargeting tras la primera venta.',
+    icon: Repeat,
+    modulos: [
+      { id: 'ganadores', label: 'Ganadores' },
+    ],
+  },
+];
 
 interface ModuleCard {
   id: CampanasView;
@@ -86,6 +131,58 @@ export default function CampanasHome({ campanas, creativos, perfil, onNavigate, 
         <p className="text-sm text-[#FFFFFF]/50 max-w-lg">
           Podes arrancar el flujo completo desde cero, o ir directo al modulo que necesitas.
         </p>
+      </div>
+
+      {/* Mapa v7 · Fase 4 dividida en P9A / P9B / P9C */}
+      <div>
+        <div className="flex items-center gap-3 mb-3">
+          <span className="text-[10px] font-bold tracking-[0.15em] uppercase text-[#F5A623]">
+            Fase 4 · método C · mapa v7
+          </span>
+          <div className="flex-1 h-px bg-[rgba(245,166,35,0.1)]" />
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          {SUB_PILARES_V7.map((sub) => {
+            const Icon = sub.icon;
+            return (
+              <div
+                key={sub.id}
+                className="card-panel p-4 border-[rgba(245,166,35,0.15)]"
+              >
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="w-8 h-8 rounded-lg bg-[#F5A623]/15 border border-[#F5A623]/30 flex items-center justify-center">
+                    <Icon className="w-4 h-4 text-[#F5A623]" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-xs font-mono text-[#F5A623] font-semibold">{sub.id}</span>
+                      <span className="text-sm font-semibold text-[#FFFFFF] truncate">{sub.titulo}</span>
+                    </div>
+                    <span className="text-[10px] text-[#FFFFFF]/40 uppercase tracking-widest">
+                      {sub.dias}
+                    </span>
+                  </div>
+                </div>
+                <p className="text-xs text-[#FFFFFF]/55 leading-relaxed mb-3">
+                  {sub.subtitulo}
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {sub.modulos.map((mod) => (
+                    <button
+                      key={mod.id}
+                      type="button"
+                      onClick={() => onNavigate(mod.id)}
+                      className="text-[11px] px-2.5 py-1 rounded-full bg-[#F5A623]/10 hover:bg-[#F5A623]/20 border border-[#F5A623]/20 text-[#F5A623] transition-colors"
+                    >
+                      {mod.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </div>
 
       {/* CTA — Flujo completo */}

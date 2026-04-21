@@ -5,12 +5,19 @@
  * Step 2: Mandatory 1-5 star satisfaction rating + optional comment.
  */
 import React, { useEffect, useState } from 'react';
-import { Trophy, ChevronRight, Sparkles, Star } from 'lucide-react';
+import { Trophy, ChevronRight, Sparkles, Star, Award } from 'lucide-react';
+
+export interface NivelAlcanzado {
+  numero: 1 | 2 | 3 | 4 | 5;
+  nombre: string;
+  descripcion: string;
+}
 
 interface PilarUnlockedModalProps {
   pilarCompletado: string;
   pilarDesbloqueado?: string;
   pilarNumero: number;
+  nivelAlcanzado?: NivelAlcanzado;
   onClose: () => void;
   onContinuar?: () => void;
   onRating?: (rating: number, comentario: string) => Promise<void>;
@@ -48,6 +55,7 @@ export default function PilarUnlockedModal({
   pilarCompletado,
   pilarDesbloqueado,
   pilarNumero,
+  nivelAlcanzado,
   onClose,
   onContinuar,
   onRating,
@@ -164,6 +172,21 @@ export default function PilarUnlockedModal({
               </p>
 
               <div className="w-16 h-px bg-[var(--accent-gold)]/30 mx-auto mb-4" />
+
+              {nivelAlcanzado && (
+                <div className="mb-5 rounded-xl border border-[var(--accent-gold)]/40 bg-[var(--accent-gold)]/5 p-4">
+                  <div className="flex items-center justify-center gap-2 mb-2">
+                    <Award className="w-4 h-4 text-[var(--accent-gold)]" />
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-[var(--accent-gold)]">
+                      Nivel {nivelAlcanzado.numero} alcanzado
+                    </span>
+                  </div>
+                  <p className="text-lg font-medium text-[#FFFFFF] mb-1">{nivelAlcanzado.nombre}</p>
+                  <p className="text-xs text-[#FFFFFF]/60 leading-relaxed">
+                    {nivelAlcanzado.descripcion}
+                  </p>
+                </div>
+              )}
 
               {pilarDesbloqueado ? (
                 <div className="mb-6">

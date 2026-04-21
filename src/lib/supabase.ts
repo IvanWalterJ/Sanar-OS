@@ -212,6 +212,24 @@ export interface ProfileV2 extends Profile {
   adn_anuncios?: string;               // P9A.3 — 3 versiones de anuncios
   adn_protocolo_servicio?: string;     // P9C.2
   adn_identidad_sistema?: string;      // P10.2 — sistema completo de identidad
+  // ── ADN v7 — Campos nuevos del documento maestro (migración pendiente) ───
+  adn_avatar_journey?: string;            // P4.3 · IRR
+  adn_micronicho?: string;                // P5.2 · IRR
+  adn_escenarios_roas?: string;           // P8.6 · NEG
+  adn_vsl_script?: string;                // P9A.2 · INF
+  adn_meta_config?: Record<string, unknown>;     // P9A.4 · INF
+  adn_skool_setup?: Record<string, unknown>;     // P9A.5 · INF
+  adn_templates_canva?: string;           // P10.3 · INF
+  adn_creativos_v2?: string;              // P10.4 · INF
+  adn_triage_audios?: string;             // P9B.2 · CAP
+  adn_masterclass_estructura?: string;    // P9B.4 · CAP
+  adn_emails_nurture?: string;            // P9C.2 · CAP
+  adn_plan_contenido_semanal?: string;    // P9C.3 · CAP
+  adn_retargeting_config?: Record<string, unknown>;  // P9C.4 · CAP
+  adn_tablero_cierre?: string;            // P11.1 · MET
+  adn_retrospectiva?: string;             // P11.2 · MET
+  adn_plan_ciclo_2?: string;              // P11.3 · MET
+  adn_masterclass_analytics?: string;     // P11.4 · MET
 }
 
 // ─── Tipos V3 — Versión Final Definitiva ─────────────────────────────────────
@@ -220,7 +238,8 @@ export type PilarId =
   | 'P0' | 'P1' | 'P2' | 'P3' | 'P4' | 'P5' | 'P6' | 'P7' | 'P8'
   | 'P9A' | 'P9B' | 'P9C' | 'P10' | 'P11';
 
-export type TipoTarea = 'VIDEO' | 'HERRAMIENTA' | 'COACH' | 'AGENTE';
+/** Tipos de tarea permitidos en el roadmap (v7 Regla #2: solo 3 tipos, en este orden). */
+export type TipoTarea = 'VIDEO' | 'HERRAMIENTA' | 'COACH';
 
 export type MetaCodigo =
   | 'P0.1' | 'P0.2'
@@ -353,18 +372,55 @@ export interface ProgramaVideo {
 export type SemaforoColor = 'verde' | 'amarillo' | 'rojo' | 'gris';
 
 export type NivelNombre =
-  | 'El Sanador Despierto'
-  | 'El Especialista Claro'
-  | 'El Creador de Presencia'
-  | 'El Arquitecto de Ventas'
-  | 'El Emprendedor Libre';
+  | 'Sanador Despierto'
+  | 'Sanador Narrado'
+  | 'Sanador Posicionado'
+  | 'Sanador Activo'
+  | 'Sanador Libre';
 
 export const NIVEL_NOMBRES: Record<1 | 2 | 3 | 4 | 5, NivelNombre> = {
-  1: 'El Sanador Despierto',
-  2: 'El Especialista Claro',
-  3: 'El Creador de Presencia',
-  4: 'El Arquitecto de Ventas',
-  5: 'El Emprendedor Libre',
+  1: 'Sanador Despierto',
+  2: 'Sanador Narrado',
+  3: 'Sanador Posicionado',
+  4: 'Sanador Activo',
+  5: 'Sanador Libre',
+};
+
+export interface NivelMeta {
+  nombre: NivelNombre;
+  triggerPilar: PilarId;
+  descripcion: string;
+  requiere10K?: boolean;
+}
+
+/** Metadata v7 de cada nivel: trigger de desbloqueo + descripción. */
+export const NIVEL_METADATA: Record<1 | 2 | 3 | 4 | 5, NivelMeta> = {
+  1: {
+    nombre: 'Sanador Despierto',
+    triggerPilar: 'P0',
+    descripcion: 'Completó el onboarding. Tiene el ADN iniciado y sabe que hay un camino.',
+  },
+  2: {
+    nombre: 'Sanador Narrado',
+    triggerPilar: 'P3',
+    descripcion: 'Tiene historia, propósito y legado documentados. Puede responder "¿por qué vos?" en 30 segundos.',
+  },
+  3: {
+    nombre: 'Sanador Posicionado',
+    triggerPilar: 'P8',
+    descripcion: 'ADN completo. Micronicho, PUV, método propio y escalera de ofertas armada.',
+  },
+  4: {
+    nombre: 'Sanador Activo',
+    triggerPilar: 'P9A',
+    descripcion: 'Infraestructura corriendo: landing, Skool, Meta Ads. El embudo empieza a respirar.',
+  },
+  5: {
+    nombre: 'Sanador Libre',
+    triggerPilar: 'P11',
+    descripcion: 'Cerró el primer ciclo de $10K. Sistema funcionando sin depender 100% de él.',
+    requiere10K: true,
+  },
 };
 
 /** @deprecated Usar NIVEL_UMBRALES_V3. */
@@ -377,11 +433,11 @@ export const NIVEL_UMBRALES: Record<1 | 2 | 3 | 4 | 5, number[]> = {
 };
 
 export const NIVEL_UMBRALES_V3: Record<1 | 2 | 3 | 4 | 5, PilarId[]> = {
-  1: ['P0', 'P1'],                         // Onboarding + Historia
-  2: ['P2', 'P3', 'P4'],                   // Propósito + Legado + Avatar
-  3: ['P5', 'P6', 'P7'],                   // Nicho + Matriz + Método
-  4: ['P8', 'P9A', 'P9B', 'P9C'],          // Ofertas + Marketing + Ventas + Servicio
-  5: ['P10', 'P11'],                        // Identidad Visual + Análisis
+  1: ['P0'],                               // post P0 · Onboarding
+  2: ['P1', 'P2', 'P3'],                   // post P3 · Historia + Propósito + Legado
+  3: ['P4', 'P5', 'P6', 'P7', 'P8'],       // post P8 · Avatar + Nicho + Matriz + Método + Ofertas
+  4: ['P9A'],                              // post P9A · Infraestructura
+  5: ['P9B', 'P9C', 'P10', 'P11'],         // post P11 + $10K · Captación + Seguimiento + Identidad + Análisis
 };
 
 export const PILAR_ORDER: PilarId[] = [

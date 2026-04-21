@@ -115,7 +115,7 @@ Conocés su ADN completo (campos completados con herramientas IA), sus métricas
   if (perfil.legado) adnSections.push(`Legado: ${perfil.legado}`);
   if (perfil.adn_avatar) adnSections.push(`Avatar: ${perfil.adn_avatar.nombre_ficticio}, ${perfil.adn_avatar.edad} años, ${perfil.adn_avatar.profesion}. Dolores: ${perfil.adn_avatar.dolores?.join(', ')}`);
   if (perfil.adn_nicho) adnSections.push(`Nicho: ${perfil.adn_nicho}`);
-  if (perfil.adn_usp) adnSections.push(`USP: ${perfil.adn_usp}`);
+  if (perfil.adn_usp) adnSections.push(`PUV: ${perfil.adn_usp}`);
   if (perfil.matriz_a) adnSections.push(`Matriz A (dolores): ${perfil.matriz_a.substring(0, 100)}...`);
   if (perfil.matriz_b) adnSections.push(`Matriz B (obstáculos): ${perfil.matriz_b.substring(0, 100)}...`);
   if (perfil.matriz_c) adnSections.push(`Matriz C (cielo): ${perfil.matriz_c.substring(0, 100)}...`);

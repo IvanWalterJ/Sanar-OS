@@ -59,12 +59,13 @@ import {
   type RoadmapMeta,
 } from '../lib/roadmapSeed';
 import { getYoutubeVideoId } from '../lib/videos';
-import { NIVEL_NOMBRES } from '../lib/supabase';
+import { NIVEL_NOMBRES, NIVEL_METADATA } from '../lib/supabase';
 import TaskVideo from '../components/tasks/TaskVideo';
 import TaskHerramientaIA from '../components/tasks/TaskHerramientaIA';
 import TaskCoach from '../components/tasks/TaskCoach';
-import TaskAgente from '../components/tasks/TaskAgente';
 import PilarUnlockedModal from '../components/PilarUnlockedModal';
+import Dia45Banner from '../components/Dia45Banner';
+import { validarADNDia45 } from '../lib/diaValidator';
 
 // ─── Tipos locales ────────────────────────────────────────────────────────────
 
@@ -95,8 +96,6 @@ function getTypeBadge(tipo: string) {
       return { icon: Wrench, label: 'HERRAMIENTA', color: 'text-[#22C55E]', bg: 'bg-[#22C55E]/10 border-[#22C55E]/20' };
     case 'COACH':
       return { icon: MessageSquare, label: 'COACH', color: 'text-[#FFFFFF]/70', bg: 'bg-[#FFFFFF]/5 border-[#FFFFFF]/15' };
-    case 'AGENTE':
-      return { icon: Bot, label: 'AGENTE', color: 'text-purple-400', bg: 'bg-purple-500/10 border-purple-500/20' };
     default:
       return { icon: FileText, label: tipo, color: 'text-[#FFFFFF]/50', bg: 'bg-[#FFFFFF]/5 border-[#FFFFFF]/10' };
   }
@@ -129,7 +128,12 @@ export default function Roadmap({ userId, perfil, geminiKey, onNavigate, onProfi
   const [loading, setLoading] = useState(true);
   const [activeMeta, setActiveMeta] = useState<string | null>(null); // codigo of active task
   const [taskOutputs, setTaskOutputs] = useState<Map<string, string>>(new Map());
-  const [pilarUnlocked, setPilarUnlocked] = useState<{ completado: string; desbloqueado?: string; numero: number } | null>(null);
+  const [pilarUnlocked, setPilarUnlocked] = useState<{
+    completado: string;
+    desbloqueado?: string;
+    numero: number;
+    nivelAlcanzado?: { numero: 1 | 2 | 3 | 4 | 5; nombre: string; descripcion: string };
+  } | null>(null);
   const [videosPorPilar, setVideosPorPilar] = useState<Record<string, string>>({});
   const prevCompletadasRef = useRef<Set<string>>(new Set());
   const detalleRef = useRef<HTMLDivElement>(null);
@@ -319,9 +323,17 @@ export default function Roadmap({ userId, perfil, geminiKey, onNavigate, onProfi
     [completadas, ventas, qaVerde],
   );
 
+  // ─── Validación Día 45 (Regla #5 v7) ────────────────────────────────────
+  const diaActual = perfil?.dia_programa ?? 1;
+  const validacionDia45 = validarADNDia45(perfil ?? {}, diaActual);
+
   // ─── Enriquecer pilares con estado ─────────────────────────────────────
   const pilaresConEstado: PilarConEstado[] = seedConVideos.map((pilar) => {
-    const estado = calcularEstadoPilar(pilar, seedConVideos);
+    let estado = calcularEstadoPilar(pilar, seedConVideos);
+    // Día 45 con ADN incompleto → forzar bloqueo de Fase 4 (Regla #5 v7)
+    if (validacionDia45.debeBloquearFase4 && pilar.fase === 4 && estado !== 'completado') {
+      estado = 'bloqueado';
+    }
     const metasCompletadas = pilar.metas.filter((m) =>
       completadas.has(`${pilar.numero}-${m.codigo}`),
     ).length;
@@ -356,10 +368,23 @@ export default function Roadmap({ userId, perfil, geminiKey, onNavigate, onProfi
       const isNowComplete = pilar.estado === 'completado';
       if (!wasComplete && isNowComplete) {
         const nextPilar = pilaresConEstado.find(p => p.numero_orden === pilar.numero_orden + 1);
+
+        // ¿Este pilar es trigger de un nuevo nivel? (v7 · Anexo A)
+        const triggerNivelEntry = (Object.entries(NIVEL_METADATA) as [string, typeof NIVEL_METADATA[1]][])
+          .find(([, meta]) => meta.triggerPilar === pilar.id);
+        const nivelAlcanzado = triggerNivelEntry
+          ? {
+              numero: Number(triggerNivelEntry[0]) as 1 | 2 | 3 | 4 | 5,
+              nombre: triggerNivelEntry[1].nombre,
+              descripcion: triggerNivelEntry[1].descripcion,
+            }
+          : undefined;
+
         setPilarUnlocked({
           completado: pilar.titulo,
           desbloqueado: nextPilar && nextPilar.estado !== 'bloqueado' ? nextPilar.titulo : undefined,
           numero: pilar.numero,
+          nivelAlcanzado,
         });
         break;
       }
@@ -479,7 +504,7 @@ export default function Roadmap({ userId, perfil, geminiKey, onNavigate, onProfi
     }
   }, [userId, onProfileFieldUpdate]);
 
-  // ─── Complete a task (VIDEO, COACH, AGENTE) ───────────────────────────
+  // ─── Complete a task (VIDEO, COACH) ───────────────────────────────────
   const handleCompleteTask = useCallback((pilarNum: number, meta: RoadmapMeta) => {
     const key = `${pilarNum}-${meta.codigo}`;
     setCompletadas(prev => { const next = new Set(prev); next.add(key); return next; });
@@ -571,6 +596,21 @@ export default function Roadmap({ userId, perfil, geminiKey, onNavigate, onProfi
           </div>
         </div>
       </div>
+
+      {/* ── Banner Día 45 (Regla #5 v7) ── */}
+      {validacionDia45.debeBloquearFase4 && (
+        <Dia45Banner
+          validacion={validacionDia45}
+          diaActual={diaActual}
+          onIrAPilar={(pilarId) => {
+            const match = seedConVideos.find((p) => p.id === pilarId);
+            if (match) {
+              setPilarAbierto(match.numero);
+              setTimeout(() => detalleRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 100);
+            }
+          }}
+        />
+      )}
 
       {/* ── Mapa visual por fases ── */}
       <div className="space-y-6">
@@ -861,14 +901,6 @@ export default function Roadmap({ userId, perfil, geminiKey, onNavigate, onProfi
                             onNavigateToCoach={() => onNavigate?.('coach')}
                           />
                         )}
-                        {meta.tipo === 'AGENTE' && (
-                          <TaskAgente
-                            meta={meta}
-                            onComplete={() => handleCompleteTask(pilar.numero, meta)}
-                            isCompleted={estaCompletada}
-                            onNavigateToAgentes={() => onNavigate?.('agentes')}
-                          />
-                        )}
                       </div>
                     )}
                   </div>
@@ -900,6 +932,7 @@ export default function Roadmap({ userId, perfil, geminiKey, onNavigate, onProfi
           pilarCompletado={pilarUnlocked.completado}
           pilarDesbloqueado={pilarUnlocked.desbloqueado}
           pilarNumero={pilarUnlocked.numero}
+          nivelAlcanzado={pilarUnlocked.nivelAlcanzado}
           onClose={() => setPilarUnlocked(null)}
           onContinuar={() => {
             // Open the next pilar

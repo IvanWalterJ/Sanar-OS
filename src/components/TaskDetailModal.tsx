@@ -35,7 +35,7 @@ export default function TaskDetailModal({
   const canUseToolInline = !!(tarea.herramienta_id && userId && geminiKey && onApprove && tarea.pilarNumero !== undefined);
   const tieneOutputGuardado = !!outputExistente;
 
-  const destinoPage = tarea.herramienta_id ? 'roadmap' : tarea.agente_id ? 'agentes' : null;
+  const destinoPage = tarea.herramienta_id ? 'roadmap' : null;
 
   if (showWorkModal && canUseToolInline) {
     return (
@@ -116,12 +116,6 @@ export default function TaskDetailModal({
                 <span>Herramienta {tarea.herramienta_id}</span>
               </div>
             )}
-            {tarea.agente_id && (
-              <div className="flex items-center gap-1.5 text-[11px] text-purple-400 bg-purple-500/10 border border-purple-500/20 rounded-lg px-3 py-1.5">
-                <Bot className="w-3.5 h-3.5" />
-                <span>Agente IA</span>
-              </div>
-            )}
           </div>
         </div>
 
@@ -148,7 +142,7 @@ export default function TaskDetailModal({
               onClick={() => onNavigate(destinoPage)}
               className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#F5A623] hover:bg-[#FFB94D] text-[#0A0A0A] text-sm font-medium transition-colors shadow-lg shadow-[#F5A623]/20"
             >
-              {tarea.agente_id ? 'Ir a Agentes IA' : 'Ver en Hoja de Ruta'}
+              Ver en Hoja de Ruta
               <ArrowRight className="w-4 h-4" />
             </button>
           ) : (

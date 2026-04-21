@@ -1773,7 +1773,7 @@ function adnContext(perfil: Partial<ProfileV2>): string {
   if (perfil.adn_pacientes_reales) parts.push(`Análisis de pacientes reales:\n${perfil.adn_pacientes_reales}`);
   if (perfil.adn_avatar) parts.push(`Avatar:\n${JSON.stringify(perfil.adn_avatar, null, 2)}`);
   if (perfil.adn_nicho) parts.push(`Nicho: ${perfil.adn_nicho}`);
-  if (perfil.adn_usp) parts.push(`USP: ${perfil.adn_usp}`);
+  if (perfil.adn_usp) parts.push(`PUV: ${perfil.adn_usp}`);
   if (perfil.adn_transformaciones) parts.push(`Transformaciones de pacientes:\n${perfil.adn_transformaciones}`);
   if (perfil.matriz_a) parts.push(`Matriz A (dolor):\n${perfil.matriz_a}`);
   if (perfil.matriz_b) parts.push(`Matriz B (obstáculos):\n${perfil.matriz_b}`);
@@ -2012,16 +2012,16 @@ Generá exactamente esto:
 El avatar tiene que ser una persona real con una vida real, no "profesional de 35-50 años con estrés".`.trim(),
   },
 
-  // ─── P5.2: Definidor de Nicho y USP ────────────────────────────────────────
+  // ─── P5.2: Definidor de Nicho y PUV ────────────────────────────────────────
   {
     id: 'H-P5.2',
     grupo: 'B' as GrupoHerramienta,
-    titulo: 'Definidor de Nicho y USP',
+    titulo: 'Definidor de Nicho y PUV',
     descripcion: 'Definí tu nicho y creá tu propuesta de valor única.',
     emoji: '💡',
     usa_ia: true,
     adn_field: 'adn_nicho',
-    outputLabel: 'Nicho y USP',
+    outputLabel: 'Nicho y PUV',
     inputs: [
       { id: 'no_atender', label: '¿A quién específicamente NO querés atender?', tipo: 'textarea', required: true },
       { id: 'mejor_que', label: '¿En qué problema sos claramente mejor que el promedio de tu especialidad?', tipo: 'textarea', required: true },
@@ -2031,7 +2031,7 @@ El avatar tiene que ser una persona real con una vida real, no "profesional de 3
     promptTemplate: (inputs, perfil) => `
 Sos un estratega de posicionamiento para profesionales de salud. Con las respuestas y el ADN del profesional, generá:
 1. Descripción del nicho (2-3 oraciones)
-2. 3 versiones de USP con la estructura: "Ayudo a [avatar] a [resultado] sin [obstáculo que temen]."
+2. 3 versiones de PUV con la estructura: "Ayudo a [avatar] a [resultado] sin [obstáculo que temen]."
 ${adnContext(perfil)}
 
 Respuestas:
@@ -2040,7 +2040,7 @@ Respuestas:
 - Su diferencial: ${inputs.diferencial}
 - Lo buscan: ${inputs.quien_busca}
 
-Sé específico. Si la USP podría ser dicha por cualquier colega, no está lista.`.trim(),
+Sé específico. Si la PUV podría ser dicha por cualquier colega, no está lista.`.trim(),
   },
 
   // ─── P6.2: Transformaciones reales de pacientes ─────────────────────────────

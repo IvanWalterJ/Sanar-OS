@@ -120,7 +120,7 @@ export default function Onboarding() {
 
       const text = await generateText({
         prompt: answersText,
-        systemInstruction: `Eres el Coach IA de "tu.clínica.digital", experto en el Método CLÍNICA para profesionales de la salud. Tu objetivo es generar el ADN prototipo beta del profesional a partir de las respuestas del onboarding de Fase 0.
+        systemInstruction: `Eres el Coach IA de "tu.clínica.digital", experto en el Método CLÍNICA para sanadores. Tu objetivo es generar el ADN prototipo beta del sanador a partir de las respuestas del onboarding de Fase 0.
 
 Este prototipo es el punto de partida — NO es el ADN definitivo. Es una primera versión que los 10 pilares del programa irán refinando con trabajo real y datos reales.
 
@@ -133,7 +133,7 @@ Analizá las respuestas y generá el ADN prototipo beta con este formato en mark
 ---
 
 ### Quién Sos (borrador inicial)
-Párrafo breve sobre su identidad como profesional basado en sus referentes y lo que admira en ellos. Qué dice sobre sus valores el hecho de que admire a esas personas.
+Párrafo breve sobre su identidad como sanador basado en sus referentes y lo que admira en ellos. Qué dice sobre sus valores el hecho de que admire a esas personas.
 
 ### A Quién Servís (hipótesis)
 Primer perfil de paciente ideal basado en el contexto del negocio. Hipótesis de dolores y deseos — se refinará en los Pilares 4 y 5.

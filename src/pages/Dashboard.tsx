@@ -10,7 +10,6 @@ function getTypeBadge(tipo?: string) {
     case 'VIDEO': return 'bg-[#F5A623]/15 text-[#F5A623] border-[#F5A623]/25';
     case 'HERRAMIENTA': return 'bg-[#22C55E]/15 text-[#22C55E] border-[#22C55E]/25';
     case 'COACH': return 'bg-[#FFFFFF]/10 text-[#FFFFFF]/70 border-[#FFFFFF]/15';
-    case 'AGENTE': return 'bg-purple-500/15 text-purple-400 border-purple-500/25';
     default: return 'bg-[#FFFFFF]/5 text-[#FFFFFF]/50 border-[#FFFFFF]/10';
   }
 }
@@ -265,7 +264,7 @@ export default function Dashboard({ setCurrentPage, userId }: { setCurrentPage: 
                     <span className="text-[10px] text-[#FFFFFF]/40 flex items-center gap-1 font-medium">
                       <Clock className="w-3 h-3" /> {t.tiempo_estimado || '15–30 min'}
                     </span>
-                    {(t.herramienta_id || t.agente_id) && (
+                    {t.herramienta_id && (
                       <span className="text-[9px] text-[#F5A623] font-bold uppercase tracking-wider">Ver herramienta →</span>
                     )}
                   </div>

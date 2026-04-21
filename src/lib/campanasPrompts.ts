@@ -21,11 +21,11 @@ export function adnContext(perfil: Partial<ProfileV2>): string {
     : perfil.avatar_cliente ?? 'no definido';
 
   return `
-=== CONTEXTO DEL PROFESIONAL DE SALUD ===
-- Nombre: ${perfil.nombre ?? 'Profesional'}
+=== CONTEXTO DEL SANADOR ===
+- Nombre: ${perfil.nombre ?? 'Sanador'}
 - Especialidad: ${perfil.especialidad ?? 'salud'}
 - Nicho: ${perfil.nicho ?? perfil.adn_nicho ?? 'no definido'}
-- USP: ${perfil.adn_usp ?? 'no definido'}
+- PUV: ${perfil.adn_usp ?? 'no definido'}
 - Posicionamiento: ${perfil.posicionamiento ?? 'no definido'}
 
 === AVATAR DEL CLIENTE IDEAL ===

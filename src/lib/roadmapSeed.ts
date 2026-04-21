@@ -17,12 +17,11 @@ export interface RoadmapMeta {
   tiempo_estimado: string;
   orden: number;                       // secuencia dentro del pilar (1,2,3...)
   herramienta_id?: string;             // para tipo HERRAMIENTA
-  agente_id?: string;                  // para tipo AGENTE
   usa_ia: boolean;                     // false para P1.2 y P3.2 (escritura pura)
   adn_field?: string;                  // campo de ProfileV2 donde guarda
   requiere_datos_de?: MetaCodigo[];    // dependencia explícita de datos
   es_recurrente?: boolean;             // P9A.4: se puede usar repetidamente
-  video_youtube_id?: string;           // para tipo VIDEO (placeholder hasta que Javo suba)
+  video_youtube_id?: string;           // para tipo VIDEO (placeholder hasta que se suba el video)
   coach_instruccion?: string;          // para tipo COACH (texto exacto)
 }
 
@@ -55,6 +54,18 @@ export interface RoadmapPilar {
 }
 
 // ─── Los 14 Pilares — 49 Pasos — Versión Final Definitiva ──────────────────
+//
+// Regla #2 v7 (orden dentro de cada pilar): VIDEO → HERRAMIENTA → COACH.
+// El enforcement técnico está en `isTaskUnlocked()` en Roadmap.tsx — nadie
+// puede completar una tarea con `orden: N+1` sin haber cerrado la de `orden: N`.
+//
+// Excepciones documentadas (no rompen el enforcement):
+//   - P0 (Onboarding): el VIDEO de bienvenida va al final del pilar según v7.
+//   - P9B (Captación): cierra con dos COACH consecutivos por la cronología
+//     "practicar con Simulador → primera llamada real → debrief".
+//   - P11 (Análisis): sólo dos COACH mientras esperamos la expansión a las
+//     4 sub-tareas del v7 (revisión tablero · retrospectiva · plan ciclo 2 ·
+//     masterclass analytics).
 
 export const SEED_ROADMAP_V3: RoadmapPilar[] = [
 
@@ -78,7 +89,7 @@ export const SEED_ROADMAP_V3: RoadmapPilar[] = [
       {
         codigo: 'P0.1',
         titulo: 'Bienvenida: qué vas a construir en 90 días',
-        descripcion: 'Javo explica qué es el ADN del Negocio, por qué existe la app y qué va a pasar en los próximos 90 días.',
+        descripcion: 'Video que explica qué es el ADN del Negocio, por qué existe la app y qué va a pasar en los próximos 90 días.',
         tipo: 'VIDEO',
         es_estrella: false,
         tiempo_estimado: '15 min',
@@ -126,7 +137,7 @@ export const SEED_ROADMAP_V3: RoadmapPilar[] = [
       {
         codigo: 'P1.1',
         titulo: 'Por qué tu historia importa más que tu título',
-        descripcion: 'Video de Javo sobre la importancia de tu historia personal como herramienta de conexión y diferenciación.',
+        descripcion: 'Video sobre la importancia de tu historia personal como herramienta de conexión y diferenciación.',
         tipo: 'VIDEO',
         es_estrella: false,
         tiempo_estimado: '15 min',
@@ -194,7 +205,7 @@ export const SEED_ROADMAP_V3: RoadmapPilar[] = [
       {
         codigo: 'P2.1',
         titulo: 'El propósito como filtro de decisiones',
-        descripcion: 'Video de Javo sobre cómo el propósito funciona como filtro para todas las decisiones del negocio.',
+        descripcion: 'Video sobre cómo el propósito funciona como filtro para todas las decisiones del negocio.',
         tipo: 'VIDEO',
         es_estrella: false,
         tiempo_estimado: '15 min',
@@ -264,7 +275,7 @@ export const SEED_ROADMAP_V3: RoadmapPilar[] = [
       {
         codigo: 'P3.1',
         titulo: 'Legado vs. éxito financiero',
-        descripcion: 'Video de Javo sobre la diferencia entre legado real y metas financieras.',
+        descripcion: 'Video sobre la diferencia entre legado real y metas financieras.',
         tipo: 'VIDEO',
         es_estrella: false,
         tiempo_estimado: '15 min',
@@ -336,7 +347,7 @@ export const SEED_ROADMAP_V3: RoadmapPilar[] = [
       {
         codigo: 'P4.1',
         titulo: 'Cómo construir el avatar desde datos reales',
-        descripcion: 'Video de Javo sobre cómo construir un avatar basado en pacientes reales, no en demografía inventada.',
+        descripcion: 'Video sobre cómo construir un avatar basado en pacientes reales, no en demografía inventada.',
         tipo: 'VIDEO',
         es_estrella: false,
         tiempo_estimado: '15 min',
@@ -383,11 +394,11 @@ export const SEED_ROADMAP_V3: RoadmapPilar[] = [
     ],
   },
 
-  // ─── PILAR 5: Nicho + USP · Días 26–31 ────────────────────────────────────
+  // ─── PILAR 5: Nicho + PUV · Días 26–31 ────────────────────────────────────
   {
     id: 'P5',
     numero_orden: 5,
-    titulo: 'Nicho + USP',
+    titulo: 'Nicho + PUV',
     subtitulo: 'Nicho no es restricción, es amplificación',
     color: '#F5A623',
     numero: 5,
@@ -404,7 +415,7 @@ export const SEED_ROADMAP_V3: RoadmapPilar[] = [
       {
         codigo: 'P5.1',
         titulo: 'Nicho no es restricción, es amplificación',
-        descripcion: 'Video de Javo sobre cómo un nicho bien definido amplifica tu alcance en vez de limitarlo.',
+        descripcion: 'Video sobre cómo un nicho bien definido amplifica tu alcance en vez de limitarlo.',
         tipo: 'VIDEO',
         es_estrella: false,
         tiempo_estimado: '15 min',
@@ -414,8 +425,8 @@ export const SEED_ROADMAP_V3: RoadmapPilar[] = [
       },
       {
         codigo: 'P5.2',
-        titulo: 'Definidor de Nicho y USP',
-        descripcion: 'Campos: "¿A quién específicamente NO querés atender?" · "¿En qué problema sos claramente mejor que el promedio de tu especialidad?" · "¿Qué tenés vos que ningún colega tiene?" · "¿Qué grupo de personas te busca a vos y no a otro?" Genera: descripción del nicho (2-3 oraciones) + 3 versiones de USP: "Ayudo a [avatar] a [resultado] sin [obstáculo que temen]."',
+        titulo: 'Definidor de Nicho y PUV',
+        descripcion: 'Campos: "¿A quién específicamente NO querés atender?" · "¿En qué problema sos claramente mejor que el promedio de tu especialidad?" · "¿Qué tenés vos que ningún colega tiene?" · "¿Qué grupo de personas te busca a vos y no a otro?" Genera: descripción del nicho (2-3 oraciones) + 3 versiones de PUV: "Ayudo a [avatar] a [resultado] sin [obstáculo que temen]."',
         tipo: 'HERRAMIENTA',
         es_estrella: true,
         tiempo_estimado: '30 min',
@@ -427,13 +438,13 @@ export const SEED_ROADMAP_V3: RoadmapPilar[] = [
       {
         codigo: 'P5.3',
         titulo: 'Test de diferenciación',
-        descripcion: 'Decile al Coach tu USP. Preguntale: "Si borro mi nombre y pongo el de otro colega de mi especialidad, ¿todavía aplica?" Si la respuesta es sí, la USP necesita más trabajo.',
+        descripcion: 'Decile al Coach tu PUV. Preguntale: "Si borro mi nombre y pongo el de otro colega de mi especialidad, ¿todavía aplica?" Si la respuesta es sí, la PUV necesita más trabajo.',
         tipo: 'COACH',
         es_estrella: true,
         tiempo_estimado: '15 min',
         orden: 3,
         usa_ia: false,
-        coach_instruccion: 'Decile al Coach tu USP. Preguntale: "Si borro mi nombre y pongo el de otro colega de mi especialidad, ¿todavía aplica?" Si la respuesta es sí, la USP necesita más trabajo.',
+        coach_instruccion: 'Decile al Coach tu PUV. Preguntale: "Si borro mi nombre y pongo el de otro colega de mi especialidad, ¿todavía aplica?" Si la respuesta es sí, la PUV necesita más trabajo.',
       },
     ],
   },
@@ -461,7 +472,7 @@ export const SEED_ROADMAP_V3: RoadmapPilar[] = [
       {
         codigo: 'P6.1',
         titulo: 'La Matriz A→B→C: por qué el obstáculo es más importante que el dolor',
-        descripcion: 'Video de Javo explicando los 3 estados de la transformación del paciente.',
+        descripcion: 'Video explicativo sobre los 3 estados de la transformación del paciente.',
         tipo: 'VIDEO',
         es_estrella: false,
         tiempo_estimado: '15 min',
@@ -533,7 +544,7 @@ export const SEED_ROADMAP_V3: RoadmapPilar[] = [
       {
         codigo: 'P7.1',
         titulo: 'Tu método propio: cómo convertir lo que hacés en un activo diferenciador',
-        descripcion: 'Video de Javo sobre cómo transformar tu proceso en un método con nombre propio.',
+        descripcion: 'Video sobre cómo transformar tu proceso en un método con nombre propio.',
         tipo: 'VIDEO',
         es_estrella: false,
         tiempo_estimado: '15 min',
@@ -604,7 +615,7 @@ export const SEED_ROADMAP_V3: RoadmapPilar[] = [
       {
         codigo: 'P8.1',
         titulo: 'La escalera de valor: por qué necesitás los cuatro niveles',
-        descripcion: 'Video de Javo sobre la lógica de tener Lead Magnet + Low + Mid + High.',
+        descripcion: 'Video sobre la lógica de tener Lead Magnet + Low + Mid + High.',
         tipo: 'VIDEO',
         es_estrella: false,
         tiempo_estimado: '15 min',
@@ -655,11 +666,11 @@ export const SEED_ROADMAP_V3: RoadmapPilar[] = [
   // FASE 4: ACTIVACIÓN Y VENTAS · Días 45–80 · Letras N + I + C
   // ══════════════════════════════════════════════════════════════════════════
 
-  // ─── PILAR 9A: Marketing · Días 45–52 ─────────────────────────────────────
+  // ─── PILAR 9A: Infraestructura · Días 45–52 ──────────────────────────────
   {
     id: 'P9A',
     numero_orden: 9,
-    titulo: 'Marketing',
+    titulo: 'Infraestructura',
     subtitulo: 'El embudo mínimo viable',
     color: '#F5A623',
     numero: 9,
@@ -676,7 +687,7 @@ export const SEED_ROADMAP_V3: RoadmapPilar[] = [
       {
         codigo: 'P9A.1',
         titulo: 'El embudo mínimo viable para profesionales de salud',
-        descripcion: 'Video de Javo explicando el embudo: campaña → DM con palabra clave → respuesta automática → formulario de filtro → calendario → llamada → venta.',
+        descripcion: 'Video explicativo sobre el embudo: campaña → DM con palabra clave → respuesta automática → formulario de filtro → calendario → llamada → venta.',
         tipo: 'VIDEO',
         es_estrella: false,
         tiempo_estimado: '15 min',
@@ -734,11 +745,11 @@ export const SEED_ROADMAP_V3: RoadmapPilar[] = [
     ],
   },
 
-  // ─── PILAR 9B: Ventas · Días 52–72 ────────────────────────────────────────
+  // ─── PILAR 9B: Captación · Días 52–72 ─────────────────────────────────────
   {
     id: 'P9B',
     numero_orden: 10,
-    titulo: 'Ventas',
+    titulo: 'Captación',
     subtitulo: 'No estás vendiendo, estás evaluando',
     color: '#F5A623',
     numero: 9,
@@ -755,7 +766,7 @@ export const SEED_ROADMAP_V3: RoadmapPilar[] = [
       {
         codigo: 'P9B.1',
         titulo: 'La llamada de diagnóstico: no estás vendiendo, estás evaluando',
-        descripcion: 'Video de Javo sobre cómo encarar la llamada de diagnóstico sin vender.',
+        descripcion: 'Video sobre cómo encarar la llamada de diagnóstico sin vender.',
         tipo: 'VIDEO',
         es_estrella: false,
         tiempo_estimado: '15 min',
@@ -777,14 +788,14 @@ export const SEED_ROADMAP_V3: RoadmapPilar[] = [
       },
       {
         codigo: 'P9B.3',
-        titulo: 'Simulador de llamada de ventas',
-        descripcion: 'Antes de tu primera llamada real, practicá con el Agente. Él va a simular ser tu avatar, va a hacer objeciones reales y al final te va a dar feedback y un puntaje. Se puede usar todas las veces que quieras. No guarda nada en el ADN.',
-        tipo: 'AGENTE',
+        titulo: 'Preparación con el Simulador de Llamada',
+        descripcion: 'Antes de tu primera llamada real, abrí el Simulador de Llamada desde Agentes IA y practicá al menos 3 roleplays con tu avatar. Después volvé al Coach y preguntale: "Ya practiqué 3 simulaciones. ¿Qué patrones de objeción aparecieron? ¿Qué debería ajustar del script antes de la primera llamada real?" El simulador NO guarda nada en el ADN — solo entrena.',
+        tipo: 'COACH',
         es_estrella: true,
-        tiempo_estimado: '30 min',
+        tiempo_estimado: '45 min',
         orden: 3,
         usa_ia: false,
-        agente_id: 'agente-simulador-ventas',
+        coach_instruccion: 'Ya practiqué 3 simulaciones con el Simulador de Llamada. ¿Qué patrones de objeción aparecieron? ¿Qué debería ajustar del script antes de la primera llamada real?',
       },
       {
         codigo: 'P9B.4',
@@ -800,11 +811,11 @@ export const SEED_ROADMAP_V3: RoadmapPilar[] = [
     ],
   },
 
-  // ─── PILAR 9C: Servicio · Días 65–75 ──────────────────────────────────────
+  // ─── PILAR 9C: Seguimiento · Días 65–75 ───────────────────────────────────
   {
     id: 'P9C',
     numero_orden: 11,
-    titulo: 'Servicio',
+    titulo: 'Seguimiento',
     subtitulo: 'Automatizar la entrega sin perder el toque personal',
     color: '#F5A623',
     numero: 9,
@@ -821,7 +832,7 @@ export const SEED_ROADMAP_V3: RoadmapPilar[] = [
       {
         codigo: 'P9C.1',
         titulo: 'Automatizar la entrega sin perder el toque personal',
-        descripcion: 'Video de Javo sobre cómo automatizar procesos manteniendo la calidad del servicio.',
+        descripcion: 'Video sobre cómo automatizar procesos manteniendo la calidad del servicio.',
         tipo: 'VIDEO',
         es_estrella: false,
         tiempo_estimado: '15 min',
@@ -880,7 +891,7 @@ export const SEED_ROADMAP_V3: RoadmapPilar[] = [
       {
         codigo: 'P10.1',
         titulo: 'Identidad visual para profesionales de salud',
-        descripcion: 'Video de Javo sobre identidad visual alineada con tu nicho y posicionamiento.',
+        descripcion: 'Video sobre identidad visual alineada con tu nicho y posicionamiento.',
         tipo: 'VIDEO',
         es_estrella: false,
         tiempo_estimado: '15 min',
@@ -939,14 +950,14 @@ export const SEED_ROADMAP_V3: RoadmapPilar[] = [
     metas: [
       {
         codigo: 'P11.1',
-        titulo: 'Retrospectiva mensual',
-        descripcion: 'Abrí el Agente de Retrospectiva. El Agente ya tiene los datos del Dashboard de métricas como contexto. La conversación analiza: qué funcionó este mes, qué no funcionó, cuál es el cuello de botella según los números, cuáles son las 3 acciones prioritarias del mes siguiente.',
-        tipo: 'AGENTE',
+        titulo: 'Retrospectiva con el Agente + plan con el Coach',
+        descripcion: 'Abrí el Agente de Retrospectiva Mensual desde Agentes IA y completá la retrospectiva (qué funcionó · qué no · cuello de botella según métricas del Dashboard). Después decile al Coach: "Ya hice la retrospectiva del ciclo. El cuello de botella que identifiqué fue X. ¿Qué plan concreto me sugerís para el ciclo 2 · Consolidar / Optimizar / Escalar?" El Agente NO guarda en el ADN — solo analiza.',
+        tipo: 'COACH',
         es_estrella: true,
-        tiempo_estimado: '30 min',
+        tiempo_estimado: '60 min',
         orden: 1,
         usa_ia: false,
-        agente_id: 'agente-retrospectiva',
+        coach_instruccion: 'Ya hice la retrospectiva del ciclo con el Agente. El cuello de botella que identifiqué fue X. ¿Qué plan concreto me sugerís para el ciclo 2 · Consolidar / Optimizar / Escalar?',
       },
       {
         codigo: 'P11.2',
@@ -980,8 +991,23 @@ export const ESTRELLAS_POR_PILAR: Record<string, number> = SEED_ROADMAP_V3.reduc
   {} as Record<string, number>,
 );
 
-/** Determina el nivel de avatar (1-5) basado en el pilar completado más alto */
-export function calcularNivel(pilarCompletado: PilarId | number): 1 | 2 | 3 | 4 | 5 {
+/**
+ * Determina el nivel de avatar (1-5) según el pilar más alto completado (v7).
+ *
+ * Triggers v7:
+ *  - Nivel 1 · Sanador Despierto · post P0 (default)
+ *  - Nivel 2 · Sanador Narrado · post P3 (Fase 1 cerrada)
+ *  - Nivel 3 · Sanador Posicionado · post P8 (Fase 3 cerrada)
+ *  - Nivel 4 · Sanador Activo · post P9A (infraestructura lista)
+ *  - Nivel 5 · Sanador Libre · post P11 + $10K cerrado
+ *
+ * Nota: el flag `cerroPrimer10K` habilita el salto a Nivel 5.
+ * Si es `false`, un usuario con P11 completado queda en Nivel 4 hasta validar ingresos.
+ */
+export function calcularNivel(
+  pilarCompletado: PilarId | number,
+  cerroPrimer10K: boolean = false,
+): 1 | 2 | 3 | 4 | 5 {
   let orden: number;
   if (typeof pilarCompletado === 'number') {
     orden = pilarCompletado;
@@ -990,11 +1016,11 @@ export function calcularNivel(pilarCompletado: PilarId | number): 1 | 2 | 3 | 4 
     if (!pilar) return 1;
     orden = pilar.numero_orden;
   }
-  if (orden >= 12) return 5;
-  if (orden >= 8)  return 4;
-  if (orden >= 5)  return 3;
-  if (orden >= 2)  return 2;
-  return 1;
+  if (orden >= 13 && cerroPrimer10K) return 5; // P11 completado + $10K
+  if (orden >= 9) return 4;                    // P9A completado
+  if (orden >= 8) return 3;                    // P8 completado
+  if (orden >= 3) return 2;                    // P3 completado
+  return 1;                                    // default (post P0)
 }
 
 /** Calcula el día del programa a partir de la fecha de inicio */

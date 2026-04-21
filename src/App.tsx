@@ -16,6 +16,7 @@ import DiarioDirector from './pages/DiarioDirector';
 import Biblioteca from './pages/Biblioteca';
 import Agentes from './pages/Agentes';
 import ManualNegocio from './pages/ManualNegocio';
+import ADN from './pages/ADN';
 import Login from './pages/Login';
 import Admin from './pages/Admin';
 import WelcomeWizard from './components/WelcomeWizard';
@@ -389,7 +390,8 @@ export default function App() {
                   geminiKey={import.meta.env.VITE_GEMINI_API_KEY}
                 />
               )}
-              {currentPage === 'adn' && <ManualNegocio perfil={supabaseProfile ?? {}} userId={supabaseProfile?.id} setCurrentPage={setCurrentPage} />}
+              {currentPage === 'adn' && <ADN perfil={supabaseProfile ?? {}} userId={supabaseProfile?.id} setCurrentPage={setCurrentPage} />}
+              {currentPage === 'manualNegocio' && <ManualNegocio perfil={supabaseProfile ?? {}} userId={supabaseProfile?.id} setCurrentPage={setCurrentPage} />}
               {currentPage === 'biblioteca' && <Biblioteca userId={supabaseProfile?.id} />}
               {currentPage === 'agentes' && (
                 <Agentes
