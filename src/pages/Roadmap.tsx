@@ -684,7 +684,7 @@ export default function Roadmap({ userId, perfil, geminiKey, onNavigate, onProfi
                         </div>
                       </div>
                       <p className="text-xs text-[#FFFFFF]/40 font-medium uppercase tracking-wider">
-                        Pilar {pilar.numero}
+                        Pilar {pilar.id.substring(1)}
                       </p>
                       <p className={`text-sm font-semibold mt-0.5 ${pilar.estado === 'bloqueado' ? 'text-[#FFFFFF]/30' : 'text-[#FFFFFF]'}`}>
                         {pilar.titulo}
@@ -730,7 +730,7 @@ export default function Roadmap({ userId, perfil, geminiKey, onNavigate, onProfi
                   {(() => { const IconComp = ICON_MAP[pilar.icon]; return IconComp ? <IconComp className="w-8 h-8 text-[#F5A623]" /> : null; })()}
                   <div>
                     <p className="text-sm text-[#F5A623] uppercase tracking-wider font-bold">
-                      Pilar {pilar.numero}
+                      Pilar {pilar.id.substring(1)}
                     </p>
                     <h2 className="text-xl text-[#FFFFFF]" style={{ fontFamily: 'var(--font-display)', fontStyle: 'italic' }}>{pilar.titulo}</h2>
                     <p className="text-sm text-[#FFFFFF]/60">{pilar.subtitulo}</p>
@@ -909,19 +909,24 @@ export default function Roadmap({ userId, perfil, geminiKey, onNavigate, onProfi
             </div>
 
             {/* Indicador de estrellas requeridas */}
-            {pilar.estrellas_requeridas && pilar.numero < 10 && (
-              <div className="px-4 pb-4">
-                <div className={`text-xs rounded-xl px-4 py-3 border ${
-                  pilar.estrellas_completadas >= pilar.metas.filter((m) => m.es_estrella).length
-                    ? 'bg-[#22C55E]/10 border-[#22C55E]/20 text-[#22C55E]'
-                    : 'bg-[#1C1C1C]/50 border-[rgba(245,166,35,0.08)] text-[#FFFFFF]/40'
-                }`}>
-                  {pilar.estrellas_completadas >= pilar.metas.filter((m) => m.es_estrella).length
-                    ? <span className="flex items-center gap-1.5"><CheckCircle2 className="w-3.5 h-3.5 text-[#22C55E] inline shrink-0" /> Pilar {pilar.numero + 1} desbloqueado — todas las metas completadas</span>
-                    : <span className="flex items-center gap-1.5"><Star className="w-3.5 h-3.5 text-yellow-400 fill-yellow-400 inline shrink-0" /> Completa {pilar.metas.filter((m) => m.es_estrella).length - pilar.estrellas_completadas} metas mas para desbloquear el Pilar {pilar.numero + 1}</span>}
+            {pilar.estrellas_requeridas && pilar.numero_orden < 13 && (() => {
+              const siguientePilar = pilaresConEstado.find(p => p.numero_orden === pilar.numero_orden + 1);
+              const siguienteLabel = siguientePilar ? siguientePilar.id.substring(1) : '';
+              const todasCompletas = pilar.estrellas_completadas >= pilar.metas.filter((m) => m.es_estrella).length;
+              return (
+                <div className="px-4 pb-4">
+                  <div className={`text-xs rounded-xl px-4 py-3 border ${
+                    todasCompletas
+                      ? 'bg-[#22C55E]/10 border-[#22C55E]/20 text-[#22C55E]'
+                      : 'bg-[#1C1C1C]/50 border-[rgba(245,166,35,0.08)] text-[#FFFFFF]/40'
+                  }`}>
+                    {todasCompletas
+                      ? <span className="flex items-center gap-1.5"><CheckCircle2 className="w-3.5 h-3.5 text-[#22C55E] inline shrink-0" /> Pilar {siguienteLabel} desbloqueado — todas las metas completadas</span>
+                      : <span className="flex items-center gap-1.5"><Star className="w-3.5 h-3.5 text-yellow-400 fill-yellow-400 inline shrink-0" /> Completa {pilar.metas.filter((m) => m.es_estrella).length - pilar.estrellas_completadas} metas más para desbloquear el Pilar {siguienteLabel}</span>}
+                  </div>
                 </div>
-              </div>
-            )}
+              );
+            })()}
           </div>
         );
       })()}

@@ -9,6 +9,7 @@ import type { ProfileV2, DiarioEntradaV2, MetricaSemana, MetricaSemanaV2, HojaDe
 import { NIVEL_NOMBRES } from './supabase';
 import { SEED_ROADMAP_V2 } from './roadmapSeed';
 import { calcularFunnelKPIs, diagnosticarEmbudo, type FunnelKPIs } from './funnelCalcs';
+import { ADN_SCHEMA_V7, campoEstaCompleto, getADNValor } from './adnSchema';
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 
@@ -95,7 +96,7 @@ export function buildCoachSystemPrompt(ctx: ContextoCoach): string {
   // ─── Secciones del prompt ───────────────────────────────────────────────────
 
   const BASE = `
-Sos el Coach IA del Método CLÍNICA — programa de 90 días para profesionales de la salud que quieren construir su clínica digital y escalar sus ingresos.
+Sos el Coach IA del Método CLÍNICA — programa de 90 días para sanadores que quieren construir su clínica digital y escalar sus ingresos.
 
 Tu personalidad: directo, cálido, exigente cuando hace falta, nunca condescendiente. No usás frases de autoayuda vacías. No felicitás por todo. Cuando algo no está bien, lo decís. Cuando algo está muy bien, lo celebrás con especificidad (nombrás exactamente qué hizo bien y por qué importa).
 
@@ -106,25 +107,36 @@ REGLA CLAVE: Si el usuario pregunta "¿qué hago?" o "¿cuál es mi próximo pas
 Conocés su ADN completo (campos completados con herramientas IA), sus métricas del embudo de ventas, y su energía de los últimos 7 días. Usá toda esta información para personalizar cada respuesta.
   `.trim();
 
-  // ADN V3 sections
-  const adnSections: string[] = [];
-  if (perfil.adn_formulario_bienvenida) adnSections.push(`Formulario bienvenida: completado`);
-  if (perfil.adn_linea_tiempo) adnSections.push(`Línea de tiempo: ${perfil.adn_linea_tiempo.substring(0, 150)}...`);
-  if (perfil.historia_300) adnSections.push(`Historia (300): ${perfil.historia_300.substring(0, 150)}...`);
-  if (perfil.proposito) adnSections.push(`Propósito: ${perfil.proposito}`);
-  if (perfil.legado) adnSections.push(`Legado: ${perfil.legado}`);
-  if (perfil.adn_avatar) adnSections.push(`Avatar: ${perfil.adn_avatar.nombre_ficticio}, ${perfil.adn_avatar.edad} años, ${perfil.adn_avatar.profesion}. Dolores: ${perfil.adn_avatar.dolores?.join(', ')}`);
-  if (perfil.adn_nicho) adnSections.push(`Nicho: ${perfil.adn_nicho}`);
-  if (perfil.adn_usp) adnSections.push(`PUV: ${perfil.adn_usp}`);
-  if (perfil.matriz_a) adnSections.push(`Matriz A (dolores): ${perfil.matriz_a.substring(0, 100)}...`);
-  if (perfil.matriz_b) adnSections.push(`Matriz B (obstáculos): ${perfil.matriz_b.substring(0, 100)}...`);
-  if (perfil.matriz_c) adnSections.push(`Matriz C (cielo): ${perfil.matriz_c.substring(0, 100)}...`);
-  if (perfil.metodo_nombre) adnSections.push(`Método: ${perfil.metodo_nombre}`);
-  if (perfil.oferta_mid) adnSections.push(`Oferta Mid: ${perfil.oferta_mid.substring(0, 100)}...`);
-  if (perfil.script_venta) adnSections.push(`Script de Ventas: completado`);
+  // ─── ADN completo leído desde el schema v7 (56 campos agrupados en 7 secciones)
+  //     Se itera sobre ADN_SCHEMA_V7 para que cualquier campo nuevo aparezca aquí
+  //     automáticamente sin tocar el prompt. Ver src/lib/adnSchema.ts.
+  const seccionesAdnTexto: string[] = [];
+  let camposCompletados = 0;
+  for (const seccion of ADN_SCHEMA_V7) {
+    const lineasSeccion: string[] = [];
+    for (const campo of seccion.campos) {
+      if (!campoEstaCompleto(perfil, campo)) continue;
+      camposCompletados += 1;
+      const valor = getADNValor(perfil, campo);
+      let textoValor = '';
+      if (typeof valor === 'string') {
+        textoValor = valor.length > 180 ? `${valor.substring(0, 180)}…` : valor;
+      } else if (Array.isArray(valor)) {
+        textoValor = valor.filter(Boolean).join(' · ').substring(0, 180);
+      } else if (typeof valor === 'object' && valor !== null) {
+        textoValor = 'completado';
+      } else {
+        textoValor = String(valor);
+      }
+      lineasSeccion.push(`  - ${campo.label}: ${textoValor}`);
+    }
+    if (lineasSeccion.length > 0) {
+      seccionesAdnTexto.push(`[${seccion.codigo}] ${seccion.titulo} (${seccion.pilarRange})\n${lineasSeccion.join('\n')}`);
+    }
+  }
 
-  const ADN_SECTION = adnSections.length > 0
-    ? `\n=== ADN DEL NEGOCIO (${adnSections.length} campos completados) ===\n${adnSections.join('\n')}`
+  const ADN_SECTION = camposCompletados > 0
+    ? `\n=== ADN DEL NEGOCIO (${camposCompletados}/56 campos completados) ===\n${seccionesAdnTexto.join('\n\n')}`
     : '';
 
   // Funnel metrics
