@@ -1,4 +1,5 @@
 import type { ExtractedProfile } from './migrationTypes';
+import { generateText } from './aiProvider';
 
 const SYSTEM_PROMPT = `Eres un asistente experto en extraer información de negocio de textos en español.
 Dado un texto sobre un profesional de la salud o bienestar, extrae los campos disponibles y devuelve SOLO un objeto JSON válido, sin markdown ni comentarios.
@@ -28,20 +29,13 @@ Campos disponibles (todos opcionales):
 - por_que_oficial: el "por qué" profundo y personal del profesional`;
 
 export async function extractFromText(texto: string): Promise<ExtractedProfile> {
-  const response = await fetch('/api/ai/generate', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      systemInstruction: SYSTEM_PROMPT,
-      prompt: `Extrae la información de negocio de este texto y devuelve SOLO JSON:\n\n${texto}`,
-    }),
+  // Usa el wrapper con fallback: intenta Claude (Vercel serverless) y
+  // si falla (ej. dev local sin `vercel dev`) cae a Gemini vía VITE_GEMINI_API_KEY.
+  const text = await generateText({
+    systemInstruction: SYSTEM_PROMPT,
+    prompt: `Extrae la información de negocio de este texto y devuelve SOLO JSON:\n\n${texto}`,
   });
 
-  if (!response.ok) {
-    throw new Error(`Error de IA: ${response.status}`);
-  }
-
-  const { text } = await response.json();
   const jsonMatch = text.match(/\{[\s\S]*\}/);
   if (!jsonMatch) throw new Error('La IA no devolvió JSON válido');
 
