@@ -263,6 +263,30 @@ export const IMAGE_FORMAT_OPTIONS: Record<ImageFormat, { label: string; descripc
   'yt_thumbnail': { label: 'YouTube Thumbnail',   descripcion: 'Portada de video (1280x720)',   width: 1280, height: 720 },
 };
 
+// ─── Calidad de generacion (OpenAI gpt-image-2) ─────────────────────────────
+// Trade-off de costo/velocidad: low = rapido y barato, high = fidelidad maxima.
+
+export type ImageQuality = 'low' | 'medium' | 'high' | 'auto';
+
+export const IMAGE_QUALITY_OPTIONS: Record<ImageQuality, { label: string; descripcion: string; costoAprox: string }> = {
+  auto:   { label: 'Auto',   descripcion: 'Deja que el modelo decida',                  costoAprox: 'variable' },
+  low:    { label: 'Baja',   descripcion: 'Rapida y barata — borradores, iteracion',    costoAprox: '~$0.006/img' },
+  medium: { label: 'Media',  descripcion: 'Default recomendado — balance calidad/costo', costoAprox: '~$0.053/img' },
+  high:   { label: 'Alta',   descripcion: 'Fidelidad maxima — assets finales, texto denso', costoAprox: '~$0.211/img' },
+};
+
+export const IMAGE_QUALITY_DEFAULT: ImageQuality = 'medium';
+
+// Mapea nuestro ImageFormat (1:1, 4:5, etc) al size string que acepta gpt-image-2.
+// La API soporta resoluciones flexibles pero los presets canonicos son 1024 y 1536.
+export const OPENAI_IMAGE_SIZE: Record<ImageFormat, '1024x1024' | '1024x1536' | '1536x1024'> = {
+  '1:1':          '1024x1024',
+  '4:5':          '1024x1536', // vertical ~4:5 → cerca de 2:3
+  '9:16':         '1024x1536', // vertical (OpenAI no expone 9:16 nativo; 2:3 es el mas cercano)
+  '16:9':         '1536x1024', // horizontal
+  'yt_thumbnail': '1536x1024', // horizontal
+};
+
 // ─── Referencias, texto custom y control de slides ──────────────────────────
 
 export interface ReferenceImage {

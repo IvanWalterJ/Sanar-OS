@@ -14,10 +14,13 @@ import type { CarouselNarrative, CarouselConceptoVisual } from '../../lib/campan
 import { generateText } from '../../lib/aiProvider';
 import type { ImageGenProgress } from '../../lib/campanasImageGen';
 import type {
-  CopyGenerado, AnguloCreativo, EstiloVisual, ImageMode, ImageFormat,
+  CopyGenerado, AnguloCreativo, EstiloVisual, ImageMode, ImageFormat, ImageQuality,
   ReferenceImage, TextSource, CustomText, SlideConfig, ImageGenerationMode,
 } from '../../lib/campanasTypes';
-import { ESTILO_VISUAL_OPTIONS, IMAGE_FORMAT_OPTIONS } from '../../lib/campanasTypes';
+import {
+  ESTILO_VISUAL_OPTIONS, IMAGE_FORMAT_OPTIONS,
+  IMAGE_QUALITY_OPTIONS, IMAGE_QUALITY_DEFAULT,
+} from '../../lib/campanasTypes';
 import type { ProfileV2 } from '../../lib/supabase';
 
 const MAX_REFS = 5;
@@ -80,6 +83,7 @@ export default function ImagenGenerator({ copies, angulo, perfil, geminiKey, ini
 
   // Controls
   const [format, setFormat] = useState<ImageFormat>(initialFormat ?? '1:1');
+  const [quality, setQuality] = useState<ImageQuality>(IMAGE_QUALITY_DEFAULT);
   const [genMode, setGenMode] = useState<ImageGenerationMode>('ia_completa');
   const [estilo, setEstilo] = useState<EstiloVisual>('foto_real');
   const [instrucciones, setInstrucciones] = useState('');
@@ -186,7 +190,8 @@ export default function ImagenGenerator({ copies, angulo, perfil, geminiKey, ini
   const styleGridDisabled = styleRefs.length > 0;
 
   const generate = useCallback(async () => {
-    if (!geminiKey) { toast.error('API key de Gemini no configurada'); return; }
+    // OpenAI (server-side, primario) no necesita key en el cliente.
+    // Gemini es fallback — si no hay key, la cascada arranca y termina en OpenAI.
 
     // Hay input valido si: tema escrito, copies, custom text con H1, o imagenes de referencia.
     const hasAnyInput =
@@ -255,7 +260,7 @@ export default function ImagenGenerator({ copies, angulo, perfil, geminiKey, ini
           ...baseOpts,
           customText: effectiveCustomText,
         });
-        const result = await generateImageWithFallback(geminiKey, prompt, setProgress, refs);
+        const result = await generateImageWithFallback(prompt, setProgress, refs, { geminiKey, format, quality });
         const imgs = [{ base64: result.imageBase64, mimeType: result.mimeType, modelUsed: result.modelUsed }];
         setImages(imgs);
         setSlidePrompts([prompt]);
@@ -343,10 +348,10 @@ export default function ImagenGenerator({ copies, angulo, perfil, geminiKey, ini
             },
           });
         });
-        const results = await generateCarouselImages(geminiKey, prompts, (slideIdx, prog) => {
+        const results = await generateCarouselImages(prompts, (slideIdx, prog) => {
           setCurrentSlide(slideIdx);
           setProgress(prog);
-        }, refs);
+        }, refs, { geminiKey, format, quality });
         const imgs = results.map((r) => ({ base64: r.imageBase64, mimeType: r.mimeType, modelUsed: r.modelUsed }));
         setImages(imgs);
         setSlidePrompts(prompts);
@@ -363,17 +368,16 @@ export default function ImagenGenerator({ copies, angulo, perfil, geminiKey, ini
       setGenerating(false);
       setProgress(null);
     }
-  }, [copyList, effectiveAngulo, perfil, geminiKey, onImagesGenerated, estilo, mode, genMode, instrucciones, characterRefs, styleRefs, customText, slideConfigs, format, userPrompt, textSource, isCarousel, totalSlides]);
+  }, [copyList, effectiveAngulo, perfil, geminiKey, onImagesGenerated, estilo, mode, genMode, instrucciones, characterRefs, styleRefs, customText, slideConfigs, format, quality, userPrompt, textSource, isCarousel, totalSlides]);
 
   // ─── Regenerar UNA sola slide ──────────────────────────────────────────────
   const regenerateSingle = useCallback(async (idx: number) => {
-    if (!geminiKey) { toast.error('API key de Gemini no configurada'); return; }
     const prompt = slidePrompts[idx];
     if (!prompt) { toast.error('No hay prompt guardado para esta slide'); return; }
 
     setRegeneratingIdx(idx);
     try {
-      const result = await generateImageWithFallback(geminiKey, prompt, setProgress, slideRefsUsed[idx]);
+      const result = await generateImageWithFallback(prompt, setProgress, slideRefsUsed[idx], { geminiKey, format, quality });
       setImages(prev => {
         const next = [...prev];
         next[idx] = { base64: result.imageBase64, mimeType: result.mimeType, modelUsed: result.modelUsed };
@@ -388,11 +392,10 @@ export default function ImagenGenerator({ copies, angulo, perfil, geminiKey, ini
       setRegeneratingIdx(null);
       setProgress(null);
     }
-  }, [geminiKey, slidePrompts, slideRefsUsed, mode, onImagesGenerated]);
+  }, [geminiKey, slidePrompts, slideRefsUsed, mode, onImagesGenerated, format, quality]);
 
   // ─── Edicion sutil con IA ──────────────────────────────────────────────────
   const applyEdit = useCallback(async () => {
-    if (!geminiKey) { toast.error('API key de Gemini no configurada'); return; }
     if (!editPrompt.trim()) { toast.error('Describi el cambio que queres aplicar'); return; }
     if (images.length === 0) return;
 
@@ -401,10 +404,10 @@ export default function ImagenGenerator({ copies, angulo, perfil, geminiKey, ini
     setEditing(true);
     try {
       const result = await editImage(
-        geminiKey,
         { base64: baseImg.base64, mimeType: baseImg.mimeType },
         editPrompt.trim(),
         setProgress,
+        { geminiKey, format, quality },
       );
       setImages(prev => {
         const next = [...prev];
@@ -421,7 +424,7 @@ export default function ImagenGenerator({ copies, angulo, perfil, geminiKey, ini
       setEditing(false);
       setProgress(null);
     }
-  }, [geminiKey, editPrompt, images, previewIdx, mode, onImagesGenerated]);
+  }, [geminiKey, editPrompt, images, previewIdx, mode, onImagesGenerated, format, quality]);
 
   return (
     <div className="space-y-3">
@@ -526,6 +529,35 @@ export default function ImagenGenerator({ copies, angulo, perfil, geminiKey, ini
           <p className="text-[9px] text-[#FFFFFF]/25 mt-1">{IMAGE_FORMAT_OPTIONS[format].descripcion} — {IMAGE_FORMAT_OPTIONS[format].width}x{IMAGE_FORMAT_OPTIONS[format].height}px</p>
         </div>
       )}
+
+      {/* ─── Calidad de generacion (OpenAI gpt-image-2) ─── */}
+      <div>
+        <label className="block text-[10px] font-bold tracking-wider uppercase text-[#FFFFFF]/40 mb-2">
+          Calidad de generacion
+          <span className="text-[#FFFFFF]/25 normal-case font-normal tracking-normal"> — impacta costo y velocidad</span>
+        </label>
+        <div className="flex flex-wrap gap-1.5">
+          {(Object.entries(IMAGE_QUALITY_OPTIONS) as [ImageQuality, typeof IMAGE_QUALITY_OPTIONS[ImageQuality]][]).map(([key, opt]) => {
+            const isActive = quality === key;
+            return (
+              <button
+                key={key}
+                onClick={() => setQuality(key)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${
+                  isActive
+                    ? 'bg-[#F5A623]/15 border-[#F5A623]/40 text-[#F5A623]'
+                    : 'border-[#FFFFFF]/10 text-[#FFFFFF]/40 hover:border-[#FFFFFF]/25 hover:text-[#FFFFFF]/60'
+                }`}
+              >
+                {opt.label}
+              </button>
+            );
+          })}
+        </div>
+        <p className="text-[9px] text-[#FFFFFF]/25 mt-1">
+          {IMAGE_QUALITY_OPTIONS[quality].descripcion} — {IMAGE_QUALITY_OPTIONS[quality].costoAprox}
+        </p>
+      </div>
 
       {/* ─── Cantidad de imagenes (single vs carrusel) ─── */}
       {copyList.length <= 1 && (
