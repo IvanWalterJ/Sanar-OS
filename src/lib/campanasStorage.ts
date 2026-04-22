@@ -28,7 +28,7 @@ export async function uploadCreativeImage(
 
   if (uploadError) {
     console.error('Upload error:', uploadError.message);
-    return null;
+    throw new Error(`Storage rechazo la imagen: ${uploadError.message}`);
   }
 
   const { data: urlData } = supabase.storage.from(BUCKET).getPublicUrl(path);
@@ -51,7 +51,7 @@ export async function saveCreativoAsset(
 
   if (error) {
     console.error('Save asset error:', error.message);
-    return null;
+    throw new Error(`DB rechazo el asset: ${error.message}`);
   }
   return data as CreativoAsset;
 }
@@ -66,11 +66,16 @@ export async function upsertCreativoAsset(
 ): Promise<CreativoAsset | null> {
   if (!isSupabaseReady() || !supabase) return null;
 
-  await supabase
+  const { error: deleteError } = await supabase
     .from('creativo_assets')
     .delete()
     .eq('creativo_id', asset.creativo_id)
     .eq('slide_orden', asset.slide_orden);
+
+  if (deleteError) {
+    console.error('Upsert delete error:', deleteError.message);
+    throw new Error(`DB rechazo el delete previo: ${deleteError.message}`);
+  }
 
   const { data, error } = await supabase
     .from('creativo_assets')
@@ -80,7 +85,7 @@ export async function upsertCreativoAsset(
 
   if (error) {
     console.error('Upsert asset error:', error.message);
-    return null;
+    throw new Error(`DB rechazo el asset: ${error.message}`);
   }
   return data as CreativoAsset;
 }
@@ -225,6 +230,9 @@ export async function saveCreativo(
   creativo: Omit<Creativo, 'id' | 'created_at' | 'assets'>,
 ): Promise<Creativo | null> {
   if (!isSupabaseReady() || !supabase) {
+    // Offline / Supabase no configurado: fallback a localStorage (unico caso
+    // legitimo para usarlo — un fallback silencioso ante errores de RLS/red
+    // oculta bugs reales como el que vio el admin generando para un cliente).
     return saveCreativoLocal(creativo);
   }
 
@@ -236,7 +244,9 @@ export async function saveCreativo(
 
   if (error) {
     console.error('Save creativo error:', error.message);
-    return saveCreativoLocal(creativo);
+    // Propagamos el error con contexto util para que el caller muestre un
+    // toast honesto (antes caia a localStorage y simulaba exito).
+    throw new Error(`DB rechazo el creativo: ${error.message}`);
   }
 
   return data as Creativo;
