@@ -1,9 +1,20 @@
-import React, { useState } from 'react';
-import { ArrowLeft, Download, Trash2, ChevronLeft, ChevronRight, Copy, Check, CheckCircle, XCircle } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import {
+  ArrowLeft, Download, Trash2, ChevronLeft, ChevronRight, Copy, Check,
+  CheckCircle, XCircle, RefreshCw, Wand2, Loader2,
+} from 'lucide-react';
 import { toast } from 'sonner';
 import { ANGULO_LABELS, TIPO_LABELS } from '../../lib/campanasTypes';
-import { deleteCreativo, downloadImage, updateCreativo } from '../../lib/campanasStorage';
-import type { Creativo } from '../../lib/campanasTypes';
+import {
+  deleteCreativo,
+  downloadImage,
+  updateCreativo,
+  uploadCreativeImage,
+  upsertCreativoAsset,
+  fetchImageAsBase64,
+} from '../../lib/campanasStorage';
+import { generateImageWithFallback, editImage } from '../../lib/campanasImageGen';
+import type { Creativo, CreativoAsset } from '../../lib/campanasTypes';
 
 interface Props {
   creativo: Creativo;
@@ -12,11 +23,38 @@ interface Props {
   onDeleted: () => void;
 }
 
+function parseStoredPrompts(value: string | undefined | null): string[] {
+  if (!value) return [];
+  try {
+    const parsed = JSON.parse(value);
+    if (Array.isArray(parsed)) return parsed.filter((p): p is string => typeof p === 'string');
+  } catch {
+    // fallback: texto plano guardado como prompt
+  }
+  return [value];
+}
+
 export default function CreativoDetalle({ creativo, userId, onBack, onDeleted }: Props) {
   const [activeSlide, setActiveSlide] = useState(0);
   const [copied, setCopied] = useState(false);
-  const assets = creativo.assets ?? [];
+  // Assets locales para refrescar el preview sin recargar historial
+  const [liveAssets, setLiveAssets] = useState<CreativoAsset[]>(creativo.assets ?? []);
+  const [urlBuster, setUrlBuster] = useState(0); // cache-bust cuando reemplazamos el archivo
+  const [regenerating, setRegenerating] = useState(false);
+  const [editMode, setEditMode] = useState(false);
+  const [editPrompt, setEditPrompt] = useState('');
+  const [editing, setEditing] = useState(false);
+
+  const assets = liveAssets;
   const isCarousel = assets.length > 1;
+  const storedPrompts = useMemo(() => parseStoredPrompts(creativo.prompt_imagen), [creativo.prompt_imagen]);
+  const canRegenerate = storedPrompts.length > 0;
+
+  const displayUrl = (asset: CreativoAsset): string => {
+    if (!urlBuster) return asset.public_url;
+    const sep = asset.public_url.includes('?') ? '&' : '?';
+    return `${asset.public_url}${sep}v=${urlBuster}`;
+  };
 
   const handleDelete = async () => {
     if (!userId || !window.confirm('Eliminar este creativo y todas sus imagenes?')) return;
@@ -51,8 +89,107 @@ export default function CreativoDetalle({ creativo, userId, onBack, onDeleted }:
     toast.success(`Creativo marcado como ${estado}`);
   };
 
+  // ─── Reemplaza el asset de la slide activa con una nueva imagen ──────────
+  const replaceSlideImage = async (newBase64: string, newMimeType: string): Promise<void> => {
+    if (!userId) throw new Error('Usuario no autenticado');
+    const asset = assets[activeSlide];
+    if (!asset) throw new Error('No hay slide activa');
+
+    const uploaded = await uploadCreativeImage(
+      userId,
+      creativo.id,
+      asset.slide_orden,
+      newBase64,
+      newMimeType,
+    );
+    if (!uploaded) throw new Error('No se pudo subir la imagen');
+
+    const saved = await upsertCreativoAsset({
+      creativo_id: creativo.id,
+      usuario_id: userId,
+      slide_orden: asset.slide_orden,
+      storage_path: uploaded.storagePath,
+      public_url: uploaded.publicUrl,
+      width: asset.width,
+      height: asset.height,
+      mime_type: newMimeType,
+    });
+
+    setLiveAssets((prev) => {
+      const next = [...prev];
+      next[activeSlide] = saved ?? {
+        ...asset,
+        storage_path: uploaded.storagePath,
+        public_url: uploaded.publicUrl,
+        mime_type: newMimeType,
+      };
+      return next;
+    });
+    setUrlBuster(Date.now());
+  };
+
+  // ─── Regenerar la slide activa usando el prompt guardado ─────────────────
+  const handleRegenerate = async () => {
+    if (!canRegenerate) {
+      toast.error('No hay prompt guardado para regenerar. Generalo de nuevo desde el panel.');
+      return;
+    }
+    const asset = assets[activeSlide];
+    if (!asset) return;
+
+    const prompt = storedPrompts[activeSlide] ?? storedPrompts[0];
+    if (!prompt) {
+      toast.error('No se encontro el prompt para esta slide');
+      return;
+    }
+
+    setRegenerating(true);
+    try {
+      const result = await generateImageWithFallback(prompt, undefined, undefined, {});
+      await replaceSlideImage(result.imageBase64, result.mimeType);
+      toast.success(isCarousel ? `Slide ${activeSlide + 1} regenerada` : 'Imagen regenerada');
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Error desconocido';
+      toast.error(`Error regenerando: ${msg}`);
+    } finally {
+      setRegenerating(false);
+    }
+  };
+
+  // ─── Editar con IA la slide activa ───────────────────────────────────────
+  const handleApplyEdit = async () => {
+    if (!editPrompt.trim()) {
+      toast.error('Describi el cambio que queres aplicar');
+      return;
+    }
+    const asset = assets[activeSlide];
+    if (!asset) return;
+
+    setEditing(true);
+    try {
+      const baseImg = await fetchImageAsBase64(asset.public_url);
+      const result = await editImage(
+        baseImg,
+        editPrompt.trim(),
+        undefined,
+        {},
+      );
+      await replaceSlideImage(result.imageBase64, result.mimeType);
+      setEditPrompt('');
+      setEditMode(false);
+      toast.success('Edicion aplicada');
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Error desconocido';
+      toast.error(`Error en la edicion: ${msg}`);
+    } finally {
+      setEditing(false);
+    }
+  };
+
   const prev = () => setActiveSlide((i) => (i > 0 ? i - 1 : assets.length - 1));
   const next = () => setActiveSlide((i) => (i < assets.length - 1 ? i + 1 : 0));
+
+  const busy = regenerating || editing;
 
   return (
     <div className="space-y-6">
@@ -105,12 +242,22 @@ export default function CreativoDetalle({ creativo, userId, onBack, onDeleted }:
             <>
               <div className="relative rounded-xl overflow-hidden border border-[rgba(245,166,35,0.15)]">
                 <img
-                  src={assets[activeSlide]?.public_url}
+                  src={displayUrl(assets[activeSlide])}
                   alt={`Slide ${activeSlide + 1}`}
                   className="w-full aspect-square object-cover"
                 />
 
-                {isCarousel && (
+                {/* Overlay de progreso cuando regeneramos/editamos */}
+                {busy && (
+                  <div className="absolute inset-0 bg-black/70 flex flex-col items-center justify-center gap-2 text-[#F5A623]">
+                    <Loader2 className="w-8 h-8 animate-spin" />
+                    <p className="text-xs font-medium">
+                      {regenerating ? 'Regenerando imagen…' : 'Aplicando edición con IA…'}
+                    </p>
+                  </div>
+                )}
+
+                {isCarousel && !busy && (
                   <>
                     <button
                       onClick={prev}
@@ -144,36 +291,110 @@ export default function CreativoDetalle({ creativo, userId, onBack, onDeleted }:
                 <div className="flex gap-2 overflow-x-auto scrollbar-hide">
                   {assets.map((asset, idx) => (
                     <button
-                      key={idx}
+                      key={asset.id}
                       onClick={() => setActiveSlide(idx)}
-                      className={`w-14 h-14 rounded-lg overflow-hidden border-2 shrink-0 transition-all ${
+                      disabled={busy}
+                      className={`w-14 h-14 rounded-lg overflow-hidden border-2 shrink-0 transition-all disabled:opacity-40 ${
                         activeSlide === idx ? 'border-[#F5A623]' : 'border-transparent opacity-50 hover:opacity-100'
                       }`}
                     >
-                      <img src={asset.public_url} alt={`Slide ${idx + 1}`} className="w-full h-full object-cover" />
+                      <img src={displayUrl(asset)} alt={`Slide ${idx + 1}`} className="w-full h-full object-cover" />
                     </button>
                   ))}
                 </div>
               )}
 
-              {/* Download buttons */}
-              <div className="flex gap-2">
+              {/* Acciones sobre la imagen actual */}
+              <div className="flex flex-wrap gap-2">
                 <button
                   onClick={handleDownload}
-                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium text-[#F5A623] bg-[#F5A623]/10 hover:bg-[#F5A623]/15 transition-colors border border-[#F5A623]/20"
+                  disabled={busy}
+                  className="flex-1 min-w-[140px] flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium text-[#F5A623] bg-[#F5A623]/10 hover:bg-[#F5A623]/15 transition-colors border border-[#F5A623]/20 disabled:opacity-40"
                 >
                   <Download className="w-4 h-4" />
-                  {isCarousel ? `Descargar Slide ${activeSlide + 1}` : 'Descargar Imagen'}
+                  {isCarousel ? `Descargar slide ${activeSlide + 1}` : 'Descargar'}
                 </button>
                 {isCarousel && (
                   <button
                     onClick={handleDownloadAll}
-                    className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium text-[#FFFFFF]/60 bg-[#FFFFFF]/5 hover:bg-[#FFFFFF]/10 transition-colors"
+                    disabled={busy}
+                    className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium text-[#FFFFFF]/60 bg-[#FFFFFF]/5 hover:bg-[#FFFFFF]/10 transition-colors disabled:opacity-40"
                   >
                     <Download className="w-4 h-4" /> Todas ({assets.length})
                   </button>
                 )}
+                <button
+                  onClick={handleRegenerate}
+                  disabled={busy || !canRegenerate}
+                  title={canRegenerate ? 'Regenera la imagen con el mismo prompt' : 'Sin prompt guardado — no se puede regenerar'}
+                  className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium text-[#F5A623] bg-[#F5A623]/10 hover:bg-[#F5A623]/15 transition-colors border border-[#F5A623]/20 disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  {regenerating
+                    ? <><Loader2 className="w-4 h-4 animate-spin" /> Regenerando…</>
+                    : <><RefreshCw className="w-4 h-4" /> Regenerar</>
+                  }
+                </button>
+                <button
+                  onClick={() => setEditMode((v) => !v)}
+                  disabled={busy}
+                  className={`flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors border disabled:opacity-40 ${
+                    editMode
+                      ? 'text-[#F5A623] bg-[#F5A623]/20 border-[#F5A623]/50'
+                      : 'text-[#F5A623] bg-[#F5A623]/10 hover:bg-[#F5A623]/15 border-[#F5A623]/20'
+                  }`}
+                >
+                  <Wand2 className="w-4 h-4" /> Editar con IA
+                </button>
               </div>
+
+              {/* Panel de edicion con IA */}
+              {editMode && (
+                <div className="p-4 rounded-xl bg-[#141414] border border-[rgba(245,166,35,0.2)] space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Wand2 className="w-3.5 h-3.5 text-[#F5A623]" />
+                    <span className="text-[10px] font-bold tracking-wider uppercase text-[#F5A623]">
+                      Editar con IA {isCarousel ? `· slide ${activeSlide + 1}` : ''}
+                    </span>
+                    <span className="text-[9px] text-[#FFFFFF]/30 normal-case font-normal">
+                      — retoque sutil, mantiene composicion
+                    </span>
+                  </div>
+                  <textarea
+                    value={editPrompt}
+                    onChange={(e) => setEditPrompt(e.target.value)}
+                    rows={2}
+                    placeholder="Ej: quita el logo de la esquina; cambia el color del boton a dorado; borra el icono del costado"
+                    className="w-full bg-black/30 border border-[rgba(245,166,35,0.2)] rounded-xl p-2.5 text-[#FFFFFF] text-xs focus:border-[#F5A623]/50 focus:ring-1 focus:ring-[#F5A623]/30 placeholder-[#FFFFFF]/20 resize-none"
+                    disabled={editing}
+                  />
+                  <div className="flex justify-end gap-2">
+                    <button
+                      onClick={() => { setEditMode(false); setEditPrompt(''); }}
+                      disabled={editing}
+                      className="px-3 py-1.5 rounded-lg text-xs text-[#FFFFFF]/50 hover:text-[#FFFFFF]/80 transition-colors disabled:opacity-40"
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      onClick={handleApplyEdit}
+                      disabled={editing || !editPrompt.trim()}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#F5A623]/15 text-[#F5A623] border border-[#F5A623]/40 text-xs font-semibold hover:bg-[#F5A623]/25 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                      {editing
+                        ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Aplicando…</>
+                        : <><Wand2 className="w-3.5 h-3.5" /> Aplicar edición</>
+                      }
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {!canRegenerate && (
+                <p className="text-[10px] text-[#FFFFFF]/30">
+                  Este creativo no tiene prompt guardado (creado antes del auto-save). Podés editarlo con IA,
+                  pero para regenerarlo volvé a generarlo desde el panel.
+                </p>
+              )}
             </>
           ) : (
             <div className="aspect-square bg-[#141414] rounded-xl border border-[rgba(245,166,35,0.1)] flex items-center justify-center">

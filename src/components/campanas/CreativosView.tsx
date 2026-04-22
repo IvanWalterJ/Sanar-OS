@@ -2,10 +2,10 @@
  * CreativosView.tsx — Generador de creativos con sub-tabs:
  * Imagen / Carrusel / Portada YouTube / Historial.
  */
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import {
-  ImageIcon, Loader2, CheckCircle2, Save, Sparkles,
-  Layers, Youtube, FolderOpen, Image as ImageLucide,
+  ImageIcon, Loader2, CheckCircle2, Sparkles,
+  Layers, Youtube, FolderOpen,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import ImagenGenerator from './ImagenGenerator';
@@ -13,8 +13,9 @@ import CreativoGallery from './CreativoGallery';
 import CreativoDetalle from './CreativoDetalle';
 import {
   saveCreativo,
+  updateCreativo,
   uploadCreativeImage,
-  saveCreativoAsset,
+  upsertCreativoAsset,
   fetchCreativos,
 } from '../../lib/campanasStorage';
 import type {
@@ -108,9 +109,11 @@ export default function CreativosView({ userId, perfil, geminiKey }: Props) {
   const [activeTab, setActiveTab] = useState<SubTab>('imagen');
   const [angulo, setAngulo] = useState<AnguloCreativo>('directo');
   const [images, setImages] = useState<{ base64: string; mimeType: string; modelUsed: string }[]>([]);
-  const [imageMode, setImageMode] = useState<ImageMode>('completa');
+  const [, setImageMode] = useState<ImageMode>('completa');
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [currentCreativoId, setCurrentCreativoId] = useState<string | null>(null);
+  const saveInFlightRef = useRef(false);
 
   // Historial state
   const [creativos, setCreativos] = useState<Creativo[]>([]);
@@ -119,11 +122,18 @@ export default function CreativosView({ userId, perfil, geminiKey }: Props) {
 
   const config = TABS.find((t) => t.id === activeTab) ?? TABS[0];
 
-  // Reset preview cuando cambias de tab
+  // Reset preview cuando cambias de tab (nuevo tab = nuevo creativo si genera)
   useEffect(() => {
     setImages([]);
     setSaved(false);
+    setCurrentCreativoId(null);
   }, [activeTab]);
+
+  // Cambio de angulo dentro de un mismo tab = nuevo creativo en proxima generacion
+  useEffect(() => {
+    setCurrentCreativoId(null);
+    setSaved(false);
+  }, [angulo]);
 
   const loadHistorial = useCallback(async () => {
     if (!userId) return;
@@ -145,67 +155,93 @@ export default function CreativosView({ userId, perfil, geminiKey }: Props) {
     }
   }, [activeTab, loadHistorial]);
 
+  // ─── Auto-guardado en historial ─────────────────────────────────────────
+  // Se dispara automaticamente cuando ImagenGenerator entrega nuevas imagenes.
+  // Primera llamada: crea el creativo y sube todos los slides.
+  // Llamadas posteriores (regen o edit de una slide): upsert en la misma fila.
+  const persistCreativo = useCallback(
+    async (
+      imgs: { base64: string; mimeType: string; modelUsed: string }[],
+      prompts?: string[],
+    ) => {
+      if (!userId || imgs.length === 0) return;
+      if (saveInFlightRef.current) return;
+      saveInFlightRef.current = true;
+      setSaving(true);
+      const isFirstSave = currentCreativoId === null;
+      try {
+        const dims = IMAGE_FORMAT_OPTIONS[config.format];
+        let creativoId = currentCreativoId;
+
+        if (!creativoId) {
+          const creativo = await saveCreativo({
+            usuario_id: userId,
+            tipo: config.tipo,
+            angulo,
+            texto_principal: '',
+            titulo: `${config.label} ${angulo}`,
+            descripcion: '',
+            cta_texto: '',
+            nombre: `${config.label} ${angulo} — ${new Date().toLocaleDateString('es-AR', { day: '2-digit', month: 'short' })}`,
+            estado: 'generado',
+            prompt_imagen: prompts && prompts.length > 0 ? JSON.stringify(prompts) : undefined,
+          });
+          if (!creativo) throw new Error('No se pudo guardar el creativo');
+          creativoId = creativo.id;
+          setCurrentCreativoId(creativoId);
+        } else if (prompts && prompts.length > 0) {
+          // Actualiza los prompts almacenados si cambio la generacion completa
+          await updateCreativo(creativoId, { prompt_imagen: JSON.stringify(prompts) });
+        }
+
+        for (let i = 0; i < imgs.length; i++) {
+          const uploaded = await uploadCreativeImage(
+            userId,
+            creativoId,
+            i + 1,
+            imgs[i].base64,
+            imgs[i].mimeType,
+          );
+          if (uploaded) {
+            await upsertCreativoAsset({
+              creativo_id: creativoId,
+              usuario_id: userId,
+              slide_orden: i + 1,
+              storage_path: uploaded.storagePath,
+              public_url: uploaded.publicUrl,
+              width: dims.width,
+              height: dims.height,
+              mime_type: imgs[i].mimeType,
+            });
+          }
+        }
+
+        setSaved(true);
+        if (isFirstSave) toast.success(`${config.label} guardado en historial`);
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : 'Error desconocido';
+        toast.error(`Error al guardar: ${msg}`);
+      } finally {
+        setSaving(false);
+        saveInFlightRef.current = false;
+      }
+    },
+    [userId, angulo, config, currentCreativoId],
+  );
+
   const handleImagesGenerated = useCallback(
-    (newImages: { base64: string; mimeType: string; modelUsed: string }[], mode: ImageMode) => {
+    (
+      newImages: { base64: string; mimeType: string; modelUsed: string }[],
+      mode: ImageMode,
+      prompts?: string[],
+    ) => {
       setImages(newImages);
       setImageMode(mode);
       setSaved(false);
+      void persistCreativo(newImages, prompts);
     },
-    [],
+    [persistCreativo],
   );
-
-  const handleSave = useCallback(async () => {
-    if (!userId || images.length === 0) return;
-    setSaving(true);
-    try {
-      const dims = IMAGE_FORMAT_OPTIONS[config.format];
-      const tipoLabel = config.label.toLowerCase();
-      const creativo = await saveCreativo({
-        usuario_id: userId,
-        tipo: config.tipo,
-        angulo,
-        texto_principal: '',
-        titulo: `${config.label} ${angulo}`,
-        descripcion: '',
-        cta_texto: '',
-        nombre: `${config.label} ${angulo} — ${new Date().toLocaleDateString('es-AR', { day: '2-digit', month: 'short' })}`,
-        estado: 'generado',
-        prompt_imagen: `Generated as ${tipoLabel} with Nano Banana cascade`,
-      });
-
-      if (!creativo) throw new Error('No se pudo guardar el creativo');
-
-      for (let i = 0; i < images.length; i++) {
-        const uploaded = await uploadCreativeImage(
-          userId,
-          creativo.id,
-          i + 1,
-          images[i].base64,
-          images[i].mimeType,
-        );
-        if (uploaded) {
-          await saveCreativoAsset({
-            creativo_id: creativo.id,
-            usuario_id: userId,
-            slide_orden: i + 1,
-            storage_path: uploaded.storagePath,
-            public_url: uploaded.publicUrl,
-            width: dims.width,
-            height: dims.height,
-            mime_type: images[i].mimeType,
-          });
-        }
-      }
-
-      toast.success(`${config.label} guardado correctamente`);
-      setSaved(true);
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Error desconocido';
-      toast.error(`Error al guardar: ${msg}`);
-    } finally {
-      setSaving(false);
-    }
-  }, [userId, images, angulo, config]);
 
   const HeaderIcon = config.icon;
 
@@ -329,21 +365,23 @@ export default function CreativosView({ userId, perfil, geminiKey }: Props) {
             />
           </div>
 
-          {/* Guardar */}
+          {/* Estado del auto-guardado */}
           {images.length > 0 && (
-            <div className="flex justify-end">
-              <button
-                onClick={handleSave}
-                disabled={saving || saved}
-                className="btn-primary flex items-center gap-2 px-6 disabled:opacity-40"
-              >
+            <div className="flex items-center justify-between rounded-xl bg-[#F5A623]/5 border border-[#F5A623]/20 px-4 py-2.5">
+              <div className="flex items-center gap-2 text-xs">
                 {saving ? (
-                  <><Loader2 className="w-4 h-4 animate-spin" /> Guardando...</>
+                  <><Loader2 className="w-3.5 h-3.5 animate-spin text-[#F5A623]" /> <span className="text-[#FFFFFF]/60">Guardando en historial…</span></>
                 ) : saved ? (
-                  <><CheckCircle2 className="w-4 h-4" /> Guardado</>
+                  <><CheckCircle2 className="w-3.5 h-3.5 text-[#22C55E]" /> <span className="text-[#FFFFFF]/70">Guardado automaticamente en historial</span></>
                 ) : (
-                  <><Save className="w-4 h-4" /> Guardar {config.label.toLowerCase()}</>
+                  <><Loader2 className="w-3.5 h-3.5 animate-spin text-[#F5A623]" /> <span className="text-[#FFFFFF]/60">Preparando…</span></>
                 )}
+              </div>
+              <button
+                onClick={() => setActiveTab('historial')}
+                className="text-[11px] font-semibold text-[#F5A623] hover:underline"
+              >
+                Ver historial →
               </button>
             </div>
           )}

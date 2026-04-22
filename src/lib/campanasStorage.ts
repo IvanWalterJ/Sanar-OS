@@ -56,6 +56,55 @@ export async function saveCreativoAsset(
   return data as CreativoAsset;
 }
 
+// ─── Upsert asset (reemplaza slide existente) ────────────────────────────────
+// Al regenerar o editar con IA, reemplazamos la fila existente para
+// (creativo_id, slide_orden). Usamos delete + insert porque la tabla no tiene
+// UNIQUE constraint en (creativo_id, slide_orden).
+
+export async function upsertCreativoAsset(
+  asset: Omit<CreativoAsset, 'id' | 'created_at'>,
+): Promise<CreativoAsset | null> {
+  if (!isSupabaseReady() || !supabase) return null;
+
+  await supabase
+    .from('creativo_assets')
+    .delete()
+    .eq('creativo_id', asset.creativo_id)
+    .eq('slide_orden', asset.slide_orden);
+
+  const { data, error } = await supabase
+    .from('creativo_assets')
+    .insert(asset)
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Upsert asset error:', error.message);
+    return null;
+  }
+  return data as CreativoAsset;
+}
+
+// ─── Fetch de imagen existente a base64 (para edit-with-AI desde historial) ──
+
+export async function fetchImageAsBase64(
+  url: string,
+): Promise<{ base64: string; mimeType: string }> {
+  const response = await fetch(url, { cache: 'no-store' });
+  if (!response.ok) throw new Error(`No se pudo descargar la imagen (${response.status})`);
+  const blob = await response.blob();
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = reader.result as string;
+      const base64 = dataUrl.split(',')[1] ?? '';
+      resolve({ base64, mimeType: blob.type || 'image/png' });
+    };
+    reader.onerror = () => reject(reader.error ?? new Error('FileReader error'));
+    reader.readAsDataURL(blob);
+  });
+}
+
 // ─── Eliminar assets de un creativo ──────────────────────────────────────────
 
 export async function deleteCreativoAssets(

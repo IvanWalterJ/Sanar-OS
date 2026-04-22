@@ -1,10 +1,10 @@
-import React, { useState, useCallback } from 'react';
-import { FileText, Image as ImageIcon, Eye, Loader2, Check, ArrowLeft } from 'lucide-react';
+import React, { useState, useCallback, useRef } from 'react';
+import { FileText, Image as ImageIcon, Eye, Loader2, CheckCircle2, ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
 import CopyGenerator from './CopyGenerator';
 import ImagenGenerator from './ImagenGenerator';
 import CreativoPreviewAuto from './CreativoPreviewAuto';
-import { saveCreativo, uploadCreativeImage, saveCreativoAsset } from '../../lib/campanasStorage';
+import { saveCreativo, updateCreativo, uploadCreativeImage, upsertCreativoAsset } from '../../lib/campanasStorage';
 import type { Campana, CopyGenerado, AnguloCreativo, TipoCreativo, Creativo } from '../../lib/campanasTypes';
 import type { ProfileV2 } from '../../lib/supabase';
 
@@ -33,6 +33,9 @@ export default function CreativoStudio({ campana, userId, perfil, geminiKey, onB
   const [images, setImages] = useState<{ base64: string; mimeType: string; modelUsed: string }[]>([]);
   const [activeSlide, setActiveSlide] = useState(0);
   const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [currentCreativoId, setCurrentCreativoId] = useState<string | null>(null);
+  const saveInFlightRef = useRef(false);
 
   const handleCopyGenerated = useCallback(
     (newCopies: CopyGenerado[], newAngulo: AnguloCreativo, newTipo: TipoCreativo) => {
@@ -40,67 +43,89 @@ export default function CreativoStudio({ campana, userId, perfil, geminiKey, onB
       setAngulo(newAngulo);
       setTipo(newTipo);
       setImages([]); // Reset images when copy changes
+      setCurrentCreativoId(null); // nuevo copy = nuevo creativo en proxima generacion
+      setSaved(false);
     },
     [],
   );
 
-  const handleImagesGenerated = useCallback(
-    (imgs: { base64: string; mimeType: string; modelUsed: string }[], mode?: string) => {
-      setImages(imgs);
-    },
-    [],
-  );
+  // ─── Auto-guardado en historial ────────────────────────────────────────
+  const persistCreativo = useCallback(
+    async (
+      imgs: { base64: string; mimeType: string; modelUsed: string }[],
+      prompts?: string[],
+    ) => {
+      if (!userId || copies.length === 0 || imgs.length === 0) return;
+      if (saveInFlightRef.current) return;
+      saveInFlightRef.current = true;
+      setSaving(true);
+      const isFirstSave = currentCreativoId === null;
+      try {
+        let creativoId = currentCreativoId;
 
-  const handleSave = async () => {
-    if (!userId || copies.length === 0) return;
+        if (!creativoId) {
+          const creativo = await saveCreativo({
+            usuario_id: userId,
+            campana_id: campana.id,
+            tipo,
+            angulo,
+            texto_principal: copies[0].texto_principal,
+            titulo: copies[0].titulo,
+            descripcion: copies[0].descripcion,
+            cta_texto: copies[0].cta_texto,
+            nombre: `${campana.nombre} - ${angulo}`,
+            estado: 'generado',
+            prompt_imagen: prompts && prompts.length > 0 ? JSON.stringify(prompts) : undefined,
+          });
+          if (!creativo) throw new Error('No se pudo guardar el creativo');
+          creativoId = creativo.id;
+          setCurrentCreativoId(creativoId);
+          onSaved(creativo);
+        } else if (prompts && prompts.length > 0) {
+          await updateCreativo(creativoId, { prompt_imagen: JSON.stringify(prompts) });
+        }
 
-    setSaving(true);
-    try {
-      // Save creativo record
-      const creativo = await saveCreativo({
-        usuario_id: userId,
-        campana_id: campana.id,
-        tipo,
-        angulo,
-        texto_principal: copies[0].texto_principal,
-        titulo: copies[0].titulo,
-        descripcion: copies[0].descripcion,
-        cta_texto: copies[0].cta_texto,
-        nombre: `${campana.nombre} - ${angulo}`,
-        estado: 'generado',
-        prompt_imagen: images.length > 0 ? 'Generated with Nano Banana cascade' : undefined,
-      });
-
-      if (!creativo) throw new Error('No se pudo guardar el creativo');
-
-      // Upload images if available
-      if (images.length > 0) {
-        for (let i = 0; i < images.length; i++) {
-          const uploaded = await uploadCreativeImage(userId, creativo.id, i + 1, images[i].base64, images[i].mimeType);
+        for (let i = 0; i < imgs.length; i++) {
+          const uploaded = await uploadCreativeImage(userId, creativoId, i + 1, imgs[i].base64, imgs[i].mimeType);
           if (uploaded) {
-            await saveCreativoAsset({
-              creativo_id: creativo.id,
+            await upsertCreativoAsset({
+              creativo_id: creativoId,
               usuario_id: userId,
               slide_orden: i + 1,
               storage_path: uploaded.storagePath,
               public_url: uploaded.publicUrl,
               width: 1080,
               height: 1080,
-              mime_type: images[i].mimeType,
+              mime_type: imgs[i].mimeType,
             });
           }
         }
-      }
 
-      toast.success('Creativo guardado correctamente');
-      onSaved(creativo);
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Error desconocido';
-      toast.error(`Error al guardar: ${msg}`);
-    } finally {
-      setSaving(false);
-    }
-  };
+        setSaved(true);
+        if (isFirstSave) toast.success('Creativo guardado en historial');
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : 'Error desconocido';
+        toast.error(`Error al guardar: ${msg}`);
+      } finally {
+        setSaving(false);
+        saveInFlightRef.current = false;
+      }
+    },
+    [userId, copies, angulo, tipo, campana, currentCreativoId, onSaved],
+  );
+
+  const handleImagesGenerated = useCallback(
+    (
+      imgs: { base64: string; mimeType: string; modelUsed: string }[],
+      _mode?: string,
+      prompts?: string[],
+    ) => {
+      setImages(imgs);
+      setSaved(false);
+      void persistCreativo(imgs, prompts);
+    },
+    [persistCreativo],
+  );
 
   const canPreview = copies.length > 0 && images.length > 0;
 
@@ -120,14 +145,17 @@ export default function CreativoStudio({ campana, userId, perfil, geminiKey, onB
           </div>
         </div>
 
-        <button
-          onClick={handleSave}
-          disabled={saving || copies.length === 0}
-          className="btn-primary flex items-center gap-2 disabled:opacity-40"
-        >
-          {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
-          {saving ? 'Guardando...' : 'Guardar Creativo'}
-        </button>
+        <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-[#F5A623]/5 border border-[#F5A623]/20 text-xs">
+          {saving ? (
+            <><Loader2 className="w-3.5 h-3.5 animate-spin text-[#F5A623]" /><span className="text-[#FFFFFF]/60">Guardando en historial…</span></>
+          ) : saved ? (
+            <><CheckCircle2 className="w-3.5 h-3.5 text-[#22C55E]" /><span className="text-[#FFFFFF]/70">Guardado en historial</span></>
+          ) : copies.length === 0 ? (
+            <span className="text-[#FFFFFF]/40">Generá el copy primero</span>
+          ) : (
+            <span className="text-[#FFFFFF]/40">Se guarda automáticamente al generar la imagen</span>
+          )}
+        </div>
       </div>
 
       {/* Tabs */}

@@ -65,7 +65,11 @@ interface Props {
   initialFormat?: ImageFormat;
   initialSlideCount?: number;
   lockFormat?: boolean;
-  onImagesGenerated: (images: { base64: string; mimeType: string; modelUsed: string }[], mode: ImageMode) => void;
+  onImagesGenerated: (
+    images: { base64: string; mimeType: string; modelUsed: string }[],
+    mode: ImageMode,
+    prompts?: string[],
+  ) => void;
 }
 
 export default function ImagenGenerator({ copies, angulo, perfil, geminiKey, initialFormat, initialSlideCount, lockFormat, onImagesGenerated }: Props) {
@@ -265,7 +269,7 @@ export default function ImagenGenerator({ copies, angulo, perfil, geminiKey, ini
         setImages(imgs);
         setSlidePrompts([prompt]);
         setSlideRefsUsed([refs]);
-        onImagesGenerated(imgs, mode);
+        onImagesGenerated(imgs, mode, [prompt]);
         toast.success(`Imagen generada con ${result.modelName}`);
       } else {
         // ─── HILO NARRATIVO DEL CARRUSEL ─────────────────────────────────────
@@ -356,7 +360,7 @@ export default function ImagenGenerator({ copies, angulo, perfil, geminiKey, ini
         setImages(imgs);
         setSlidePrompts(prompts);
         setSlideRefsUsed(prompts.map(() => refs));
-        onImagesGenerated(imgs, mode);
+        onImagesGenerated(imgs, mode, prompts);
         toast.success(narrative
           ? `${results.length} slides con hilo narrativo generadas`
           : `${results.length} imagenes de carrusel generadas`);
