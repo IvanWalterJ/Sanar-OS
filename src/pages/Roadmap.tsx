@@ -644,7 +644,7 @@ export default function Roadmap({ userId, perfil, geminiKey, onNavigate, onProfi
               )}
 
               {/* Grid de pilares de la fase */}
-              <div className={`grid gap-3 ${pilaresEnFase.length === 1 ? 'grid-cols-1' : pilaresEnFase.length === 2 ? 'grid-cols-2' : 'grid-cols-3'}`}>
+              <div className={`grid gap-3 ${pilaresEnFase.length === 1 ? 'grid-cols-1' : pilaresEnFase.length === 2 ? 'grid-cols-2' : pilaresEnFase.length === 4 ? 'grid-cols-2' : 'grid-cols-3'}`}>
                 {pilaresEnFase.map((pilar) => {
                   const isSelected = pilarAbierto === pilar.numero;
                   return (

@@ -866,11 +866,7 @@ export const SEED_ROADMAP_V3: RoadmapPilar[] = [
     ],
   },
 
-  // ══════════════════════════════════════════════════════════════════════════
-  // FASE 5: IDENTIDAD VISUAL · Días 70–80
-  // ══════════════════════════════════════════════════════════════════════════
-
-  // ─── PILAR 10: Identidad Visual · Días 70–80 ──────────────────────────────
+  // ─── PILAR 10: Identidad Visual · Días 70–80 (Fase 4, en paralelo) ────────
   {
     id: 'P10',
     numero_orden: 12,
@@ -883,7 +879,7 @@ export const SEED_ROADMAP_V3: RoadmapPilar[] = [
     estrellas_requeridas: 2,
     desbloqueo: 'completar_anterior',
     pilar_prerequisito: 'P9C',
-    fase: 5,
+    fase: 4,
     dias_inicio: 70,
     dias_fin: 80,
     metas: [
@@ -925,7 +921,7 @@ export const SEED_ROADMAP_V3: RoadmapPilar[] = [
   },
 
   // ══════════════════════════════════════════════════════════════════════════
-  // FASE 6: ANÁLISIS Y OPTIMIZACIÓN · Días 85–90
+  // FASE 5: ANÁLISIS Y OPTIMIZACIÓN · Días 85–90
   // ══════════════════════════════════════════════════════════════════════════
 
   // ─── PILAR 11: Análisis · Días 85–90 ──────────────────────────────────────
@@ -941,7 +937,7 @@ export const SEED_ROADMAP_V3: RoadmapPilar[] = [
     estrellas_requeridas: 2,
     desbloqueo: 'completar_anterior',
     pilar_prerequisito: 'P10',
-    fase: 6,
+    fase: 5,
     dias_inicio: 85,
     dias_fin: 90,
     metodo_letra: 'A',
@@ -1056,13 +1052,12 @@ export interface GrupoFase {
 }
 
 export const FASES_ROADMAP: Omit<GrupoFase, 'pilares'>[] = [
-  { fase: 0, titulo: 'Fase 0 — Onboarding',              subtitulo: 'El Coach te conoce',              dias: 'Días 1–3' },
-  { fase: 1, titulo: 'Fase 1 — Sprint de Identidad',     subtitulo: 'Quién sos',                       dias: 'Días 3–20',  metodo_letra: 'C' },
-  { fase: 2, titulo: 'Fase 2 — Sprint de Mercado',       subtitulo: 'A quién servís',                  dias: 'Días 20–38', metodo_letra: 'LÍ' },
-  { fase: 3, titulo: 'Fase 3 — Sprint de Oferta',        subtitulo: 'Qué ofrecés',                     dias: 'Días 36–45', metodo_letra: 'NI' },
-  { fase: 4, titulo: 'Fase 4 — Activación y Ventas',     subtitulo: 'Cómo llegás y vendés',             dias: 'Días 45–75', metodo_letra: 'C' },
-  { fase: 5, titulo: 'Fase 5 — Identidad Visual',        subtitulo: 'Cómo te reconocen · en paralelo', dias: 'Días 70–80' },
-  { fase: 6, titulo: 'Fase 6 — Análisis y Optimización', subtitulo: 'Retrospectiva y cierre',           dias: 'Días 85–90', metodo_letra: 'A' },
+  { fase: 0, titulo: 'Fase 0 — Onboarding',              subtitulo: 'El Coach te conoce',                     dias: 'Días 1–3' },
+  { fase: 1, titulo: 'Fase 1 — Sprint de Identidad',     subtitulo: 'Quién sos',                              dias: 'Días 3–20',  metodo_letra: 'C' },
+  { fase: 2, titulo: 'Fase 2 — Sprint de Mercado',       subtitulo: 'A quién servís',                         dias: 'Días 20–38', metodo_letra: 'LÍ' },
+  { fase: 3, titulo: 'Fase 3 — Sprint de Oferta',        subtitulo: 'Qué ofrecés',                            dias: 'Días 36–45', metodo_letra: 'NI' },
+  { fase: 4, titulo: 'Fase 4 — Activación y Ventas',     subtitulo: 'Cómo llegás, vendés y te reconocen',     dias: 'Días 45–80', metodo_letra: 'C' },
+  { fase: 5, titulo: 'Fase 5 — Análisis y Optimización', subtitulo: 'Retrospectiva y cierre',                 dias: 'Días 85–90', metodo_letra: 'A' },
 ];
 
 // ─── Backward compatibility alias ───────────────────────────────────────────

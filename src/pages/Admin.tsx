@@ -109,9 +109,8 @@ const PIPELINE_STAGES: { label: string; sub: string; maxDay: number; fase: numbe
   { label: 'Sprint de Identidad',     sub: 'Días 4–20',  maxDay: 20, fase: 1 },
   { label: 'Sprint de Mercado',       sub: 'Días 21–38', maxDay: 38, fase: 2 },
   { label: 'Sprint de Oferta',        sub: 'Días 39–45', maxDay: 45, fase: 3 },
-  { label: 'Activación y Ventas',     sub: 'Días 46–75', maxDay: 75, fase: 4 },
-  { label: 'Identidad Visual',        sub: 'Días 76–80', maxDay: 80, fase: 5 },
-  { label: 'Análisis y Optimización', sub: 'Días 81–90', maxDay: 91, fase: 6 },
+  { label: 'Activación y Ventas',     sub: 'Días 46–80', maxDay: 80, fase: 4 },
+  { label: 'Análisis y Optimización', sub: 'Días 81–90', maxDay: 91, fase: 5 },
 ];
 
 function getFaseFromProgress(tareas_completadas: number): number {
