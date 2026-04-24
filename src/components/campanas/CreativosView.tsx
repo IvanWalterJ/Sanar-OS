@@ -5,12 +5,13 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import {
   ImageIcon, Loader2, CheckCircle2, Sparkles,
-  Layers, Youtube, FolderOpen,
+  Layers, Youtube, FolderOpen, Palette,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import ImagenGenerator from './ImagenGenerator';
 import CreativoGallery from './CreativoGallery';
 import CreativoDetalle from './CreativoDetalle';
+import ManualMarcaView from './ManualMarcaView';
 import {
   saveCreativo,
   updateCreativo,
@@ -38,16 +39,18 @@ const ANGULOS: { id: AnguloCreativo; label: string; descripcion: string }[] = [
   { id: 'deseo', label: 'Deseo', descripcion: 'Resultado ideal' },
 ];
 
-type SubTab = 'imagen' | 'carrusel' | 'youtube' | 'historial';
+type SubTab = 'imagen' | 'carrusel' | 'youtube' | 'historial' | 'manual_marca';
 
 interface TabConfig {
   id: SubTab;
   label: string;
   icon: typeof ImageIcon;
-  tipo: TipoCreativo;
-  format: ImageFormat;
-  slideCount: number;
-  lockFormat: boolean;
+  // Los siguientes cuatro campos son del generador de imagenes. La tab
+  // 'manual_marca' no invoca al generador, por eso son opcionales.
+  tipo?: TipoCreativo;
+  format?: ImageFormat;
+  slideCount?: number;
+  lockFormat?: boolean;
   eyebrow: string;
   descripcion: string;
 }
@@ -97,6 +100,13 @@ const TABS: TabConfig[] = [
     eyebrow: 'Historial',
     descripcion: 'Todos los creativos generados para este cliente.',
   },
+  {
+    id: 'manual_marca',
+    label: 'Manual de marca',
+    icon: Palette,
+    eyebrow: 'Manual de marca',
+    descripcion: 'Paleta, tipografia y reglas que mandan sobre cualquier estilo o referencia al generar imagenes.',
+  },
 ];
 
 interface Props {
@@ -114,6 +124,14 @@ export default function CreativosView({ userId, perfil, geminiKey }: Props) {
   const [saved, setSaved] = useState(false);
   const [currentCreativoId, setCurrentCreativoId] = useState<string | null>(null);
   const saveInFlightRef = useRef(false);
+
+  // Perfil local para que el Manual de Marca actualice los prompts del
+  // generador sin recargar la pagina. Se resincroniza cuando cambia la prop.
+  const [perfilLocal, setPerfilLocal] = useState<Partial<ProfileV2> | undefined>(perfil);
+  useEffect(() => { setPerfilLocal(perfil); }, [perfil]);
+  const handleManualSaved = useCallback((patch: Partial<ProfileV2>) => {
+    setPerfilLocal((prev) => ({ ...(prev ?? {}), ...patch }));
+  }, []);
 
   // Historial state
   const [creativos, setCreativos] = useState<Creativo[]>([]);
@@ -170,13 +188,13 @@ export default function CreativosView({ userId, perfil, geminiKey }: Props) {
       setSaving(true);
       const isFirstSave = currentCreativoId === null;
       try {
-        const dims = IMAGE_FORMAT_OPTIONS[config.format];
+        const dims = IMAGE_FORMAT_OPTIONS[config.format ?? '1:1'];
         let creativoId = currentCreativoId;
 
         if (!creativoId) {
           const creativo = await saveCreativo({
             usuario_id: userId,
-            tipo: config.tipo,
+            tipo: config.tipo ?? 'imagen_single',
             angulo,
             texto_principal: '',
             titulo: `${config.label} ${angulo}`,
@@ -316,8 +334,17 @@ export default function CreativosView({ userId, perfil, geminiKey }: Props) {
         </div>
       )}
 
+      {/* MANUAL DE MARCA */}
+      {activeTab === 'manual_marca' && (
+        <ManualMarcaView
+          userId={userId}
+          perfil={perfilLocal}
+          onSaved={handleManualSaved}
+        />
+      )}
+
       {/* GENERADORES (imagen / carrusel / youtube) */}
-      {activeTab !== 'historial' && (
+      {activeTab !== 'historial' && activeTab !== 'manual_marca' && (
         <>
           {/* Angulo de comunicacion (opcional) */}
           <div>
@@ -356,11 +383,11 @@ export default function CreativosView({ userId, perfil, geminiKey }: Props) {
             <ImagenGenerator
               key={activeTab}
               angulo={angulo}
-              perfil={perfil ?? {}}
+              perfil={perfilLocal ?? {}}
               geminiKey={geminiKey}
-              initialFormat={config.format}
-              initialSlideCount={config.slideCount}
-              lockFormat={config.lockFormat}
+              initialFormat={config.format ?? '1:1'}
+              initialSlideCount={config.slideCount ?? 1}
+              lockFormat={config.lockFormat ?? false}
               onImagesGenerated={handleImagesGenerated}
             />
           </div>

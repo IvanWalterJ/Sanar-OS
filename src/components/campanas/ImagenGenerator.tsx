@@ -273,13 +273,15 @@ export default function ImagenGenerator({ copies, angulo, perfil, geminiKey, ini
         toast.success(`Imagen generada con ${result.modelName}`);
       } else {
         // ─── HILO NARRATIVO DEL CARRUSEL ─────────────────────────────────────
-        // Si la IA debe generar todo (no hay copies ni textos custom slide-a-slide),
-        // pedimos PRIMERO una narrativa coherente: N titulos encadenados + concepto
-        // visual unificado. Esto garantiza copy + visual con hilo entre slides.
+        // Pedimos PRIMERO una narrativa coherente: concepto visual unificado +
+        // N variaciones de ESCENA distintas (plano/angulo/accion por slide) para
+        // que el carrusel no salga como 10 slides identicas con el texto cambiado.
+        // Corre SIEMPRE en carruseles (excepto mode='fondo' donde no hay composicion).
+        // Si no hay copies/custom text, tambien genera los titulares.
         let narrative: CarouselNarrative | null = null;
         const allSlidesUsanIA = slideConfigs.every((c) => (c?.textSource ?? 'ia') === 'ia');
-        const necesitaNarrativa =
-          copyList.length === 0 && allSlidesUsanIA && mode !== 'fondo';
+        const necesitaTitulos = copyList.length === 0 && allSlidesUsanIA;
+        const necesitaNarrativa = mode !== 'fondo';
 
         if (necesitaNarrativa) {
           let narrativeError: string | null = null;
@@ -311,22 +313,36 @@ export default function ImagenGenerator({ copies, angulo, perfil, geminiKey, ini
           } catch (err) {
             narrativeError = err instanceof Error ? err.message : String(err);
           }
-          // Si no se pudo armar narrativa, abortamos en vez de generar 10 slides identicos.
+          // Si no se pudo armar narrativa:
+          //   - si necesitamos titulos (todo IA, sin copies), abortar (sino salen 10 slides identicas)
+          //   - si ya tenemos titulos (copies/custom), continuar sin concepto visual — mejor que fallar
           if (!narrative) {
-            throw new Error(
-              `No se pudo armar el hilo narrativo del carrusel${narrativeError ? ` (${narrativeError})` : ''}. Probá de nuevo o simplifica el tema.`
-            );
+            if (necesitaTitulos) {
+              throw new Error(
+                `No se pudo armar el hilo narrativo del carrusel${narrativeError ? ` (${narrativeError})` : ''}. Probá de nuevo o simplifica el tema.`
+              );
+            } else {
+              toast.warning(
+                `No se pudo armar el hilo visual — las slides pueden salir menos variadas. ${narrativeError ?? ''}`.trim()
+              );
+            }
           }
         }
 
         const conceptoVisual: CarouselConceptoVisual | undefined = narrative?.concepto_visual;
-        const allSlideTitles: string[] = narrative
-          ? Array.from({ length: totalSlides }).map((_, i) => narrative!.slides[i]?.titulo ?? '')
-          : Array.from({ length: totalSlides }).map((_, i) => {
-              const cfg = slideConfigs[i];
-              if (cfg?.textSource === 'personalizado' && cfg.customText?.h1) return cfg.customText.h1;
-              return copyList[i]?.titulo ?? '';
-            });
+        // Titulos por slide: prioridad customText → copy → narrativa IA
+        const allSlideTitles: string[] = Array.from({ length: totalSlides }).map((_, i) => {
+          const cfg = slideConfigs[i];
+          if (cfg?.textSource === 'personalizado' && cfg.customText?.h1) return cfg.customText.h1;
+          const copyTitle = copyList[i]?.titulo;
+          if (copyTitle) return copyTitle;
+          return narrative?.slides[i]?.titulo ?? '';
+        });
+        // Escenas por slide desde la narrativa (distincion visual por slide)
+        const allSlideEscenas: string[] = Array.from({ length: totalSlides }).map(
+          (_, i) => narrative?.slides[i]?.escena ?? '',
+        );
+        const hasEscenas = allSlideEscenas.some((e) => e.trim().length > 0);
 
         const prompts = Array.from({ length: totalSlides }).map((_, i) => {
           const copyForSlide = copyList[i] ?? null;
@@ -344,11 +360,14 @@ export default function ImagenGenerator({ copies, angulo, perfil, geminiKey, ini
           }, {
             ...baseOpts,
             customText: slideCustomText,
+            isCarousel: true,
             narrativeContext: {
               conceptoVisual,
               allSlideTitles: allSlideTitles.some((t) => t) ? allSlideTitles : undefined,
               previousSlideTitle: i > 0 ? allSlideTitles[i - 1] || undefined : undefined,
               nextSlideTitle: i < totalSlides - 1 ? allSlideTitles[i + 1] || undefined : undefined,
+              slideEscena: allSlideEscenas[i] || undefined,
+              allSlideEscenas: hasEscenas ? allSlideEscenas : undefined,
             },
           });
         });

@@ -292,6 +292,10 @@ export interface CarouselConceptoVisual {
 export interface CarouselSlideCopy {
   titulo: string;
   subtitulo?: string;
+  // Variacion de escena especifica para esta slide (plano/angulo/accion/elementos
+  // distintos manteniendo el mismo lenguaje visual). Sin esto todas las slides
+  // salen identicas cambiando solo el texto.
+  escena?: string;
 }
 
 export interface CarouselNarrative {
@@ -389,6 +393,11 @@ Ejemplos genericos:
 - tipografia: "sans-serif bold blanco con fino outline negro, alineacion izquierda"
 - tratamiento: "filtro warm cinematografico, blur de fondo, alto contraste, vineteado sutil"`;
 
+  const brandPaleta = perfil.identidad_colores?.trim();
+  const brandBrief = brandPaleta
+    ? `\n=== MANUAL DE MARCA (PALETA OBLIGATORIA) ===\nEl profesional ya definio una paleta de marca: ${brandPaleta}. Al construir "concepto_visual.paleta" usa EXACTAMENTE estos colores (no inventes otros). El estilo visual aporta la tecnica/estetica, pero los colores son los del manual.\n`
+    : '';
+
   return `Eres un copywriter senior + director creativo especializado en carruseles de Instagram para profesionales de la salud.
 Tu trabajo: crear un carrusel con HILO NARRATIVO COHERENTE — copy y direccion visual unificados.
 
@@ -396,7 +405,7 @@ ${adnContext(perfil)}
 
 === ANGULO DE COMUNICACION ===
 ${ANGULO_INSTRUCTIONS[angulo]}
-${estiloBlock}
+${estiloBlock}${brandBrief}
 === BRIEF DEL USUARIO (intencion del carrusel) ===
 ${brief.trim().length > 0
   ? brief
@@ -405,6 +414,7 @@ ${brief.trim().length > 0
 === TAREA ===
 1) Crea ${totalSlides} titulares encadenados que se LEAN como una sola historia de izquierda a derecha.
 2) Define UN concepto visual UNICO compartido por TODAS las slides${estiloInfo ? `, escrito en el vocabulario del estilo "${estiloInfo.titulo}"` : ''}.
+3) Define una ESCENA DISTINTA para cada slide — MISMO universo visual, pero DIFERENTE plano/angulo/accion/elementos. CADA slide debe sentirse visualmente fresca, NO una copia de la anterior con el texto cambiado.
 
 Estructura narrativa obligatoria:
 - Slide 1 = HOOK que detiene el scroll (curiosidad, dolor o promesa fuerte)
@@ -418,11 +428,18 @@ Reglas de copy:
 - Cada slide ENGANCHA con la siguiente (frase suspendida, pregunta, "pero...", numero que avanza)
 - Sin repetir conceptos entre slides
 
-Concepto visual compartido (DEBE poder aplicarse identico a las ${totalSlides} slides):
+Concepto visual compartido (LENGUAJE VISUAL — aplicable identico a las ${totalSlides} slides):
 - paleta: 2-3 colores hex especificos, coherentes con el estilo obligatorio
-- escena: tipo de escena repetible en cada slide, EN EL ESTILO obligatorio
+- escena: UNIVERSO VISUAL comun (contexto general y mundo en el que suceden las slides), EN EL ESTILO obligatorio. Describe el "donde" y la estetica general, NO la accion especifica de una slide.
 - tipografia: estilo tipografico unificado, coherente con el estilo obligatorio
 - tratamiento: tecnica de render/tratamiento visual repetible, EXPLICITAMENTE en el estilo obligatorio (si es comic, decir "ilustracion comic"; si es pixar, decir "render 3D Pixar"; si es foto_real, decir "fotografia editorial"; etc.)
+
+Reglas de variacion de escena por slide (CRITICAS — esto evita que todas las slides se vean iguales):
+- Cada slide tiene su propia "escena" con una VARIACION distinta: distinto plano (close-up, medium, wide, detalle), distinto angulo (frontal, lateral, picado, contrapicado, over-the-shoulder), distinta accion (mirada, gesto, interaccion con objeto, pose), distintos elementos visibles (prop nuevo, fragmento de entorno distinto, gesto corporal diferente).
+- Si hay personaje: misma persona e identidad, pero expresion/gesto/pose/interaccion DIFERENTE y encuadre DIFERENTE en cada slide.
+- Cada "escena" por slide debe describir UNA micro-escena distinta dentro del mismo universo visual — no repetir el mismo plano ni los mismos elementos.
+- Sin embargo, el LENGUAJE VISUAL (paleta, tipografia, tratamiento, iluminacion, mood, tecnica de render) debe ser IDENTICO entre slides — es lo que las hila visualmente.
+- Pensa como un director de arte armando los storyboard frames de un carrusel: mismo set/universo, misma paleta, misma tecnica, pero CADA frame muestra algo distinto.
 ${exampleBlock}
 
 Responde SOLO con este JSON, sin markdown, sin texto adicional:
@@ -434,11 +451,11 @@ Responde SOLO con este JSON, sin markdown, sin texto adicional:
     "tratamiento": "..."
   },
   "slides": [
-    { "titulo": "...", "subtitulo": "..." }
+    { "titulo": "...", "subtitulo": "...", "escena": "variacion de escena concreta para ESTA slide — plano/angulo/accion/elementos distintos a las otras slides, pero dentro del mismo universo visual" }
   ]
 }
 
-El array "slides" DEBE tener exactamente ${totalSlides} elementos.`;
+El array "slides" DEBE tener exactamente ${totalSlides} elementos. Cada uno con su "escena" propia y distinta a las demas.`;
 }
 
 // ─── Prompt para generacion de imagenes ──────────────────────────────────────
@@ -457,11 +474,19 @@ export function buildImagePrompt(
     styleRefCount?: number;
     customText?: CustomText;
     format?: ImageFormat;
+    isCarousel?: boolean;
     narrativeContext?: {
       conceptoVisual?: CarouselConceptoVisual;
       allSlideTitles?: string[];
       previousSlideTitle?: string;
       nextSlideTitle?: string;
+      // Variacion de escena SOLO para esta slide (plano/angulo/accion/elementos
+      // distintos al resto). Sin esto la imagen replica la escena del concepto
+      // unificado y todas las slides salen identicas.
+      slideEscena?: string;
+      // Todas las variaciones de escena del carrusel (contexto para que el
+      // modelo entienda que cada slide debe ser distinta visualmente).
+      allSlideEscenas?: string[];
     };
   },
 ): string {
@@ -470,6 +495,12 @@ export function buildImagePrompt(
   const tono = perfil.identidad_tono ?? 'profesional y cercano';
   const mode = options?.mode ?? 'completa';
   const estilo = options?.estilo;
+
+  // ── Manual de Marca: paleta/tipografia/reglas con prioridad sobre estilo y refs
+  const brandPaleta = perfil.identidad_colores?.trim();
+  const brandTipografia = perfil.identidad_tipografia?.trim();
+  const brandReglas = perfil.identidad_reglas_uso?.trim();
+  const hasBrand = Boolean(brandPaleta || brandTipografia || brandReglas);
 
   const anguloVisual: Record<AnguloCreativo, string> = {
     contraintuitivo: 'Visual impactante, colores contrastantes, elemento de sorpresa visual. Diseno bold y disruptivo.',
@@ -607,13 +638,42 @@ NO cambies la apariencia de esta persona bajo ninguna circunstancia.\n`
     : '';
 
   const styleCount = options?.styleRefCount ?? 0;
+  const isCarouselMode = options?.isCarousel === true;
   const styleRefPrompt = styleCount > 0
-    ? `\nREFERENCIA DE ESTILO VISUAL (${styleCount} ${styleCount === 1 ? 'imagen adjunta' : 'imagenes adjuntas de referencia estetica'} — PRIORIDAD MAXIMA):
+    ? isCarouselMode
+      ? `\nREFERENCIA DE ESTILO VISUAL (${styleCount} ${styleCount === 1 ? 'imagen adjunta' : 'imagenes adjuntas de referencia estetica'} — PRIORIDAD MAXIMA):
+La referencia adjunta define el LENGUAJE VISUAL del carrusel, NO una plantilla a clonar slide por slide.
+Esta pieza es UNA slide de un set — cada slide del carrusel debe ser visualmente FRESCA y DISTINTA a las otras (plano, angulo, accion, elementos), manteniendo el MISMO lenguaje visual.
+
+COPIAR EXACTAMENTE de la referencia (LENGUAJE VISUAL — identico en TODAS las slides):
+- La MISMA tipografia (peso, familia, estilo serif/sans-serif/display, tracking, jerarquia)
+${brandPaleta ? '- NO copiar la paleta de la referencia — la PALETA DE MARCA del bloque "MANUAL DE MARCA" manda. La referencia aporta tratamiento y estetica, pero los COLORES finales son los del manual.' : '- La MISMA paleta de colores (tonos hex exactos, gradientes, contrastes)'}
+- El MISMO tratamiento visual (filtros, temperatura de color, contraste, grano, textura)
+- La MISMA estetica y mood (premium, bold, editorial, minimalista, etc.)
+- La MISMA calidad de iluminacion y tecnica de render
+
+VARIAR OBLIGATORIAMENTE (ESCENA — distinta en cada slide del carrusel):
+- DISTINTO plano: close-up, medium shot, wide, plano detalle, over-the-shoulder, insert de objeto. No repetir el plano de la referencia en TODAS las slides.
+- DISTINTO angulo y encuadre: frontal, lateral, 3/4, picado, contrapicado. La camara cambia de posicion entre slides.
+- DISTINTA accion/gesto/expresion: si hay personaje, su pose/mirada/interaccion debe ser diferente en cada slide (no copiar la pose exacta de la referencia en todas).
+- DISTINTOS elementos y props: nuevos objetos visibles, fragmentos de entorno distintos, distintos detalles del set. No clonar los mismos elementos de la referencia en cada slide.
+- DISTINTA composicion puntual: la posicion del texto y del sujeto puede variar slide a slide, siempre respetando la jerarquia tipografica.
+
+La referencia adjunta es una muestra del ESTILO — pensala como un frame de moodboard, no como una plantilla a clonar. El carrusel resultante debe tener 5-10 slides que se sientan de la MISMA familia visual pero muestren distintos momentos/planos/acciones.
+
+NO COPIAR (PROHIBIDO):
+- NO copies el texto/palabras que aparecen en la referencia
+- NO copies logos ni marcas de la referencia
+- NO clones la composicion exacta de la referencia en cada slide (eso genera 10 slides iguales)
+- Usa UNICAMENTE el texto proporcionado en ESTE prompt
+
+Resultado esperado: el carrusel completo debe verse como si el MISMO director de arte armara un storyboard — misma paleta, misma tipografia, mismo tratamiento, pero CADA slide muestra algo visualmente distinto.\n`
+      : `\nREFERENCIA DE ESTILO VISUAL (${styleCount} ${styleCount === 1 ? 'imagen adjunta' : 'imagenes adjuntas de referencia estetica'} — PRIORIDAD MAXIMA):
 REPLICA el diseño de la imagen de referencia de estilo lo mas fielmente posible:
 
 COPIAR EXACTAMENTE:
 - La MISMA tipografia (peso, tamaño relativo, tracking, estilo serif/sans-serif/display)
-- La MISMA paleta de colores (tonos exactos, gradientes, contrastes)
+${brandPaleta ? '- NO copiar la paleta de la referencia — la PALETA DE MARCA del bloque "MANUAL DE MARCA" manda. La referencia aporta composicion/tratamiento/estetica, pero los COLORES finales son los del manual.' : '- La MISMA paleta de colores (tonos exactos, gradientes, contrastes)'}
 - La MISMA composicion y layout (posicion de elementos, alineacion, spacing)
 - Los MISMOS efectos visuales (sombras, glows, overlays, mascaras, gradientes)
 - El MISMO tratamiento fotografico (filtros, temperatura de color, contraste)
@@ -636,17 +696,28 @@ El resultado debe verse como si el MISMO diseñador hubiera creado ambas piezas.
   const nc = options?.narrativeContext;
   const narrativeBlock = nc
     ? `\n=== HILO NARRATIVO Y VISUAL DEL CARRUSEL (CRITICO — RESPETAR AL 100%) ===
-${nc.conceptoVisual ? `CONCEPTO VISUAL UNIFICADO (aplicar identico a TODAS las slides del carrusel${estilo ? ` — SIEMPRE dentro de la tecnica "${ESTILO_VISUAL_OPTIONS[estilo].titulo}"` : ''}):
-- Paleta: ${nc.conceptoVisual.paleta}
-- Escena dominante: ${nc.conceptoVisual.escena}
+${nc.conceptoVisual ? `LENGUAJE VISUAL UNIFICADO (aplicar IDENTICO a TODAS las slides del carrusel${estilo ? ` — SIEMPRE dentro de la tecnica "${ESTILO_VISUAL_OPTIONS[estilo].titulo}"` : ''}):
+- Paleta: ${brandPaleta ? `IGNORAR la paleta del concepto — usar la PALETA DE MARCA del bloque "MANUAL DE MARCA" (${brandPaleta})` : nc.conceptoVisual.paleta}
+- Universo visual / contexto: ${nc.conceptoVisual.escena}
 - Tipografia: ${nc.conceptoVisual.tipografia}
 - Tratamiento visual: ${nc.conceptoVisual.tratamiento}
 
 ` : ''}${nc.allSlideTitles && nc.allSlideTitles.length > 0 ? `NARRATIVA COMPLETA DEL CARRUSEL (asi se lee de izquierda a derecha — contexto interno SOLAMENTE, no renderizar):
 ${nc.allSlideTitles.map((t) => `  - "${t}"`).join('\n')}
 
-` : ''}${nc.previousSlideTitle ? `La pieza ANTERIOR decia: "${nc.previousSlideTitle}" — esta debe encadenar visualmente y argumentalmente con esa.\n` : ''}${nc.nextSlideTitle ? `La pieza SIGUIENTE dira: "${nc.nextSlideTitle}" — esta debe construir hacia esa idea.\n` : ''}
-REGLA DE CONTINUIDAD VISUAL: misma paleta exacta, misma escena/encuadre, misma tipografia, mismo tratamiento, mismo personaje (si hay) entre todas las piezas. Solo cambia el TEXTO y micro-detalles de la composicion.${estilo && estilo !== 'foto_real' ? `\n\nREGLA DE ESTILO (NO NEGOCIABLE): La tecnica de render es "${ESTILO_VISUAL_OPTIONS[estilo].titulo}". Si el CONCEPTO VISUAL arriba contiene palabras tipo "fotografia", "DSLR", "cinematografico", "lente", "warm filter", IGNORALAS — el estilo base manda. Usa solo la PALETA, ESCENA y TIPOGRAFIA del concepto, pero RENDERIZA siempre en "${ESTILO_VISUAL_OPTIONS[estilo].titulo}".` : ''}\n`
+` : ''}${nc.allSlideEscenas && nc.allSlideEscenas.length > 0 ? `VARIACIONES DE ESCENA DEL CARRUSEL COMPLETO (contexto interno — te muestra que cada slide es una escena distinta dentro del mismo universo):
+${nc.allSlideEscenas.map((e, i) => `  - Slide ${i + 1}: ${e || '(sin variacion definida)'}`).join('\n')}
+
+` : ''}${nc.slideEscena ? `ESCENA ESPECIFICA DE ESTA SLIDE (NO aplicar la misma escena de las otras slides — esta slide debe mostrar justamente esto):
+${nc.slideEscena}
+
+` : ''}${nc.previousSlideTitle ? `La pieza ANTERIOR decia: "${nc.previousSlideTitle}" — esta debe encadenar argumentalmente con esa, pero con una escena visualmente DISTINTA (otro plano, otro gesto, otros elementos).\n` : ''}${nc.nextSlideTitle ? `La pieza SIGUIENTE dira: "${nc.nextSlideTitle}" — esta debe construir hacia esa idea.\n` : ''}
+REGLA DE CONTINUIDAD (CRITICA — leer con atencion):
+- LO QUE SE MANTIENE IDENTICO entre TODAS las slides (lenguaje visual): paleta exacta, tipografia y jerarquia tipografica, tratamiento visual, iluminacion, mood, tecnica de render, identidad del personaje si hay, calidad y textura.
+- LO QUE DEBE VARIAR en CADA slide (escena): plano (close-up/medium/wide/detalle), angulo y encuadre (frontal/lateral/picado/contrapicado/over-the-shoulder), accion o gesto, expresion del personaje, elementos y props visibles, composicion puntual.
+- NO es una plantilla donde solo cambia el texto — cada slide es un FRAME distinto del mismo universo visual. Pensalo como storyboard frames: mismo set, mismo art direction, pero cada frame muestra algo distinto.
+- Si el personaje aparece en varias slides, es la MISMA persona (misma identidad/rostro/ropa) pero en DISTINTA pose/accion/encuadre en cada slide.
+- PROHIBIDO: generar esta slide clonando la composicion de la referencia o de las otras slides con solo el texto cambiado. Si sentis la tentacion de repetir el mismo plano/accion, cambialos.${estilo && estilo !== 'foto_real' ? `\n\nREGLA DE ESTILO (NO NEGOCIABLE): La tecnica de render es "${ESTILO_VISUAL_OPTIONS[estilo].titulo}". Si el LENGUAJE VISUAL arriba contiene palabras tipo "fotografia", "DSLR", "cinematografico", "lente", "warm filter", IGNORALAS — el estilo base manda. Usa solo la PALETA, UNIVERSO y TIPOGRAFIA del concepto, pero RENDERIZA siempre en "${ESTILO_VISUAL_OPTIONS[estilo].titulo}".` : ''}\n`
     : '';
 
   const hasEstiloOverride = estilo && nc?.conceptoVisual;
@@ -658,6 +729,19 @@ Esta es la tecnica visual con la que debes renderizar la imagen. Todo lo demas (
     : '';
 
   const shouldSuppressAnguloVisual = estilo && estilo !== 'foto_real' && nc?.conceptoVisual;
+
+  // Bloque de Manual de Marca — se inyecta con maxima prioridad (colocado cerca
+  // del final del prompt para que el modelo lo tome como autoridad definitiva).
+  // La PALETA manda sobre estilo y sobre imagen de referencia. La TIPOGRAFIA se
+  // aplica si el estilo lo permite (twitter/noticias tienen codigos propios).
+  // Las REGLAS DE USO son innegociables.
+  const brandBlock = hasBrand
+    ? `\n=== MANUAL DE MARCA — PRIORIDAD MAXIMA SOBRE ESTILO Y REFERENCIAS (aplicar SIEMPRE) ===
+${brandPaleta ? `PALETA DE MARCA (OBLIGATORIA — estos colores mandan sobre la paleta sugerida por el estilo visual y sobre los colores de cualquier imagen de referencia adjunta; el estilo define la TECNICA y el tratamiento, esta paleta define los COLORES finales): ${brandPaleta}
+` : ''}${brandTipografia ? `TIPOGRAFIA DE MARCA (aplicar cuando sea compatible con el estilo; si el estilo es "twitter" o "noticias" respetar los codigos tipograficos propios de esos formatos): ${brandTipografia}
+` : ''}${brandReglas ? `REGLAS DE USO DE MARCA (INNEGOCIABLES — tienen que cumplirse aunque contradigan otras instrucciones del prompt): ${brandReglas}
+` : ''}`
+    : '';
 
   return `Genera una imagen ${isYouTube ? 'de portada de YouTube' : 'publicitaria de ALTO IMPACTO para Meta Ads (Instagram/Facebook)'}.
 ${isYouTube ? 'Esta portada debe generar CLICKS. El hook visual es CRITICO — el usuario decide en 1 segundo si hace clic o no.' : 'Esta imagen debe FRENAR EL SCROLL. Tiene que ser visualmente tan potente que el usuario deje de scrollear en menos de 1 segundo.'}
@@ -673,12 +757,14 @@ ${hasEstiloOverride
 ${shouldSuppressAnguloVisual
   ? `ANGULO COMUNICACIONAL (aplicar SOLO como guia emocional/narrativa, NO como direccion fotografica — la tecnica de render de arriba manda): ${anguloVisual[angulo].replace(/foto|fotografia|cinematografic[oa]|DSLR|lente|warm|filtro/gi, '').trim() || 'guiar la emocion y el enfasis de la composicion'}`
   : `ANGULO COMUNICACIONAL: ${anguloVisual[angulo]}`}
-${nc?.conceptoVisual ? 'COLORES: Usar la paleta del concepto visual unificado' : styleCount > 0 ? 'COLORES: Usar la paleta de la referencia de estilo' : `COLORES DE MARCA: ${colores}`}
+${brandPaleta
+  ? 'COLORES: Usar la PALETA DE MARCA del bloque "MANUAL DE MARCA" — tiene prioridad sobre concepto visual, estilo y referencia.'
+  : nc?.conceptoVisual ? 'COLORES: Usar la paleta del concepto visual unificado' : styleCount > 0 ? 'COLORES: Usar la paleta de la referencia de estilo' : `COLORES DE MARCA: ${colores}`}
 TONO: ${tono}
-${userPromptSection}${narrativeBlock}${characterRefPrompt}${styleRefPrompt}${instruccionesCustom}
+${userPromptSection}${narrativeBlock}${characterRefPrompt}${styleRefPrompt}${instruccionesCustom}${brandBlock}
 ${textoSection}
 
-${slideInfo ? `(Esta es la pieza ${slideInfo.slideNumber} de un set de ${slideInfo.totalSlides} — mantener consistencia visual ABSOLUTA entre piezas. La numeracion es metadata interna, NO se renderiza.)` : `FORMATO: ${fmtInfo.label} — ${fmtInfo.descripcion}`}
+${slideInfo ? `(Esta es la pieza ${slideInfo.slideNumber} de un set de ${slideInfo.totalSlides} — mantener LENGUAJE VISUAL identico (paleta, tipografia, tratamiento) pero VARIAR la escena (plano, angulo, accion, elementos) respecto a las demas slides. La numeracion es metadata interna, NO se renderiza.)` : `FORMATO: ${fmtInfo.label} — ${fmtInfo.descripcion}`}
 
 REQUISITOS CRITICOS:
 - Formato: ${fmtInfo.width}x${fmtInfo.height}px (aspect ratio ${fmt === 'yt_thumbnail' ? '16:9' : fmt})

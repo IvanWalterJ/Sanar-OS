@@ -188,6 +188,9 @@ export interface ProfileV2 extends Profile {
   identidad_tipografia?: string;
   identidad_logo?: string;
   identidad_tono?: string;
+  // Manual de Marca — reglas de uso innegociables (free-text) que se inyectan
+  // en prompts de generacion de IMAGEN con prioridad sobre estilo y referencia.
+  identidad_reglas_uso?: string;
   // ── ADN V3 — Campos nuevos del PDF definitivo ────────────────────────────
   adn_formulario_bienvenida?: Record<string, string>; // P0.2
   adn_linea_tiempo?: string;           // P1.2 — escritura pura, sin IA
