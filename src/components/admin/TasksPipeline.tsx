@@ -3,6 +3,7 @@ import { Plus, AlertCircle, ChevronDown, ChevronUp, RefreshCw } from 'lucide-rea
 import { toast } from 'sonner';
 import TaskCard from './TaskCard';
 import TaskModal from './TaskModal';
+import ConfirmDialog from './ConfirmDialog';
 import type { AdminTarea, AdminTareaStatus, Profile } from '../../lib/supabase';
 import { ADMIN_TAREA_STATUSES, ADMIN_TAREA_STATUS_LABELS } from '../../lib/supabase';
 import {
@@ -31,6 +32,8 @@ export default function TasksPipeline({ currentAdminId, adminRol, teamMembers, c
   const [showHoy, setShowHoy] = useState(true);
   const [dragOverColumn, setDragOverColumn] = useState<AdminTareaStatus | null>(null);
   const [draggingId, setDraggingId] = useState<string | null>(null);
+  const [deletingTarea, setDeletingTarea] = useState<AdminTarea | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   const cargar = useCallback(async () => {
     setLoading(true);
@@ -90,11 +93,31 @@ export default function TasksPipeline({ currentAdminId, adminRol, teamMembers, c
     setEditingTarea(null);
   }
 
-  async function handleDelete(id: string) {
-    if (!window.confirm('¿Eliminar esta tarea?')) return;
-    await deleteAdminTarea(id);
-    await cargar();
-    toast.success('Tarea eliminada');
+  function handleDelete(id: string) {
+    const tarea = tareas.find(t => t.id === id);
+    if (!tarea) return;
+    setDeletingTarea(tarea);
+  }
+
+  async function confirmDelete() {
+    if (!deletingTarea) return;
+    const id = deletingTarea.id;
+    const snapshot = tareas;
+    setDeleteLoading(true);
+    setTareas(prev => prev.filter(t => t.id !== id));
+    setTareasHoy(prev => prev.filter(t => t.id !== id));
+    try {
+      await deleteAdminTarea(id);
+      toast.success('Tarea eliminada');
+      setDeletingTarea(null);
+      cargar().catch(() => null);
+    } catch (err) {
+      setTareas(snapshot);
+      const msg = err instanceof Error ? err.message : 'No se pudo eliminar la tarea';
+      toast.error(msg);
+    } finally {
+      setDeleteLoading(false);
+    }
   }
 
   // Drag and drop
@@ -249,6 +272,18 @@ export default function TasksPipeline({ currentAdminId, adminRol, teamMembers, c
           onClose={() => { setShowModal(false); setEditingTarea(null); }}
         />
       )}
+
+      <ConfirmDialog
+        open={deletingTarea !== null}
+        variant="danger"
+        title="Eliminar tarea"
+        message={deletingTarea ? `¿Seguro que querés eliminar «${deletingTarea.titulo}»? Esta acción no se puede deshacer.` : ''}
+        confirmLabel="Eliminar"
+        cancelLabel="Cancelar"
+        loading={deleteLoading}
+        onConfirm={confirmDelete}
+        onCancel={() => { if (!deleteLoading) setDeletingTarea(null); }}
+      />
     </div>
   );
 }
