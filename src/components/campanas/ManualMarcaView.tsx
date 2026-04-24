@@ -186,15 +186,19 @@ export default function ManualMarcaView({ userId, perfil, onSaved }: Props) {
       identidad_reglas_uso: draft.reglas.trim() || undefined,
     };
     try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({
-          identidad_colores: patch.identidad_colores ?? null,
-          identidad_tipografia: patch.identidad_tipografia ?? null,
-          identidad_reglas_uso: patch.identidad_reglas_uso ?? null,
-        })
-        .eq('id', userId);
+      // Usamos el RPC update_brand_manual (SECURITY DEFINER) porque la policy
+      // RLS en `profiles` es "auth.uid() = id". Sin el RPC, cuando el admin
+      // edita el manual de un cliente la policy filtra la fila y el UPDATE
+      // corre con 0 rows afectadas — sin tirar error — y parece "guardado"
+      // pero no persiste. El RPC autoriza explicitamente (admin o dueno).
+      const { data, error } = await supabase.rpc('update_brand_manual', {
+        target_user_id: userId,
+        p_identidad_colores: patch.identidad_colores ?? null,
+        p_identidad_tipografia: patch.identidad_tipografia ?? null,
+        p_identidad_reglas_uso: patch.identidad_reglas_uso ?? null,
+      });
       if (error) throw error;
+      if (!data) throw new Error('La DB no confirmo el guardado (0 filas afectadas).');
       setSavedSnapshot({ ...draft });
       onSaved?.(patch);
       toast.success('Manual de marca guardado.');
