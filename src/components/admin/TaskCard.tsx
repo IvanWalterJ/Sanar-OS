@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { MoreVertical, Calendar, User, AlertCircle } from 'lucide-react';
+import { MoreVertical, Calendar, User, AlertCircle, Trash2 } from 'lucide-react';
 import type { AdminTarea, AdminTareaStatus, AdminTareaStatus as S } from '../../lib/supabase';
 import { ADMIN_TAREA_STATUSES, ADMIN_TAREA_STATUS_LABELS, ADMIN_TAREA_PRIORIDAD_LABELS } from '../../lib/supabase';
 
@@ -45,6 +45,14 @@ export default function TaskCard({ tarea, onStatusChange, onEdit, onDelete, onDr
         <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${PRIORIDAD_COLORS[tarea.prioridad]}`}>
           {ADMIN_TAREA_PRIORIDAD_LABELS[tarea.prioridad]}
         </span>
+        <div className="flex items-center gap-1">
+          <button
+            onClick={(e) => { e.stopPropagation(); onDelete(tarea.id); }}
+            title="Eliminar tarea"
+            className="w-6 h-6 rounded-lg flex items-center justify-center text-[#FFFFFF]/30 hover:text-red-400 hover:bg-red-500/10 transition-all opacity-0 group-hover:opacity-100"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+          </button>
         <div className="relative">
           <button
             onClick={() => setShowMenu(v => !v)}
@@ -83,6 +91,7 @@ export default function TaskCard({ tarea, onStatusChange, onEdit, onDelete, onDr
               </button>
             </div>
           )}
+        </div>
         </div>
       </div>
 

@@ -118,7 +118,7 @@ export default function TasksPipeline({ currentAdminId, adminRol, teamMembers, c
   const overdueCount = tareasHoy.filter(t => t.fecha_vencimiento && new Date(t.fecha_vencimiento) < new Date()).length;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 w-full max-w-full overflow-x-hidden">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -181,7 +181,10 @@ export default function TasksPipeline({ currentAdminId, adminRol, teamMembers, c
       {loading ? (
         <div className="flex items-center justify-center h-48 text-[#FFFFFF]/30 text-sm">Cargando...</div>
       ) : (
-        <div className="flex gap-4 overflow-x-auto pb-4">
+        <div
+          className="grid gap-2 pb-4 w-full max-w-full"
+          style={{ gridTemplateColumns: 'repeat(6, minmax(0, 1fr))' }}
+        >
           {ADMIN_TAREA_STATUSES.map(col => {
             const colTareas = byStatus(col);
             const isDragOver = dragOverColumn === col;
@@ -189,17 +192,17 @@ export default function TasksPipeline({ currentAdminId, adminRol, teamMembers, c
             return (
               <div
                 key={col}
-                className="flex-shrink-0 w-64"
+                className="min-w-0"
                 onDragOver={e => handleDragOver(e, col)}
                 onDragLeave={() => setDragOverColumn(null)}
                 onDrop={e => handleDrop(e, col)}
               >
                 {/* Column header */}
-                <div className={`flex items-center justify-between mb-3 px-1 transition-colors ${isDragOver ? 'text-[#F5A623]' : ''}`}>
-                  <span className="text-xs font-bold text-[#FFFFFF]/60 uppercase tracking-wider">
+                <div className={`flex items-center justify-between gap-1 mb-3 px-1 transition-colors ${isDragOver ? 'text-[#F5A623]' : ''}`}>
+                  <span className="text-[11px] font-bold text-[#FFFFFF]/60 uppercase tracking-wider truncate">
                     {ADMIN_TAREA_STATUS_LABELS[col]}
                   </span>
-                  <span className="text-xs bg-[#FFFFFF]/5 text-[#FFFFFF]/30 px-2 py-0.5 rounded-full font-bold">
+                  <span className="shrink-0 text-[10px] bg-[#FFFFFF]/5 text-[#FFFFFF]/30 px-2 py-0.5 rounded-full font-bold">
                     {colTareas.length}
                   </span>
                 </div>
