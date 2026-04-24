@@ -111,6 +111,10 @@ export default function ImagenGenerator({ copies, angulo, perfil, geminiKey, ini
   const [slidePrompts, setSlidePrompts] = useState<string[]>([]);
   const [slideRefsUsed, setSlideRefsUsed] = useState<(ReferenceImages | undefined)[]>([]);
   const [regeneratingIdx, setRegeneratingIdx] = useState<number | null>(null);
+  // Narrativa del carrusel guardada — se reusa en regenerateSingle para
+  // reconstruir el prompt con el estado UI actual (si el usuario cambio de
+  // estilo, tema, instrucciones, etc. despues de generar).
+  const [savedNarrative, setSavedNarrative] = useState<CarouselNarrative | null>(null);
 
   // Edicion sutil con IA
   const [editPrompt, setEditPrompt] = useState('');
@@ -238,6 +242,7 @@ export default function ImagenGenerator({ copies, angulo, perfil, geminiKey, ini
     setGenerating(true);
     setImages([]);
     setPreviewIdx(0);
+    setSavedNarrative(null);
 
     const refs: ReferenceImages | undefined = (characterRefs.length > 0 || styleRefs.length > 0)
       ? {
@@ -379,6 +384,7 @@ export default function ImagenGenerator({ copies, angulo, perfil, geminiKey, ini
         setImages(imgs);
         setSlidePrompts(prompts);
         setSlideRefsUsed(prompts.map(() => refs));
+        setSavedNarrative(narrative);
         onImagesGenerated(imgs, mode, prompts);
         toast.success(narrative
           ? `${results.length} slides con hilo narrativo generadas`
@@ -394,13 +400,86 @@ export default function ImagenGenerator({ copies, angulo, perfil, geminiKey, ini
   }, [copyList, effectiveAngulo, perfil, geminiKey, onImagesGenerated, estilo, mode, genMode, instrucciones, characterRefs, styleRefs, customText, slideConfigs, format, quality, userPrompt, textSource, isCarousel, totalSlides]);
 
   // ─── Regenerar UNA sola slide ──────────────────────────────────────────────
+  // Reconstruye el prompt desde el estado UI actual (estilo, tema, instrucciones,
+  // refs, custom text). Asi si el usuario cambia de estilo despues de generar,
+  // la regeneracion toma el nuevo estilo en vez de reusar el prompt viejo.
   const regenerateSingle = useCallback(async (idx: number) => {
-    const prompt = slidePrompts[idx];
-    if (!prompt) { toast.error('No hay prompt guardado para esta slide'); return; }
+    if (idx < 0 || idx >= Math.max(1, totalSlides)) {
+      toast.error('Indice de slide invalido');
+      return;
+    }
+
+    // Refs actuales (puede haber cambiado si el usuario subio/quito imagenes)
+    const refs: ReferenceImages | undefined = (characterRefs.length > 0 || styleRefs.length > 0)
+      ? {
+          characterRefs: characterRefs.map(r => ({ base64: r.base64, mimeType: r.mimeType })),
+          styleRefs: styleRefs.map(r => ({ base64: r.base64, mimeType: r.mimeType })),
+        }
+      : undefined;
+
+    const baseOpts = {
+      estilo: styleRefs.length > 0 ? undefined : estilo,
+      mode,
+      instrucciones: instrucciones.trim() || undefined,
+      userPrompt: userPrompt.trim() || undefined,
+      characterRefCount: characterRefs.length,
+      styleRefCount: styleRefs.length,
+      format,
+    };
+
+    let prompt: string;
+    if (!isCarousel) {
+      const effectiveCustomText = genMode === 'texto_personalizado' ? customText : undefined;
+      const copyForPrompt = copyList[0] ?? null;
+      prompt = buildImagePrompt(copyForPrompt, effectiveAngulo, perfil, undefined, {
+        ...baseOpts,
+        customText: effectiveCustomText,
+      });
+    } else {
+      // Carrusel: reusar narrativa guardada para mantener hilo visual/copy
+      const copyForSlide = copyList[idx] ?? null;
+      const cfg = slideConfigs[idx] ?? { textSource: 'ia' };
+      const slideCustomText = cfg.textSource === 'personalizado' ? cfg.customText : undefined;
+      const allSlideTitles: string[] = Array.from({ length: totalSlides }).map((_, j) => {
+        const cfgJ = slideConfigs[j];
+        if (cfgJ?.textSource === 'personalizado' && cfgJ.customText?.h1) return cfgJ.customText.h1;
+        const copyTitle = copyList[j]?.titulo;
+        if (copyTitle) return copyTitle;
+        return savedNarrative?.slides[j]?.titulo ?? '';
+      });
+      const allSlideEscenas: string[] = Array.from({ length: totalSlides }).map(
+        (_, j) => savedNarrative?.slides[j]?.escena ?? '',
+      );
+      const hasEscenas = allSlideEscenas.some((e) => e.trim().length > 0);
+      const slideTexto = slideCustomText
+        ? slideCustomText.h1
+        : copyForSlide?.titulo ?? savedNarrative?.slides[idx]?.titulo;
+
+      prompt = buildImagePrompt(copyForSlide, effectiveAngulo, perfil, {
+        slideNumber: idx + 1,
+        totalSlides,
+        slideTexto,
+      }, {
+        ...baseOpts,
+        customText: slideCustomText,
+        isCarousel: true,
+        narrativeContext: {
+          conceptoVisual: savedNarrative?.concepto_visual,
+          allSlideTitles: allSlideTitles.some((t) => t) ? allSlideTitles : undefined,
+          previousSlideTitle: idx > 0 ? allSlideTitles[idx - 1] || undefined : undefined,
+          nextSlideTitle: idx < totalSlides - 1 ? allSlideTitles[idx + 1] || undefined : undefined,
+          slideEscena: allSlideEscenas[idx] || undefined,
+          allSlideEscenas: hasEscenas ? allSlideEscenas : undefined,
+        },
+      });
+    }
 
     setRegeneratingIdx(idx);
     try {
-      const result = await generateImageWithFallback(prompt, setProgress, slideRefsUsed[idx], { geminiKey, format, quality });
+      const result = await generateImageWithFallback(prompt, setProgress, refs, { geminiKey, format, quality });
+      // Guardar el prompt nuevo y las refs actuales para futuras regeneraciones
+      setSlidePrompts(prev => { const next = [...prev]; next[idx] = prompt; return next; });
+      setSlideRefsUsed(prev => { const next = [...prev]; next[idx] = refs; return next; });
       setImages(prev => {
         const next = [...prev];
         next[idx] = { base64: result.imageBase64, mimeType: result.mimeType, modelUsed: result.modelUsed };
@@ -415,7 +494,11 @@ export default function ImagenGenerator({ copies, angulo, perfil, geminiKey, ini
       setRegeneratingIdx(null);
       setProgress(null);
     }
-  }, [geminiKey, slidePrompts, slideRefsUsed, mode, onImagesGenerated, format, quality]);
+  }, [
+    totalSlides, isCarousel, characterRefs, styleRefs, estilo, mode, instrucciones,
+    userPrompt, format, genMode, customText, copyList, effectiveAngulo, perfil,
+    slideConfigs, savedNarrative, geminiKey, quality, onImagesGenerated,
+  ]);
 
   // ─── Edicion sutil con IA ──────────────────────────────────────────────────
   const applyEdit = useCallback(async () => {
