@@ -69,6 +69,7 @@ interface Props {
     images: { base64: string; mimeType: string; modelUsed: string }[],
     mode: ImageMode,
     prompts?: string[],
+    opts?: { asNewEntry?: boolean },
   ) => void;
 }
 
@@ -483,7 +484,10 @@ export default function ImagenGenerator({ copies, angulo, perfil, geminiKey, ini
       setImages(prev => {
         const next = [...prev];
         next[idx] = { base64: result.imageBase64, mimeType: result.mimeType, modelUsed: result.modelUsed };
-        onImagesGenerated(next, mode);
+        // Cada regeneracion crea una NUEVA entrada en el historial para no perder versiones.
+        // Se pasan los prompts por slide (con el recien regenerado) y el flag asNewEntry.
+        const promptsForEntry = slidePrompts.map((p, i) => (i === idx ? prompt : p));
+        onImagesGenerated(next, mode, promptsForEntry, { asNewEntry: true });
         return next;
       });
       toast.success(`Slide ${idx + 1} regenerada`);
@@ -518,7 +522,8 @@ export default function ImagenGenerator({ copies, angulo, perfil, geminiKey, ini
       setImages(prev => {
         const next = [...prev];
         next[idx] = { base64: result.imageBase64, mimeType: result.mimeType, modelUsed: result.modelUsed };
-        onImagesGenerated(next, mode);
+        // Cada edicion tambien guarda una NUEVA entrada en el historial.
+        onImagesGenerated(next, mode, slidePrompts, { asNewEntry: true });
         return next;
       });
       setEditPrompt('');
@@ -530,7 +535,7 @@ export default function ImagenGenerator({ copies, angulo, perfil, geminiKey, ini
       setEditing(false);
       setProgress(null);
     }
-  }, [geminiKey, editPrompt, images, previewIdx, mode, onImagesGenerated, format, quality]);
+  }, [geminiKey, editPrompt, images, previewIdx, mode, onImagesGenerated, format, quality, slidePrompts]);
 
   return (
     <div className="space-y-3">
@@ -911,7 +916,7 @@ export default function ImagenGenerator({ copies, angulo, perfil, geminiKey, ini
           )}
 
           <div className="relative rounded-xl overflow-hidden border border-[rgba(245,166,35,0.15)] max-w-sm mx-auto">
-            <img src={base64ToDataUrl(images[previewIdx].base64, images[previewIdx].mimeType)} alt="Preview" className="w-full object-cover" style={{ aspectRatio: `${IMAGE_FORMAT_OPTIONS[format].width}/${IMAGE_FORMAT_OPTIONS[format].height}` }} />
+            <img src={base64ToDataUrl(images[previewIdx].base64, images[previewIdx].mimeType)} alt="Preview" className="w-full h-auto block" />
             {images.length > 1 && slidePrompts[previewIdx] && (
               <button
                 onClick={() => regenerateSingle(previewIdx)}

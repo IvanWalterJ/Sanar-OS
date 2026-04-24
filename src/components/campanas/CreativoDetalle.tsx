@@ -240,11 +240,11 @@ export default function CreativoDetalle({ creativo, userId, onBack, onDeleted }:
         <div className="space-y-3">
           {assets.length > 0 ? (
             <>
-              <div className="relative rounded-xl overflow-hidden border border-[rgba(245,166,35,0.15)]">
+              <div className="relative rounded-xl overflow-hidden border border-[rgba(245,166,35,0.15)] bg-black/30 flex items-center justify-center">
                 <img
                   src={displayUrl(assets[activeSlide])}
                   alt={`Slide ${activeSlide + 1}`}
-                  className="w-full aspect-square object-cover"
+                  className="w-full h-auto max-h-[80vh] object-contain"
                 />
 
                 {/* Overlay de progreso cuando regeneramos/editamos */}

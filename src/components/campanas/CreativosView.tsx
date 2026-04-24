@@ -174,22 +174,28 @@ export default function CreativosView({ userId, perfil, geminiKey }: Props) {
   }, [activeTab, loadHistorial]);
 
   // ─── Auto-guardado en historial ─────────────────────────────────────────
-  // Se dispara automaticamente cuando ImagenGenerator entrega nuevas imagenes.
-  // Primera llamada: crea el creativo y sube todos los slides.
-  // Llamadas posteriores (regen o edit de una slide): upsert en la misma fila.
+  // Se dispara cuando ImagenGenerator entrega nuevas imagenes.
+  //   - Primera generacion (forceNew=false): crea el creativo y sube los slides.
+  //     El id queda como currentCreativoId y sucesivas subidas del MISMO set
+  //     (ej: si el generador retransmite progreso) se upsertan en la misma fila.
+  //   - Regeneracion o edicion (forceNew=true): crea SIEMPRE un creativo nuevo
+  //     para no perder versiones anteriores. NO actualiza currentCreativoId asi
+  //     la proxima regen tambien crea otro creativo nuevo.
   const persistCreativo = useCallback(
     async (
       imgs: { base64: string; mimeType: string; modelUsed: string }[],
       prompts?: string[],
+      opts?: { forceNew?: boolean },
     ) => {
       if (!userId || imgs.length === 0) return;
       if (saveInFlightRef.current) return;
       saveInFlightRef.current = true;
       setSaving(true);
-      const isFirstSave = currentCreativoId === null;
+      const creativoIdToUse = opts?.forceNew ? null : currentCreativoId;
+      const isFirstSave = creativoIdToUse === null;
       try {
         const dims = IMAGE_FORMAT_OPTIONS[config.format ?? '1:1'];
-        let creativoId = currentCreativoId;
+        let creativoId = creativoIdToUse;
 
         if (!creativoId) {
           const creativo = await saveCreativo({
@@ -200,15 +206,17 @@ export default function CreativosView({ userId, perfil, geminiKey }: Props) {
             titulo: `${config.label} ${angulo}`,
             descripcion: '',
             cta_texto: '',
-            nombre: `${config.label} ${angulo} — ${new Date().toLocaleDateString('es-AR', { day: '2-digit', month: 'short' })}`,
+            nombre: `${config.label} ${angulo} — ${new Date().toLocaleDateString('es-AR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}`,
             estado: 'generado',
             prompt_imagen: prompts && prompts.length > 0 ? JSON.stringify(prompts) : undefined,
           });
           if (!creativo) throw new Error('No se pudo guardar el creativo');
           creativoId = creativo.id;
-          setCurrentCreativoId(creativoId);
+          // Solo marcamos este id como "current" cuando NO es forceNew — asi
+          // regen/edit no reusan el id y cada versionado queda como entrada
+          // propia en el historial.
+          if (!opts?.forceNew) setCurrentCreativoId(creativoId);
         } else if (prompts && prompts.length > 0) {
-          // Actualiza los prompts almacenados si cambio la generacion completa
           await updateCreativo(creativoId, { prompt_imagen: JSON.stringify(prompts) });
         }
 
@@ -235,7 +243,13 @@ export default function CreativosView({ userId, perfil, geminiKey }: Props) {
         }
 
         setSaved(true);
-        if (isFirstSave) toast.success(`${config.label} guardado en historial`);
+        if (isFirstSave) {
+          toast.success(
+            opts?.forceNew
+              ? `Nueva version guardada en historial`
+              : `${config.label} guardado en historial`,
+          );
+        }
       } catch (err) {
         const msg = err instanceof Error ? err.message : 'Error desconocido';
         toast.error(`Error al guardar: ${msg}`);
@@ -252,11 +266,12 @@ export default function CreativosView({ userId, perfil, geminiKey }: Props) {
       newImages: { base64: string; mimeType: string; modelUsed: string }[],
       mode: ImageMode,
       prompts?: string[],
+      opts?: { asNewEntry?: boolean },
     ) => {
       setImages(newImages);
       setImageMode(mode);
       setSaved(false);
-      void persistCreativo(newImages, prompts);
+      void persistCreativo(newImages, prompts, { forceNew: opts?.asNewEntry ?? false });
     },
     [persistCreativo],
   );
