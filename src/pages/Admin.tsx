@@ -15,7 +15,7 @@ import {
   Sprout, Target, Sunrise, UserCircle, Lightbulb, Triangle,
   Cog, Building2, Megaphone, Phone, Handshake, Palette, BarChart3,
   Search, UsersRound, Check, ClipboardList, Menu, LayoutDashboard, ClipboardCheck,
-  Mail, KeyRound, Fingerprint,
+  Mail, KeyRound, Fingerprint, ChevronLeft,
 } from 'lucide-react';
 
 const ADMIN_PILAR_ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -328,6 +328,13 @@ export default function Admin({ adminProfile, onSignOut }: AdminProps) {
   const adminRol: AdminRol = (adminProfile as any).admin_rol ?? 'owner';
   const [mainTab, setMainTab] = useState<MainTab>('clientes');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    return localStorage.getItem('admin_sidebar_collapsed') === '1';
+  });
+  useEffect(() => {
+    try { localStorage.setItem('admin_sidebar_collapsed', sidebarCollapsed ? '1' : '0'); } catch { /* ignore */ }
+  }, [sidebarCollapsed]);
   const [channelUnread, setChannelUnread] = useState<Record<string, number>>({});
 
   // Clientes
@@ -1459,17 +1466,26 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
       )}
 
       {/* ─── SIDEBAR ─────────────────────────────────────────────────────────── */}
-      <aside className={`fixed inset-y-0 left-0 z-50 w-[220px] ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} md:relative md:inset-auto md:translate-x-0 md:z-20 shrink-0 border-r border-[rgba(245,166,35,0.1)] bg-[#0E0E0E] flex flex-col transition-transform duration-300`}>
-        <div className="p-5">
-          <div className="flex items-center gap-3 mb-8">
-            <div className="w-10 h-10 rounded-xl bg-[#F5A623] flex items-center justify-center shadow-[0_0_20px_rgba(245,166,35,0.3)]">
+      <aside className={`fixed inset-y-0 left-0 z-50 w-[220px] ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} md:relative md:inset-auto md:translate-x-0 md:z-20 ${sidebarCollapsed ? 'md:w-[72px]' : 'md:w-[220px]'} shrink-0 border-r border-[rgba(245,166,35,0.1)] bg-[#0E0E0E] flex flex-col transition-all duration-300`}>
+        <div className={`p-5 ${sidebarCollapsed ? 'md:p-3' : ''} transition-all duration-300`}>
+          <div className={`flex items-center gap-3 mb-8 ${sidebarCollapsed ? 'md:justify-center md:gap-0 md:mb-6' : ''}`}>
+            <div className="w-10 h-10 rounded-xl bg-[#F5A623] flex items-center justify-center shadow-[0_0_20px_rgba(245,166,35,0.3)] shrink-0">
               <Stethoscope className="w-5 h-5 text-[#FFFFFF]" />
             </div>
-            <div>
-              <h1 className="text-sm font-semibold text-[#FFFFFF] tracking-wide">Tu Clinica Digital</h1>
+            <div className={`${sidebarCollapsed ? 'md:hidden' : ''} min-w-0`}>
+              <h1 className="text-sm font-semibold text-[#FFFFFF] tracking-wide truncate">Tu Clinica Digital</h1>
               <p className="text-[10px] text-[#F5A623] uppercase tracking-widest font-bold">Admin</p>
             </div>
           </div>
+
+          {/* Toggle expand/collapse — solo desktop */}
+          <button
+            onClick={() => setSidebarCollapsed(v => !v)}
+            className={`hidden md:flex items-center justify-center w-full mb-3 py-1.5 rounded-lg text-[#FFFFFF]/40 hover:text-[#F5A623] hover:bg-[#F5A623]/10 transition-colors`}
+            title={sidebarCollapsed ? 'Expandir menú' : 'Contraer menú'}
+          >
+            <ChevronLeft className={`w-4 h-4 transition-transform duration-300 ${sidebarCollapsed ? 'rotate-180' : ''}`} />
+          </button>
 
           <nav className="space-y-0.5">
             {sidebarItems
@@ -1488,7 +1504,8 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
                         setChannelUnread(prev => ({ ...prev, comunidad: 0, victorias: 0, consultas: 0 }));
                       }
                     }}
-                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all group relative ${
+                    title={sidebarCollapsed ? item.label : undefined}
+                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all group relative ${sidebarCollapsed ? 'md:justify-center md:px-0 md:gap-0' : ''} ${
                       mainTab === item.id
                         ? 'bg-[#F5A623]/10 text-[#F5A623]'
                         : 'text-[#FFFFFF]/60 hover:bg-[#F5A623]/10 hover:text-[#FFFFFF]'
@@ -1497,10 +1514,15 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
                     {mainTab === item.id && (
                       <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-6 bg-[#F5A623] rounded-r-full" />
                     )}
-                    <item.icon className="w-4 h-4" />
-                    {item.label}
+                    <span className="relative shrink-0">
+                      <item.icon className="w-4 h-4" />
+                      {sidebarCollapsed && totalUnread > 0 && (
+                        <span className="hidden md:block absolute -top-1 -right-1 w-2 h-2 rounded-full bg-[#F5A623] shadow-[0_0_6px_rgba(245,166,35,0.6)]" />
+                      )}
+                    </span>
+                    <span className={`${sidebarCollapsed ? 'md:hidden' : ''}`}>{item.label}</span>
                     {totalUnread > 0 && (
-                      <span className="ml-auto min-w-[18px] h-[18px] px-1 rounded-full bg-[#F5A623] text-[#FFFFFF] text-[10px] font-bold flex items-center justify-center">
+                      <span className={`${sidebarCollapsed ? 'md:hidden' : ''} ml-auto min-w-[18px] h-[18px] px-1 rounded-full bg-[#F5A623] text-[#FFFFFF] text-[10px] font-bold flex items-center justify-center`}>
                         {totalUnread}
                       </span>
                     )}
@@ -1510,28 +1532,33 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
           </nav>
         </div>
 
-        <div className="mt-auto p-5 border-t border-[rgba(245,166,35,0.1)]">
-          <div className="flex items-center gap-3 mb-4">
+        <div className={`mt-auto p-5 ${sidebarCollapsed ? 'md:p-3' : ''} border-t border-[rgba(245,166,35,0.1)] transition-all duration-300`}>
+          <div className={`flex items-center gap-3 mb-4 ${sidebarCollapsed ? 'md:justify-center md:gap-0' : ''}`}>
             <div className="w-9 h-9 rounded-full overflow-hidden bg-[#F5A623]/10 flex items-center justify-center text-sm font-bold border border-[rgba(245,166,35,0.3)] shrink-0">
               {adminAvatar
                 ? <img src={adminAvatar} alt="Admin" className="w-full h-full object-cover" />
                 : adminProfile.nombre.charAt(0).toUpperCase()
               }
             </div>
-            <div className="flex-1 min-w-0">
+            <div className={`flex-1 min-w-0 ${sidebarCollapsed ? 'md:hidden' : ''}`}>
               <p className="text-sm font-medium text-[#FFFFFF] truncate">{adminProfile.nombre}</p>
               <p className="text-[10px] text-[#FFFFFF]/40 truncate">{adminProfile.especialidad || 'Director'}</p>
             </div>
             <button
               onClick={() => { setAdminDraft({ nombre: adminProfile.nombre, cargo: adminProfile.especialidad || 'Director' }); setShowAdminSettings(true); }}
-              className="w-7 h-7 rounded-lg bg-[#F5A623]/5 hover:bg-[#F5A623]/10 flex items-center justify-center text-[#FFFFFF]/40 hover:text-[#FFFFFF] transition-colors shrink-0"
+              className={`${sidebarCollapsed ? 'md:hidden' : ''} w-7 h-7 rounded-lg bg-[#F5A623]/5 hover:bg-[#F5A623]/10 flex items-center justify-center text-[#FFFFFF]/40 hover:text-[#FFFFFF] transition-colors shrink-0`}
               title="Ajustes de perfil"
             >
               <Settings className="w-3.5 h-3.5" />
             </button>
           </div>
-          <button onClick={onSignOut} className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-semibold text-[#FFFFFF]/60 hover:bg-[#F5A623]/5 hover:text-[#FFFFFF] transition-colors">
-            <LogOut className="w-3.5 h-3.5" /> Salir del sistema
+          <button
+            onClick={onSignOut}
+            title={sidebarCollapsed ? 'Salir del sistema' : undefined}
+            className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-semibold text-[#FFFFFF]/60 hover:bg-[#F5A623]/5 hover:text-[#FFFFFF] transition-colors ${sidebarCollapsed ? 'md:gap-0' : ''}`}
+          >
+            <LogOut className="w-3.5 h-3.5 shrink-0" />
+            <span className={`${sidebarCollapsed ? 'md:hidden' : ''}`}>Salir del sistema</span>
           </button>
         </div>
       </aside>
