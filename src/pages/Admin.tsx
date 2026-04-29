@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import CustomSelect from '../components/CustomSelect';
 import TasksPipeline from '../components/admin/TasksPipeline';
 import MigrationWizard from '../components/admin/MigrationWizard';
+import AdminClienteADN from '../components/admin/AdminClienteADN';
 import {
   Users, Send, ChevronRight, X, Plus, Loader2,
   Stethoscope, CheckCircle2, Circle, LogOut,
@@ -14,7 +15,7 @@ import {
   Sprout, Target, Sunrise, UserCircle, Lightbulb, Triangle,
   Cog, Building2, Megaphone, Phone, Handshake, Palette, BarChart3,
   Search, UsersRound, Check, ClipboardList, Menu, LayoutDashboard, ClipboardCheck,
-  Mail, KeyRound,
+  Mail, KeyRound, Fingerprint,
 } from 'lucide-react';
 
 const ADMIN_PILAR_ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -34,7 +35,7 @@ import Markdown from 'react-markdown';
 
 type AdminRol = 'owner' | 'manager' | 'staff';
 type MainTab = 'clientes' | 'pipeline' | 'mensajes' | 'metricas' | 'videos' | 'equipo' | 'campanas' | 'creativos' | 'tareas';
-type DetalleTab = 'resumen' | 'diario' | 'metricas' | 'mensajes' | 'notas';
+type DetalleTab = 'resumen' | 'diario' | 'metricas' | 'mensajes' | 'notas' | 'adn';
 type MensajesChannel = 'comunidad' | 'victorias' | 'consultas' | 'privados';
 
 interface AdminProps {
@@ -782,6 +783,7 @@ Sé directa, empática y concisa. Sin bullet points, solo texto corrido. Sin emo
 
   async function cargarDetalleCliente(userId: string) {
     if (!supabase) return;
+    if (detalleTab === 'adn') return; // El componente ADN gestiona su propia carga.
     setDetalleLoading(true);
     try {
       if (detalleTab === 'resumen') {
@@ -1404,6 +1406,7 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
     { id: 'resumen', label: 'Resumen', icon: TrendingUp },
     { id: 'diario', label: 'Diario', icon: Calendar },
     { id: 'metricas', label: 'Métricas', icon: BarChart2 },
+    { id: 'adn', label: 'ADN', icon: Fingerprint },
     { id: 'mensajes', label: 'Chat', icon: MessageSquare },
     { id: 'notas', label: 'Notas', icon: BookOpen },
   ];
@@ -2244,6 +2247,15 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
                             ))}
                           </div>
                         </div>
+                      )}
+
+                      {/* ── ADN ── */}
+                      {detalleTab === 'adn' && (
+                        <AdminClienteADN
+                          clienteId={selectedCliente.id}
+                          clienteNombre={selectedCliente.nombre}
+                          adminRol={adminRol}
+                        />
                       )}
 
                       {/* ── NOTAS INTERNAS ── */}
