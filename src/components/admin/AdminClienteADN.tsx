@@ -172,11 +172,27 @@ interface EditModalProps {
   onSaved: () => void;
 }
 
+function formatSupabaseError(err: unknown): string {
+  if (!err) return 'Error desconocido';
+  if (typeof err === 'string') return err;
+  const e = err as Record<string, unknown>;
+  const parts: string[] = [];
+  if (typeof e.message === 'string' && e.message) parts.push(e.message);
+  if (typeof e.details === 'string' && e.details) parts.push(`detalle: ${e.details}`);
+  if (typeof e.hint === 'string' && e.hint) parts.push(`hint: ${e.hint}`);
+  if (typeof e.code === 'string' && e.code) parts.push(`code ${e.code}`);
+  if (parts.length === 0) {
+    try { return JSON.stringify(err); } catch { return String(err); }
+  }
+  return parts.join(' · ');
+}
+
 function EditModal({ campo, clienteId, currentValue, onClose, onSaved }: EditModalProps) {
   const kind = getEditorKind(campo, currentValue);
   const [text, setText] = useState<string>(() => valueToEditorString(currentValue, kind));
   const [saving, setSaving] = useState(false);
   const [jsonError, setJsonError] = useState<string | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   const fieldRef = getFieldKeyAndPath(campo);
 
@@ -205,21 +221,34 @@ function EditModal({ campo, clienteId, currentValue, onClose, onSaved }: EditMod
     }
 
     setSaving(true);
+    setSaveError(null);
+    const rpcArgs = {
+      target_user_id: clienteId,
+      field_codigo: campo.codigo,
+      field_label: campo.label,
+      field_key: fieldRef.fieldKey,
+      new_value: payload,
+      value_path: fieldRef.valuePath,
+    };
+    // eslint-disable-next-line no-console
+    console.log('[admin_update_adn_field] llamando con', rpcArgs);
     try {
-      const { error } = await supabase.rpc('admin_update_adn_field', {
-        target_user_id: clienteId,
-        field_codigo: campo.codigo,
-        field_label: campo.label,
-        field_key: fieldRef.fieldKey,
-        new_value: payload,
-        value_path: fieldRef.valuePath,
-      });
-      if (error) throw error;
+      const { error, data } = await supabase.rpc('admin_update_adn_field', rpcArgs);
+      if (error) {
+        // eslint-disable-next-line no-console
+        console.error('[admin_update_adn_field] error de RPC:', error);
+        throw error;
+      }
+      // eslint-disable-next-line no-console
+      console.log('[admin_update_adn_field] OK:', data);
       toast.success('Campo actualizado');
       onSaved();
       onClose();
     } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Error al guardar';
+      const msg = formatSupabaseError(err);
+      // eslint-disable-next-line no-console
+      console.error('[admin_update_adn_field] catch:', err);
+      setSaveError(msg);
       toast.error(msg);
     } finally {
       setSaving(false);
@@ -266,6 +295,15 @@ function EditModal({ campo, clienteId, currentValue, onClose, onSaved }: EditMod
           />
           {jsonError && (
             <p className="text-xs text-[#EF4444]">JSON inválido: {jsonError}</p>
+          )}
+          {saveError && (
+            <div className="text-xs text-[#EF4444] bg-[#EF4444]/10 border border-[#EF4444]/30 rounded-lg p-3 whitespace-pre-wrap break-words">
+              <p className="font-semibold mb-1">Error al guardar</p>
+              <p className="font-mono">{saveError}</p>
+              <p className="text-[#FFFFFF]/40 mt-2 text-[10px]">
+                Detalle completo en la consola del navegador.
+              </p>
+            </div>
           )}
         </div>
 
@@ -461,13 +499,31 @@ export default function AdminClienteADN({ clienteId, clienteNombre, adminRol }: 
           .eq('completada', true),
         supabase
           .from('adn_audit_log')
-          .select('*, editor:profiles!edited_by(nombre)')
+          .select('*')
           .eq('target_user_id', clienteId)
           .order('edited_at', { ascending: false })
           .limit(100),
       ]);
 
       setPerfil(profileRes ?? {});
+
+      // Resolver nombre del editor en consulta separada (no dependemos del FK).
+      const auditEntries = (auditRes.data ?? []) as AuditEntry[];
+      const editorIds = Array.from(new Set(auditEntries.map((e) => e.edited_by).filter(Boolean)));
+      const nameById = new Map<string, string>();
+      if (editorIds.length > 0) {
+        const { data: editors } = await supabase
+          .from('profiles')
+          .select('id, nombre')
+          .in('id', editorIds);
+        for (const ed of editors ?? []) {
+          if (ed?.id) nameById.set(ed.id, ed.nombre ?? '');
+        }
+      }
+      const auditWithNames = auditEntries.map((e) => ({
+        ...e,
+        editor: { nombre: nameById.get(e.edited_by) || undefined },
+      }));
 
       const outputs: Record<string, string> = {};
       for (const row of hojaRes.data ?? []) {
@@ -494,7 +550,7 @@ export default function AdminClienteADN({ clienteId, clienteNombre, adminRol }: 
         }
       }
       setHojaOutputs(outputs);
-      setAuditLog((auditRes.data as AuditEntry[]) ?? []);
+      setAuditLog(auditWithNames);
     } finally {
       setLoading(false);
     }
