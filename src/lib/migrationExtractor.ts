@@ -28,6 +28,40 @@ Campos disponibles (todos opcionales):
 - posicionamiento: propuesta de valor única
 - por_que_oficial: el "por qué" profundo y personal del profesional`;
 
+// La IA a veces devuelve arrays u objetos donde el schema espera string
+// (ej. `metodo_pasos: ["paso 1", "paso 2"]`). Sin esta coerción, cualquier
+// `.trim()` posterior crashea con `TypeError: <var>.trim is not a function`
+// y tira la UI a pantalla negra.
+function coerceToString(value: unknown): string | undefined {
+  if (value === null || value === undefined) return undefined;
+  if (typeof value === 'string') return value;
+  if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => coerceToString(item))
+      .filter((s): s is string => !!s && s.trim().length > 0)
+      .join('\n');
+  }
+  if (typeof value === 'object') {
+    try {
+      return JSON.stringify(value, null, 2);
+    } catch {
+      return undefined;
+    }
+  }
+  return undefined;
+}
+
+function normalizeExtracted(raw: unknown): ExtractedProfile {
+  if (!raw || typeof raw !== 'object') return {};
+  const out: Record<string, string> = {};
+  for (const [key, value] of Object.entries(raw as Record<string, unknown>)) {
+    const str = coerceToString(value);
+    if (str && str.trim()) out[key] = str.trim();
+  }
+  return out as ExtractedProfile;
+}
+
 export async function extractFromText(texto: string): Promise<ExtractedProfile> {
   // Usa el wrapper con fallback: intenta Claude (Vercel serverless) y
   // si falla (ej. dev local sin `vercel dev`) cae a Gemini vía VITE_GEMINI_API_KEY.
@@ -39,5 +73,12 @@ export async function extractFromText(texto: string): Promise<ExtractedProfile> 
   const jsonMatch = text.match(/\{[\s\S]*\}/);
   if (!jsonMatch) throw new Error('La IA no devolvió JSON válido');
 
-  return JSON.parse(jsonMatch[0]) as ExtractedProfile;
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(jsonMatch[0]);
+  } catch {
+    throw new Error('La IA devolvió JSON malformado');
+  }
+
+  return normalizeExtracted(parsed);
 }

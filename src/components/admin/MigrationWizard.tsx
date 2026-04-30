@@ -168,9 +168,9 @@ export default function MigrationWizard({ onClose, onSuccess, clientes = [] }: M
       }
 
       const adnFields = Object.fromEntries(
-        (Object.entries(extracted) as [keyof ExtractedProfile, string][])
-          .filter(([, v]) => v && v.trim())
-          .map(([k, v]) => [k, v.trim()])
+        Object.entries(extracted)
+          .filter(([, v]) => typeof v === 'string' && v.trim())
+          .map(([k, v]) => [k, (v as string).trim()])
       );
 
       // `form.pilar_actual` es `numero_orden` (0–13). El profile column espera
@@ -240,7 +240,7 @@ export default function MigrationWizard({ onClose, onSuccess, clientes = [] }: M
     }
   }
 
-  const extractedCount = Object.values(extracted).filter(v => v && (v as string).trim()).length;
+  const extractedCount = Object.values(extracted).filter(v => typeof v === 'string' && v.trim()).length;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
