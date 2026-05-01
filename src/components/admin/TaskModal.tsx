@@ -57,9 +57,9 @@ export default function TaskModal({ tarea, teamMembers, clientes, currentAdminId
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-      <div className="bg-[#141414] border border-[rgba(245,166,35,0.2)] rounded-2xl w-full max-w-lg shadow-2xl">
+      <div className="bg-[#141414] border border-[rgba(245,166,35,0.2)] rounded-2xl w-full max-w-lg shadow-2xl flex flex-col max-h-[90vh]">
         {/* Header */}
-        <div className="flex items-center justify-between p-5 border-b border-[rgba(245,166,35,0.1)]">
+        <div className="flex items-center justify-between p-5 border-b border-[rgba(245,166,35,0.1)] shrink-0">
           <h2 className="text-base font-semibold text-[#FFFFFF]">
             {isEditing ? 'Editar tarea' : 'Nueva tarea'}
           </h2>
@@ -69,7 +69,7 @@ export default function TaskModal({ tarea, teamMembers, clientes, currentAdminId
         </div>
 
         {/* Body */}
-        <div className="p-5 space-y-4">
+        <div className="p-5 space-y-4 overflow-y-auto flex-1">
           {/* Título */}
           <div>
             <label className="block text-[10px] font-bold text-[#FFFFFF]/40 uppercase tracking-wider mb-1.5">Título *</label>
@@ -159,7 +159,7 @@ export default function TaskModal({ tarea, teamMembers, clientes, currentAdminId
         </div>
 
         {/* Footer */}
-        <div className="flex justify-end gap-3 p-5 border-t border-[rgba(245,166,35,0.1)]">
+        <div className="flex justify-end gap-3 p-5 border-t border-[rgba(245,166,35,0.1)] shrink-0">
           <button onClick={onClose} className="px-4 py-2.5 rounded-xl text-sm text-[#FFFFFF]/40 hover:text-[#FFFFFF] transition-colors">
             Cancelar
           </button>

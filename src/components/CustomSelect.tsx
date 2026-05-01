@@ -13,6 +13,8 @@ interface CustomSelectProps {
   placeholder?: string;
 }
 
+const DROPDOWN_MAX_HEIGHT = 240;
+
 export default function CustomSelect({
   value,
   onChange,
@@ -21,7 +23,9 @@ export default function CustomSelect({
   placeholder,
 }: CustomSelectProps) {
   const [open, setOpen] = useState(false);
+  const [openUp, setOpenUp] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -33,11 +37,20 @@ export default function CustomSelect({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [open]);
 
+  useEffect(() => {
+    if (!open || !buttonRef.current) return;
+    const rect = buttonRef.current.getBoundingClientRect();
+    const spaceBelow = window.innerHeight - rect.bottom;
+    const spaceAbove = rect.top;
+    setOpenUp(spaceBelow < DROPDOWN_MAX_HEIGHT && spaceAbove > spaceBelow);
+  }, [open]);
+
   const selectedLabel = options.find((o) => o.value === value)?.label ?? placeholder ?? value;
 
   return (
     <div ref={ref} className={`relative ${className}`}>
       <button
+        ref={buttonRef}
         type="button"
         onClick={() => setOpen((v) => !v)}
         className={`
@@ -55,7 +68,10 @@ export default function CustomSelect({
       </button>
 
       {open && (
-        <div className="absolute z-50 w-full mt-1.5 bg-[#141414] border border-[rgba(245,166,35,0.2)] rounded-xl shadow-xl shadow-black/50 overflow-y-auto max-h-60">
+        <div
+          className={`absolute z-50 left-0 right-0 bg-[#141414] border border-[rgba(245,166,35,0.2)] rounded-xl shadow-xl shadow-black/50 overflow-y-auto ${openUp ? 'bottom-full mb-1.5' : 'top-full mt-1.5'}`}
+          style={{ maxHeight: `${DROPDOWN_MAX_HEIGHT}px` }}
+        >
           {options.map((opt) => (
             <button
               key={opt.value}
