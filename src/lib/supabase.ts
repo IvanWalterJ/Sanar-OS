@@ -472,12 +472,10 @@ export const PILAR_MIGRATION_MAP: Record<number, PilarId> = {
 // ─── Admin Task Pipeline ─────────────────────────────────────────────────────
 
 export type AdminTareaStatus =
-  | 'asignadas'
   | 'por_hacer'
   | 'en_proceso'
-  | 'completadas'
   | 'en_revision'
-  | 'aprobadas';
+  | 'completadas';
 
 export type AdminTareaPrioridad = 'baja' | 'media' | 'alta' | 'urgente';
 
@@ -494,23 +492,21 @@ export interface AdminTarea {
   completada_at: string | null;
   created_at: string;
   updated_at: string;
-  // Joined fields (optional, populated by queries with select)
-  asignado_nombre?: string;
-  cliente_nombre?: string;
-  creador_nombre?: string;
+  // Joined fields (optional, populated by RPC get_admin_tareas_with_users)
+  asignado_nombre?: string | null;
+  cliente_nombre?: string | null;
+  creador_nombre?: string | null;
 }
 
 export const ADMIN_TAREA_STATUSES: AdminTareaStatus[] = [
-  'asignadas', 'por_hacer', 'en_proceso', 'completadas', 'en_revision', 'aprobadas',
+  'por_hacer', 'en_proceso', 'en_revision', 'completadas',
 ];
 
 export const ADMIN_TAREA_STATUS_LABELS: Record<AdminTareaStatus, string> = {
-  asignadas: 'Asignadas',
-  por_hacer: 'Por Hacer',
-  en_proceso: 'En Proceso',
+  por_hacer: 'Por hacer',
+  en_proceso: 'En proceso',
+  en_revision: 'En revisión',
   completadas: 'Completadas',
-  en_revision: 'En Revisión',
-  aprobadas: 'Aprobadas',
 };
 
 export const ADMIN_TAREA_PRIORIDAD_LABELS: Record<AdminTareaPrioridad, string> = {

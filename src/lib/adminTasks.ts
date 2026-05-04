@@ -22,37 +22,70 @@ interface UpdateTareaDto {
   status?: AdminTareaStatus;
 }
 
-interface TareaFilters {
+export type TareaScope = 'all' | 'mine' | 'assigned_to_me' | 'created_by_me';
+
+export interface TareaFilters {
   status?: AdminTareaStatus;
   asignado_a?: string;
+  creado_por?: string;
   cliente_id?: string;
+  /** 'mine' = asignado_a OR creado_por = currentUserId. Requiere currentUserId. */
+  scope?: TareaScope;
+  currentUserId?: string;
 }
 
+/**
+ * Trae tareas con joins a profiles (asignado_nombre, creador_nombre, cliente_nombre)
+ * via RPC `get_admin_tareas_with_users`. Aplica filtros en cliente sobre el resultado.
+ */
 export async function fetchAdminTareas(filters?: TareaFilters): Promise<AdminTarea[]> {
   if (!supabase) return [];
-  let query = supabase
-    .from('admin_tareas')
-    .select('*')
-    .order('created_at', { ascending: false });
 
-  if (filters?.status) query = query.eq('status', filters.status);
-  if (filters?.asignado_a) query = query.eq('asignado_a', filters.asignado_a);
-  if (filters?.cliente_id) query = query.eq('cliente_id', filters.cliente_id);
-
-  const { data, error } = await query;
+  const { data, error } = await supabase.rpc('get_admin_tareas_with_users');
   if (error) throw error;
-  return (data ?? []) as AdminTarea[];
+
+  let rows = (data ?? []) as AdminTarea[];
+
+  if (filters?.status) {
+    rows = rows.filter(t => t.status === filters.status);
+  }
+  if (filters?.cliente_id) {
+    rows = rows.filter(t => t.cliente_id === filters.cliente_id);
+  }
+  if (filters?.asignado_a) {
+    rows = rows.filter(t => t.asignado_a === filters.asignado_a);
+  }
+  if (filters?.creado_por) {
+    rows = rows.filter(t => t.creado_por === filters.creado_por);
+  }
+
+  const uid = filters?.currentUserId;
+  if (uid) {
+    if (filters?.scope === 'mine') {
+      rows = rows.filter(t => t.asignado_a === uid || t.creado_por === uid);
+    } else if (filters?.scope === 'assigned_to_me') {
+      rows = rows.filter(t => t.asignado_a === uid);
+    } else if (filters?.scope === 'created_by_me') {
+      rows = rows.filter(t => t.creado_por === uid);
+    }
+  }
+
+  return rows;
 }
 
+/**
+ * Tareas con vencimiento ≤ hoy donde el usuario es asignado O creador.
+ * Excluye tareas completadas.
+ */
 export async function fetchTareasHoy(adminId: string): Promise<AdminTarea[]> {
   if (!supabase) return [];
   const hoy = new Date().toISOString().split('T')[0];
   const { data, error } = await supabase
     .from('admin_tareas')
     .select('*')
-    .eq('asignado_a', adminId)
+    .or(`asignado_a.eq.${adminId},creado_por.eq.${adminId}`)
     .lte('fecha_vencimiento', hoy)
-    .not('status', 'in', '("completadas","aprobadas")')
+    .neq('status', 'completadas')
     .order('fecha_vencimiento', { ascending: true });
   if (error) throw error;
   return (data ?? []) as AdminTarea[];

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { X, Loader2 } from 'lucide-react';
+import { X, Loader2, UserPlus } from 'lucide-react';
 import type { AdminTarea, AdminTareaStatus, AdminTareaPrioridad } from '../../lib/supabase';
 import { ADMIN_TAREA_STATUS_LABELS, ADMIN_TAREA_PRIORIDAD_LABELS, ADMIN_TAREA_STATUSES } from '../../lib/supabase';
 import type { Profile } from '../../lib/supabase';
@@ -27,7 +27,7 @@ const PRIORIDADES: AdminTareaPrioridad[] = ['baja', 'media', 'alta', 'urgente'];
 export default function TaskModal({ tarea, teamMembers, clientes, currentAdminId, onSave, onClose }: TaskModalProps) {
   const [titulo, setTitulo] = useState(tarea?.titulo ?? '');
   const [descripcion, setDescripcion] = useState(tarea?.descripcion ?? '');
-  const [asignadoA, setAsignadoA] = useState<string>(tarea?.asignado_a ?? currentAdminId);
+  const [asignadoA, setAsignadoA] = useState<string>(tarea?.asignado_a ?? '');
   const [clienteId, setClienteId] = useState<string>(tarea?.cliente_id ?? '');
   const [prioridad, setPrioridad] = useState<AdminTareaPrioridad>(tarea?.prioridad ?? 'media');
   const [status, setStatus] = useState<AdminTareaStatus>(tarea?.status ?? 'por_hacer');
@@ -35,6 +35,12 @@ export default function TaskModal({ tarea, teamMembers, clientes, currentAdminId
   const [saving, setSaving] = useState(false);
 
   const isEditing = !!tarea;
+
+  const creadorId = tarea?.creado_por ?? currentAdminId;
+  const creadorNombre =
+    tarea?.creador_nombre
+    ?? teamMembers.find(m => m.id === creadorId)?.nombre
+    ?? 'Vos';
 
   async function handleSubmit() {
     if (!titulo.trim()) return;
@@ -70,6 +76,15 @@ export default function TaskModal({ tarea, teamMembers, clientes, currentAdminId
 
         {/* Body */}
         <div className="p-5 space-y-4 overflow-y-auto flex-1">
+          {/* Creado por (readonly) */}
+          <div className="flex items-center gap-2 text-xs text-[#FFFFFF]/55 bg-[#F5A623]/5 border border-[#F5A623]/15 rounded-lg px-3 py-2">
+            <UserPlus className="w-3.5 h-3.5 text-[#F5A623]/70 shrink-0" />
+            <span>
+              Creada por <span className="font-semibold text-[#F5A623]">{creadorNombre}</span>
+              {' '}— {isEditing ? 'el creador siempre ve la tarea.' : 'la verás en tu panel aunque la asignes a otra persona.'}
+            </span>
+          </div>
+
           {/* Título */}
           <div>
             <label className="block text-[10px] font-bold text-[#FFFFFF]/40 uppercase tracking-wider mb-1.5">Título *</label>
