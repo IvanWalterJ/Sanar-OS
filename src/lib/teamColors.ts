@@ -130,6 +130,44 @@ export interface PriorityBg {
   accent: string;
 }
 
+// ─── Stage colors — pipeline de clientes (6 fases del programa) ───────────
+
+export const STAGE_COLORS: TeamColor[] = [
+  // 0 Onboarding
+  { key: 'stage-0', solid: '#9CA3AF', bg: 'rgba(156,163,175,0.12)', border: 'rgba(156,163,175,0.32)', text: '#CBD5E1', tagBg: 'rgba(156,163,175,0.10)', tagBorder: 'rgba(156,163,175,0.25)' },
+  // 1 Sprint Identidad
+  { key: 'stage-1', solid: '#F5A623', bg: 'rgba(245,166,35,0.13)', border: 'rgba(245,166,35,0.36)', text: '#FFB94D', tagBg: 'rgba(245,166,35,0.10)', tagBorder: 'rgba(245,166,35,0.25)' },
+  // 2 Sprint Mercado
+  { key: 'stage-2', solid: '#4FA3E3', bg: 'rgba(79,163,227,0.13)', border: 'rgba(79,163,227,0.36)', text: '#7BBFF0', tagBg: 'rgba(79,163,227,0.10)', tagBorder: 'rgba(79,163,227,0.25)' },
+  // 3 Sprint Oferta
+  { key: 'stage-3', solid: '#A88BF5', bg: 'rgba(168,139,245,0.13)', border: 'rgba(168,139,245,0.36)', text: '#C4ADFF', tagBg: 'rgba(168,139,245,0.10)', tagBorder: 'rgba(168,139,245,0.25)' },
+  // 4 Activación y Ventas
+  { key: 'stage-4', solid: '#F97316', bg: 'rgba(249,115,22,0.13)', border: 'rgba(249,115,22,0.36)', text: '#FB923C', tagBg: 'rgba(249,115,22,0.10)', tagBorder: 'rgba(249,115,22,0.25)' },
+  // 5 Análisis y Optimización
+  { key: 'stage-5', solid: '#10B981', bg: 'rgba(16,185,129,0.12)', border: 'rgba(16,185,129,0.34)', text: '#34D399', tagBg: 'rgba(16,185,129,0.10)', tagBorder: 'rgba(16,185,129,0.25)' },
+];
+
+export type Semaforo = 'verde' | 'amarillo' | 'rojo' | 'gris';
+
+export const SEMAFORO_BG: Record<Semaforo, PriorityBg> = {
+  verde: {
+    image: 'linear-gradient(135deg, rgba(34,197,94,0.10), rgba(34,197,94,0.025) 55%, rgba(34,197,94,0) 80%)',
+    accent: '#22C55E',
+  },
+  amarillo: {
+    image: 'linear-gradient(135deg, rgba(251,191,36,0.14), rgba(251,191,36,0.035) 55%, rgba(251,191,36,0) 80%)',
+    accent: '#FBBF24',
+  },
+  rojo: {
+    image: 'linear-gradient(135deg, rgba(239,68,68,0.16), rgba(239,68,68,0.04) 50%, rgba(239,68,68,0) 80%)',
+    accent: '#EF4444',
+  },
+  gris: {
+    image: 'linear-gradient(135deg, rgba(156,163,175,0.07), rgba(156,163,175,0.015) 55%, rgba(156,163,175,0) 80%)',
+    accent: '#9CA3AF',
+  },
+};
+
 export const PRIORITY_BG: Record<AdminTareaPrioridad, PriorityBg> = {
   urgente: {
     image: 'linear-gradient(135deg, rgba(239,68,68,0.16), rgba(239,68,68,0.04) 50%, rgba(239,68,68,0) 80%)',

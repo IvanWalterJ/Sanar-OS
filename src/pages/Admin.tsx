@@ -23,6 +23,7 @@ const ADMIN_PILAR_ICON_MAP: Record<string, React.ComponentType<{ className?: str
   Building2, Megaphone, Phone, Handshake, Palette, BarChart3,
 };
 import { supabase, type Profile, type ProfileV2, type Mensaje, type AdminNote, type UserStatus, type PilarId, isSupabaseReady, PILAR_ORDER, fetchProfileV2 } from '../lib/supabase';
+import { STAGE_COLORS, SEMAFORO_BG } from '../lib/teamColors';
 import { SEED_ROADMAP_V3, SEED_ROADMAP_V2 } from '../lib/roadmapSeed';
 import { generateText } from '../lib/aiProvider';
 import { toast } from 'sonner';
@@ -105,13 +106,13 @@ const PILAR_OPTIONS: { id: PilarId; label: string }[] = SEED_ROADMAP_V3.map(p =>
   label: `${p.id} — ${p.titulo}`,
 }));
 
-const PIPELINE_STAGES: { label: string; sub: string; maxDay: number; fase: number }[] = [
-  { label: 'Onboarding',              sub: 'Días 1–3',   maxDay: 3,  fase: 0 },
-  { label: 'Sprint de Identidad',     sub: 'Días 4–20',  maxDay: 20, fase: 1 },
-  { label: 'Sprint de Mercado',       sub: 'Días 21–38', maxDay: 38, fase: 2 },
-  { label: 'Sprint de Oferta',        sub: 'Días 39–45', maxDay: 45, fase: 3 },
-  { label: 'Activación y Ventas',     sub: 'Días 46–80', maxDay: 80, fase: 4 },
-  { label: 'Análisis y Optimización', sub: 'Días 81–90', maxDay: 91, fase: 5 },
+const PIPELINE_STAGES: { label: string; sub: string; maxDay: number; fase: number; icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }> }[] = [
+  { label: 'Onboarding',              sub: 'Días 1–3',   maxDay: 3,  fase: 0, icon: UserCircle },
+  { label: 'Sprint de Identidad',     sub: 'Días 4–20',  maxDay: 20, fase: 1, icon: Fingerprint },
+  { label: 'Sprint de Mercado',       sub: 'Días 21–38', maxDay: 38, fase: 2, icon: Search },
+  { label: 'Sprint de Oferta',        sub: 'Días 39–45', maxDay: 45, fase: 3, icon: Sparkles },
+  { label: 'Activación y Ventas',     sub: 'Días 46–80', maxDay: 80, fase: 4, icon: Megaphone },
+  { label: 'Análisis y Optimización', sub: 'Días 81–90', maxDay: 91, fase: 5, icon: Trophy },
 ];
 
 function getFaseFromProgress(tareas_completadas: number): number {
@@ -1586,24 +1587,40 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
           {mainTab === 'pipeline' && (
             <div className="flex-1 flex flex-col h-full overflow-hidden">
               {/* Stats bar */}
-              <div className="flex items-center gap-4 px-4 md:px-6 pt-4 pb-3 border-b border-[rgba(245,166,35,0.08)] shrink-0 overflow-x-auto scrollbar-hide">
-                <div className="flex items-center gap-3 md:gap-6 shrink-0">
+              <div className="flex items-center gap-4 px-4 md:px-6 pt-4 pb-3 border-b border-[rgba(255,255,255,0.05)] shrink-0 overflow-x-auto scrollbar-hide">
+                <div className="flex items-center gap-2 md:gap-3 shrink-0">
                   {PIPELINE_STAGES.map((stage, i) => {
                     const count = clientes.filter(c => {
                       const clienteFase = getFaseFromProgress(c.tareas_completadas);
                       const idx = PIPELINE_STAGES.findIndex(s => s.fase === clienteFase);
                       return (idx === -1 ? 0 : idx) === i;
                     }).length;
+                    const color = STAGE_COLORS[i];
+                    const Icon = stage.icon;
                     return (
-                      <div key={stage.label} className="flex items-center gap-1.5 shrink-0">
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-[#FFFFFF]/30 hidden sm:inline">{stage.label}</span>
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-[#FFFFFF]/30 sm:hidden">{stage.label.split(' ').pop()}</span>
-                        <span className="text-[11px] font-bold text-[#F5A623] bg-[#F5A623]/10 px-1.5 py-0.5 rounded-md">{count}</span>
+                      <div
+                        key={stage.label}
+                        className="flex items-center gap-1.5 shrink-0 px-2 py-1 rounded-md"
+                        style={{ backgroundColor: count > 0 ? color.tagBg : 'transparent' }}
+                      >
+                        <Icon className="w-3.5 h-3.5" style={{ color: color.text }} />
+                        <span className="text-[10px] font-semibold uppercase tracking-wider hidden sm:inline" style={{ color: color.text }}>
+                          {stage.label}
+                        </span>
+                        <span className="text-[10px] font-semibold uppercase tracking-wider sm:hidden" style={{ color: color.text }}>
+                          {stage.label.split(' ').pop()}
+                        </span>
+                        <span
+                          className="text-[11px] font-bold px-1.5 py-0.5 rounded-md leading-none"
+                          style={{ backgroundColor: color.bg, color: color.text }}
+                        >
+                          {count}
+                        </span>
                       </div>
                     );
                   })}
                 </div>
-                <div className="ml-auto hidden md:flex items-center gap-2 shrink-0">
+                <div className="ml-auto hidden md:flex items-center gap-3 shrink-0">
                   <div className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-[#22C55E]" /><span className="text-[10px] text-[#FFFFFF]/40">En ritmo</span></div>
                   <div className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-amber-400" /><span className="text-[10px] text-[#FFFFFF]/40">Atención</span></div>
                   <div className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-[#EF4444]" /><span className="text-[10px] text-[#FFFFFF]/40">Necesita ayuda</span></div>
@@ -1619,23 +1636,39 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
                       const idx = PIPELINE_STAGES.findIndex(s => s.fase === clienteFase);
                       return (idx === -1 ? 0 : idx) === stageIdx;
                     });
+                    const stageColor = STAGE_COLORS[stageIdx];
+                    const StageIcon = stage.icon;
                     return (
-                      <div key={stage.label} className="w-[200px] sm:w-[240px] shrink-0 flex flex-col h-full">
-                        {/* Column header */}
-                        <div className="flex items-center justify-between px-3 py-2.5 mb-2 rounded-xl bg-[#141414] border border-[rgba(245,166,35,0.12)]">
-                          <div>
-                            <p className="text-xs font-bold text-[#FFFFFF]/80">{stage.label}</p>
-                            <p className="text-[9px] text-[#FFFFFF]/30 mt-0.5">{stage.sub}</p>
+                      <div key={stage.label} className="w-[220px] sm:w-[260px] shrink-0 flex flex-col h-full rounded-2xl bg-[#0F0F0F]/60 border border-[rgba(255,255,255,0.05)]">
+                        {/* Column header coloreado por fase */}
+                        <div
+                          className="flex items-center gap-2.5 px-3 py-3 rounded-t-2xl border-b border-[rgba(255,255,255,0.05)]"
+                          style={{ background: `linear-gradient(180deg, ${stageColor.bg}, transparent 90%)` }}
+                        >
+                          <div
+                            style={{ backgroundColor: stageColor.bg, borderColor: stageColor.border, color: stageColor.text }}
+                            className="w-9 h-9 rounded-lg flex items-center justify-center border-[1.5px] shrink-0"
+                          >
+                            <StageIcon className="w-4 h-4" />
                           </div>
-                          <span className="text-[11px] font-bold text-[#F5A623] bg-[#F5A623]/10 px-2 py-0.5 rounded-full min-w-[22px] text-center">
+                          <div className="min-w-0 flex-1">
+                            <div className="text-[13px] font-bold truncate" style={{ color: stageColor.text }}>
+                              {stage.label}
+                            </div>
+                            <div className="text-[10px] text-[#FFFFFF]/40">{stage.sub}</div>
+                          </div>
+                          <span
+                            className="text-[11px] font-bold px-2 py-0.5 rounded-full min-w-[24px] text-center leading-none"
+                            style={{ backgroundColor: stageColor.bg, color: stageColor.text }}
+                          >
                             {stageClientes.length}
                           </span>
                         </div>
 
                         {/* Cards */}
-                        <div className="flex-1 overflow-y-auto scrollbar-hide space-y-2.5">
+                        <div className="flex-1 overflow-y-auto scrollbar-hide space-y-2 p-2">
                           {stageClientes.length === 0 ? (
-                            <div className="flex flex-col items-center justify-center py-8 text-center border border-dashed border-[rgba(245,166,35,0.1)] rounded-xl">
+                            <div className="flex flex-col items-center justify-center py-8 text-center border border-dashed border-[rgba(255,255,255,0.06)] rounded-xl">
                               <p className="text-[11px] text-[#FFFFFF]/20">Sin clientes</p>
                             </div>
                           ) : stageClientes.map(c => {
@@ -1643,43 +1676,52 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
                               ? Math.round((c.tareas_completadas / c.tareas_total) * 100)
                               : 0;
                             const sem = SEMAFORO_CONFIG[c.semaforo];
+                            const semBg = SEMAFORO_BG[c.semaforo];
                             const stCfg = STATUS_CONFIG[c.status ?? 'ACTIVE'];
                             return (
                               <button
                                 key={c.id}
                                 type="button"
                                 onClick={() => { setSelectedCliente(c); setMainTab('clientes'); setDetalleTab('resumen'); setIaRecomendacion(''); }}
-                                className="w-full text-left bg-[#141414] border border-[rgba(245,166,35,0.12)] rounded-xl p-3.5 hover:border-[rgba(245,166,35,0.3)] hover:bg-[#1C1C1C] transition-all group"
+                                style={{
+                                  borderLeftColor: semBg.accent,
+                                  borderLeftWidth: 4,
+                                  backgroundImage: semBg.image,
+                                }}
+                                className="w-full text-left bg-[#1A1A1A] border border-[rgba(255,255,255,0.08)] rounded-xl p-3.5 pl-4 hover:bg-[#1F1F1F] hover:border-[rgba(255,255,255,0.18)] transition-all group overflow-hidden"
                               >
                                 {/* Top: avatar + name + semaforo */}
                                 <div className="flex items-center gap-2.5 mb-3">
-                                  <div className="w-8 h-8 rounded-full bg-[#F5A623]/15 border border-[rgba(245,166,35,0.25)] flex items-center justify-center text-xs font-bold text-[#F5A623] shrink-0">
+                                  <div
+                                    style={{ backgroundColor: stageColor.bg, borderColor: stageColor.border, color: stageColor.text }}
+                                    className="w-8 h-8 rounded-full border-[1.5px] flex items-center justify-center text-xs font-bold shrink-0"
+                                  >
                                     {c.nombre.charAt(0).toUpperCase()}
                                   </div>
                                   <div className="flex-1 min-w-0">
                                     <p className="text-sm font-semibold text-[#FFFFFF] truncate group-hover:text-[#F5A623] transition-colors">{c.nombre}</p>
-                                    {c.especialidad && <p className="text-[10px] text-[#FFFFFF]/30 truncate">{c.especialidad}</p>}
+                                    {c.especialidad && <p className="text-[10px] text-[#FFFFFF]/40 truncate">{c.especialidad}</p>}
                                   </div>
-                                  <div className={`w-2 h-2 rounded-full shrink-0 ${sem.class}`} title={sem.label} />
+                                  <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${sem.class}`} title={sem.label} />
                                 </div>
 
-                                {/* Progress bar */}
+                                {/* Progress bar coloreada por fase */}
                                 <div className="mb-2.5">
                                   <div className="flex items-center justify-between mb-1">
-                                    <span className="text-[9px] text-[#FFFFFF]/30 uppercase tracking-wider font-bold">Progreso</span>
-                                    <span className="text-[10px] text-[#F5A623] font-bold">{pct}%</span>
+                                    <span className="text-[9px] text-[#FFFFFF]/40 uppercase tracking-wider font-bold">Progreso</span>
+                                    <span className="text-[10px] font-bold" style={{ color: stageColor.text }}>{pct}%</span>
                                   </div>
-                                  <div className="h-1.5 bg-[#F5A623]/8 rounded-full overflow-hidden">
+                                  <div className="h-1.5 bg-[#FFFFFF]/8 rounded-full overflow-hidden">
                                     <div
-                                      className="h-full bg-[#F5A623] rounded-full transition-all"
-                                      style={{ width: `${pct}%` }}
+                                      className="h-full rounded-full transition-all"
+                                      style={{ width: `${pct}%`, backgroundColor: stageColor.solid }}
                                     />
                                   </div>
                                 </div>
 
                                 {/* Footer: day + plan + rating + status */}
                                 <div className="flex items-center gap-1.5 flex-wrap">
-                                  <span className="text-[9px] text-[#FFFFFF]/30 bg-[#FFFFFF]/5 px-1.5 py-0.5 rounded">Día {c.dia_programa}/90</span>
+                                  <span className="text-[9px] text-[#FFFFFF]/40 bg-[#FFFFFF]/5 px-1.5 py-0.5 rounded">Día {c.dia_programa}/90</span>
                                   <span className="text-[9px] font-bold text-[#F5A623] bg-[#F5A623]/10 px-1.5 py-0.5 rounded">{c.plan}</span>
                                   {ratingsResumen[c.id] !== undefined && (
                                     <span className="text-[9px] text-[#F5A623] bg-[#F5A623]/10 px-1.5 py-0.5 rounded flex items-center gap-0.5">
