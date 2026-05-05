@@ -57,25 +57,26 @@ export default function TaskAgente({ meta, onComplete, isCompleted, onNavigateTo
         <ExternalLink className="w-4 h-4 opacity-50" />
       </button>
 
-      {/* Confirmation checkbox */}
-      <div className="border-t border-[rgba(245,166,35,0.1)] pt-5">
+      {/* Confirmation — prominent completion button */}
+      <div className="border-t border-purple-500/15 pt-5">
         {checked ? (
-          <div className="flex items-center gap-2 text-[#22C55E] text-sm font-medium">
+          <div className="flex items-center justify-center gap-2 py-4 rounded-xl bg-[#22C55E]/10 border border-[#22C55E]/30 text-[#22C55E] text-base font-semibold">
             <CheckCircle2 className="w-5 h-5" />
             Sesión con el Agente completada
           </div>
         ) : (
-          <label className="flex items-center gap-3 cursor-pointer group">
-            <input
-              type="checkbox"
-              checked={checked}
-              onChange={handleCheck}
-              className="w-5 h-5 rounded border-purple-500/30 bg-transparent accent-[#22C55E] cursor-pointer"
-            />
-            <span className="text-sm text-[#FFFFFF]/70 group-hover:text-[#FFFFFF] transition-colors">
-              Completé la sesión con el Agente
-            </span>
-          </label>
+          <>
+            <p className="text-xs text-[#FFFFFF]/55 text-center mb-3 leading-relaxed">
+              Cuando termines de trabajar con el Agente, hacé clic acá para marcar este paso como completado y desbloquear el siguiente.
+            </p>
+            <button
+              onClick={handleCheck}
+              className="w-full flex items-center justify-center gap-3 py-4 rounded-xl bg-[#22C55E]/15 border-2 border-[#22C55E]/40 text-[#22C55E] text-base font-semibold hover:bg-[#22C55E]/25 hover:border-[#22C55E]/70 hover:shadow-[0_0_24px_rgba(34,197,94,0.25)] transition-all"
+            >
+              <CheckCircle2 className="w-5 h-5" />
+              Marcar como completado
+            </button>
+          </>
         )}
       </div>
     </div>
