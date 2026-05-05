@@ -1586,44 +1586,22 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
               ═══════════════════════════════════════════════════════════════════════ */}
           {mainTab === 'pipeline' && (
             <div className="flex-1 flex flex-col h-full overflow-hidden">
-              {/* Stats bar */}
-              <div className="flex items-center gap-4 px-4 md:px-6 pt-4 pb-3 border-b border-[rgba(255,255,255,0.05)] shrink-0 overflow-x-auto scrollbar-hide">
-                <div className="flex items-center gap-2 md:gap-3 shrink-0">
-                  {PIPELINE_STAGES.map((stage, i) => {
-                    const count = clientes.filter(c => {
-                      const clienteFase = getFaseFromProgress(c.tareas_completadas);
-                      const idx = PIPELINE_STAGES.findIndex(s => s.fase === clienteFase);
-                      return (idx === -1 ? 0 : idx) === i;
-                    }).length;
-                    const color = STAGE_COLORS[i];
-                    const Icon = stage.icon;
-                    return (
-                      <div
-                        key={stage.label}
-                        className="flex items-center gap-1.5 shrink-0 px-2 py-1 rounded-md"
-                        style={{ backgroundColor: count > 0 ? color.tagBg : 'transparent' }}
-                      >
-                        <Icon className="w-3.5 h-3.5" style={{ color: color.text }} />
-                        <span className="text-[10px] font-semibold uppercase tracking-wider hidden sm:inline" style={{ color: color.text }}>
-                          {stage.label}
-                        </span>
-                        <span className="text-[10px] font-semibold uppercase tracking-wider sm:hidden" style={{ color: color.text }}>
-                          {stage.label.split(' ').pop()}
-                        </span>
-                        <span
-                          className="text-[11px] font-bold px-1.5 py-0.5 rounded-md leading-none"
-                          style={{ backgroundColor: color.bg, color: color.text }}
-                        >
-                          {count}
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
-                <div className="ml-auto hidden md:flex items-center gap-3 shrink-0">
-                  <div className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-[#22C55E]" /><span className="text-[10px] text-[#FFFFFF]/40">En ritmo</span></div>
-                  <div className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-amber-400" /><span className="text-[10px] text-[#FFFFFF]/40">Atención</span></div>
-                  <div className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-[#EF4444]" /><span className="text-[10px] text-[#FFFFFF]/40">Necesita ayuda</span></div>
+              {/* Stats bar — leyenda de semáforo */}
+              <div className="flex items-center gap-4 px-4 md:px-6 pt-3 pb-3 border-b border-[rgba(255,255,255,0.05)] shrink-0">
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-[#FFFFFF]/40">Semáforo</span>
+                <div className="flex items-center gap-3 flex-wrap">
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-2.5 h-2.5 rounded-full bg-[#22C55E] shadow-[0_0_8px_rgba(16,185,129,0.4)]" />
+                    <span className="text-xs text-[#FFFFFF]/70">En ritmo</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-2.5 h-2.5 rounded-full bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.4)]" />
+                    <span className="text-xs text-[#FFFFFF]/70">Atención</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-2.5 h-2.5 rounded-full bg-[#EF4444] shadow-[0_0_8px_rgba(239,68,68,0.4)]" />
+                    <span className="text-xs text-[#FFFFFF]/70">Necesita ayuda</span>
+                  </div>
                 </div>
               </div>
 
