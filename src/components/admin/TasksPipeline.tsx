@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { Plus, AlertCircle, ChevronDown, ChevronUp, RefreshCw } from 'lucide-react';
+import { Plus, AlertCircle, ChevronDown, ChevronUp, RefreshCw, Archive, Eye, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
 import TaskModal from './TaskModal';
 import ConfirmDialog from './ConfirmDialog';
@@ -8,6 +8,7 @@ import TaskFiltersBar, { EMPTY_FILTERS, type TaskFilters } from './tasks/TaskFil
 import TaskViewToggle, { type TaskView } from './tasks/TaskViewToggle';
 import TaskKanbanView from './tasks/TaskKanbanView';
 import TaskListView from './tasks/TaskListView';
+import TaskByPersonView from './tasks/TaskByPersonView';
 import type { AdminTarea, AdminTareaStatus, Profile } from '../../lib/supabase';
 import {
   fetchAdminTareas,
@@ -16,6 +17,9 @@ import {
   updateAdminTarea,
   updateAdminTareaStatus,
   deleteAdminTarea,
+  archivarAdminTarea,
+  desarchivarAdminTarea,
+  archivarTodasCompletadas,
 } from '../../lib/adminTasks';
 import { notificarTareaAsignada } from '../../lib/notifications';
 
@@ -51,8 +55,11 @@ export default function TasksPipeline({ currentAdminId, teamMembers, clientes }:
   const [showHoy, setShowHoy] = useState(true);
   const [deletingTarea, setDeletingTarea] = useState<AdminTarea | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [verArchivadas, setVerArchivadas] = useState(false);
+  const [bulkArchiveOpen, setBulkArchiveOpen] = useState(false);
+  const [bulkArchiveLoading, setBulkArchiveLoading] = useState(false);
 
-  const [view, setView] = useState<TaskView>('kanban');
+  const [view, setView] = useState<TaskView>('people');
   const [filters, setFilters] = useState<TaskFilters>({
     ...EMPTY_FILTERS,
     prioridades: new Set(),
@@ -63,7 +70,7 @@ export default function TasksPipeline({ currentAdminId, teamMembers, clientes }:
     setLoading(true);
     try {
       const [all, hoy] = await Promise.all([
-        fetchAdminTareas(),
+        fetchAdminTareas({ incluirArchivadas: verArchivadas }),
         fetchTareasHoy(currentAdminId),
       ]);
       setTareas(all);
@@ -74,7 +81,7 @@ export default function TasksPipeline({ currentAdminId, teamMembers, clientes }:
     } finally {
       setLoading(false);
     }
-  }, [currentAdminId]);
+  }, [currentAdminId, verArchivadas]);
 
   useEffect(() => { cargar(); }, [cargar]);
 
@@ -118,6 +125,16 @@ export default function TasksPipeline({ currentAdminId, teamMembers, clientes }:
     [tareas, currentAdminId],
   );
 
+  const completadasNoArchivadasCount = useMemo(
+    () => tareas.filter(t => t.status === 'completadas' && !t.archivada_at).length,
+    [tareas],
+  );
+
+  const archivadasCount = useMemo(
+    () => tareas.filter(t => !!t.archivada_at).length,
+    [tareas],
+  );
+
   async function handleStatusChange(id: string, status: AdminTareaStatus) {
     setTareas(prev => prev.map(t => t.id === id ? { ...t, status } : t));
     try {
@@ -126,6 +143,50 @@ export default function TasksPipeline({ currentAdminId, teamMembers, clientes }:
     } catch {
       toast.error('Error al mover la tarea');
       await cargar();
+    }
+  }
+
+  async function handleArchive(id: string) {
+    const snapshot = tareas;
+    setTareas(prev => prev.map(t => t.id === id ? { ...t, archivada_at: new Date().toISOString() } : t));
+    try {
+      await archivarAdminTarea(id);
+      toast.success('Tarea archivada');
+      await cargar();
+    } catch {
+      setTareas(snapshot);
+      toast.error('No se pudo archivar la tarea');
+    }
+  }
+
+  async function handleUnarchive(id: string) {
+    const snapshot = tareas;
+    setTareas(prev => prev.map(t => t.id === id ? { ...t, archivada_at: null } : t));
+    try {
+      await desarchivarAdminTarea(id);
+      toast.success('Tarea desarchivada');
+      await cargar();
+    } catch {
+      setTareas(snapshot);
+      toast.error('No se pudo desarchivar la tarea');
+    }
+  }
+
+  async function handleBulkArchive() {
+    setBulkArchiveLoading(true);
+    try {
+      const n = await archivarTodasCompletadas();
+      setBulkArchiveOpen(false);
+      if (n === 0) {
+        toast.info('No había tareas completadas sin archivar');
+      } else {
+        toast.success(`${n} tarea${n === 1 ? '' : 's'} archivada${n === 1 ? '' : 's'}`);
+      }
+      await cargar();
+    } catch {
+      toast.error('No se pudieron archivar las tareas');
+    } finally {
+      setBulkArchiveLoading(false);
     }
   }
 
@@ -203,6 +264,42 @@ export default function TasksPipeline({ currentAdminId, teamMembers, clientes }:
         </div>
       </div>
 
+      {/* Acciones secundarias: archivar + ver archivadas */}
+      <div className="flex items-center gap-2 flex-wrap">
+        <button
+          onClick={() => setVerArchivadas(v => !v)}
+          className={`
+            flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all
+            ${verArchivadas
+              ? 'bg-[#F5A623]/15 text-[#F5A623] border-[#F5A623]/40'
+              : 'bg-[#0F0F0F] text-[#FFFFFF]/55 border-[rgba(255,255,255,0.08)] hover:text-[#FFFFFF] hover:border-[rgba(255,255,255,0.18)]'
+            }
+          `}
+        >
+          {verArchivadas ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+          {verArchivadas ? 'Ocultar archivadas' : 'Ver archivadas'}
+          {verArchivadas && archivadasCount > 0 && (
+            <span className="text-[10px] bg-[#F5A623]/25 text-[#F5A623] px-1.5 py-0.5 rounded-full">
+              {archivadasCount}
+            </span>
+          )}
+        </button>
+
+        {completadasNoArchivadasCount > 0 && (
+          <button
+            onClick={() => setBulkArchiveOpen(true)}
+            title="Archivar todas las tareas completadas"
+            className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold border bg-[#0F0F0F] text-[#FFFFFF]/55 border-[rgba(255,255,255,0.08)] hover:text-[#F5A623] hover:border-[#F5A623]/30 transition-all"
+          >
+            <Archive className="w-3.5 h-3.5" />
+            Archivar completadas
+            <span className="text-[10px] bg-[#FFFFFF]/8 px-1.5 py-0.5 rounded-full">
+              {completadasNoArchivadasCount}
+            </span>
+          </button>
+        )}
+      </div>
+
       {/* Vista Hoy (banner colapsable) */}
       {tareasHoy.length > 0 && (
         <div className="bg-[#141414] border border-[rgba(245,166,35,0.2)] rounded-2xl overflow-hidden">
@@ -232,6 +329,8 @@ export default function TasksPipeline({ currentAdminId, teamMembers, clientes }:
                   onStatusChange={handleStatusChange}
                   onEdit={tarea => { setEditingTarea(tarea); setShowModal(true); }}
                   onDelete={handleDelete}
+                  onArchive={handleArchive}
+                  onUnarchive={handleUnarchive}
                 />
               ))}
             </div>
@@ -244,6 +343,7 @@ export default function TasksPipeline({ currentAdminId, teamMembers, clientes }:
         filters={filters}
         onChange={setFilters}
         teamMembers={teamMembers}
+        currentUserId={currentAdminId}
       />
 
       {/* Body — vista activa */}
@@ -259,6 +359,22 @@ export default function TasksPipeline({ currentAdminId, teamMembers, clientes }:
           onEdit={t => { setEditingTarea(t); setShowModal(true); }}
           onDelete={handleDelete}
         />
+      ) : view === 'people' ? (
+        <TaskByPersonView
+          tareas={filtered}
+          teamMembers={
+            filters.asignados.size > 0
+              ? teamMembers.filter(m => filters.asignados.has(m.id))
+              : teamMembers
+          }
+          currentUserId={currentAdminId}
+          onStatusChange={handleStatusChange}
+          onEdit={t => { setEditingTarea(t); setShowModal(true); }}
+          onDelete={handleDelete}
+          onArchive={handleArchive}
+          onUnarchive={handleUnarchive}
+          onReassign={() => { cargar().catch(() => null); }}
+        />
       ) : (
         <TaskKanbanView
           tareas={filtered}
@@ -266,6 +382,8 @@ export default function TasksPipeline({ currentAdminId, teamMembers, clientes }:
           onStatusChange={handleStatusChange}
           onEdit={t => { setEditingTarea(t); setShowModal(true); }}
           onDelete={handleDelete}
+          onArchive={handleArchive}
+          onUnarchive={handleUnarchive}
         />
       )}
 
@@ -291,6 +409,18 @@ export default function TasksPipeline({ currentAdminId, teamMembers, clientes }:
         loading={deleteLoading}
         onConfirm={confirmDelete}
         onCancel={() => { if (!deleteLoading) setDeletingTarea(null); }}
+      />
+
+      <ConfirmDialog
+        open={bulkArchiveOpen}
+        variant="default"
+        title="Archivar completadas"
+        message={`¿Archivar las ${completadasNoArchivadasCount} tarea${completadasNoArchivadasCount === 1 ? '' : 's'} completada${completadasNoArchivadasCount === 1 ? '' : 's'}? Quedan ocultas pero podés volver a verlas con "Ver archivadas".`}
+        confirmLabel="Archivar"
+        cancelLabel="Cancelar"
+        loading={bulkArchiveLoading}
+        onConfirm={handleBulkArchive}
+        onCancel={() => { if (!bulkArchiveLoading) setBulkArchiveOpen(false); }}
       />
     </div>
   );

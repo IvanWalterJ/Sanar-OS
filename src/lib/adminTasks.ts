@@ -32,6 +32,8 @@ export interface TareaFilters {
   /** 'mine' = asignado_a OR creado_por = currentUserId. Requiere currentUserId. */
   scope?: TareaScope;
   currentUserId?: string;
+  /** Si true, también devuelve tareas archivadas. Default: false. */
+  incluirArchivadas?: boolean;
 }
 
 /**
@@ -41,7 +43,9 @@ export interface TareaFilters {
 export async function fetchAdminTareas(filters?: TareaFilters): Promise<AdminTarea[]> {
   if (!supabase) return [];
 
-  const { data, error } = await supabase.rpc('get_admin_tareas_with_users');
+  const { data, error } = await supabase.rpc('get_admin_tareas_with_users', {
+    incluir_archivadas: filters?.incluirArchivadas ?? false,
+  });
   if (error) throw error;
 
   let rows = (data ?? []) as AdminTarea[];
@@ -135,4 +139,41 @@ export async function deleteAdminTarea(id: string): Promise<void> {
   if (!supabase) throw new Error('Supabase not configured');
   const { error } = await supabase.from('admin_tareas').delete().eq('id', id);
   if (error) throw error;
+}
+
+/** Archiva una tarea — la oculta de las vistas por defecto sin borrarla. */
+export async function archivarAdminTarea(id: string): Promise<void> {
+  if (!supabase) throw new Error('Supabase not configured');
+  const { error } = await supabase
+    .from('admin_tareas')
+    .update({ archivada_at: new Date().toISOString() })
+    .eq('id', id);
+  if (error) throw error;
+}
+
+/** Desarchiva una tarea — vuelve a aparecer en vistas activas. */
+export async function desarchivarAdminTarea(id: string): Promise<void> {
+  if (!supabase) throw new Error('Supabase not configured');
+  const { error } = await supabase
+    .from('admin_tareas')
+    .update({ archivada_at: null })
+    .eq('id', id);
+  if (error) throw error;
+}
+
+/**
+ * Archiva en bulk todas las tareas con status 'completadas' que no estén ya archivadas.
+ * Devuelve la cantidad archivada.
+ */
+export async function archivarTodasCompletadas(): Promise<number> {
+  if (!supabase) throw new Error('Supabase not configured');
+  const now = new Date().toISOString();
+  const { data, error } = await supabase
+    .from('admin_tareas')
+    .update({ archivada_at: now })
+    .eq('status', 'completadas')
+    .is('archivada_at', null)
+    .select('id');
+  if (error) throw error;
+  return (data ?? []).length;
 }

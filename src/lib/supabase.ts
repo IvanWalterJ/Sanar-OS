@@ -490,6 +490,7 @@ export interface AdminTarea {
   fecha_vencimiento: string | null;
   status: AdminTareaStatus;
   completada_at: string | null;
+  archivada_at: string | null;
   created_at: string;
   updated_at: string;
   // Joined fields (optional, populated by RPC get_admin_tareas_with_users)

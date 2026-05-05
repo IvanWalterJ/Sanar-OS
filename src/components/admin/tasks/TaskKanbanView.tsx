@@ -1,5 +1,6 @@
 /**
  * TaskKanbanView — Kanban de 4 columnas con drag-and-drop via @dnd-kit.
+ * Cada columna tiene un header coloreado por status (gris / azul / ámbar / verde).
  */
 import { useMemo, useState } from 'react';
 import {
@@ -7,8 +8,10 @@ import {
   type DragEndEvent, type DragStartEvent,
 } from '@dnd-kit/core';
 import { useDroppable, useDraggable } from '@dnd-kit/core';
+import { Circle, Loader2, Eye, CheckCircle2 } from 'lucide-react';
 import type { AdminTarea, AdminTareaStatus } from '../../../lib/supabase';
 import { ADMIN_TAREA_STATUSES, ADMIN_TAREA_STATUS_LABELS } from '../../../lib/supabase';
+import { STATUS_COLORS } from '../../../lib/teamColors';
 import TaskCard from './TaskCard';
 
 interface TaskKanbanViewProps {
@@ -17,16 +20,27 @@ interface TaskKanbanViewProps {
   onStatusChange: (id: string, status: AdminTareaStatus) => void;
   onEdit: (t: AdminTarea) => void;
   onDelete: (id: string) => void;
+  onArchive?: (id: string) => void;
+  onUnarchive?: (id: string) => void;
 }
 
+const STATUS_ICONS: Record<AdminTareaStatus, React.ComponentType<{ className?: string }>> = {
+  por_hacer: Circle,
+  en_proceso: Loader2,
+  en_revision: Eye,
+  completadas: CheckCircle2,
+};
+
 function DraggableCard({
-  tarea, currentUserId, onStatusChange, onEdit, onDelete,
+  tarea, currentUserId, onStatusChange, onEdit, onDelete, onArchive, onUnarchive,
 }: {
   tarea: AdminTarea;
   currentUserId: string;
   onStatusChange: (id: string, status: AdminTareaStatus) => void;
   onEdit: (t: AdminTarea) => void;
   onDelete: (id: string) => void;
+  onArchive?: (id: string) => void;
+  onUnarchive?: (id: string) => void;
 }) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: tarea.id,
@@ -41,6 +55,8 @@ function DraggableCard({
         onStatusChange={onStatusChange}
         onEdit={onEdit}
         onDelete={onDelete}
+        onArchive={onArchive}
+        onUnarchive={onUnarchive}
         isDragging={isDragging}
       />
     </div>
@@ -48,7 +64,7 @@ function DraggableCard({
 }
 
 function DroppableColumn({
-  status, tareas, currentUserId, onStatusChange, onEdit, onDelete,
+  status, tareas, currentUserId, onStatusChange, onEdit, onDelete, onArchive, onUnarchive,
 }: {
   status: AdminTareaStatus;
   tareas: AdminTarea[];
@@ -56,28 +72,51 @@ function DroppableColumn({
   onStatusChange: (id: string, status: AdminTareaStatus) => void;
   onEdit: (t: AdminTarea) => void;
   onDelete: (id: string) => void;
+  onArchive?: (id: string) => void;
+  onUnarchive?: (id: string) => void;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: status });
+  const color = STATUS_COLORS[status];
+  const Icon = STATUS_ICONS[status];
 
   return (
-    <div className="min-w-0 flex flex-col">
-      <div className={`flex items-center justify-between gap-2 mb-3 px-1 transition-colors ${isOver ? 'text-[#F5A623]' : ''}`}>
-        <span className="text-xs font-bold text-[#FFFFFF]/70 uppercase tracking-wider truncate">
-          {ADMIN_TAREA_STATUS_LABELS[status]}
-        </span>
-        <span className="shrink-0 text-[10px] bg-[#FFFFFF]/5 text-[#FFFFFF]/40 px-2 py-0.5 rounded-full font-bold">
-          {tareas.length}
-        </span>
+    <div className="min-w-0 flex flex-col rounded-2xl">
+      {/* Header coloreado por status */}
+      <div
+        className="flex items-center justify-between gap-3 px-3 py-3 rounded-t-2xl border-b border-[rgba(255,255,255,0.05)]"
+        style={{ background: `linear-gradient(180deg, ${color.bg}, transparent 90%)` }}
+      >
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div
+            style={{ backgroundColor: color.bg, borderColor: color.border, color: color.text }}
+            className="w-9 h-9 rounded-lg flex items-center justify-center border-[1.5px] shrink-0"
+          >
+            <Icon className="w-4 h-4" />
+          </div>
+          <div className="min-w-0">
+            <div className="text-sm font-bold truncate" style={{ color: color.text }}>
+              {ADMIN_TAREA_STATUS_LABELS[status]}
+            </div>
+            <div className="text-[11px] text-[#FFFFFF]/40">
+              {tareas.length} {tareas.length === 1 ? 'tarea' : 'tareas'}
+            </div>
+          </div>
+        </div>
       </div>
+
+      {/* Drop zone */}
       <div
         ref={setNodeRef}
         className={`
-          min-h-[300px] rounded-xl border-2 p-2 space-y-2 transition-all flex-1
+          flex-1 min-h-[300px] rounded-b-2xl border border-t-0 p-2 space-y-2 transition-all
           ${isOver
-            ? 'border-[#F5A623]/50 bg-[#F5A623]/5'
-            : 'border-dashed border-[rgba(245,166,35,0.12)] bg-[#0A0A0A]/30'
+            ? 'bg-[rgba(255,255,255,0.04)]'
+            : 'bg-[#0F0F0F]/60'
           }
         `}
+        style={{
+          borderColor: isOver ? color.border : 'rgba(255,255,255,0.05)',
+        }}
       >
         {tareas.map(t => (
           <DraggableCard
@@ -87,6 +126,8 @@ function DroppableColumn({
             onStatusChange={onStatusChange}
             onEdit={onEdit}
             onDelete={onDelete}
+            onArchive={onArchive}
+            onUnarchive={onUnarchive}
           />
         ))}
         {tareas.length === 0 && (
@@ -100,7 +141,7 @@ function DroppableColumn({
 }
 
 export default function TaskKanbanView({
-  tareas, currentUserId, onStatusChange, onEdit, onDelete,
+  tareas, currentUserId, onStatusChange, onEdit, onDelete, onArchive, onUnarchive,
 }: TaskKanbanViewProps) {
   const [activeId, setActiveId] = useState<string | null>(null);
 
@@ -158,6 +199,8 @@ export default function TaskKanbanView({
             onStatusChange={onStatusChange}
             onEdit={onEdit}
             onDelete={onDelete}
+            onArchive={onArchive}
+            onUnarchive={onUnarchive}
           />
         ))}
       </div>
@@ -171,6 +214,8 @@ export default function TaskKanbanView({
               onStatusChange={onStatusChange}
               onEdit={onEdit}
               onDelete={onDelete}
+              onArchive={onArchive}
+              onUnarchive={onUnarchive}
             />
           </div>
         ) : null}

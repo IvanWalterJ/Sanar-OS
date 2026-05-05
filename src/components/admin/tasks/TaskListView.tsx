@@ -5,6 +5,7 @@
 import { useMemo, useState } from 'react';
 import {
   ArrowUpDown, ChevronDown, ChevronUp, AlertCircle, Trash2, Pencil, UserPlus,
+  Circle, Loader2, Eye, CheckCircle2,
 } from 'lucide-react';
 import type { AdminTarea, AdminTareaStatus, AdminTareaPrioridad } from '../../../lib/supabase';
 import {
@@ -13,6 +14,7 @@ import {
   ADMIN_TAREA_PRIORIDAD_LABELS,
 } from '../../../lib/supabase';
 import CustomSelect from '../../CustomSelect';
+import { getTeamColor, getInitials, STATUS_COLORS, PRIORITY_BG, UNASSIGNED_COLOR } from '../../../lib/teamColors';
 
 interface TaskListViewProps {
   tareas: AdminTarea[];
@@ -30,16 +32,18 @@ const PRIORIDAD_RANK: Record<AdminTareaPrioridad, number> = {
 };
 
 const PRIORIDAD_PILL: Record<AdminTareaPrioridad, string> = {
-  urgente: 'bg-red-500/15 text-red-400',
-  alta: 'bg-orange-500/15 text-orange-400',
+  urgente: 'bg-red-500/20 text-red-400',
+  alta: 'bg-orange-500/20 text-orange-400',
   media: 'bg-[#F5A623]/15 text-[#F5A623]',
   baja: 'bg-[#22C55E]/15 text-[#22C55E]',
 };
 
-function initials(name?: string | null): string {
-  if (!name) return '?';
-  return name.split(' ').map(p => p[0]).slice(0, 2).join('').toUpperCase();
-}
+const STATUS_ICONS: Record<AdminTareaStatus, React.ComponentType<{ className?: string }>> = {
+  por_hacer: Circle,
+  en_proceso: Loader2,
+  en_revision: Eye,
+  completadas: CheckCircle2,
+};
 
 function compareStrings(a?: string | null, b?: string | null): number {
   return (a ?? '').localeCompare(b ?? '');
@@ -133,16 +137,24 @@ export default function TaskListView({
                 : null;
               const yoSoyCreadorYNoAsignado =
                 t.creado_por === currentUserId && t.asignado_a !== currentUserId && !!t.asignado_a;
+              const asignadoColor = t.asignado_a ? getTeamColor(t.asignado_a, currentUserId) : UNASSIGNED_COLOR;
+              const statusColor = STATUS_COLORS[t.status];
+              const StatusIcon = STATUS_ICONS[t.status];
+              const isCompletada = t.status === 'completadas';
 
               return (
                 <tr
                   key={t.id}
                   onClick={() => onEdit(t)}
-                  className="border-b border-[rgba(245,166,35,0.05)] hover:bg-[#F5A623]/5 transition-colors cursor-pointer group"
+                  className="border-b border-[rgba(255,255,255,0.04)] hover:bg-[rgba(255,255,255,0.025)] transition-colors cursor-pointer group"
+                  style={{
+                    backgroundImage: PRIORITY_BG[t.prioridad].image,
+                    boxShadow: `inset 4px 0 0 ${asignadoColor.solid}`,
+                  }}
                 >
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-3 pl-5">
                     <div className="flex items-center gap-2">
-                      <span className="text-base text-[#FFFFFF] font-medium leading-snug">
+                      <span className={`text-base font-medium leading-snug ${isCompletada ? 'text-[#FFFFFF]/45 line-through' : 'text-[#FFFFFF]'}`}>
                         {t.titulo}
                       </span>
                       {yoSoyCreadorYNoAsignado && (
@@ -159,10 +171,15 @@ export default function TaskListView({
                   <td className="px-3 py-3">
                     {t.asignado_nombre ? (
                       <div className="flex items-center gap-2 min-w-0">
-                        <div className="w-7 h-7 rounded-full bg-[#F5A623]/20 flex items-center justify-center text-[10px] font-bold text-[#F5A623] border border-[#F5A623]/30 shrink-0">
-                          {initials(t.asignado_nombre)}
+                        <div
+                          style={{ backgroundColor: asignadoColor.bg, borderColor: asignadoColor.border, color: asignadoColor.text }}
+                          className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold border-[1.5px] shrink-0"
+                        >
+                          {getInitials(t.asignado_nombre)}
                         </div>
-                        <span className="text-sm text-[#FFFFFF]/80 truncate">{t.asignado_nombre}</span>
+                        <span className="text-sm truncate" style={{ color: asignadoColor.text }}>
+                          {t.asignado_nombre}
+                        </span>
                       </div>
                     ) : (
                       <span className="text-xs text-[#FFFFFF]/30">Sin asignar</span>
@@ -186,12 +203,20 @@ export default function TaskListView({
                     )}
                   </td>
 
-                  <td className="px-3 py-3 min-w-[140px]" onClick={e => e.stopPropagation()}>
-                    <CustomSelect
-                      value={t.status}
-                      onChange={v => onStatusChange(t.id, v as AdminTareaStatus)}
-                      options={ADMIN_TAREA_STATUSES.map(s => ({ value: s, label: ADMIN_TAREA_STATUS_LABELS[s] }))}
-                    />
+                  <td className="px-3 py-3 min-w-[160px]" onClick={e => e.stopPropagation()}>
+                    <div className="flex items-center gap-2">
+                      <div
+                        style={{ backgroundColor: statusColor.bg, color: statusColor.text }}
+                        className="w-6 h-6 rounded-md flex items-center justify-center shrink-0"
+                      >
+                        <StatusIcon className="w-3.5 h-3.5" />
+                      </div>
+                      <CustomSelect
+                        value={t.status}
+                        onChange={v => onStatusChange(t.id, v as AdminTareaStatus)}
+                        options={ADMIN_TAREA_STATUSES.map(s => ({ value: s, label: ADMIN_TAREA_STATUS_LABELS[s] }))}
+                      />
+                    </div>
                   </td>
 
                   <td className="px-3 py-3">

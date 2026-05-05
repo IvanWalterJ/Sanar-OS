@@ -1,11 +1,16 @@
 /**
- * TaskFiltersBar — chips clickeables multi-select.
- * Filtros: Asignadas a mí | Creadas por mí | Vencidas | Esta semana | prioridades | asignado.
+ * TaskFiltersBar — barra horizontal compacta, una sola fila.
+ * Estructura:
+ *   [icono filtros + count] · scope chips · | · prioridad chips · | · personas (con su color) · [Limpiar]
+ *
+ * Wrapping natural si no entra. Sin labels en caps. Sin secciones gigantes.
+ * Los chips de personas usan el mismo color que sus cards en el board.
  */
 import { useMemo } from 'react';
-import { Filter, X } from 'lucide-react';
+import { Filter, X, UserCheck, UserPlus, AlertCircle, CalendarDays } from 'lucide-react';
 import type { AdminTareaPrioridad, Profile } from '../../../lib/supabase';
 import { ADMIN_TAREA_PRIORIDAD_LABELS } from '../../../lib/supabase';
+import { getTeamColor, getInitials } from '../../../lib/teamColors';
 
 export interface TaskFilters {
   asignadasAMi: boolean;
@@ -29,49 +34,63 @@ interface TaskFiltersBarProps {
   filters: TaskFilters;
   onChange: (filters: TaskFilters) => void;
   teamMembers: Profile[];
+  currentUserId?: string;
 }
 
 const PRIORIDADES: AdminTareaPrioridad[] = ['urgente', 'alta', 'media', 'baja'];
 
-const PRIORIDAD_CHIP_COLORS: Record<AdminTareaPrioridad, { active: string; idle: string }> = {
+const PRIORIDAD_CHIP_COLORS: Record<AdminTareaPrioridad, { active: string; idle: string; dot: string }> = {
   urgente: {
-    active: 'bg-red-500/20 text-red-400 border-red-500/40',
-    idle: 'border-[#FFFFFF]/10 text-[#FFFFFF]/50 hover:border-red-500/30 hover:text-red-400',
+    active: 'bg-red-500/15 text-red-400 border-red-500/40',
+    idle: 'border-transparent text-[#FFFFFF]/55 hover:text-red-400 hover:bg-red-500/5',
+    dot: 'bg-red-500',
   },
   alta: {
-    active: 'bg-orange-500/20 text-orange-400 border-orange-500/40',
-    idle: 'border-[#FFFFFF]/10 text-[#FFFFFF]/50 hover:border-orange-500/30 hover:text-orange-400',
+    active: 'bg-orange-500/20 text-orange-400 border-orange-500/45',
+    idle: 'border-transparent text-[#FFFFFF]/55 hover:text-orange-400 hover:bg-orange-500/8',
+    dot: 'bg-orange-500',
   },
   media: {
-    active: 'bg-[#F5A623]/20 text-[#F5A623] border-[#F5A623]/40',
-    idle: 'border-[#FFFFFF]/10 text-[#FFFFFF]/50 hover:border-[#F5A623]/30 hover:text-[#F5A623]',
+    active: 'bg-[#F5A623]/15 text-[#F5A623] border-[#F5A623]/40',
+    idle: 'border-transparent text-[#FFFFFF]/55 hover:text-[#F5A623] hover:bg-[#F5A623]/5',
+    dot: 'bg-[#F5A623]',
   },
   baja: {
-    active: 'bg-[#22C55E]/20 text-[#22C55E] border-[#22C55E]/40',
-    idle: 'border-[#FFFFFF]/10 text-[#FFFFFF]/50 hover:border-[#22C55E]/30 hover:text-[#22C55E]',
+    active: 'bg-[#22C55E]/15 text-[#22C55E] border-[#22C55E]/40',
+    idle: 'border-transparent text-[#FFFFFF]/55 hover:text-[#22C55E] hover:bg-[#22C55E]/5',
+    dot: 'bg-[#22C55E]',
   },
 };
 
-function Chip({
-  active, onClick, children,
-}: { active: boolean; onClick: () => void; children: React.ReactNode }) {
+const CHIP_BASE = 'h-7 inline-flex items-center gap-1.5 px-2.5 rounded-md text-xs font-semibold border transition-all whitespace-nowrap';
+
+function Divider() {
+  return <span className="w-px h-5 bg-[#FFFFFF]/10 mx-0.5" aria-hidden />;
+}
+
+function ScopeChip({
+  active, onClick, icon: Icon, children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  icon: React.ComponentType<{ className?: string }>;
+  children: React.ReactNode;
+}) {
   return (
     <button
       onClick={onClick}
-      className={`
-        text-xs font-semibold px-3 py-1.5 rounded-full border transition-all
-        ${active
-          ? 'bg-[#F5A623]/20 text-[#F5A623] border-[#F5A623]/50'
-          : 'border-[#FFFFFF]/10 text-[#FFFFFF]/55 hover:border-[#F5A623]/30 hover:text-[#FFFFFF]/85'
-        }
-      `}
+      className={`${CHIP_BASE} ${active
+        ? 'bg-[#F5A623]/15 text-[#F5A623] border-[#F5A623]/40'
+        : 'border-transparent text-[#FFFFFF]/55 hover:text-[#FFFFFF] hover:bg-[#FFFFFF]/5'
+      }`}
     >
+      <Icon className="w-3.5 h-3.5" />
       {children}
     </button>
   );
 }
 
-export default function TaskFiltersBar({ filters, onChange, teamMembers }: TaskFiltersBarProps) {
+export default function TaskFiltersBar({ filters, onChange, teamMembers, currentUserId }: TaskFiltersBarProps) {
   const activeCount = useMemo(() => {
     let n = 0;
     if (filters.asignadasAMi) n++;
@@ -99,62 +118,64 @@ export default function TaskFiltersBar({ filters, onChange, teamMembers }: TaskF
     onChange({ ...EMPTY_FILTERS, prioridades: new Set(), asignados: new Set() });
   }
 
+  // Ordenar miembros: el currentUser primero
+  const sortedMembers = useMemo(() => {
+    if (!currentUserId) return teamMembers;
+    const me = teamMembers.find(m => m.id === currentUserId);
+    const others = teamMembers
+      .filter(m => m.id !== currentUserId)
+      .sort((a, b) => (a.nombre ?? '').localeCompare(b.nombre ?? ''));
+    return me ? [me, ...others] : teamMembers;
+  }, [teamMembers, currentUserId]);
+
   return (
-    <div className="bg-[#0F0F0F] border border-[rgba(245,166,35,0.1)] rounded-2xl p-4 space-y-3">
-      <div className="flex items-center justify-between gap-3 flex-wrap">
-        <div className="flex items-center gap-2 text-xs font-bold text-[#FFFFFF]/60 uppercase tracking-wider">
+    <div className="bg-[#0F0F0F] border border-[rgba(255,255,255,0.06)] rounded-xl px-2.5 py-2">
+      <div className="flex items-center gap-1.5 flex-wrap">
+        {/* Filter indicator */}
+        <div className="flex items-center gap-1.5 pl-1 pr-2 h-7 text-[#FFFFFF]/40">
           <Filter className="w-3.5 h-3.5" />
-          Filtros
           {activeCount > 0 && (
-            <span className="text-[10px] bg-[#F5A623]/20 text-[#F5A623] px-2 py-0.5 rounded-full">
+            <span className="text-[10px] font-bold bg-[#F5A623]/20 text-[#F5A623] px-1.5 py-0.5 rounded-full leading-none">
               {activeCount}
             </span>
           )}
         </div>
-        {activeCount > 0 && (
-          <button
-            onClick={reset}
-            className="flex items-center gap-1 text-xs text-[#FFFFFF]/40 hover:text-[#F5A623] transition-colors"
-          >
-            <X className="w-3.5 h-3.5" />
-            Limpiar
-          </button>
-        )}
-      </div>
 
-      {/* Scope chips */}
-      <div className="flex flex-wrap gap-2">
-        <Chip
+        <Divider />
+
+        {/* Scope chips */}
+        <ScopeChip
           active={filters.asignadasAMi}
           onClick={() => onChange({ ...filters, asignadasAMi: !filters.asignadasAMi })}
+          icon={UserCheck}
         >
-          Asignadas a mí
-        </Chip>
-        <Chip
+          Para mí
+        </ScopeChip>
+        <ScopeChip
           active={filters.creadasPorMi}
           onClick={() => onChange({ ...filters, creadasPorMi: !filters.creadasPorMi })}
+          icon={UserPlus}
         >
-          Creadas por mí
-        </Chip>
-        <Chip
+          Creé yo
+        </ScopeChip>
+        <ScopeChip
           active={filters.vencidas}
           onClick={() => onChange({ ...filters, vencidas: !filters.vencidas })}
+          icon={AlertCircle}
         >
           Vencidas
-        </Chip>
-        <Chip
+        </ScopeChip>
+        <ScopeChip
           active={filters.estaSemana}
           onClick={() => onChange({ ...filters, estaSemana: !filters.estaSemana })}
+          icon={CalendarDays}
         >
           Esta semana
-        </Chip>
-      </div>
+        </ScopeChip>
 
-      {/* Prioridad chips */}
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="text-[10px] font-bold text-[#FFFFFF]/30 uppercase tracking-wider mr-1">
-          Prioridad:
-        </span>
+        <Divider />
+
+        {/* Prioridad chips con dot de color */}
         {PRIORIDADES.map(p => {
           const active = filters.prioridades.has(p);
           const colors = PRIORIDAD_CHIP_COLORS[p];
@@ -162,41 +183,59 @@ export default function TaskFiltersBar({ filters, onChange, teamMembers }: TaskF
             <button
               key={p}
               onClick={() => togglePrioridad(p)}
-              className={`text-xs font-semibold px-3 py-1.5 rounded-full border transition-all ${active ? colors.active : colors.idle}`}
+              className={`${CHIP_BASE} ${active ? colors.active : colors.idle}`}
             >
+              <span className={`w-1.5 h-1.5 rounded-full ${colors.dot}`} />
               {ADMIN_TAREA_PRIORIDAD_LABELS[p]}
             </button>
           );
         })}
-      </div>
 
-      {/* Asignado chips */}
-      {teamMembers.length > 0 && (
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-[10px] font-bold text-[#FFFFFF]/30 uppercase tracking-wider mr-1">
-            Asignado:
-          </span>
-          {teamMembers.map(m => {
-            const active = filters.asignados.has(m.id);
-            const name = m.nombre ?? m.email ?? '?';
-            return (
-              <button
-                key={m.id}
-                onClick={() => toggleAsignado(m.id)}
-                className={`
-                  text-xs font-semibold px-3 py-1.5 rounded-full border transition-all
-                  ${active
-                    ? 'bg-[#F5A623]/20 text-[#F5A623] border-[#F5A623]/50'
-                    : 'border-[#FFFFFF]/10 text-[#FFFFFF]/55 hover:border-[#F5A623]/30 hover:text-[#FFFFFF]/85'
-                  }
-                `}
+        {sortedMembers.length > 0 && <Divider />}
+
+        {/* Personas con su color de equipo */}
+        {sortedMembers.map(m => {
+          const active = filters.asignados.has(m.id);
+          const color = getTeamColor(m.id, currentUserId);
+          const name = (m.nombre ?? m.email ?? '?').split(' ')[0];
+          return (
+            <button
+              key={m.id}
+              onClick={() => toggleAsignado(m.id)}
+              style={active
+                ? { backgroundColor: color.bg, borderColor: color.border, color: color.text }
+                : { borderColor: 'transparent' }
+              }
+              className={`${CHIP_BASE} ${active
+                ? ''
+                : 'text-[#FFFFFF]/55 hover:bg-[#FFFFFF]/5 hover:text-[#FFFFFF]'
+              }`}
+            >
+              <span
+                style={active
+                  ? { backgroundColor: color.solid, color: '#0A0A0A' }
+                  : { backgroundColor: color.bg, color: color.text }
+                }
+                className="w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold leading-none"
               >
-                {name.split(' ')[0]}
-              </button>
-            );
-          })}
-        </div>
-      )}
+                {getInitials(m.nombre)}
+              </span>
+              {name}
+            </button>
+          );
+        })}
+
+        {/* Reset alineado a la derecha */}
+        {activeCount > 0 && (
+          <button
+            onClick={reset}
+            className="ml-auto h-7 inline-flex items-center gap-1 px-2 text-xs text-[#FFFFFF]/40 hover:text-[#F5A623] transition-colors"
+          >
+            <X className="w-3.5 h-3.5" />
+            Limpiar
+          </button>
+        )}
+      </div>
     </div>
   );
 }

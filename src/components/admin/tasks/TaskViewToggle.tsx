@@ -1,9 +1,9 @@
 /**
- * TaskViewToggle — tabs para alternar entre Kanban / Lista / Mis tareas.
+ * TaskViewToggle — tabs para alternar entre Kanban / Lista / Por persona / Mis tareas.
  */
-import { LayoutGrid, List, UserCircle } from 'lucide-react';
+import { LayoutGrid, List, UserCircle, Users } from 'lucide-react';
 
-export type TaskView = 'kanban' | 'list' | 'mine';
+export type TaskView = 'kanban' | 'list' | 'people' | 'mine';
 
 interface TaskViewToggleProps {
   value: TaskView;
@@ -12,6 +12,7 @@ interface TaskViewToggleProps {
 }
 
 const TABS: { id: TaskView; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
+  { id: 'people', label: 'Por persona', icon: Users },
   { id: 'kanban', label: 'Kanban', icon: LayoutGrid },
   { id: 'list', label: 'Lista', icon: List },
   { id: 'mine', label: 'Mis tareas', icon: UserCircle },
