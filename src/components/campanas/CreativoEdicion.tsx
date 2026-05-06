@@ -99,11 +99,14 @@ export default function CreativoEdicion({ campana, userId, geminiKey, onSaved }:
         ? await compressImageBase64(characterRef.base64, characterRef.mimeType, 1024, 0.85)
         : null;
 
+      // quality 'medium' es ~4x mas rapido que 'high' y suficiente para
+      // retoques (la base ya tiene la composicion). 'high' con 2 refs
+      // grandes hace timeout en 120s con frecuencia.
       const aiResult = await editImage(
         { base64: compressedBase.base64, mimeType: compressedBase.mimeType },
         editInstruction.trim(),
         setProgress,
-        { geminiKey, format, quality: 'high' },
+        { geminiKey, format, quality: 'medium' },
         compressedChar
           ? { base64: compressedChar.base64, mimeType: compressedChar.mimeType }
           : undefined,
