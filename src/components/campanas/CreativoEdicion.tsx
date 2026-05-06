@@ -7,7 +7,7 @@ import { editImage, base64ToDataUrl } from '../../lib/campanasImageGen';
 import type { ImageGenProgress } from '../../lib/campanasImageGen';
 import {
   fileToBase64, loadImageDimensions, detectClosestFormat, validateImageFile,
-  resizeBase64ToExact, ACCEPT_ATTR,
+  resizeBase64ToExact, compressImageBase64, ACCEPT_ATTR,
 } from '../../lib/imageUploadUtils';
 import type { UploadedImageWithDimensions, UploadedImage } from '../../lib/imageUploadUtils';
 import { saveCreativo, uploadCreativeImage, upsertCreativoAsset } from '../../lib/campanasStorage';
@@ -87,12 +87,26 @@ export default function CreativoEdicion({ campana, userId, geminiKey, onSaved }:
     setSavedId(null);
     try {
       const format: ImageFormat = detectedFormat ?? '1:1';
+
+      // Comprimir antes de enviar al backend: PNGs grandes (3-4MB) saturan el
+      // limite de payload. Reducir a max 1536px lado mayor + JPEG q0.9 baja
+      // a ~300-500KB sin perdida visual notable. Las dims originales se
+      // preservan en baseImage para el resize final.
+      const compressedBase = await compressImageBase64(
+        baseImage.base64, baseImage.mimeType, 1536, 0.92,
+      );
+      const compressedChar = characterRef
+        ? await compressImageBase64(characterRef.base64, characterRef.mimeType, 1024, 0.85)
+        : null;
+
       const aiResult = await editImage(
-        { base64: baseImage.base64, mimeType: baseImage.mimeType },
+        { base64: compressedBase.base64, mimeType: compressedBase.mimeType },
         editInstruction.trim(),
         setProgress,
         { geminiKey, format, quality: 'high' },
-        characterRef ? { base64: characterRef.base64, mimeType: characterRef.mimeType } : undefined,
+        compressedChar
+          ? { base64: compressedChar.base64, mimeType: compressedChar.mimeType }
+          : undefined,
       );
 
       // Resize a las dimensiones EXACTAS del original — el modelo respeta el

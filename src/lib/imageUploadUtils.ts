@@ -118,6 +118,46 @@ export async function resizeBase64ToExact(
   return { base64: out64, mimeType: outMime };
 }
 
+/**
+ * Comprime una imagen base64 para que entre en el payload del backend.
+ * Reescala manteniendo aspect ratio (lado mayor = maxSide) y reencodea como JPEG
+ * con calidad configurable. Imagenes grandes del usuario (3-4MB PNG) caen a
+ * ~200-500KB JPEG sin perdida visual notable.
+ *
+ * No tocar imagenes que ya esten dentro del limite — devuelve la original.
+ */
+export async function compressImageBase64(
+  base64: string,
+  mimeType: string,
+  maxSide: number = 1536,
+  quality: number = 0.92,
+): Promise<{ base64: string; mimeType: string; width: number; height: number }> {
+  const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+    const el = new Image();
+    el.onload = () => resolve(el);
+    el.onerror = () => reject(new Error('No se pudo cargar la imagen para compresion'));
+    el.src = `data:${mimeType};base64,${base64}`;
+  });
+
+  const srcW = img.naturalWidth;
+  const srcH = img.naturalHeight;
+  const longest = Math.max(srcW, srcH);
+  const scale = longest > maxSide ? maxSide / longest : 1;
+  const dstW = Math.round(srcW * scale);
+  const dstH = Math.round(srcH * scale);
+
+  const canvas = document.createElement('canvas');
+  canvas.width = dstW;
+  canvas.height = dstH;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) throw new Error('Canvas 2D no disponible');
+  ctx.drawImage(img, 0, 0, dstW, dstH);
+
+  const dataUrl = canvas.toDataURL('image/jpeg', quality);
+  const out64 = dataUrl.split(',')[1] ?? '';
+  return { base64: out64, mimeType: 'image/jpeg', width: dstW, height: dstH };
+}
+
 export function validateImageFile(file: File): string | null {
   if (!file.type.startsWith('image/')) {
     return `${file.name}: solo se admiten imagenes`;
