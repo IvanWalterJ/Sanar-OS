@@ -295,13 +295,39 @@ export async function generateImageWithFallback(
 // ─── Edicion sutil de imagen existente ───────────────────────────────────────
 
 /**
+ * Describe el personaje principal de una imagen via Claude Vision.
+ * Usado por editImage() cuando hay un character ref para evitar mandar 2
+ * imagenes al endpoint /edits de OpenAI (que las combina en una nueva en vez
+ * de tratar una como base y otra como ref auxiliar).
+ */
+export async function describeCharacter(
+  image: { base64: string; mimeType: string },
+): Promise<string> {
+  const resp = await fetch('/api/ai/describe-image', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ imageBase64: image.base64, mimeType: image.mimeType }),
+  });
+  if (!resp.ok) {
+    const text = await resp.text().catch(() => '');
+    let parsed: { error?: string } | null = null;
+    try { parsed = JSON.parse(text) as { error?: string }; } catch { /* noop */ }
+    throw new Error(parsed?.error || `HTTP ${resp.status}: ${text.slice(0, 200)}`);
+  }
+  const data = await resp.json() as { description?: string; error?: string };
+  if (!data.description) throw new Error(data.error || 'Descripcion vacia');
+  return data.description;
+}
+
+/**
  * Edita una imagen ya generada con instrucciones precisas.
  * La imagen original va como input + un prompt de edicion; el modelo devuelve
  * la misma imagen con SOLO los cambios pedidos (no rehace la imagen entera).
  *
- * Si se pasa `characterRef`, se trata como reemplazo de personaje: la imagen
- * extra se usa como referencia del personaje nuevo que debe sustituir al
- * existente, manteniendo pose, encuadre, iluminacion y estilo del original.
+ * Si se pasa `characterRef`, primero pedimos a Claude que describa al personaje
+ * de la ref en texto, y luego mandamos solo la imagen base + prompt enriquecido
+ * con esa descripcion. Mandar 2 imagenes a /v1/images/edits hace que gpt-image-2
+ * las combine (toma texto/composicion de ambas) en vez de preservar la base.
  */
 export async function editImage(
   baseImage: { base64: string; mimeType: string },
@@ -310,16 +336,28 @@ export async function editImage(
   options: ImageGenOptions = {},
   characterRef?: { base64: string; mimeType: string },
 ): Promise<ImageGenResult> {
-  const characterReplacementBlock = characterRef
-    ? `
+  let characterReplacementBlock = '';
+
+  if (characterRef) {
+    onProgress?.({
+      modelName: 'Analizando personaje de referencia',
+      attempt: 0,
+      total: TOTAL_MODELS,
+      status: 'trying',
+    });
+    try {
+      const description = await describeCharacter(characterRef);
+      characterReplacementBlock = `
 
 REEMPLAZO DE PERSONAJE:
-- Hay una segunda imagen adjunta como referencia del NUEVO personaje.
-- Reemplazar al personaje principal de la imagen base por la persona/personaje de la referencia.
-- Mantener IDENTICOS: pose, encuadre, angulo de camara, iluminacion, vestuario general (salvo que la instruccion pida cambiarlo), fondo, composicion.
-- Adaptar rasgos faciales, color de pelo, tono de piel y estilo visual al de la referencia, integrandolos de forma natural.
-- No copiar el fondo ni el encuadre de la referencia — solo el personaje.`
-    : '';
+- Reemplazar al personaje principal de la imagen base por una persona con estas caracteristicas exactas: ${description}
+- Mantener IDENTICOS: pose, encuadre, angulo de camara, iluminacion, vestuario general (salvo que la instruccion lo pida), fondo, composicion.
+- Solo cambian los rasgos del personaje. Todo lo demas queda igual a la imagen base.`;
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      throw new Error(`No se pudo analizar el personaje de referencia: ${msg}`);
+    }
+  }
 
   const editPrompt = `EDICION SUTIL DE IMAGEN — modo edit/inpainting.
 
@@ -329,20 +367,20 @@ INSTRUCCION DE EDICION DEL USUARIO:
 REGLAS CRITICAS:
 - La imagen base esta adjunta como referencia obligatoria.
 - Devolver la MISMA imagen con SOLO el cambio pedido aplicado.
-- Mantener IDENTICOS: composicion, encuadre, iluminacion, paleta, personajes, tipografia, textos que no se hayan pedido cambiar, fondo, todos los demas elementos.
+- Mantener IDENTICOS: composicion, encuadre, iluminacion, paleta, personajes (salvo reemplazo explicito), tipografia, textos que no se hayan pedido cambiar, fondo, todos los demas elementos.
 - NO rehacer la imagen desde cero. NO cambiar el estilo. NO mover elementos que no se hayan pedido mover.
 - Si la instruccion pide quitar algo (logo, icono, elemento), borrarlo limpiamente respetando el fondo que estaba debajo.
 - Si pide cambiar un color, cambiar SOLO ese color, todo lo demas igual.
 - Si pide agregar algo, integrarlo respetando la estetica y la iluminacion existentes.
 - Resultado: la imagen debe verse como si alguien hubiera retocado un detalle en Photoshop, no como una nueva generacion.${characterReplacementBlock}`;
 
+  // SOLO la base como ref. La descripcion del personaje (si la hay) ya esta
+  // en el prompt — mandar la imagen del personaje haria que gpt-image-2 la
+  // combine con la base en vez de respetarla.
   return generateImageWithFallback(
     editPrompt,
     onProgress,
-    {
-      styleRefs: [{ base64: baseImage.base64, mimeType: baseImage.mimeType }],
-      characterRefs: characterRef ? [characterRef] : undefined,
-    },
+    { styleRefs: [{ base64: baseImage.base64, mimeType: baseImage.mimeType }] },
     options,
   );
 }
