@@ -72,15 +72,41 @@ export function detectClosestFormat(width: number, height: number): ImageFormat 
 }
 
 /**
- * Resize/crop client-side para llevar una imagen a las dimensiones EXACTAS
- * de un objetivo (ej: 1080x1080). Usa cover-fit (recorta si hace falta para no
- * dejar bandas) preservando el centro.
+ * Lee el color del pixel (1,1) de una imagen ya cargada. Usado para rellenar
+ * bandas en resize 'contain' con un color que se mimetice con el fondo.
+ */
+function sampleEdgeColor(img: HTMLImageElement): string {
+  try {
+    const c = document.createElement('canvas');
+    c.width = 1;
+    c.height = 1;
+    const cx = c.getContext('2d');
+    if (!cx) return 'black';
+    cx.drawImage(img, 0, 0, 1, 1);
+    const px = cx.getImageData(0, 0, 1, 1).data;
+    return `rgba(${px[0]},${px[1]},${px[2]},${px[3] / 255})`;
+  } catch {
+    return 'black';
+  }
+}
+
+/**
+ * Resize client-side para llevar una imagen a las dimensiones EXACTAS de un
+ * objetivo. Usa fit configurable:
+ *  - 'contain' (default): preserva todo el contenido, agrega bandas si la
+ *    proporcion no calza. Las bandas usan el color del borde de la imagen
+ *    para mimetizarse con el fondo.
+ *  - 'cover': recorta lados para llenar sin bandas (puede cortar contenido
+ *    en los bordes).
+ * Para edicion de creativos preferimos 'contain' porque cortar bordes suele
+ * eliminar texto/elementos importantes que el usuario quiere preservar.
  */
 export async function resizeBase64ToExact(
   base64: string,
   mimeType: string,
   targetWidth: number,
   targetHeight: number,
+  fit: 'cover' | 'contain' = 'contain',
 ): Promise<{ base64: string; mimeType: string }> {
   const img = await new Promise<HTMLImageElement>((resolve, reject) => {
     const el = new Image();
@@ -95,22 +121,37 @@ export async function resizeBase64ToExact(
   const ctx = canvas.getContext('2d');
   if (!ctx) throw new Error('Canvas 2D no disponible');
 
-  const srcRatio = img.naturalWidth / img.naturalHeight;
-  const dstRatio = targetWidth / targetHeight;
+  if (fit === 'cover') {
+    const srcRatio = img.naturalWidth / img.naturalHeight;
+    const dstRatio = targetWidth / targetHeight;
+    let sx = 0;
+    let sy = 0;
+    let sw = img.naturalWidth;
+    let sh = img.naturalHeight;
+    if (srcRatio > dstRatio) {
+      sw = img.naturalHeight * dstRatio;
+      sx = (img.naturalWidth - sw) / 2;
+    } else if (srcRatio < dstRatio) {
+      sh = img.naturalWidth / dstRatio;
+      sy = (img.naturalHeight - sh) / 2;
+    }
+    ctx.drawImage(img, sx, sy, sw, sh, 0, 0, targetWidth, targetHeight);
+  } else {
+    // contain: escalar para encajar dentro y centrar; rellenar bandas con color
+    // del borde para que se note lo menos posible.
+    ctx.fillStyle = sampleEdgeColor(img);
+    ctx.fillRect(0, 0, targetWidth, targetHeight);
 
-  let sx = 0;
-  let sy = 0;
-  let sw = img.naturalWidth;
-  let sh = img.naturalHeight;
-  if (srcRatio > dstRatio) {
-    sw = img.naturalHeight * dstRatio;
-    sx = (img.naturalWidth - sw) / 2;
-  } else if (srcRatio < dstRatio) {
-    sh = img.naturalWidth / dstRatio;
-    sy = (img.naturalHeight - sh) / 2;
+    const scale = Math.min(
+      targetWidth / img.naturalWidth,
+      targetHeight / img.naturalHeight,
+    );
+    const drawW = Math.round(img.naturalWidth * scale);
+    const drawH = Math.round(img.naturalHeight * scale);
+    const dx = Math.round((targetWidth - drawW) / 2);
+    const dy = Math.round((targetHeight - drawH) / 2);
+    ctx.drawImage(img, 0, 0, img.naturalWidth, img.naturalHeight, dx, dy, drawW, drawH);
   }
-
-  ctx.drawImage(img, sx, sy, sw, sh, 0, 0, targetWidth, targetHeight);
 
   const outMime = mimeType === 'image/jpeg' ? 'image/jpeg' : 'image/png';
   const dataUrl = canvas.toDataURL(outMime, outMime === 'image/jpeg' ? 0.95 : undefined);
