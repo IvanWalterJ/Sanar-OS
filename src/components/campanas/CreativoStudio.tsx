@@ -1,14 +1,15 @@
 import React, { useState, useCallback, useRef } from 'react';
-import { FileText, Image as ImageIcon, Eye, Loader2, CheckCircle2, ArrowLeft } from 'lucide-react';
+import { FileText, Image as ImageIcon, Eye, Loader2, CheckCircle2, ArrowLeft, Wand2 } from 'lucide-react';
 import { toast } from 'sonner';
 import CopyGenerator from './CopyGenerator';
 import ImagenGenerator from './ImagenGenerator';
+import CreativoEdicion from './CreativoEdicion';
 import CreativoPreviewAuto from './CreativoPreviewAuto';
 import { saveCreativo, updateCreativo, uploadCreativeImage, upsertCreativoAsset } from '../../lib/campanasStorage';
 import type { Campana, CopyGenerado, AnguloCreativo, TipoCreativo, Creativo } from '../../lib/campanasTypes';
 import type { ProfileV2 } from '../../lib/supabase';
 
-type StudioTab = 'copy' | 'imagen' | 'preview';
+type StudioTab = 'copy' | 'imagen' | 'edicion' | 'preview';
 
 interface Props {
   campana: Campana;
@@ -22,6 +23,7 @@ interface Props {
 const TABS: { id: StudioTab; label: string; icon: React.ElementType }[] = [
   { id: 'copy', label: 'Copy', icon: FileText },
   { id: 'imagen', label: 'Imagen', icon: ImageIcon },
+  { id: 'edicion', label: 'Edicion', icon: Wand2 },
   { id: 'preview', label: 'Preview', icon: Eye },
 ];
 
@@ -200,6 +202,16 @@ export default function CreativoStudio({ campana, userId, perfil, geminiKey, onB
             perfil={perfil ?? {}}
             geminiKey={geminiKey}
             onImagesGenerated={handleImagesGenerated}
+          />
+        )}
+
+        {tab === 'edicion' && (
+          <CreativoEdicion
+            campana={campana}
+            userId={userId}
+            perfil={perfil ?? {}}
+            geminiKey={geminiKey}
+            onSaved={onSaved}
           />
         )}
 

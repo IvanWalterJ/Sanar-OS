@@ -9,6 +9,7 @@ import {
 import { toast } from 'sonner';
 import { generateImageWithFallback, generateCarouselImages, base64ToDataUrl, editImage } from '../../lib/campanasImageGen';
 import type { ReferenceImages } from '../../lib/campanasImageGen';
+import { fileToBase64, validateImageFile, ACCEPT_ATTR } from '../../lib/imageUploadUtils';
 import { buildImagePrompt, buildCarouselNarrativePrompt } from '../../lib/campanasPrompts';
 import type { CarouselNarrative, CarouselConceptoVisual } from '../../lib/campanasPrompts';
 import { generateText } from '../../lib/aiProvider';
@@ -35,19 +36,6 @@ const ESTILO_ICONS: Record<EstiloVisual, React.ComponentType<{ className?: strin
   noticias: Tv,
   twitter: Twitter,
 };
-
-function fileToBase64(file: File): Promise<ReferenceImage> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      const result = reader.result as string;
-      const base64 = result.split(',')[1];
-      resolve({ base64, mimeType: file.type, fileName: file.name });
-    };
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
-}
 
 function modeToImageMode(m: ImageGenerationMode): ImageMode {
   return m === 'solo_fondo' ? 'fondo' : 'completa';
@@ -161,8 +149,8 @@ export default function ImagenGenerator({ copies, angulo, perfil, geminiKey, ini
 
     const newRefs: ReferenceImage[] = [];
     for (const file of toProcess) {
-      if (!file.type.startsWith('image/')) { toast.error(`${file.name}: solo imagenes`); continue; }
-      if (file.size > 10 * 1024 * 1024) { toast.error(`${file.name}: maximo 10MB`); continue; }
+      const validationError = validateImageFile(file);
+      if (validationError) { toast.error(validationError); continue; }
       newRefs.push(await fileToBase64(file));
     }
     if (newRefs.length > 0) setter([...current, ...newRefs]);
@@ -584,7 +572,7 @@ export default function ImagenGenerator({ copies, angulo, perfil, geminiKey, ini
               <label className="flex items-center justify-center gap-2 p-2.5 border border-dashed border-[#FFFFFF]/10 rounded-lg cursor-pointer hover:border-[#F5A623]/30 transition-colors">
                 <Upload className="w-4 h-4 text-[#FFFFFF]/20" />
                 <span className="text-[10px] text-[#FFFFFF]/30">Subir foto</span>
-                <input type="file" multiple accept="image/jpeg,image/png,image/webp" className="hidden" onChange={(e) => handleRefUpload(e, characterRefs, setCharacterRefs)} />
+                <input type="file" multiple accept={ACCEPT_ATTR} className="hidden" onChange={(e) => handleRefUpload(e, characterRefs, setCharacterRefs)} />
               </label>
             )}
           </div>
@@ -614,7 +602,7 @@ export default function ImagenGenerator({ copies, angulo, perfil, geminiKey, ini
               <label className="flex items-center justify-center gap-2 p-2.5 border border-dashed border-[#FFFFFF]/10 rounded-lg cursor-pointer hover:border-[#F5A623]/30 transition-colors">
                 <Upload className="w-4 h-4 text-[#FFFFFF]/20" />
                 <span className="text-[10px] text-[#FFFFFF]/30">Subir diseño</span>
-                <input type="file" multiple accept="image/jpeg,image/png,image/webp" className="hidden" onChange={(e) => handleRefUpload(e, styleRefs, setStyleRefs)} />
+                <input type="file" multiple accept={ACCEPT_ATTR} className="hidden" onChange={(e) => handleRefUpload(e, styleRefs, setStyleRefs)} />
               </label>
             )}
           </div>
