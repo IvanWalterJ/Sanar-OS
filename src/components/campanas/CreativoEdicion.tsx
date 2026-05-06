@@ -16,11 +16,11 @@ import type { Campana, Creativo, ImageFormat } from '../../lib/campanasTypes';
 import type { ProfileV2 } from '../../lib/supabase';
 
 interface Props {
-  campana: Campana;
+  campana?: Campana;
   userId?: string;
   perfil: Partial<ProfileV2>;
   geminiKey?: string;
-  onSaved: (creativo: Creativo) => void;
+  onSaved?: (creativo: Creativo) => void;
 }
 
 interface EditedResult {
@@ -125,16 +125,17 @@ export default function CreativoEdicion({ campana, userId, geminiKey, onSaved }:
 
     setSaving(true);
     try {
-      const fechaIso = new Date().toISOString();
-      const fechaCorta = fechaIso.slice(0, 16).replace('T', ' ');
+      const fechaCorta = new Date().toLocaleDateString('es-AR', {
+        day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit',
+      });
       const creativo = await saveCreativo({
         usuario_id: userId,
-        campana_id: campana.id,
+        campana_id: campana?.id,
         tipo: 'imagen_single',
         angulo: 'directo',
         texto_principal: '',
         titulo: `Edicion ${fechaCorta}`,
-        nombre: `${campana.nombre} - Edicion ${fechaCorta}`,
+        nombre: campana ? `${campana.nombre} - Edicion ${fechaCorta}` : `Edicion ${fechaCorta}`,
         estado: 'generado',
         prompt_imagen: editInstruction.trim(),
       });
@@ -155,7 +156,7 @@ export default function CreativoEdicion({ campana, userId, geminiKey, onSaved }:
       }
 
       setSavedId(creativo.id);
-      onSaved(creativo);
+      onSaved?.(creativo);
       toast.success('Guardado como creativo nuevo');
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Error desconocido';

@@ -5,12 +5,13 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import {
   ImageIcon, Loader2, CheckCircle2, Sparkles,
-  Layers, Youtube, FolderOpen, Palette,
+  Layers, Youtube, FolderOpen, Palette, Wand2,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import ImagenGenerator from './ImagenGenerator';
 import CreativoGallery from './CreativoGallery';
 import CreativoDetalle from './CreativoDetalle';
+import CreativoEdicion from './CreativoEdicion';
 import ManualMarcaView from './ManualMarcaView';
 import {
   saveCreativo,
@@ -39,7 +40,7 @@ const ANGULOS: { id: AnguloCreativo; label: string; descripcion: string }[] = [
   { id: 'deseo', label: 'Deseo', descripcion: 'Resultado ideal' },
 ];
 
-type SubTab = 'imagen' | 'carrusel' | 'youtube' | 'historial' | 'manual_marca';
+type SubTab = 'imagen' | 'carrusel' | 'youtube' | 'edicion' | 'historial' | 'manual_marca';
 
 interface TabConfig {
   id: SubTab;
@@ -66,6 +67,13 @@ const TABS: TabConfig[] = [
     lockFormat: false,
     eyebrow: 'Generador de imagen',
     descripcion: 'Crea una imagen unica para feed, story o anuncio.',
+  },
+  {
+    id: 'edicion',
+    label: 'Edicion',
+    icon: Wand2,
+    eyebrow: 'Edicion de imagen',
+    descripcion: 'Sumi una imagen existente y pedi cambios puntuales — respeta el tamano y formato original.',
   },
   {
     id: 'carrusel',
@@ -358,8 +366,20 @@ export default function CreativosView({ userId, perfil, geminiKey }: Props) {
         />
       )}
 
+      {/* EDICION DE IMAGEN */}
+      {activeTab === 'edicion' && (
+        <div className="card-panel p-5">
+          <CreativoEdicion
+            userId={userId}
+            perfil={perfilLocal ?? {}}
+            geminiKey={geminiKey}
+            onSaved={() => { /* historial se recarga al cambiar a la tab */ }}
+          />
+        </div>
+      )}
+
       {/* GENERADORES (imagen / carrusel / youtube) */}
-      {activeTab !== 'historial' && activeTab !== 'manual_marca' && (
+      {activeTab !== 'historial' && activeTab !== 'manual_marca' && activeTab !== 'edicion' && (
         <>
           {/* Angulo de comunicacion (opcional) */}
           <div>
