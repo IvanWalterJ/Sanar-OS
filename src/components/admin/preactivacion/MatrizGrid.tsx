@@ -34,14 +34,14 @@ export default function MatrizGrid({ clientes, checks, onToggle }: MatrizGridPro
     <div className="overflow-auto scrollbar-hide" style={{ maxHeight: 'calc(100vh - 220px)' }}>
       <table
         className="border-separate"
-        style={{ borderSpacing: 0, fontSize: 12 }}
+        style={{ borderSpacing: 0, fontSize: 14 }}
       >
         <thead>
           {/* Group row */}
           <tr>
             <th
               className="sticky left-0 top-0 z-50 bg-[#0E0E0E]"
-              style={{ minWidth: 200 }}
+              style={{ minWidth: 240 }}
             />
             {SECTIONS.map((sec, idx) => (
               <th
@@ -50,10 +50,10 @@ export default function MatrizGrid({ clientes, checks, onToggle }: MatrizGridPro
                 className="sticky top-0 z-30 bg-[#141414] text-[#F5A623] uppercase tracking-widest"
                 style={{
                   fontFamily: 'monospace',
-                  fontSize: 9.5,
-                  fontWeight: 500,
-                  letterSpacing: 1,
-                  padding: '7px 0',
+                  fontSize: 12,
+                  fontWeight: 600,
+                  letterSpacing: 1.5,
+                  padding: '10px 0',
                   textAlign: 'center',
                   borderBottom: '1px solid rgba(245,166,35,0.15)',
                   borderLeft: idx === 0 ? 'none' : '2px solid #252830',
@@ -66,10 +66,10 @@ export default function MatrizGrid({ clientes, checks, onToggle }: MatrizGridPro
               className="sticky right-0 top-0 z-40 bg-[#141414] text-[#F5A623]"
               style={{
                 fontFamily: 'monospace',
-                fontSize: 9.5,
-                fontWeight: 500,
-                letterSpacing: 1,
-                padding: '7px 8px',
+                fontSize: 12,
+                fontWeight: 600,
+                letterSpacing: 1.5,
+                padding: '10px 10px',
                 textAlign: 'center',
                 borderBottom: '1px solid rgba(245,166,35,0.15)',
                 borderLeft: '2px solid #252830',
@@ -85,8 +85,8 @@ export default function MatrizGrid({ clientes, checks, onToggle }: MatrizGridPro
             <th
               className="sticky left-0 z-40 bg-[#0E0E0E]"
               style={{
-                top: 30,
-                minWidth: 200,
+                top: 40,
+                minWidth: 240,
                 borderBottom: '2px solid rgba(245,166,35,0.15)',
               }}
             />
@@ -101,9 +101,9 @@ export default function MatrizGrid({ clientes, checks, onToggle }: MatrizGridPro
                   key={step.id}
                   className="sticky bg-[#0F0F0F]"
                   style={{
-                    top: 30,
-                    padding: '5px 2px 6px',
-                    fontWeight: 400,
+                    top: 40,
+                    padding: '8px 4px 10px',
+                    fontWeight: 500,
                     verticalAlign: 'bottom',
                     borderBottom: '2px solid rgba(245,166,35,0.15)',
                     borderLeft: isFirstOfSection ? '2px solid #252830' : 'none',
@@ -113,12 +113,12 @@ export default function MatrizGrid({ clientes, checks, onToggle }: MatrizGridPro
                   <div
                     style={{
                       fontFamily: 'monospace',
-                      fontSize: 8,
-                      color: 'rgba(255,255,255,0.4)',
-                      lineHeight: 1.3,
+                      fontSize: 11,
+                      color: 'rgba(255,255,255,0.65)',
+                      lineHeight: 1.35,
                       textAlign: 'center',
-                      minWidth: 52,
-                      maxWidth: 60,
+                      minWidth: 72,
+                      maxWidth: 84,
                       wordBreak: 'break-word',
                       hyphens: 'manual',
                     }}
@@ -136,8 +136,8 @@ export default function MatrizGrid({ clientes, checks, onToggle }: MatrizGridPro
             <th
               className="sticky right-0 z-30 bg-[#0F0F0F]"
               style={{
-                top: 30,
-                padding: '5px 8px 6px',
+                top: 40,
+                padding: '8px 10px 10px',
                 borderBottom: '2px solid rgba(245,166,35,0.15)',
                 borderLeft: '2px solid #252830',
               }}
@@ -145,8 +145,8 @@ export default function MatrizGrid({ clientes, checks, onToggle }: MatrizGridPro
               <div
                 style={{
                   fontFamily: 'monospace',
-                  fontSize: 8,
-                  color: 'rgba(255,255,255,0.4)',
+                  fontSize: 11,
+                  color: 'rgba(255,255,255,0.65)',
                   textAlign: 'center',
                 }}
               >
@@ -167,19 +167,21 @@ export default function MatrizGrid({ clientes, checks, onToggle }: MatrizGridPro
                 <td
                   className="sticky left-0 z-20 bg-[#0A0A0A] group-hover:bg-[#141414] transition-colors"
                   style={{
-                    padding: '0 10px',
-                    height: 44,
+                    padding: '0 14px',
+                    height: 56,
                     borderBottom: '1px solid rgba(255,255,255,0.05)',
                   }}
                 >
-                  <div className="flex items-center gap-2.5">
+                  <div className="flex items-center gap-3">
                     <div
-                      className="w-7 h-7 rounded-md flex items-center justify-center shrink-0"
+                      className="rounded-md flex items-center justify-center shrink-0"
                       style={{
+                        width: 36,
+                        height: 36,
                         background: 'rgba(245,166,35,0.12)',
                         color: '#F5A623',
                         fontFamily: 'monospace',
-                        fontSize: 10,
+                        fontSize: 13,
                         fontWeight: 600,
                       }}
                     >
@@ -187,19 +189,20 @@ export default function MatrizGrid({ clientes, checks, onToggle }: MatrizGridPro
                     </div>
                     <div className="min-w-0">
                       <div
-                        className="text-[12px] truncate font-medium"
-                        style={{ maxWidth: 145 }}
+                        className="truncate font-semibold"
+                        style={{ maxWidth: 175, fontSize: 14 }}
                         title={cl.nombre}
                       >
                         {cl.nombre}
                       </div>
                       {cl.metodo && (
                         <div
-                          className="text-[8px] truncate"
+                          className="truncate"
                           style={{
-                            color: 'rgba(255,255,255,0.35)',
+                            color: 'rgba(255,255,255,0.45)',
                             fontFamily: 'monospace',
-                            maxWidth: 145,
+                            fontSize: 11,
+                            maxWidth: 175,
                           }}
                         >
                           {cl.metodo}
@@ -221,7 +224,7 @@ export default function MatrizGrid({ clientes, checks, onToggle }: MatrizGridPro
                         padding: 0,
                         textAlign: 'center',
                         verticalAlign: 'middle',
-                        height: 44,
+                        height: 56,
                         borderBottom: '1px solid rgba(255,255,255,0.05)',
                         borderLeft: isFirstOfSection
                           ? '2px solid #252830'
@@ -232,17 +235,17 @@ export default function MatrizGrid({ clientes, checks, onToggle }: MatrizGridPro
                         type="button"
                         onClick={() => onToggle(cl.id, step.id, !on)}
                         title={`${step.title} — ${on ? 'destildar' : 'tildar'}`}
-                        className="inline-flex items-center justify-center transition-all"
+                        className="inline-flex items-center justify-center transition-all hover:border-[#F5A623]/60"
                         style={{
-                          width: 22,
-                          height: 22,
-                          border: `1.5px solid ${on ? '#22C55E' : '#252830'}`,
-                          borderRadius: 5,
+                          width: 30,
+                          height: 30,
+                          border: `2px solid ${on ? '#22C55E' : '#3a3d44'}`,
+                          borderRadius: 7,
                           cursor: 'pointer',
                           background: on ? '#22C55E' : 'transparent',
                         }}
                       >
-                        {on && <Check className="w-3 h-3" style={{ color: '#0A0A0A', strokeWidth: 3 }} />}
+                        {on && <Check className="w-4 h-4" style={{ color: '#0A0A0A', strokeWidth: 3 }} />}
                       </button>
                     </td>
                   );
@@ -252,16 +255,16 @@ export default function MatrizGrid({ clientes, checks, onToggle }: MatrizGridPro
                 <td
                   className="sticky right-0 z-10 bg-[#0A0A0A] group-hover:bg-[#141414] transition-colors"
                   style={{
-                    padding: '0 8px',
-                    height: 44,
+                    padding: '0 12px',
+                    height: 56,
                     borderBottom: '1px solid rgba(255,255,255,0.05)',
                     borderLeft: '2px solid #252830',
                     textAlign: 'center',
                     fontFamily: 'monospace',
-                    fontSize: 11,
-                    minWidth: 70,
-                    color: isComplete ? '#22C55E' : 'rgba(255,255,255,0.6)',
-                    fontWeight: isComplete ? 600 : 400,
+                    fontSize: 14,
+                    minWidth: 84,
+                    color: isComplete ? '#22C55E' : 'rgba(255,255,255,0.7)',
+                    fontWeight: isComplete ? 700 : 500,
                   }}
                   title={`${done}/${TOTAL_STEPS} pasos`}
                 >

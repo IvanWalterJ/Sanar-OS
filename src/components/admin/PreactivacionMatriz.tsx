@@ -111,55 +111,55 @@ export default function PreactivacionMatriz({ clientes, adminId }: Preactivacion
           <button
             type="button"
             onClick={() => setView('matriz')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
               view === 'matriz'
                 ? 'bg-[#F5A623]/15 text-[#F5A623]'
                 : 'text-[#FFFFFF]/50 hover:text-[#FFFFFF]/80'
             }`}
           >
-            <LayoutGrid className="w-3.5 h-3.5" />
+            <LayoutGrid className="w-4 h-4" />
             Matriz
           </button>
           <button
             type="button"
             onClick={() => setView('camino')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
               view === 'camino'
                 ? 'bg-[#F5A623]/15 text-[#F5A623]'
                 : 'text-[#FFFFFF]/50 hover:text-[#FFFFFF]/80'
             }`}
           >
-            <MapIcon className="w-3.5 h-3.5" />
+            <MapIcon className="w-4 h-4" />
             El Camino
           </button>
         </div>
 
         {view === 'matriz' && (
           <>
-            <div className="relative flex-1 min-w-[200px] max-w-sm">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#FFFFFF]/30" />
+            <div className="relative flex-1 min-w-[240px] max-w-md">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#FFFFFF]/30" />
               <input
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Buscar cliente..."
-                className="w-full bg-black/30 border border-[rgba(245,166,35,0.2)] rounded-lg py-2 pl-9 pr-3 text-xs text-[#FFFFFF] focus:outline-none focus:border-[#F5A623]/50 transition-all"
+                className="w-full bg-black/30 border border-[rgba(245,166,35,0.2)] rounded-lg py-2.5 pl-10 pr-3 text-sm text-[#FFFFFF] focus:outline-none focus:border-[#F5A623]/50 transition-all"
               />
             </div>
 
             {/* Stats */}
-            <div className="hidden md:flex items-center gap-4 text-[11px] text-[#FFFFFF]/50">
-              <div className="flex items-center gap-1.5">
-                <span className="text-[#FFFFFF]/40 uppercase tracking-wider">Clientes</span>
-                <span className="text-[#FFFFFF] font-semibold">{stats.total}</span>
+            <div className="hidden md:flex items-center gap-5 text-sm">
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] text-[#FFFFFF]/40 uppercase tracking-wider font-semibold">Clientes</span>
+                <span className="text-[#FFFFFF] font-bold text-base">{stats.total}</span>
               </div>
-              <div className="flex items-center gap-1.5">
-                <span className="text-[#FFFFFF]/40 uppercase tracking-wider">Listos</span>
-                <span className="text-[#22C55E] font-semibold">{stats.listos}</span>
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] text-[#FFFFFF]/40 uppercase tracking-wider font-semibold">Listos</span>
+                <span className="text-[#22C55E] font-bold text-base">{stats.listos}</span>
               </div>
-              <div className="flex items-center gap-1.5">
-                <span className="text-[#FFFFFF]/40 uppercase tracking-wider">Avance</span>
-                <span className="text-[#F5A623] font-semibold">{stats.avgPct}%</span>
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] text-[#FFFFFF]/40 uppercase tracking-wider font-semibold">Avance</span>
+                <span className="text-[#F5A623] font-bold text-base">{stats.avgPct}%</span>
               </div>
             </div>
 
@@ -167,10 +167,10 @@ export default function PreactivacionMatriz({ clientes, adminId }: Preactivacion
               type="button"
               onClick={refresh}
               disabled={refreshing}
-              className="ml-auto flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[rgba(245,166,35,0.2)] text-xs font-semibold text-[#F5A623] hover:bg-[#F5A623]/10 transition-all disabled:opacity-50"
+              className="ml-auto flex items-center gap-2 px-4 py-2 rounded-lg border border-[rgba(245,166,35,0.2)] text-sm font-semibold text-[#F5A623] hover:bg-[#F5A623]/10 transition-all disabled:opacity-50"
               title="Refrescar"
             >
-              <RefreshCw className={`w-3 h-3 ${refreshing ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
               Refrescar
             </button>
           </>
@@ -188,8 +188,8 @@ export default function PreactivacionMatriz({ clientes, adminId }: Preactivacion
         ) : (
           <div className="px-4 md:px-6 py-4">
             {stats.listos > 0 && (
-              <div className="flex items-center gap-2 mb-4 px-3 py-2 rounded-lg bg-[#22C55E]/8 border border-[#22C55E]/20 text-xs text-[#22C55E] w-fit">
-                <CheckCircle2 className="w-3.5 h-3.5" />
+              <div className="flex items-center gap-2 mb-4 px-4 py-2.5 rounded-lg bg-[#22C55E]/8 border border-[#22C55E]/20 text-sm font-semibold text-[#22C55E] w-fit">
+                <CheckCircle2 className="w-4 h-4" />
                 <span>
                   {stats.listos} {stats.listos === 1 ? 'cliente listo' : 'clientes listos'} para activar
                 </span>

@@ -69,11 +69,11 @@ export default function ElCaminoView() {
                     {sectionIdx + 1}.{itemIdx + 1}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="text-sm font-semibold text-[#FFFFFF] mb-1">
+                    <div className="text-base font-semibold text-[#FFFFFF] mb-1.5">
                       {item.title}
                     </div>
                     <div
-                      className="text-[12.5px] leading-relaxed text-[#FFFFFF]/55"
+                      className="text-[14px] leading-relaxed text-[#FFFFFF]/65"
                       dangerouslySetInnerHTML={{ __html: item.detail }}
                     />
                   </div>
