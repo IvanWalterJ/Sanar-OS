@@ -36,7 +36,10 @@ export default function CreativoStudio({ campana, userId, perfil, geminiKey, onB
   const [activeSlide, setActiveSlide] = useState(0);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
-  const [currentCreativoId, setCurrentCreativoId] = useState<string | null>(null);
+  // Ref en lugar de state: persistCreativo es async y leer el state desde su
+  // cierre podia devolver null durante un re-render pendiente, generando un
+  // creativo duplicado en vez de upsertear el existente.
+  const currentCreativoIdRef = useRef<string | null>(null);
   const saveInFlightRef = useRef(false);
 
   const handleCopyGenerated = useCallback(
@@ -45,7 +48,7 @@ export default function CreativoStudio({ campana, userId, perfil, geminiKey, onB
       setAngulo(newAngulo);
       setTipo(newTipo);
       setImages([]); // Reset images when copy changes
-      setCurrentCreativoId(null); // nuevo copy = nuevo creativo en proxima generacion
+      currentCreativoIdRef.current = null; // nuevo copy = nuevo creativo en proxima generacion
       setSaved(false);
     },
     [],
@@ -61,9 +64,10 @@ export default function CreativoStudio({ campana, userId, perfil, geminiKey, onB
       if (saveInFlightRef.current) return;
       saveInFlightRef.current = true;
       setSaving(true);
-      const isFirstSave = currentCreativoId === null;
+      const creativoIdToUse = currentCreativoIdRef.current;
+      const isFirstSave = creativoIdToUse === null;
       try {
-        let creativoId = currentCreativoId;
+        let creativoId = creativoIdToUse;
 
         if (!creativoId) {
           const creativo = await saveCreativo({
@@ -81,7 +85,7 @@ export default function CreativoStudio({ campana, userId, perfil, geminiKey, onB
           });
           if (!creativo) throw new Error('No se pudo guardar el creativo');
           creativoId = creativo.id;
-          setCurrentCreativoId(creativoId);
+          currentCreativoIdRef.current = creativoId;
           onSaved(creativo);
         } else if (prompts && prompts.length > 0) {
           await updateCreativo(creativoId, { prompt_imagen: JSON.stringify(prompts) });
@@ -113,7 +117,7 @@ export default function CreativoStudio({ campana, userId, perfil, geminiKey, onB
         saveInFlightRef.current = false;
       }
     },
-    [userId, copies, angulo, tipo, campana, currentCreativoId, onSaved],
+    [userId, copies, angulo, tipo, campana, onSaved],
   );
 
   const handleImagesGenerated = useCallback(

@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
   Loader2, Sparkles, RotateCcw,
   Camera, Zap, Smile, Tv, Twitter,
@@ -69,6 +69,10 @@ export default function ImagenGenerator({ copies, angulo, perfil, geminiKey, ini
   const [progress, setProgress] = useState<ImageGenProgress | null>(null);
   const [currentSlide, setCurrentSlide] = useState(0);
   const [images, setImages] = useState<{ base64: string; mimeType: string; modelUsed: string }[]>([]);
+  // Ref-mirror para leer la version mas reciente desde callbacks async sin
+  // depender de cierres potencialmente stale (regenerateSingle/applyEdit).
+  const imagesRef = useRef(images);
+  imagesRef.current = images;
   const [previewIdx, setPreviewIdx] = useState(0);
 
   // Free-text prompt (the main input now)
@@ -469,15 +473,18 @@ export default function ImagenGenerator({ copies, angulo, perfil, geminiKey, ini
       // Guardar el prompt nuevo y las refs actuales para futuras regeneraciones
       setSlidePrompts(prev => { const next = [...prev]; next[idx] = prompt; return next; });
       setSlideRefsUsed(prev => { const next = [...prev]; next[idx] = refs; return next; });
-      setImages(prev => {
-        const next = [...prev];
-        next[idx] = { base64: result.imageBase64, mimeType: result.mimeType, modelUsed: result.modelUsed };
-        // Cada regeneracion crea una NUEVA entrada en el historial para no perder versiones.
-        // Se pasan los prompts por slide (con el recien regenerado) y el flag asNewEntry.
-        const promptsForEntry = slidePrompts.map((p, i) => (i === idx ? prompt : p));
-        onImagesGenerated(next, mode, promptsForEntry, { asNewEntry: true });
-        return next;
-      });
+      // Compute next OUTSIDE setImages updater — bajo StrictMode el updater se
+      // invoca dos veces en dev y un side effect adentro (onImagesGenerated)
+      // dispararia dos guardados.
+      const next = imagesRef.current.map((img, i) =>
+        i === idx
+          ? { base64: result.imageBase64, mimeType: result.mimeType, modelUsed: result.modelUsed }
+          : img,
+      );
+      setImages(next);
+      // Cada regeneracion crea una NUEVA entrada en el historial para no perder versiones.
+      const promptsForEntry = slidePrompts.map((p, i) => (i === idx ? prompt : p));
+      onImagesGenerated(next, mode, promptsForEntry, { asNewEntry: true });
       toast.success(`Slide ${idx + 1} regenerada`);
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Error desconocido';
@@ -507,13 +514,16 @@ export default function ImagenGenerator({ copies, angulo, perfil, geminiKey, ini
         setProgress,
         { geminiKey, format, quality },
       );
-      setImages(prev => {
-        const next = [...prev];
-        next[idx] = { base64: result.imageBase64, mimeType: result.mimeType, modelUsed: result.modelUsed };
-        // Cada edicion tambien guarda una NUEVA entrada en el historial.
-        onImagesGenerated(next, mode, slidePrompts, { asNewEntry: true });
-        return next;
-      });
+      // Mismo motivo que en regenerateSingle: nada de side effects dentro del
+      // updater (StrictMode invoca el updater dos veces en dev).
+      const next = imagesRef.current.map((img, i) =>
+        i === idx
+          ? { base64: result.imageBase64, mimeType: result.mimeType, modelUsed: result.modelUsed }
+          : img,
+      );
+      setImages(next);
+      // Cada edicion guarda una NUEVA entrada en el historial.
+      onImagesGenerated(next, mode, slidePrompts, { asNewEntry: true });
       setEditPrompt('');
       toast.success('Edicion aplicada');
     } catch (err) {

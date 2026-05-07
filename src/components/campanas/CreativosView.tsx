@@ -130,7 +130,10 @@ export default function CreativosView({ userId, perfil, geminiKey }: Props) {
   const [, setImageMode] = useState<ImageMode>('completa');
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
-  const [currentCreativoId, setCurrentCreativoId] = useState<string | null>(null);
+  // Ref en vez de state para evitar cierres stale en persistCreativo: si la
+  // segunda llamada concurrente (StrictMode dev o click rapido) leia el state
+  // antes del re-render, veia null y creaba un creativo duplicado.
+  const currentCreativoIdRef = useRef<string | null>(null);
   const saveInFlightRef = useRef(false);
 
   // Perfil local para que el Manual de Marca actualice los prompts del
@@ -152,12 +155,12 @@ export default function CreativosView({ userId, perfil, geminiKey }: Props) {
   useEffect(() => {
     setImages([]);
     setSaved(false);
-    setCurrentCreativoId(null);
+    currentCreativoIdRef.current = null;
   }, [activeTab]);
 
   // Cambio de angulo dentro de un mismo tab = nuevo creativo en proxima generacion
   useEffect(() => {
-    setCurrentCreativoId(null);
+    currentCreativoIdRef.current = null;
     setSaved(false);
   }, [angulo]);
 
@@ -199,7 +202,7 @@ export default function CreativosView({ userId, perfil, geminiKey }: Props) {
       if (saveInFlightRef.current) return;
       saveInFlightRef.current = true;
       setSaving(true);
-      const creativoIdToUse = opts?.forceNew ? null : currentCreativoId;
+      const creativoIdToUse = opts?.forceNew ? null : currentCreativoIdRef.current;
       const isFirstSave = creativoIdToUse === null;
       try {
         const dims = IMAGE_FORMAT_OPTIONS[config.format ?? '1:1'];
@@ -223,7 +226,7 @@ export default function CreativosView({ userId, perfil, geminiKey }: Props) {
           // Solo marcamos este id como "current" cuando NO es forceNew — asi
           // regen/edit no reusan el id y cada versionado queda como entrada
           // propia en el historial.
-          if (!opts?.forceNew) setCurrentCreativoId(creativoId);
+          if (!opts?.forceNew) currentCreativoIdRef.current = creativoId;
         } else if (prompts && prompts.length > 0) {
           await updateCreativo(creativoId, { prompt_imagen: JSON.stringify(prompts) });
         }
@@ -266,7 +269,7 @@ export default function CreativosView({ userId, perfil, geminiKey }: Props) {
         saveInFlightRef.current = false;
       }
     },
-    [userId, angulo, config, currentCreativoId],
+    [userId, angulo, config],
   );
 
   const handleImagesGenerated = useCallback(
