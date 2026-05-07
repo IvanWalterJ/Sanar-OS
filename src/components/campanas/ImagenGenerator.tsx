@@ -9,7 +9,11 @@ import {
 import { toast } from 'sonner';
 import { generateImageWithFallback, generateCarouselImages, base64ToDataUrl, editImage } from '../../lib/campanasImageGen';
 import type { ReferenceImages } from '../../lib/campanasImageGen';
-import { fileToBase64, validateImageFile, ACCEPT_ATTR } from '../../lib/imageUploadUtils';
+import {
+  fileToBase64, validateImageFile, ACCEPT_ATTR,
+  compressImageBase64, base64SizeBytes, formatBytes,
+  MAX_REQUEST_PAYLOAD_BYTES,
+} from '../../lib/imageUploadUtils';
 import { buildImagePrompt, buildCarouselNarrativePrompt } from '../../lib/campanasPrompts';
 import type { CarouselNarrative, CarouselConceptoVisual } from '../../lib/campanasPrompts';
 import { generateText } from '../../lib/aiProvider';
@@ -155,7 +159,26 @@ export default function ImagenGenerator({ copies, angulo, perfil, geminiKey, ini
     for (const file of toProcess) {
       const validationError = validateImageFile(file);
       if (validationError) { toast.error(validationError); continue; }
-      newRefs.push(await fileToBase64(file));
+      const original = await fileToBase64(file);
+      // Comprimir agresivo: la API recibe el base64 dentro de un JSON y Vercel
+      // tope el body cerca de 4.5MB. Sin compresion, una sola foto de 4MB ya
+      // no entra. 1280px lado mayor + JPEG q0.85 baja a ~150-400KB sin perdida
+      // visual notable para una imagen de referencia.
+      const compressed = await compressImageBase64(
+        original.base64, original.mimeType, 1280, 0.85,
+      );
+      newRefs.push({
+        base64: compressed.base64,
+        mimeType: compressed.mimeType,
+        fileName: original.fileName,
+      });
+      // Aviso solo si quedo cerca o por encima del limite individual razonable
+      // (~1MB tras compresion sugiere imagen muy compleja o muy grande).
+      if (base64SizeBytes(compressed.base64) > 1024 * 1024) {
+        toast.warning(
+          `${original.fileName} pesa ${formatBytes(base64SizeBytes(compressed.base64))} aun comprimida — si sumas varias podes superar el limite del servidor.`,
+        );
+      }
     }
     if (newRefs.length > 0) setter([...current, ...newRefs]);
     e.target.value = '';
@@ -230,6 +253,19 @@ export default function ImagenGenerator({ copies, angulo, perfil, geminiKey, ini
         toast.error('Para un carrusel con IA escribi el tema o contexto — sino todos los slides salen iguales.');
         return;
       }
+    }
+
+    // Pre-flight: el body JSON con todas las refs base64 no puede pasar el
+    // limite de Vercel (~4.5MB). Si se pasa, OpenAI tira HTTP 413 y la cascada
+    // entera falla. Avisamos al usuario antes de gastar tiempo/cuota.
+    const totalRefBytes =
+      characterRefs.reduce((acc, r) => acc + base64SizeBytes(r.base64), 0) +
+      styleRefs.reduce((acc, r) => acc + base64SizeBytes(r.base64), 0);
+    if (totalRefBytes > MAX_REQUEST_PAYLOAD_BYTES) {
+      toast.error(
+        `Las imagenes de referencia suman ${formatBytes(totalRefBytes)} y el servidor acepta hasta ${formatBytes(MAX_REQUEST_PAYLOAD_BYTES)}. Saca alguna o usa imagenes mas chicas.`,
+      );
+      return;
     }
 
     setGenerating(true);
@@ -402,6 +438,17 @@ export default function ImagenGenerator({ copies, angulo, perfil, geminiKey, ini
       return;
     }
 
+    // Pre-flight payload size (mismo motivo que en generate).
+    const totalRefBytes =
+      characterRefs.reduce((acc, r) => acc + base64SizeBytes(r.base64), 0) +
+      styleRefs.reduce((acc, r) => acc + base64SizeBytes(r.base64), 0);
+    if (totalRefBytes > MAX_REQUEST_PAYLOAD_BYTES) {
+      toast.error(
+        `Las imagenes de referencia suman ${formatBytes(totalRefBytes)} y el servidor acepta hasta ${formatBytes(MAX_REQUEST_PAYLOAD_BYTES)}. Saca alguna o usa imagenes mas chicas.`,
+      );
+      return;
+    }
+
     // Refs actuales (puede haber cambiado si el usuario subio/quito imagenes)
     const refs: ReferenceImages | undefined = (characterRefs.length > 0 || styleRefs.length > 0)
       ? {
@@ -555,7 +602,34 @@ export default function ImagenGenerator({ copies, angulo, perfil, geminiKey, ini
       <div>
         <label className="block text-[10px] font-bold tracking-wider uppercase text-[#FFFFFF]/40 mb-2">
           Imagenes de referencia (opcional — hasta {MAX_REFS} por tipo)
+          <span className="text-[#FFFFFF]/25 normal-case font-normal tracking-normal"> — se comprimen automaticamente al subirlas</span>
         </label>
+        {(() => {
+          const totalBytes =
+            characterRefs.reduce((acc, r) => acc + base64SizeBytes(r.base64), 0) +
+            styleRefs.reduce((acc, r) => acc + base64SizeBytes(r.base64), 0);
+          if (totalBytes === 0) return null;
+          const pct = Math.min(100, Math.round((totalBytes / MAX_REQUEST_PAYLOAD_BYTES) * 100));
+          const danger = totalBytes > MAX_REQUEST_PAYLOAD_BYTES;
+          const warn = !danger && pct >= 75;
+          const color = danger ? '#EF4444' : warn ? '#F5A623' : '#22C55E';
+          return (
+            <div className="mb-2 flex items-center gap-2 text-[10px]">
+              <span style={{ color }} className="font-semibold">
+                {formatBytes(totalBytes)} / {formatBytes(MAX_REQUEST_PAYLOAD_BYTES)}
+              </span>
+              <div className="flex-1 h-1 bg-[#FFFFFF]/10 rounded-full overflow-hidden">
+                <div className="h-full transition-all" style={{ width: `${pct}%`, backgroundColor: color }} />
+              </div>
+              {danger && (
+                <span className="text-[#EF4444]">Excede el limite — saca alguna ref</span>
+              )}
+              {warn && (
+                <span className="text-[#F5A623]/80">Cerca del limite</span>
+              )}
+            </div>
+          );
+        })()}
         <div className="grid grid-cols-2 gap-3">
           {/* Character refs */}
           <div className="card-panel p-2.5 space-y-2">
@@ -571,6 +645,9 @@ export default function ImagenGenerator({ copies, angulo, perfil, geminiKey, ini
                 {characterRefs.map((ref, idx) => (
                   <div key={idx} className="relative">
                     <img src={`data:${ref.mimeType};base64,${ref.base64}`} className="w-full h-14 object-cover rounded-md" alt={`Ref personaje ${idx + 1}`} />
+                    <span className="absolute bottom-0.5 left-0.5 px-1 py-px rounded bg-black/70 text-white text-[8px] font-medium">
+                      {formatBytes(base64SizeBytes(ref.base64))}
+                    </span>
                     <button onClick={() => removeRef(characterRefs, setCharacterRefs, idx)} className="absolute top-0.5 right-0.5 p-0.5 rounded-full bg-black/70 text-white hover:bg-red-500/80 transition-colors">
                       <X className="w-2.5 h-2.5" />
                     </button>
@@ -601,6 +678,9 @@ export default function ImagenGenerator({ copies, angulo, perfil, geminiKey, ini
                 {styleRefs.map((ref, idx) => (
                   <div key={idx} className="relative">
                     <img src={`data:${ref.mimeType};base64,${ref.base64}`} className="w-full h-14 object-cover rounded-md" alt={`Ref estilo ${idx + 1}`} />
+                    <span className="absolute bottom-0.5 left-0.5 px-1 py-px rounded bg-black/70 text-white text-[8px] font-medium">
+                      {formatBytes(base64SizeBytes(ref.base64))}
+                    </span>
                     <button onClick={() => removeRef(styleRefs, setStyleRefs, idx)} className="absolute top-0.5 right-0.5 p-0.5 rounded-full bg-black/70 text-white hover:bg-red-500/80 transition-colors">
                       <X className="w-2.5 h-2.5" />
                     </button>

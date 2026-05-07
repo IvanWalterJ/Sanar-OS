@@ -9,6 +9,24 @@ import { IMAGE_FORMAT_OPTIONS } from './campanasTypes';
 
 export const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
 
+// Vercel Serverless Functions tope el body JSON cerca de 4.5MB (FUNCTION_PAYLOAD_TOO_LARGE).
+// Dejamos margen para prompt + overhead JSON.
+export const MAX_REQUEST_PAYLOAD_BYTES = 4 * 1024 * 1024;
+
+/**
+ * Estima el tamano que ocuparia un base64 al serializarse en JSON.
+ * Cada caracter base64 ocupa 1 byte en JSON (ASCII), asi que length === bytes.
+ */
+export function base64SizeBytes(base64: string): number {
+  return base64.length;
+}
+
+export function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
 export const ACCEPTED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'] as const;
 
 export const ACCEPT_ATTR = ACCEPTED_IMAGE_TYPES.join(',');
