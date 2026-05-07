@@ -8,7 +8,8 @@
  * - Chip de prioridad con color claro.
  * - Botón "Archivar" para tareas completadas.
  */
-import { useState } from 'react';
+import { useState, useRef, useEffect, useLayoutEffect } from 'react';
+import { createPortal } from 'react-dom';
 import {
   MoreVertical, Calendar, User, AlertCircle, Trash2, UserPlus, Archive, ArchiveRestore,
 } from 'lucide-react';
@@ -61,6 +62,54 @@ export default function TaskCard({
   tarea, currentUserId, onStatusChange, onEdit, onDelete, onArchive, onUnarchive, isDragging, compact,
 }: TaskCardProps) {
   const [showMenu, setShowMenu] = useState(false);
+  const triggerRef = useRef<HTMLButtonElement | null>(null);
+  const menuRef = useRef<HTMLDivElement | null>(null);
+  const [menuPos, setMenuPos] = useState<{ top: number; left: number } | null>(null);
+
+  // Posicionar el menu en coordenadas viewport via portal — asi escapa el
+  // overflow-x-auto del contenedor por persona y nunca queda recortado.
+  // Si no entra abajo del trigger, lo flippeamos arriba.
+  useLayoutEffect(() => {
+    if (!showMenu || !triggerRef.current) {
+      setMenuPos(null);
+      return;
+    }
+    const trigger = triggerRef.current.getBoundingClientRect();
+    const MENU_W = 200;
+    const MENU_H_ESTIMATE = 280;
+    const margin = 8;
+    let top = trigger.bottom + 4;
+    if (top + MENU_H_ESTIMATE > window.innerHeight - margin) {
+      top = Math.max(margin, trigger.top - MENU_H_ESTIMATE - 4);
+    }
+    let left = trigger.right - MENU_W;
+    if (left < margin) left = margin;
+    if (left + MENU_W > window.innerWidth - margin) {
+      left = window.innerWidth - MENU_W - margin;
+    }
+    setMenuPos({ top, left });
+  }, [showMenu]);
+
+  // Cerrar el menu cuando el usuario click afuera, scrollea o resize.
+  useEffect(() => {
+    if (!showMenu) return;
+    const close = () => setShowMenu(false);
+    const onClick = (e: MouseEvent) => {
+      const target = e.target as Node | null;
+      if (!target) return;
+      if (menuRef.current?.contains(target)) return;
+      if (triggerRef.current?.contains(target)) return;
+      close();
+    };
+    document.addEventListener('mousedown', onClick);
+    window.addEventListener('scroll', close, true);
+    window.addEventListener('resize', close);
+    return () => {
+      document.removeEventListener('mousedown', onClick);
+      window.removeEventListener('scroll', close, true);
+      window.removeEventListener('resize', close);
+    };
+  }, [showMenu]);
 
   const fechaInfo = tarea.fecha_vencimiento ? formatRelative(tarea.fecha_vencimiento) : null;
   const isOverdue = !!fechaInfo?.overdue && tarea.status !== 'completadas';
@@ -97,14 +146,14 @@ export default function TaskCard({
       className={`
         bg-[#1A1A1A] border rounded-xl cursor-pointer
         hover:bg-[#1F1F1F]
-        transition-all group relative overflow-hidden
+        transition-all group relative
         focus:outline-none focus:ring-2 focus:ring-[#F5A623]/20
         ${isDragging ? 'opacity-50 scale-95 shadow-2xl' : ''}
         ${isArchivada ? 'opacity-60' : ''}
         border-[rgba(255,255,255,0.08)] hover:border-[rgba(255,255,255,0.18)]
         ${compact ? 'p-3 pl-4' : 'p-4 pl-5'}
       `}
-      title="Click para ver detalle"
+      title={showMenu ? undefined : 'Click para ver detalle'}
     >
       {/* Header: prioridad + acciones */}
       <div className="flex items-start justify-between gap-2 mb-2">
@@ -162,16 +211,18 @@ export default function TaskCard({
 
           <div className="relative">
             <button
+              ref={triggerRef}
               onClick={(e) => { e.stopPropagation(); setShowMenu(v => !v); }}
               className="w-7 h-7 rounded-lg flex items-center justify-center text-[#FFFFFF]/30 hover:text-[#FFFFFF]/70 hover:bg-[#FFFFFF]/5 transition-all"
             >
               <MoreVertical className="w-4 h-4" />
             </button>
 
-            {showMenu && (
+            {showMenu && menuPos && createPortal(
               <div
-                className="absolute right-0 top-8 z-20 bg-[#1E1E1E] border border-[rgba(245,166,35,0.2)] rounded-xl shadow-xl min-w-[180px] py-1"
-                onMouseLeave={() => setShowMenu(false)}
+                ref={menuRef}
+                style={{ position: 'fixed', top: menuPos.top, left: menuPos.left, width: 200 }}
+                className="z-50 bg-[#1E1E1E] border border-[rgba(245,166,35,0.2)] rounded-xl shadow-xl py-1"
                 onClick={(e) => e.stopPropagation()}
               >
                 <div className="px-3 py-1.5 text-[10px] font-bold text-[#FFFFFF]/30 uppercase tracking-wider">
@@ -215,7 +266,8 @@ export default function TaskCard({
                 >
                   Eliminar
                 </button>
-              </div>
+              </div>,
+              document.body,
             )}
           </div>
         </div>
