@@ -4,7 +4,7 @@ import {
   Camera, Zap, Smile, Tv, Twitter,
   ChevronDown, ChevronUp,
   Upload, X, Palette as PaletteIcon, Type,
-  RefreshCw, Wand2, Cookie, Layers, User, Pencil,
+  RefreshCw, Wand2, Cookie, Layers, User, Pencil, Plus,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { generateImageWithFallback, generateCarouselImages, base64ToDataUrl, editImage } from '../../lib/campanasImageGen';
@@ -213,7 +213,8 @@ export default function ImagenGenerator({ copies, angulo, perfil, geminiKey, ini
   const isCarousel = totalSlides > 1;
   const styleGridDisabled = styleRefs.length > 0;
 
-  const generate = useCallback(async () => {
+  const generate = useCallback(async (opts?: { asNewEntry?: boolean }) => {
+    const asNewEntry = opts?.asNewEntry ?? false;
     // OpenAI (server-side, primario) no necesita key en el cliente.
     // Gemini es fallback — si no hay key, la cascada arranca y termina en OpenAI.
 
@@ -303,7 +304,7 @@ export default function ImagenGenerator({ copies, angulo, perfil, geminiKey, ini
         setImages(imgs);
         setSlidePrompts([prompt]);
         setSlideRefsUsed([refs]);
-        onImagesGenerated(imgs, mode, [prompt]);
+        onImagesGenerated(imgs, mode, [prompt], { asNewEntry });
         toast.success(`Imagen generada con ${result.modelName}`);
       } else {
         // ─── HILO NARRATIVO DEL CARRUSEL ─────────────────────────────────────
@@ -414,7 +415,7 @@ export default function ImagenGenerator({ copies, angulo, perfil, geminiKey, ini
         setSlidePrompts(prompts);
         setSlideRefsUsed(prompts.map(() => refs));
         setSavedNarrative(narrative);
-        onImagesGenerated(imgs, mode, prompts);
+        onImagesGenerated(imgs, mode, prompts, { asNewEntry });
         toast.success(narrative
           ? `${results.length} slides con hilo narrativo generadas`
           : `${results.length} imagenes de carrusel generadas`);
@@ -930,13 +931,34 @@ export default function ImagenGenerator({ copies, angulo, perfil, geminiKey, ini
         )}
       </div>
 
-      {/* ─── Generate button ─── */}
-      <button onClick={generate} disabled={generating} className="w-full btn-primary flex items-center justify-center gap-2 disabled:opacity-40">
-        {generating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-        {generating
-          ? isCarousel ? `Generando slide ${currentSlide + 1} de ${totalSlides}...` : 'Generando imagen...'
-          : images.length > 0 ? 'Regenerar' : mode === 'fondo' ? 'Generar fondo' : 'Generar imagen'}
-      </button>
+      {/* ─── Generate button(s) ─── */}
+      {images.length > 0 && !generating ? (
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            onClick={() => generate()}
+            disabled={generating}
+            title="Reemplaza la version actual con una nueva generacion"
+            className="btn-secondary flex items-center justify-center gap-2 disabled:opacity-40"
+          >
+            <RotateCcw className="w-4 h-4" /> Regenerar
+          </button>
+          <button
+            onClick={() => generate({ asNewEntry: true })}
+            disabled={generating}
+            title="Crea una version nueva sin perder la actual (queda en el historial)"
+            className="btn-primary flex items-center justify-center gap-2 disabled:opacity-40"
+          >
+            <Plus className="w-4 h-4" /> Crear nuevo
+          </button>
+        </div>
+      ) : (
+        <button onClick={() => generate()} disabled={generating} className="w-full btn-primary flex items-center justify-center gap-2 disabled:opacity-40">
+          {generating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+          {generating
+            ? isCarousel ? `Generando slide ${currentSlide + 1} de ${totalSlides}...` : 'Generando imagen...'
+            : mode === 'fondo' ? 'Generar fondo' : 'Generar imagen'}
+        </button>
+      )}
 
       {/* ─── Progress ─── */}
       {generating && progress && (
@@ -960,7 +982,7 @@ export default function ImagenGenerator({ copies, angulo, perfil, geminiKey, ini
               {images.length === 1 ? 'Imagen generada' : `${images.length} imagenes generadas`}
               {mode === 'fondo' && ' (solo fondo)'}
             </span>
-            <button onClick={generate} disabled={generating} className="flex items-center gap-1 text-xs text-[#F5A623]/60 hover:text-[#F5A623] transition-colors">
+            <button onClick={() => generate()} disabled={generating} className="flex items-center gap-1 text-xs text-[#F5A623]/60 hover:text-[#F5A623] transition-colors">
               <RotateCcw className="w-3 h-3" /> Regenerar
             </button>
           </div>
