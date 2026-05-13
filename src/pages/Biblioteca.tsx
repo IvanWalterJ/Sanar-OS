@@ -37,7 +37,7 @@ import HerramientaDetalle from './HerramientaDetalle';
 
 // ─── CLINICA Tab definitions ────────────────────────────────────────────────
 
-type ClinicaTabId = 'C1' | 'L' | 'I1' | 'N' | 'I2' | 'C2' | 'A';
+type ClinicaTabId = 'O' | 'C1' | 'L' | 'I1' | 'N' | 'I2' | 'C2' | 'A';
 
 interface ClinicaTab {
   id: ClinicaTabId;
@@ -49,6 +49,13 @@ interface ClinicaTab {
 
 const CLINICA_TABS: readonly ClinicaTab[] = [
   {
+    id: 'O',
+    letter: 'O',
+    label: 'Onboarding',
+    pilarIds: ['P0'],
+    color: '#FFB94D',
+  },
+  {
     id: 'C1',
     letter: 'C',
     label: 'Claridad',
@@ -59,7 +66,7 @@ const CLINICA_TABS: readonly ClinicaTab[] = [
     id: 'L',
     letter: 'L',
     label: 'Liberación',
-    pilarIds: ['P0'],
+    pilarIds: [],
     color: '#FFB94D',
   },
   {
@@ -122,7 +129,11 @@ function isTabUnlocked(
   completadas: Set<string>,
   extraVideos: VideoModulo[],
 ): boolean {
-  if (tab.id === 'C1') return true;
+  // Tabs sin pilares asignados (placeholder del método CLINICA) quedan bloqueadas.
+  if (tab.pilarIds.length === 0) return false;
+
+  // Onboarding y la primera del método siempre abiertas.
+  if (tab.id === 'O' || tab.id === 'C1') return true;
 
   for (const pilarId of tab.pilarIds) {
     const pilar = SEED_ROADMAP_V3.find((p) => p.id === pilarId);
@@ -176,10 +187,10 @@ interface BibliotecaProps {
 }
 
 export default function Biblioteca({ userId }: BibliotecaProps) {
-  const VALID_TABS: ClinicaTabId[] = ['C1', 'L', 'I1', 'N', 'I2', 'C2', 'A'];
+  const VALID_TABS: ClinicaTabId[] = ['O', 'C1', 'L', 'I1', 'N', 'I2', 'C2', 'A'];
   const [activeTabId, setActiveTabId] = usePersistedState<ClinicaTabId>(
     'tcd_biblioteca_tab',
-    'C1',
+    'O',
     { validate: (v) => VALID_TABS.includes(v) },
   );
   const [herramientaActivaId, setHerramientaActivaId] = useState<string | null>(null);
