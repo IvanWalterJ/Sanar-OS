@@ -17,6 +17,7 @@
 export interface VideoModulo {
   id: string;
   grupo: 'A' | 'B' | 'C' | 'D' | 'E';
+  pilar_id?: string; // PilarId (ej. 'P0', 'P5', 'P9A') — set en videos de Supabase, opcional en seed
   titulo: string;
   descripcion: string;
   youtubeUrl: string; // URL completa de YouTube o código embed

@@ -434,8 +434,8 @@ export default function Admin({ adminProfile, onSignOut }: AdminProps) {
   const [adminVideos, setAdminVideos] = useState<AdminVideo[]>([]);
   const [videosLoading, setVideosLoading] = useState(false);
   const [showAddVideo, setShowAddVideo] = useState(false);
-  const [videoForm, setVideoForm] = useState<{ id?: string; pilar_id: PilarId; titulo: string; descripcion: string; youtubeUrl: string; duracion: string }>({
-    pilar_id: 'P0', titulo: '', descripcion: '', youtubeUrl: '', duracion: ''
+  const [videoForm, setVideoForm] = useState<{ id?: string; pilar_id: PilarId | ''; titulo: string; descripcion: string; youtubeUrl: string; duracion: string }>({
+    pilar_id: '', titulo: '', descripcion: '', youtubeUrl: '', duracion: ''
   });
 
   // Admin settings
@@ -1063,13 +1063,17 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
 
   async function saveAdminVideo(v: Omit<AdminVideo, 'id'> & { id?: string }) {
     if (!supabase) return;
+    if (!v.pilar_id) {
+      toast.error('Elegí un pilar antes de guardar el video.');
+      return;
+    }
     try {
       if (v.id) {
         const { error } = await supabase
           .from('programa_videos')
           .update({
-            grupo: PILAR_TO_GRUPO[v.pilar_id ?? 'P0'] ?? 'A',
-            pilar_id: v.pilar_id ?? null,
+            grupo: PILAR_TO_GRUPO[v.pilar_id] ?? 'A',
+            pilar_id: v.pilar_id,
             titulo: v.titulo,
             descripcion: v.descripcion || '',
             youtube_url: v.youtubeUrl,
@@ -1083,8 +1087,8 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
         const { data, error } = await supabase
           .from('programa_videos')
           .insert({
-            grupo: PILAR_TO_GRUPO[v.pilar_id ?? 'P0'] ?? 'A',
-            pilar_id: v.pilar_id ?? null,
+            grupo: PILAR_TO_GRUPO[v.pilar_id] ?? 'A',
+            pilar_id: v.pilar_id,
             titulo: v.titulo,
             descripcion: v.descripcion || '',
             youtube_url: v.youtubeUrl,
@@ -2966,7 +2970,7 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
                   <p className="text-sm text-[#FFFFFF]/40 mt-1">Agregá videos de YouTube por pilar. Se muestran automáticamente en la Biblioteca de tus clientes.</p>
                 </div>
                 <button
-                  onClick={() => { setVideoForm({ pilar_id: 'P0', titulo: '', descripcion: '', youtubeUrl: '', duracion: '' }); setShowAddVideo(true); }}
+                  onClick={() => { setVideoForm({ pilar_id: '', titulo: '', descripcion: '', youtubeUrl: '', duracion: '' }); setShowAddVideo(true); }}
                   className="btn-primary flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold shadow-lg shadow-[#F5A623]/20"
                 >
                   <Plus className="w-4 h-4" /> Agregar Video
@@ -3017,7 +3021,7 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
                                   onClick={() => {
                                     setVideoForm({
                                       id: v.id,
-                                      pilar_id: (v.pilar_id ?? 'P0') as PilarId,
+                                      pilar_id: (v.pilar_id ?? '') as PilarId | '',
                                       titulo: v.titulo,
                                       descripcion: v.descripcion,
                                       youtubeUrl: v.youtubeUrl,
@@ -3545,8 +3549,11 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
                 <label className="block text-[11px] font-bold uppercase tracking-wider text-[#FFFFFF]/60 mb-2">Pilar *</label>
                 <CustomSelect
                   value={videoForm.pilar_id}
-                  onChange={(val) => setVideoForm({ ...videoForm, pilar_id: val as PilarId })}
-                  options={PILAR_OPTIONS.map(p => ({ value: p.id, label: p.label }))}
+                  onChange={(val) => setVideoForm({ ...videoForm, pilar_id: val as PilarId | '' })}
+                  options={[
+                    { value: '', label: 'Elegí un pilar…' },
+                    ...PILAR_OPTIONS.map(p => ({ value: p.id, label: p.label })),
+                  ]}
                 />
               </div>
               <div>
@@ -3585,12 +3592,13 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
                 Cancelar
               </button>
               <button
-                disabled={!videoForm.youtubeUrl.trim() || !videoForm.titulo.trim()}
+                disabled={!videoForm.youtubeUrl.trim() || !videoForm.titulo.trim() || !videoForm.pilar_id}
                 onClick={() => {
-                  if (!videoForm.youtubeUrl.trim() || !videoForm.titulo.trim()) return;
+                  const pilar = videoForm.pilar_id;
+                  if (!videoForm.youtubeUrl.trim() || !videoForm.titulo.trim() || !pilar) return;
                   saveAdminVideo({
                     id: videoForm.id,
-                    pilar_id: videoForm.pilar_id,
+                    pilar_id: pilar,
                     titulo: videoForm.titulo.trim(),
                     descripcion: videoForm.descripcion.trim(),
                     youtubeUrl: videoForm.youtubeUrl.trim(),

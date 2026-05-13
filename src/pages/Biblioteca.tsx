@@ -191,12 +191,14 @@ export default function Biblioteca({ userId }: BibliotecaProps) {
     [activeTab.pilarIds]
   );
 
-  // Merge seed videos with Supabase extra videos for the active tab's pilarIds
+  // Merge seed videos with Supabase extra videos that pertain to the active tab's pilarIds.
   const tabVideos = useMemo(() => {
-    // Extra videos from Supabase use grupo A-E which doesn't map cleanly.
-    // Include them all for now, merged with seed videos.
-    return [...seedVideos, ...extraVideos];
-  }, [seedVideos, extraVideos]);
+    const activePilarIds = activeTab.pilarIds as readonly string[];
+    const filteredExtra = extraVideos.filter(
+      (v) => v.pilar_id !== undefined && activePilarIds.includes(v.pilar_id)
+    );
+    return [...seedVideos, ...filteredExtra];
+  }, [seedVideos, extraVideos, activeTab.pilarIds]);
 
   useEffect(() => {
     cargarVideosExtra();
@@ -218,6 +220,7 @@ export default function Biblioteca({ userId }: BibliotecaProps) {
           data.map((v: Record<string, unknown>) => ({
             id: v.id as string,
             grupo: (v.grupo as string) as VideoModulo['grupo'],
+            pilar_id: (v.pilar_id as string | null) ?? undefined,
             titulo: v.titulo as string,
             descripcion: v.descripcion as string,
             youtubeUrl: v.youtube_url as string,
