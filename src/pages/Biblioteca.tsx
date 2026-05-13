@@ -157,14 +157,22 @@ function getHerramientasForPilars(pilarIds: readonly PilarId[]): HerramientaV3[]
   );
 }
 
-/** Build video-like entries from roadmap metas that have video_youtube_id */
+/**
+ * Build video entries from roadmap metas. Solo incluye metas con un YouTube ID
+ * real (descarta PLACEHOLDER_*) — los reales se suben desde el panel admin a
+ * la tabla programa_videos y se mergean por separado.
+ */
 function getVideosFromPilars(pilarIds: readonly PilarId[]): VideoModulo[] {
   const videos: VideoModulo[] = [];
   for (const pilarId of pilarIds) {
     const pilar = SEED_ROADMAP_V3.find((p) => p.id === pilarId);
     if (!pilar) continue;
     for (const meta of pilar.metas) {
-      if (meta.tipo === 'VIDEO' && meta.video_youtube_id) {
+      if (
+        meta.tipo === 'VIDEO' &&
+        meta.video_youtube_id &&
+        !meta.video_youtube_id.startsWith('PLACEHOLDER')
+      ) {
         videos.push({
           id: meta.codigo,
           grupo: 'A', // placeholder — not used for display
