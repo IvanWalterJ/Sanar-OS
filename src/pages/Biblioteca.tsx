@@ -110,9 +110,18 @@ function getCompletadas(): Set<string> {
   }
 }
 
-/** A tab is unlocked if ANY of its pilares has at least one completed meta or is active */
-function isTabUnlocked(tab: ClinicaTab, completadas: Set<string>): boolean {
-  // First tab is always unlocked
+/**
+ * Una tab queda desbloqueada si:
+ *  - es la primera (C1), o
+ *  - el cliente ya completó alguna meta de sus pilares, o
+ *  - hay al menos un video extra (subido desde admin) para alguno de sus pilares.
+ * Caso 3: aunque el cliente no tenga progreso, ve los videos que Javo le cargó.
+ */
+function isTabUnlocked(
+  tab: ClinicaTab,
+  completadas: Set<string>,
+  extraVideos: VideoModulo[],
+): boolean {
   if (tab.id === 'C1') return true;
 
   for (const pilarId of tab.pilarIds) {
@@ -122,7 +131,11 @@ function isTabUnlocked(tab: ClinicaTab, completadas: Set<string>): boolean {
       if (completadas.has(meta.codigo)) return true;
     }
   }
-  return false;
+
+  const tabPilars = new Set<string>(tab.pilarIds);
+  return extraVideos.some(
+    (v) => v.pilar_id !== undefined && tabPilars.has(v.pilar_id),
+  );
 }
 
 /** Get herramientas V3 for a set of pilarIds */
@@ -144,6 +157,7 @@ function getVideosFromPilars(pilarIds: readonly PilarId[]): VideoModulo[] {
         videos.push({
           id: meta.codigo,
           grupo: 'A', // placeholder — not used for display
+          pilar_id: pilarId,
           titulo: meta.titulo,
           descripcion: meta.descripcion,
           youtubeUrl: `https://youtu.be/${meta.video_youtube_id}`,
@@ -191,13 +205,19 @@ export default function Biblioteca({ userId }: BibliotecaProps) {
     [activeTab.pilarIds]
   );
 
-  // Merge seed videos with Supabase extra videos that pertain to the active tab's pilarIds.
+  // Merge seed + extra videos for the active tab's pilars, agrupados por pilar
+  // siguiendo el orden de activeTab.pilarIds (sino quedan desordenados visualmente).
   const tabVideos = useMemo(() => {
     const activePilarIds = activeTab.pilarIds as readonly string[];
+    const pilarOrder = new Map<string, number>(activePilarIds.map((p, i) => [p, i]));
     const filteredExtra = extraVideos.filter(
       (v) => v.pilar_id !== undefined && activePilarIds.includes(v.pilar_id)
     );
-    return [...seedVideos, ...filteredExtra];
+    return [...seedVideos, ...filteredExtra].sort((a, b) => {
+      const ai = pilarOrder.get(a.pilar_id ?? '') ?? 999;
+      const bi = pilarOrder.get(b.pilar_id ?? '') ?? 999;
+      return ai - bi;
+    });
   }, [seedVideos, extraVideos, activeTab.pilarIds]);
 
   useEffect(() => {
@@ -313,7 +333,7 @@ export default function Biblioteca({ userId }: BibliotecaProps) {
         >
           {CLINICA_TABS.map((tab) => {
             const isActive = activeTabId === tab.id;
-            const unlocked = isTabUnlocked(tab, completadas);
+            const unlocked = isTabUnlocked(tab, completadas, extraVideos);
             return (
               <button
                 key={tab.id}
@@ -437,7 +457,7 @@ export default function Biblioteca({ userId }: BibliotecaProps) {
                     <div className="p-4 flex-1 flex flex-col">
                       <div className="flex items-center gap-2 mb-2">
                         <span className="text-[9px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded bg-[#F5A623]/15 text-[#F5A623] border border-[#F5A623]/20">
-                          {v.id}
+                          {v.pilar_id ?? v.id}
                         </span>
                       </div>
                       <h3 className="text-sm font-semibold text-[#FFFFFF] mb-1">
