@@ -177,3 +177,134 @@ export async function archivarTodasCompletadas(): Promise<number> {
   if (error) throw error;
   return (data ?? []).length;
 }
+
+// ─── Comentarios ───────────────────────────────────────────────────────────
+
+export interface TareaComentario {
+  id: string;
+  tarea_id: string;
+  autor_id: string;
+  autor_nombre: string | null;
+  contenido: string;
+  created_at: string;
+}
+
+export async function fetchTareaComentarios(tareaId: string): Promise<TareaComentario[]> {
+  if (!supabase) return [];
+  const { data, error } = await supabase.rpc('get_tarea_comentarios', { p_tarea_id: tareaId });
+  if (error) throw error;
+  return (data ?? []) as TareaComentario[];
+}
+
+export async function createTareaComentario(input: {
+  tarea_id: string;
+  autor_id: string;
+  contenido: string;
+}): Promise<TareaComentario> {
+  if (!supabase) throw new Error('Supabase not configured');
+  const { data, error } = await supabase
+    .from('admin_tareas_comentarios')
+    .insert({
+      tarea_id: input.tarea_id,
+      autor_id: input.autor_id,
+      contenido: input.contenido,
+    })
+    .select()
+    .single();
+  if (error) throw error;
+  return data as TareaComentario;
+}
+
+export async function deleteTareaComentario(id: string): Promise<void> {
+  if (!supabase) throw new Error('Supabase not configured');
+  const { error } = await supabase.from('admin_tareas_comentarios').delete().eq('id', id);
+  if (error) throw error;
+}
+
+// ─── Adjuntos ──────────────────────────────────────────────────────────────
+
+export interface TareaAdjunto {
+  id: string;
+  tarea_id: string;
+  autor_id: string | null;
+  autor_nombre: string | null;
+  storage_path: string;
+  file_name: string;
+  mime_type: string | null;
+  size_bytes: number | null;
+  created_at: string;
+}
+
+const TASK_BUCKET = 'task-attachments';
+export const MAX_ATTACHMENT_BYTES = 25 * 1024 * 1024; // 25 MB
+
+export async function fetchTareaAdjuntos(tareaId: string): Promise<TareaAdjunto[]> {
+  if (!supabase) return [];
+  const { data, error } = await supabase.rpc('get_tarea_adjuntos', { p_tarea_id: tareaId });
+  if (error) throw error;
+  return (data ?? []) as TareaAdjunto[];
+}
+
+function sanitizeFileName(name: string): string {
+  return name.replace(/[^a-zA-Z0-9._-]+/g, '_').slice(0, 120);
+}
+
+export async function uploadTareaAdjunto(input: {
+  tarea_id: string;
+  autor_id: string;
+  file: File;
+}): Promise<TareaAdjunto> {
+  if (!supabase) throw new Error('Supabase not configured');
+  if (input.file.size > MAX_ATTACHMENT_BYTES) {
+    throw new Error('El archivo supera los 25 MB');
+  }
+
+  const safeName = sanitizeFileName(input.file.name);
+  const storagePath = `${input.tarea_id}/${Date.now()}_${safeName}`;
+
+  const { error: uploadError } = await supabase.storage
+    .from(TASK_BUCKET)
+    .upload(storagePath, input.file, {
+      contentType: input.file.type || 'application/octet-stream',
+      upsert: false,
+    });
+  if (uploadError) throw uploadError;
+
+  const { data, error } = await supabase
+    .from('admin_tareas_adjuntos')
+    .insert({
+      tarea_id: input.tarea_id,
+      autor_id: input.autor_id,
+      storage_path: storagePath,
+      file_name: input.file.name,
+      mime_type: input.file.type || null,
+      size_bytes: input.file.size,
+    })
+    .select()
+    .single();
+  if (error) {
+    // rollback storage
+    await supabase.storage.from(TASK_BUCKET).remove([storagePath]).catch(() => null);
+    throw error;
+  }
+  return data as TareaAdjunto;
+}
+
+export async function deleteTareaAdjunto(adjunto: TareaAdjunto): Promise<void> {
+  if (!supabase) throw new Error('Supabase not configured');
+  const { error } = await supabase
+    .from('admin_tareas_adjuntos')
+    .delete()
+    .eq('id', adjunto.id);
+  if (error) throw error;
+  await supabase.storage.from(TASK_BUCKET).remove([adjunto.storage_path]).catch(() => null);
+}
+
+export async function getTareaAdjuntoSignedUrl(storagePath: string): Promise<string | null> {
+  if (!supabase) return null;
+  const { data, error } = await supabase.storage
+    .from(TASK_BUCKET)
+    .createSignedUrl(storagePath, 60 * 10); // 10 min
+  if (error || !data) return null;
+  return data.signedUrl;
+}

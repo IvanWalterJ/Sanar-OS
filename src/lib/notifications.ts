@@ -100,6 +100,20 @@ export async function notificarTareaAsignada(
   });
 }
 
+export async function notificarComentarioTarea(
+  destinatarioId: string,
+  autorNombre: string,
+  tituloTarea: string,
+): Promise<void> {
+  await crearNotificacion({
+    usuario_id: destinatarioId,
+    tipo: 'tarea',
+    titulo: `${autorNombre} respondió en una tarea`,
+    descripcion: `Nuevo comentario en "${tituloTarea}"`,
+    accion_url: '/admin?tab=tareas',
+  });
+}
+
 // ─── Notificaciones de cliente ──────────────────────────────────────────────────
 
 export async function notificarPilarCompletado(

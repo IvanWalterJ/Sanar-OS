@@ -42,6 +42,23 @@ const PRIORIDAD_COLORS: Record<string, string> = {
   urgente: 'bg-red-500/20 text-red-400',
 };
 
+function stripHtml(html: string): string {
+  // Sustituye fines de bloque por espacios para que líneas no se peguen.
+  const withSpaces = html.replace(/<\/(p|div|li|h[1-6]|blockquote|br)[^>]*>/gi, ' ');
+  // Quita tags restantes.
+  const text = withSpaces.replace(/<[^>]+>/g, '');
+  // Decodifica entidades básicas.
+  return text
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 function formatRelative(date: string): { label: string; overdue: boolean } {
   const target = new Date(date);
   const now = new Date();
@@ -278,12 +295,15 @@ export default function TaskCard({
         {tarea.titulo}
       </p>
 
-      {/* Descripción */}
-      {tarea.descripcion && !compact && (
-        <p className="text-sm text-[#FFFFFF]/55 leading-relaxed mb-3 line-clamp-2">
-          {tarea.descripcion}
-        </p>
-      )}
+      {/* Descripción (preview en texto plano — el HTML se renderiza dentro del modal) */}
+      {tarea.descripcion && !compact && (() => {
+        const preview = stripHtml(tarea.descripcion);
+        return preview ? (
+          <p className="text-sm text-[#FFFFFF]/55 leading-relaxed mb-3 line-clamp-2">
+            {preview}
+          </p>
+        ) : null;
+      })()}
 
       {/* Cliente */}
       {tarea.cliente_nombre && (

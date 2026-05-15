@@ -4,6 +4,9 @@ import type { AdminTarea, AdminTareaStatus, AdminTareaPrioridad } from '../../li
 import { ADMIN_TAREA_STATUS_LABELS, ADMIN_TAREA_PRIORIDAD_LABELS, ADMIN_TAREA_STATUSES } from '../../lib/supabase';
 import type { Profile } from '../../lib/supabase';
 import CustomSelect from '../CustomSelect';
+import TaskDescriptionEditor from '../editor/TaskDescriptionEditor';
+import TaskComments from '../tasks/TaskComments';
+import TaskAttachments from '../tasks/TaskAttachments';
 
 interface TaskModalProps {
   tarea?: AdminTarea | null;
@@ -42,6 +45,9 @@ export default function TaskModal({ tarea, teamMembers, clientes, currentAdminId
     ?? teamMembers.find(m => m.id === creadorId)?.nombre
     ?? 'Vos';
 
+  const currentUserNombre =
+    teamMembers.find(m => m.id === currentAdminId)?.nombre ?? 'Usuario';
+
   async function handleSubmit() {
     if (!titulo.trim()) return;
     setSaving(true);
@@ -63,7 +69,7 @@ export default function TaskModal({ tarea, teamMembers, clientes, currentAdminId
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-      <div className="bg-[#141414] border border-[rgba(245,166,35,0.2)] rounded-2xl w-full max-w-lg shadow-2xl flex flex-col max-h-[90vh]">
+      <div className="bg-[#141414] border border-[rgba(245,166,35,0.2)] rounded-2xl w-full max-w-2xl shadow-2xl flex flex-col max-h-[92vh]">
         {/* Header */}
         <div className="flex items-center justify-between p-5 border-b border-[rgba(245,166,35,0.1)] shrink-0">
           <h2 className="text-base font-semibold text-[#FFFFFF]">
@@ -97,17 +103,14 @@ export default function TaskModal({ tarea, teamMembers, clientes, currentAdminId
             />
           </div>
 
-          {/* Descripción */}
-          <div>
-            <label className="block text-[10px] font-bold text-[#FFFFFF]/40 uppercase tracking-wider mb-1.5">Descripción</label>
-            <textarea
-              value={descripcion}
-              onChange={e => setDescripcion(e.target.value)}
-              placeholder="Contexto o detalles adicionales..."
-              rows={3}
-              className="w-full bg-[#0A0A0A] border border-[rgba(245,166,35,0.2)] rounded-xl px-4 py-2.5 text-sm text-[#FFFFFF] placeholder-[#FFFFFF]/20 focus:outline-none focus:border-[#F5A623]/50 transition-colors resize-none"
-            />
-          </div>
+          {/* Descripción (rich text + fullscreen) */}
+          <TaskDescriptionEditor
+            value={descripcion}
+            onChange={setDescripcion}
+            titulo={titulo}
+            onTituloChange={setTitulo}
+            placeholder='Contexto, links, checklist… probá escribir "/" para insertar bloques.'
+          />
 
           <div className="grid grid-cols-2 gap-3">
             {/* Asignado a */}
@@ -171,6 +174,35 @@ export default function TaskModal({ tarea, teamMembers, clientes, currentAdminId
               ]}
             />
           </div>
+
+          {/* Adjuntos + Conversación: solo cuando la tarea ya existe */}
+          {isEditing && tarea && (
+            <>
+              <div className="pt-2 border-t border-[rgba(255,255,255,0.05)]">
+                <TaskAttachments
+                  tareaId={tarea.id}
+                  currentUserId={currentAdminId}
+                />
+              </div>
+
+              <div className="pt-2 border-t border-[rgba(255,255,255,0.05)]">
+                <TaskComments
+                  tareaId={tarea.id}
+                  tareaTitulo={tarea.titulo}
+                  creadoPor={tarea.creado_por}
+                  asignadoA={tarea.asignado_a}
+                  currentUserId={currentAdminId}
+                  currentUserNombre={currentUserNombre}
+                />
+              </div>
+            </>
+          )}
+
+          {!isEditing && (
+            <p className="text-[11px] text-[#FFFFFF]/30 italic">
+              Podrás adjuntar archivos y responder al creador una vez que guardes la tarea.
+            </p>
+          )}
         </div>
 
         {/* Footer */}
