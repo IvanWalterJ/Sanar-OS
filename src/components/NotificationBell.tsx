@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Bell, CheckCircle2, MessageSquare, Trophy, Shield } from 'lucide-react';
 import {
   obtenerNotificaciones,
@@ -53,6 +54,31 @@ export default function NotificationBell({ userId, onNavigate, size = 'normal' }
   const [open, setOpen] = useState(false);
   const [items, setItems] = useState<NotificacionDB[]>([]);
   const [unread, setUnread] = useState(0);
+  const triggerRef = useRef<HTMLButtonElement | null>(null);
+  const [pos, setPos] = useState<{ top: number; right: number } | null>(null);
+
+  // Re-posicionar el dropdown cuando se abre o cuando cambia el viewport
+  useLayoutEffect(() => {
+    if (!open || !triggerRef.current) {
+      setPos(null);
+      return;
+    }
+    const compute = () => {
+      const rect = triggerRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      setPos({
+        top: rect.bottom + 12,
+        right: Math.max(8, window.innerWidth - rect.right),
+      });
+    };
+    compute();
+    window.addEventListener('resize', compute);
+    window.addEventListener('scroll', compute, true);
+    return () => {
+      window.removeEventListener('resize', compute);
+      window.removeEventListener('scroll', compute, true);
+    };
+  }, [open]);
 
   useEffect(() => {
     if (!userId) return;
@@ -119,8 +145,9 @@ export default function NotificationBell({ userId, onNavigate, size = 'normal' }
   if (!userId) return null;
 
   return (
-    <div className="relative">
+    <>
       <button
+        ref={triggerRef}
         onClick={() => setOpen(o => !o)}
         className={`${buttonSize} rounded-full card-panel flex items-center justify-center transition-all duration-300 active:scale-95 relative ${
           open ? 'text-[#FFFFFF] bg-[#1C1C1C] shadow-[0_0_15px_rgba(245,166,35,0.15)]' : 'text-[#FFFFFF]/40 hover:text-[#FFFFFF]'
@@ -135,11 +162,19 @@ export default function NotificationBell({ userId, onNavigate, size = 'normal' }
         )}
       </button>
 
-      {open && (
+      {open && pos && createPortal(
         <>
-          {/* Backdrop invisible para cerrar al click afuera */}
-          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
-          <div className="absolute right-0 mt-3 w-[calc(100vw-2rem)] md:w-80 card-panel border border-[rgba(245,166,35,0.2)] rounded-2xl shadow-2xl overflow-hidden animate-in slide-in-from-top-2 fade-in duration-200 z-50">
+          {/* Backdrop invisible para cerrar al click afuera. z muy alto para
+              ganar a cualquier stacking context (backdrop-blur, transform, etc.) */}
+          <div
+            className="fixed inset-0"
+            style={{ zIndex: 9998 }}
+            onClick={() => setOpen(false)}
+          />
+          <div
+            className="fixed w-[calc(100vw-2rem)] md:w-80 card-panel border border-[rgba(245,166,35,0.2)] rounded-2xl shadow-2xl overflow-hidden animate-in slide-in-from-top-2 fade-in duration-200"
+            style={{ top: pos.top, right: pos.right, zIndex: 9999 }}
+          >
             <div className="p-4 border-b border-[rgba(245,166,35,0.15)] flex items-center justify-between bg-[#1C1C1C]/50">
               <h3 className="font-medium text-[#FFFFFF]">Notificaciones</h3>
               {unread > 0 && (
@@ -189,8 +224,9 @@ export default function NotificationBell({ userId, onNavigate, size = 'normal' }
               </button>
             </div>
           </div>
-        </>
+        </>,
+        document.body,
       )}
-    </div>
+    </>
   );
 }
