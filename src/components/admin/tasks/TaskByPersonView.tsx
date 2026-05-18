@@ -14,6 +14,7 @@ import { useDroppable, useDraggable } from '@dnd-kit/core';
 import { Users } from 'lucide-react';
 import type { AdminTarea, AdminTareaStatus, Profile } from '../../../lib/supabase';
 import { updateAdminTarea } from '../../../lib/adminTasks';
+import { notificarTareaAsignada } from '../../../lib/notifications';
 import { toast } from 'sonner';
 import TaskCard from './TaskCard';
 import { getTeamColor, getInitials, UNASSIGNED_COLOR } from '../../../lib/teamColors';
@@ -262,6 +263,13 @@ export default function TaskByPersonView({
         ? orderedMembers.find(m => m.id === targetPersonId)?.nombre ?? 'el equipo'
         : 'sin asignar';
       toast.success(`Reasignada a ${targetName}`);
+
+      // Notificar al nuevo asignado (si no soy yo mismo y no es "sin asignar")
+      if (targetPersonId && targetPersonId !== currentUserId) {
+        const miNombre = orderedMembers.find(m => m.id === currentUserId)?.nombre ?? 'El equipo';
+        notificarTareaAsignada(targetPersonId, tarea.titulo, miNombre).catch(() => null);
+      }
+
       onReassign();
     } catch {
       toast.error('No se pudo reasignar la tarea');
