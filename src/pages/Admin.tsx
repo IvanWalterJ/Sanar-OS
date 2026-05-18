@@ -1253,7 +1253,7 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
         c.id === selectedCliente.id ? { ...c, full_agent_access: newVal } : c
       ));
       setSelectedCliente(prev => prev ? { ...prev, full_agent_access: newVal } : prev);
-      toast.success(newVal ? 'Todos los agentes IA desbloqueados' : 'Agentes IA bloqueados por pilar');
+      toast.success(newVal ? 'Todos los entrenadores IA desbloqueados' : 'Entrenadores IA bloqueados por pilar');
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : 'Error desconocido';
       toast.error(`Error actualizando acceso a agentes: ${msg}`);

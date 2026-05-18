@@ -789,7 +789,7 @@ export const SEED_ROADMAP_V3: RoadmapPilar[] = [
       {
         codigo: 'P9B.3',
         titulo: 'Preparación con el Simulador de Llamada',
-        descripcion: 'Antes de tu primera llamada real, abrí el Simulador de Llamada desde Agentes IA y practicá al menos 3 roleplays con tu avatar. Después volvé al Coach y preguntale: "Ya practiqué 3 simulaciones. ¿Qué patrones de objeción aparecieron? ¿Qué debería ajustar del script antes de la primera llamada real?" El simulador NO guarda nada en el ADN — solo entrena.',
+        descripcion: 'Antes de tu primera llamada real, abrí el Simulador de Llamada desde Entrenadores IA y practicá al menos 3 roleplays con tu avatar. Después volvé al Coach y preguntale: "Ya practiqué 3 simulaciones. ¿Qué patrones de objeción aparecieron? ¿Qué debería ajustar del script antes de la primera llamada real?" El simulador NO guarda nada en el ADN — solo entrena.',
         tipo: 'COACH',
         es_estrella: true,
         tiempo_estimado: '45 min',
@@ -947,7 +947,7 @@ export const SEED_ROADMAP_V3: RoadmapPilar[] = [
       {
         codigo: 'P11.1',
         titulo: 'Retrospectiva con el Agente + plan con el Coach',
-        descripcion: 'Abrí el Agente de Retrospectiva Mensual desde Agentes IA y completá la retrospectiva (qué funcionó · qué no · cuello de botella según métricas del Dashboard). Después decile al Coach: "Ya hice la retrospectiva del ciclo. El cuello de botella que identifiqué fue X. ¿Qué plan concreto me sugerís para el ciclo 2 · Consolidar / Optimizar / Escalar?" El Agente NO guarda en el ADN — solo analiza.',
+        descripcion: 'Abrí el Agente de Retrospectiva Mensual desde Entrenadores IA y completá la retrospectiva (qué funcionó · qué no · cuello de botella según métricas del Dashboard). Después decile al Coach: "Ya hice la retrospectiva del ciclo. El cuello de botella que identifiqué fue X. ¿Qué plan concreto me sugerís para el ciclo 2 · Consolidar / Optimizar / Escalar?" El Agente NO guarda en el ADN — solo analiza.',
         tipo: 'COACH',
         es_estrella: true,
         tiempo_estimado: '60 min',

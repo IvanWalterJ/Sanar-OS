@@ -45,6 +45,15 @@ import { toast } from 'sonner';
 import { getUserKnowledgeBase } from '../lib/userKnowledgeBase';
 import { generateText } from '../lib/aiProvider';
 import {
+  AttachButton,
+  AttachmentsPreviewStrip,
+} from '../components/ChatAttachmentsBar';
+import {
+  attachmentsToContext,
+  buildAttachmentsFromDataTransfer,
+  type ChatAttachment,
+} from '../lib/chatAttachments';
+import {
   AGENTES,
   type AgenteCategoria,
   type AgenteSkillSnapshot,
@@ -110,6 +119,8 @@ export default function Agentes({ userId, perfil, setCurrentPage }: AgentesProps
   const [cargando, setCargando] = useState(false);
   const [copiado, setCopiado] = useState(false);
   const [cargandoConversacion, setCargandoConversacion] = useState(false);
+  const [attachments, setAttachments] = useState<ChatAttachment[]>([]);
+  const [uploadingAttachment, setUploadingAttachment] = useState(false);
   const [skillByAgent, setSkillByAgent] = useState<Record<string, AgentSkillProgressRow | null>>({});
   const [metricasCount, setMetricasCount] = useState<number>(0);
   const [bloqueado, setBloqueado] = useState<{ agente: ConfigAgente } | null>(null);
@@ -246,20 +257,44 @@ export default function Agentes({ userId, perfil, setCurrentPage }: AgentesProps
 
   const enviarMensaje = useCallback(
     async (texto: string) => {
-      if (!texto.trim() || !agenteActivo || cargando) return;
+      const tieneAdjuntos = attachments.length > 0;
+      if ((!texto.trim() && !tieneAdjuntos) || !agenteActivo || cargando) return;
+
+      const enviados = attachments;
+      setAttachments([]);
+
+      // Mensaje visible para el usuario · etiquetas con adjuntos
+      const textoVisible = tieneAdjuntos
+        ? `${texto.trim() || '(adjuntos para analizar)'}\n\n${enviados
+            .map((a) =>
+              a.kind === 'image' ? `📎 ${a.fileName} (imagen)` : `📎 ${a.fileName}`,
+            )
+            .join('\n')}`
+        : texto;
 
       const conUsuario: MensajeAgente[] = [
         ...mensajes,
-        { rol: 'usuario', contenido: texto },
+        { rol: 'usuario', contenido: textoVisible },
       ];
       setMensajes(conUsuario);
       setInputUsuario('');
       setCargando(true);
 
       try {
-        const historial = conUsuario
-          .map((m) => `${m.rol === 'usuario' ? 'Usuario' : 'Agente'}: ${m.contenido}`)
-          .join('\n\n');
+        // Contexto de adjuntos · imagenes via Claude vision + archivos de texto
+        const adjuntosCtx = tieneAdjuntos
+          ? await attachmentsToContext(enviados)
+          : '';
+
+        // Reemplazamos el ultimo turno del usuario en el historial para incluir
+        // el contexto de adjuntos · asi el entrenador "ve" los archivos sin que
+        // sature la persistencia.
+        const historial = [
+          ...mensajes.map(
+            (m) => `${m.rol === 'usuario' ? 'Usuario' : 'Agente'}: ${m.contenido}`,
+          ),
+          `Usuario: ${adjuntosCtx}${texto.trim() || 'Por favor, analiza los archivos/imagenes adjuntas.'}`,
+        ].join('\n\n');
 
         const baseConocimiento = knowledgeBaseRef.current
           ? `\n\n=== BASE DE CONOCIMIENTO DEL SANADOR ===\n${knowledgeBaseRef.current}`
@@ -293,6 +328,7 @@ export default function Agentes({ userId, perfil, setCurrentPage }: AgentesProps
     },
     [
       agenteActivo,
+      attachments,
       mensajes,
       cargando,
       perfil,
@@ -300,6 +336,40 @@ export default function Agentes({ userId, perfil, setCurrentPage }: AgentesProps
       obtenerSnapshot,
       aplicarScore,
     ],
+  );
+
+  const handlePaste = useCallback(
+    async (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+      const items = e.clipboardData?.items;
+      if (!items) return;
+      let hasFile = false;
+      for (let i = 0; i < items.length; i++) {
+        if (items[i].kind === 'file') {
+          hasFile = true;
+          break;
+        }
+      }
+      if (!hasFile) return;
+      e.preventDefault();
+      setUploadingAttachment(true);
+      try {
+        const nuevos = await buildAttachmentsFromDataTransfer(
+          e.clipboardData,
+          (msg) => toast.error(msg),
+        );
+        if (nuevos.length > 0) {
+          setAttachments((prev) => [...prev, ...nuevos]);
+          toast.success(
+            nuevos.length === 1
+              ? 'Captura adjuntada'
+              : `${nuevos.length} adjuntos agregados`,
+          );
+        }
+      } finally {
+        setUploadingAttachment(false);
+      }
+    },
+    [],
   );
 
   const onQuickReplyClick = useCallback(
@@ -358,7 +428,7 @@ export default function Agentes({ userId, perfil, setCurrentPage }: AgentesProps
       <div className="max-w-4xl mx-auto space-y-8 pb-12 animate-in fade-in duration-500">
         <div>
           <h1 className="text-2xl font-light text-white flex items-center gap-2">
-            <Bot className="w-6 h-6 text-[#F5A623]" /> Entrenadores
+            <Bot className="w-6 h-6 text-[#F5A623]" /> Entrenadores IA
           </h1>
           <p className="text-sm text-white/60 mt-1">
             Cada uno entrena UNA habilidad hasta que la hacés sola. Se desbloquean
@@ -552,23 +622,40 @@ export default function Agentes({ userId, perfil, setCurrentPage }: AgentesProps
       )}
 
       {/* Input */}
+      <AttachmentsPreviewStrip
+        attachments={attachments}
+        onChange={setAttachments}
+        uploading={uploadingAttachment}
+      />
       <div className="flex gap-3 items-end">
+        <AttachButton
+          attachments={attachments}
+          onChange={setAttachments}
+          onUploadingChange={setUploadingAttachment}
+          onError={(msg) => toast.error(msg)}
+          disabled={cargando}
+        />
         <textarea
           value={inputUsuario}
           onChange={(e) => setInputUsuario(e.target.value)}
+          onPaste={handlePaste}
           onKeyDown={(e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
               e.preventDefault();
               enviarMensaje(inputUsuario);
             }
           }}
-          placeholder="Escribí tu respuesta..."
+          placeholder="Escribí tu respuesta o pegá una captura (Ctrl+V)..."
           rows={2}
           className="flex-1 bg-[#F5A623]/5 border border-[rgba(245,166,35,0.2)] rounded-xl px-4 py-3 text-white text-sm resize-none focus:border-[#F5A623]/50 focus:ring-1 focus:ring-[#F5A623]/50 transition-all"
         />
         <button
           onClick={() => enviarMensaje(inputUsuario)}
-          disabled={cargando || !inputUsuario.trim()}
+          disabled={
+            cargando ||
+            uploadingAttachment ||
+            (!inputUsuario.trim() && attachments.length === 0)
+          }
           className="shrink-0 w-10 h-10 rounded-xl bg-[#F5A623] hover:bg-[#FFB94D] disabled:opacity-40 flex items-center justify-center transition-colors"
         >
           <Send className="w-4 h-4 text-white" />

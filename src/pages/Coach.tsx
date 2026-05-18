@@ -4,6 +4,15 @@ import { streamText } from '../lib/aiProvider';
 import Markdown from 'react-markdown';
 import { toast } from 'sonner';
 import {
+  AttachButton,
+  AttachmentsPreviewStrip,
+} from '../components/ChatAttachmentsBar';
+import {
+  attachmentsToContext,
+  buildAttachmentsFromDataTransfer,
+  type ChatAttachment,
+} from '../lib/chatAttachments';
+import {
   buildCoachSystemPrompt,
   detectarContextoConversacion,
   loadCoachExtraContext,
@@ -78,6 +87,8 @@ export default function Coach({ userId }: { userId?: string }) {
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [cargandoEstado, setCargandoEstado] = useState(true);
+  const [attachments, setAttachments] = useState<ChatAttachment[]>([]);
+  const [uploadingAttachment, setUploadingAttachment] = useState(false);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const knowledgeBaseRef = useRef<string>(getUserKnowledgeBaseSync());
   const supabaseProfileRef = useRef<Record<string, unknown> | null>(null);
@@ -238,19 +249,46 @@ export default function Coach({ userId }: { userId?: string }) {
 
   const handleSend = useCallback(
     async (text: string) => {
-      if (!text.trim() || isTyping) return;
+      const hasAttachments = attachments.length > 0;
+      if ((!text.trim() && !hasAttachments) || isTyping) return;
 
+      const sentAttachments = attachments;
+      setAttachments([]);
       setInput('');
-      const conUsuario: Message[] = [...messages, { role: 'user', content: text }];
+
+      // Texto visible para el usuario · etiquetas inline con los archivos adjuntos
+      const visibleText = hasAttachments
+        ? `${text.trim() || '(adjuntos para analizar)'}\n\n${sentAttachments
+            .map((a) =>
+              a.kind === 'image' ? `📎 ${a.fileName} (imagen)` : `📎 ${a.fileName}`,
+            )
+            .join('\n')}`
+        : text;
+
+      const conUsuario: Message[] = [
+        ...messages,
+        { role: 'user', content: visibleText },
+      ];
       setMessages(conUsuario);
       setIsTyping(true);
 
       try {
+        // Contexto enriquecido con descripciones de imagenes + texto de archivos
+        const attachmentsCtx = hasAttachments
+          ? await attachmentsToContext(sentAttachments)
+          : '';
+        const promptText = `${attachmentsCtx}${text.trim() || 'Por favor, analiza los archivos/imagenes adjuntas.'}`;
+
         setMessages((prev) => [...prev, { role: 'assistant', content: '' }]);
-        const aiMessages = conUsuario.map((m) => ({
-          role: m.role === 'assistant' ? 'assistant' : 'user',
-          content: m.content,
-        }));
+
+        // Para el provider mandamos el promptText enriquecido en el ultimo turno
+        const aiMessages = [
+          ...messages.map((m) => ({
+            role: m.role === 'assistant' ? 'assistant' : 'user',
+            content: m.content,
+          })),
+          { role: 'user', content: promptText },
+        ];
 
         const extraCtx = detectarContextoConversacion(text);
         const coachExtra = loadCoachExtraContext();
@@ -305,7 +343,42 @@ export default function Coach({ userId }: { userId?: string }) {
         setIsTyping(false);
       }
     },
-    [isTyping, messages, persist, intentarRotarSummary],
+    [attachments, isTyping, messages, persist, intentarRotarSummary],
+  );
+
+  const handlePaste = useCallback(
+    async (e: React.ClipboardEvent<HTMLInputElement>) => {
+      const items = e.clipboardData?.items;
+      if (!items) return;
+      // Solo interceptamos si hay archivos · si es texto puro dejamos paste por defecto
+      let hasFile = false;
+      for (let i = 0; i < items.length; i++) {
+        if (items[i].kind === 'file') {
+          hasFile = true;
+          break;
+        }
+      }
+      if (!hasFile) return;
+      e.preventDefault();
+      setUploadingAttachment(true);
+      try {
+        const nuevos = await buildAttachmentsFromDataTransfer(
+          e.clipboardData,
+          (msg) => toast.error(msg),
+        );
+        if (nuevos.length > 0) {
+          setAttachments((prev) => [...prev, ...nuevos]);
+          toast.success(
+            nuevos.length === 1
+              ? 'Captura adjuntada'
+              : `${nuevos.length} adjuntos agregados`,
+          );
+        }
+      } finally {
+        setUploadingAttachment(false);
+      }
+    },
+    [],
   );
 
   const avatarUrl = localStorage.getItem('tcd_avatar') || '';
@@ -423,28 +496,47 @@ export default function Coach({ userId }: { userId?: string }) {
           </div>
         )}
 
+        <AttachmentsPreviewStrip
+          attachments={attachments}
+          onChange={setAttachments}
+          uploading={uploadingAttachment}
+        />
+
         <form
           onSubmit={(e) => {
             e.preventDefault();
             handleSend(input);
           }}
-          className="relative flex items-center"
+          className="relative flex items-center gap-2"
         >
+          <AttachButton
+            attachments={attachments}
+            onChange={setAttachments}
+            onUploadingChange={setUploadingAttachment}
+            onError={(msg) => toast.error(msg)}
+            disabled={isTyping || cargandoEstado}
+          />
           <input
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
+            onPaste={handlePaste}
             disabled={isTyping || cargandoEstado}
             placeholder={
               isTyping
                 ? 'Tu coach está conectando ideas...'
-                : 'Mencioná tu duda · bloqueo · o lo que necesites...'
+                : 'Mencioná tu duda · bloqueo · pegá una captura (Ctrl+V)...'
             }
-            className="w-full bg-white/5 border border-[rgba(245,166,35,0.2)] rounded-xl py-3.5 pl-4 pr-12 text-sm text-white placeholder-white/30 focus:outline-none focus:border-[#F5A623]/50 focus:ring-1 focus:ring-[#F5A623]/50 transition-all disabled:opacity-50 shadow-inner"
+            className="flex-1 bg-white/5 border border-[rgba(245,166,35,0.2)] rounded-xl py-3.5 pl-4 pr-12 text-sm text-white placeholder-white/30 focus:outline-none focus:border-[#F5A623]/50 focus:ring-1 focus:ring-[#F5A623]/50 transition-all disabled:opacity-50 shadow-inner"
           />
           <button
             type="submit"
-            disabled={!input.trim() || isTyping || cargandoEstado}
+            disabled={
+              (!input.trim() && attachments.length === 0) ||
+              isTyping ||
+              cargandoEstado ||
+              uploadingAttachment
+            }
             className="absolute right-2 w-9 h-9 rounded-lg bg-[#F5A623] hover:bg-[#FFB94D] disabled:opacity-50 flex items-center justify-center text-[#0A0A0A] transition-colors"
           >
             <Send className="w-4 h-4 ml-1" />
