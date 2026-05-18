@@ -10,7 +10,6 @@ import TaskComments from '../tasks/TaskComments';
 import TaskAttachments from '../tasks/TaskAttachments';
 import {
   uploadTareaAdjunto,
-  createTareaComentario,
   MAX_ATTACHMENT_BYTES,
 } from '../../lib/adminTasks';
 
@@ -43,7 +42,6 @@ export default function TaskModal({ tarea, teamMembers, clientes, currentAdminId
   const [fechaVencimiento, setFechaVencimiento] = useState(tarea?.fecha_vencimiento ?? '');
   const [saving, setSaving] = useState(false);
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
-  const [pendingComments, setPendingComments] = useState<string[]>([]);
 
   const isEditing = !!tarea;
 
@@ -56,33 +54,17 @@ export default function TaskModal({ tarea, teamMembers, clientes, currentAdminId
   const currentUserNombre =
     teamMembers.find(m => m.id === currentAdminId)?.nombre ?? 'Usuario';
 
-  async function flushPending(tareaId: string) {
-    if (pendingFiles.length > 0) {
-      for (const file of pendingFiles) {
-        if (file.size > MAX_ATTACHMENT_BYTES) {
-          toast.error(`"${file.name}" supera los 25 MB`);
-          continue;
-        }
-        try {
-          await uploadTareaAdjunto({ tarea_id: tareaId, autor_id: currentAdminId, file });
-        } catch (err) {
-          console.error('Error subiendo archivo adjunto:', err);
-          toast.error(`No se pudo subir "${file.name}"`);
-        }
+  async function flushPendingFiles(tareaId: string) {
+    for (const file of pendingFiles) {
+      if (file.size > MAX_ATTACHMENT_BYTES) {
+        toast.error(`"${file.name}" supera los 25 MB`);
+        continue;
       }
-    }
-    if (pendingComments.length > 0) {
-      for (const contenido of pendingComments) {
-        try {
-          await createTareaComentario({
-            tarea_id: tareaId,
-            autor_id: currentAdminId,
-            contenido,
-          });
-        } catch (err) {
-          console.error('Error enviando comentario inicial:', err);
-          toast.error('No se pudo enviar un comentario inicial');
-        }
+      try {
+        await uploadTareaAdjunto({ tarea_id: tareaId, autor_id: currentAdminId, file });
+      } catch (err) {
+        console.error('Error subiendo archivo adjunto:', err);
+        toast.error(`No se pudo subir "${file.name}"`);
       }
     }
   }
@@ -101,9 +83,8 @@ export default function TaskModal({ tarea, teamMembers, clientes, currentAdminId
         status,
       });
 
-      // Si se acaba de crear, subir adjuntos y comentarios pendientes
-      if (!isEditing && result && (pendingFiles.length > 0 || pendingComments.length > 0)) {
-        await flushPending(result.id);
+      if (!isEditing && result && pendingFiles.length > 0) {
+        await flushPendingFiles(result.id);
       }
 
       onClose();
@@ -236,9 +217,9 @@ export default function TaskModal({ tarea, teamMembers, clientes, currentAdminId
             )}
           </div>
 
-          {/* Conversación */}
-          <div className="pt-2 border-t border-[rgba(255,255,255,0.05)]">
-            {isEditing && tarea ? (
+          {/* Conversación: solo cuando la tarea ya existe */}
+          {isEditing && tarea && (
+            <div className="pt-2 border-t border-[rgba(255,255,255,0.05)]">
               <TaskComments
                 tareaId={tarea.id}
                 tareaTitulo={tarea.titulo}
@@ -247,17 +228,8 @@ export default function TaskModal({ tarea, teamMembers, clientes, currentAdminId
                 currentUserId={currentAdminId}
                 currentUserNombre={currentUserNombre}
               />
-            ) : (
-              <TaskComments
-                tareaTitulo={titulo}
-                asignadoA={asignadoA || null}
-                currentUserId={currentAdminId}
-                currentUserNombre={currentUserNombre}
-                pendingComments={pendingComments}
-                onPendingCommentsChange={setPendingComments}
-              />
-            )}
-          </div>
+            </div>
+          )}
         </div>
 
         {/* Footer */}
