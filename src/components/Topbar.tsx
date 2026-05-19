@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, Bell, X, CheckCircle2, MessageSquare, LayoutDashboard, Map, TrendingUp, BookOpen, Library, Trophy, Shield, Menu } from 'lucide-react';
+import { Search, Bell, X, CheckCircle2, MessageSquare, LayoutDashboard, Map, TrendingUp, BookOpen, Library, Trophy, Shield, Menu, Megaphone } from 'lucide-react';
+import { toast } from 'sonner';
 import { obtenerNotificaciones, marcarLeida, marcarTodasLeidas, contarNoLeidas, type NotificacionDB, type TipoNotificacion } from '../lib/notifications';
 import { supabase, isSupabaseReady } from '../lib/supabase';
+import CreditsBadge from './credits/CreditsBadge';
 
 interface TopbarProps {
   setCurrentPage: (page: string) => void;
@@ -17,6 +19,7 @@ const searchablePages = [
   { id: 'metrics', label: 'Métricas', icon: TrendingUp, desc: 'Seguimiento de tu embudo de ventas' },
   { id: 'diario', label: 'Diario', icon: BookOpen, desc: 'Reflexión diaria' },
   { id: 'biblioteca', label: 'Biblioteca', icon: Library, desc: 'Videos, herramientas, recursos' },
+  { id: 'campanas', label: 'Campañas & Creativos', icon: Megaphone, desc: 'Generar copies e imagenes para Meta Ads' },
 ];
 
 const ICON_MAP: Record<TipoNotificacion, React.ElementType> = {
@@ -81,31 +84,48 @@ export default function Topbar({ setCurrentPage, userId, onMobileMenuToggle }: T
 
   // Load notifications + real-time subscription
   useEffect(() => {
+    let alive = true;
     async function load() {
       if (!userId) return;
       const notifs = await obtenerNotificaciones(userId, 20);
+      if (!alive) return;
       setNotifications(notifs);
       const count = await contarNoLeidas(userId);
+      if (!alive) return;
       setUnreadCount(count);
     }
     load();
 
     if (isSupabaseReady() && supabase && userId) {
-      const channel = supabase.channel('notif-realtime')
+      const channel = supabase.channel(`notif-realtime-${userId}`)
         .on('postgres_changes', {
           event: 'INSERT',
           schema: 'public',
           table: 'notificaciones',
           filter: `usuario_id=eq.${userId}`,
         }, (payload) => {
-          setNotifications(prev => [payload.new as NotificacionDB, ...prev].slice(0, 20));
+          if (!alive) return;
+          const n = payload.new as NotificacionDB;
+          setNotifications(prev => [n, ...prev].slice(0, 20));
           setUnreadCount(prev => prev + 1);
+          const page = n.accion_url ? URL_TO_PAGE[n.accion_url] : undefined;
+          toast(n.titulo, {
+            description: n.descripcion ?? undefined,
+            duration: 6000,
+            action: page
+              ? { label: 'Ver', onClick: () => setCurrentPage(page) }
+              : undefined,
+          });
         })
         .subscribe();
 
-      return () => { supabase!.removeChannel(channel); };
+      return () => {
+        alive = false;
+        if (supabase) supabase.removeChannel(channel);
+      };
     }
-  }, [userId]);
+    return () => { alive = false; };
+  }, [userId, setCurrentPage]);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -184,6 +204,9 @@ export default function Topbar({ setCurrentPage, userId, onMobileMenuToggle }: T
         </div>
 
         <div className="flex items-center gap-4">
+          {/* Credits balance · click → modal de compra */}
+          <CreditsBadge userId={userId} variant="expanded" />
+
           <div className="relative">
             <button
               onClick={() => setShowNotifications(!showNotifications)}

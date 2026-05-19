@@ -1,6 +1,7 @@
 import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Bell, CheckCircle2, MessageSquare, Trophy, Shield } from 'lucide-react';
+import { toast } from 'sonner';
 import {
   obtenerNotificaciones,
   marcarLeida,
@@ -103,8 +104,16 @@ export default function NotificationBell({ userId, onNavigate, size = 'normal' }
         filter: `usuario_id=eq.${userId}`,
       }, (payload) => {
         if (!alive) return;
-        setItems(prev => [payload.new as NotificacionDB, ...prev].slice(0, 20));
+        const n = payload.new as NotificacionDB;
+        setItems(prev => [n, ...prev].slice(0, 20));
         setUnread(prev => prev + 1);
+        toast(n.titulo, {
+          description: n.descripcion ?? undefined,
+          duration: 6000,
+          action: n.accion_url && onNavigate
+            ? { label: 'Ver', onClick: () => onNavigate(n.accion_url!) }
+            : undefined,
+        });
       })
       .subscribe();
 

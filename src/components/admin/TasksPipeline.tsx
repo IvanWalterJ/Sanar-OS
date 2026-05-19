@@ -198,13 +198,17 @@ export default function TasksPipeline({ currentAdminId, teamMembers, clientes }:
       await updateAdminTarea(editingTarea.id, data);
       toast.success('Tarea actualizada');
       if (data.asignado_a && data.asignado_a !== editingTarea.asignado_a && data.asignado_a !== currentAdminId) {
-        notificarTareaAsignada(data.asignado_a, data.titulo, adminNombre).catch(() => null);
+        notificarTareaAsignada(data.asignado_a, data.titulo, adminNombre).catch((err) => {
+          console.error('[notif] falló notificarTareaAsignada:', err);
+        });
       }
     } else {
       created = await createAdminTarea({ ...data, creado_por: currentAdminId });
       toast.success('Tarea creada');
       if (data.asignado_a && data.asignado_a !== currentAdminId) {
-        notificarTareaAsignada(data.asignado_a, data.titulo, adminNombre).catch(() => null);
+        notificarTareaAsignada(data.asignado_a, data.titulo, adminNombre).catch((err) => {
+          console.error('[notif] falló notificarTareaAsignada:', err);
+        });
       }
     }
     await cargar();
