@@ -268,7 +268,9 @@ export default function TaskByPersonView({
       // Notificar al nuevo asignado (si no soy yo mismo y no es "sin asignar")
       if (targetPersonId && targetPersonId !== currentUserId) {
         const miNombre = orderedMembers.find(m => m.id === currentUserId)?.nombre ?? 'El equipo';
-        notificarTareaAsignada(targetPersonId, tarea.titulo, miNombre).catch(() => null);
+        notificarTareaAsignada(targetPersonId, tarea.titulo, miNombre, tarea.id).catch((err) => {
+          console.error('[notif] falló notificarTareaAsignada:', err);
+        });
       }
 
       onReassign();

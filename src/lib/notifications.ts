@@ -98,17 +98,22 @@ export async function crearNotificacion(input: CrearNotificacionInput): Promise<
 
 // ─── Notificaciones de equipo ───────────────────────────────────────────────────
 
+function urlTareaConId(tareaId?: string): string {
+  return tareaId ? `/admin?tab=tareas&tareaId=${tareaId}` : '/admin?tab=tareas';
+}
+
 export async function notificarTareaAsignada(
   assignedToId: string,
   tituloTarea: string,
   asignadoPorNombre: string,
+  tareaId?: string,
 ): Promise<void> {
   await crearNotificacion({
     usuario_id: assignedToId,
     tipo: 'tarea',
     titulo: 'Nueva tarea asignada',
     descripcion: `${asignadoPorNombre} te asignó: "${tituloTarea}"`,
-    accion_url: '/admin?tab=tareas',
+    accion_url: urlTareaConId(tareaId),
   });
 }
 
@@ -116,13 +121,14 @@ export async function notificarComentarioTarea(
   destinatarioId: string,
   autorNombre: string,
   tituloTarea: string,
+  tareaId?: string,
 ): Promise<void> {
   await crearNotificacion({
     usuario_id: destinatarioId,
     tipo: 'tarea',
     titulo: `${autorNombre} respondió en una tarea`,
     descripcion: `Nuevo comentario en "${tituloTarea}"`,
-    accion_url: '/admin?tab=tareas',
+    accion_url: urlTareaConId(tareaId),
   });
 }
 

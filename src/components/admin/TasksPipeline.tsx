@@ -13,6 +13,7 @@ import type { AdminTarea, AdminTareaStatus, Profile } from '../../lib/supabase';
 import {
   fetchAdminTareas,
   fetchTareasHoy,
+  fetchAdminTareaById,
   createAdminTarea,
   updateAdminTarea,
   updateAdminTareaStatus,
@@ -29,6 +30,13 @@ interface TasksPipelineProps {
   adminRol: string;
   teamMembers: Profile[];
   clientes: Profile[];
+  /**
+   * Si llega un ID de tarea (por ej. desde una notificación), abrimos
+   * el modal de esa tarea automáticamente en cuanto esté cargada.
+   */
+  initialTareaId?: string | null;
+  /** Se llama una vez que se abrió el modal — para que el padre limpie el ID. */
+  onInitialTareaOpened?: () => void;
 }
 
 function startOfWeek(d: Date): Date {
@@ -47,7 +55,13 @@ function endOfWeek(d: Date): Date {
   return out;
 }
 
-export default function TasksPipeline({ currentAdminId, teamMembers, clientes }: TasksPipelineProps) {
+export default function TasksPipeline({
+  currentAdminId,
+  teamMembers,
+  clientes,
+  initialTareaId,
+  onInitialTareaOpened,
+}: TasksPipelineProps) {
   const [tareas, setTareas] = useState<AdminTarea[]>([]);
   const [tareasHoy, setTareasHoy] = useState<AdminTarea[]>([]);
   const [loading, setLoading] = useState(true);
@@ -85,6 +99,34 @@ export default function TasksPipeline({ currentAdminId, teamMembers, clientes }:
   }, [currentAdminId, verArchivadas]);
 
   useEffect(() => { cargar(); }, [cargar]);
+
+  // Cuando llega un initialTareaId (ej: click en una notificación), abrimos
+  // el modal de esa tarea. Primero la buscamos en lo cargado; si no está
+  // (puede estar archivada o todavía no haber llegado del fetch), la
+  // pedimos directo a la DB.
+  useEffect(() => {
+    if (!initialTareaId) return;
+    let alive = true;
+    const found = tareas.find(t => t.id === initialTareaId);
+    if (found) {
+      setEditingTarea(found);
+      setShowModal(true);
+      onInitialTareaOpened?.();
+      return;
+    }
+    if (loading) return; // esperar a que termine la carga inicial
+    fetchAdminTareaById(initialTareaId).then(t => {
+      if (!alive) return;
+      if (t) {
+        setEditingTarea(t);
+        setShowModal(true);
+      } else {
+        toast.error('No se encontró la tarea (puede estar archivada)');
+      }
+      onInitialTareaOpened?.();
+    });
+    return () => { alive = false; };
+  }, [initialTareaId, tareas, loading, onInitialTareaOpened]);
 
   // Filtrado client-side. Las tareas ya vienen enriquecidas con asignado_nombre,
   // creador_nombre y cliente_nombre desde el RPC get_admin_tareas_with_users.
@@ -198,7 +240,7 @@ export default function TasksPipeline({ currentAdminId, teamMembers, clientes }:
       await updateAdminTarea(editingTarea.id, data);
       toast.success('Tarea actualizada');
       if (data.asignado_a && data.asignado_a !== editingTarea.asignado_a && data.asignado_a !== currentAdminId) {
-        notificarTareaAsignada(data.asignado_a, data.titulo, adminNombre).catch((err) => {
+        notificarTareaAsignada(data.asignado_a, data.titulo, adminNombre, editingTarea.id).catch((err) => {
           console.error('[notif] falló notificarTareaAsignada:', err);
         });
       }
@@ -206,7 +248,7 @@ export default function TasksPipeline({ currentAdminId, teamMembers, clientes }:
       created = await createAdminTarea({ ...data, creado_por: currentAdminId });
       toast.success('Tarea creada');
       if (data.asignado_a && data.asignado_a !== currentAdminId) {
-        notificarTareaAsignada(data.asignado_a, data.titulo, adminNombre).catch((err) => {
+        notificarTareaAsignada(data.asignado_a, data.titulo, adminNombre, created.id).catch((err) => {
           console.error('[notif] falló notificarTareaAsignada:', err);
         });
       }

@@ -95,6 +95,20 @@ export async function fetchTareasHoy(adminId: string): Promise<AdminTarea[]> {
   return (data ?? []) as AdminTarea[];
 }
 
+export async function fetchAdminTareaById(id: string): Promise<AdminTarea | null> {
+  if (!supabase) return null;
+  const { data, error } = await supabase
+    .from('admin_tareas')
+    .select('*')
+    .eq('id', id)
+    .maybeSingle();
+  if (error) {
+    console.error('Error fetching tarea by id:', error);
+    return null;
+  }
+  return (data as AdminTarea | null) ?? null;
+}
+
 export async function createAdminTarea(dto: CreateTareaDto): Promise<AdminTarea> {
   if (!supabase) throw new Error('Supabase not configured');
   const { data, error } = await supabase

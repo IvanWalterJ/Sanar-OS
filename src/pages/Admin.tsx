@@ -336,6 +336,9 @@ export default function Admin({ adminProfile, onSignOut }: AdminProps) {
     'clientes',
     { validate: (v) => VALID_MAIN_TABS.includes(v) },
   );
+  // ID de tarea pendiente de abrir vía notificación. Se setea desde el
+  // handler de NotificationBell y se limpia cuando TasksPipeline abre el modal.
+  const [pendingTareaId, setPendingTareaId] = useState<string | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false;
@@ -1667,10 +1670,16 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
               userId={adminProfile.id}
               size="sm"
               onNavigate={(url) => {
-                // Mapea accion_url → tab del panel admin
-                if (url.includes('/admin') && url.includes('tab=tareas')) setMainTab('tareas');
-                else if (url.includes('/admin/clientes')) setMainTab('clientes');
-                else if (url.includes('/admin/mensajes')) setMainTab('mensajes');
+                // Mapea accion_url → tab del panel admin (+ abre modal de tarea si viene tareaId)
+                if (url.includes('/admin') && url.includes('tab=tareas')) {
+                  setMainTab('tareas');
+                  const match = url.match(/[?&]tareaId=([0-9a-f-]+)/i);
+                  if (match) setPendingTareaId(match[1]);
+                } else if (url.includes('/admin/clientes')) {
+                  setMainTab('clientes');
+                } else if (url.includes('/admin/mensajes')) {
+                  setMainTab('mensajes');
+                }
               }}
             />
           </div>
@@ -3312,6 +3321,8 @@ Tono: profesional, directo, orientado a resultados. Sin emojis. En español.`;
               adminRol={adminRol}
               teamMembers={teamMembers}
               clientes={clientes}
+              initialTareaId={pendingTareaId}
+              onInitialTareaOpened={() => setPendingTareaId(null)}
             />
           )}
 

@@ -99,7 +99,7 @@ export default function TaskComments({
       if (creadoPor && creadoPor !== currentUserId) destinos.add(creadoPor);
       if (asignadoA && asignadoA !== currentUserId) destinos.add(asignadoA);
       destinos.forEach(uid => {
-        notificarComentarioTarea(uid, currentUserNombre, tareaTitulo).catch((err) => {
+        notificarComentarioTarea(uid, currentUserNombre, tareaTitulo, tareaId).catch((err) => {
           console.error('[notif] falló notificarComentarioTarea:', err);
         });
       });
