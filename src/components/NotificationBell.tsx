@@ -11,6 +11,7 @@ import {
   type TipoNotificacion,
 } from '../lib/notifications';
 import { supabase, isSupabaseReady } from '../lib/supabase';
+import { playNotificationSound } from '../lib/notificationSound';
 
 const ICON_MAP: Record<TipoNotificacion, React.ElementType> = {
   hito: Trophy,
@@ -55,6 +56,7 @@ export default function NotificationBell({ userId, onNavigate, size = 'normal' }
   const [open, setOpen] = useState(false);
   const [items, setItems] = useState<NotificacionDB[]>([]);
   const [unread, setUnread] = useState(0);
+  const [shaking, setShaking] = useState(false);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
   const [pos, setPos] = useState<{ top: number; right: number } | null>(null);
 
@@ -107,6 +109,9 @@ export default function NotificationBell({ userId, onNavigate, size = 'normal' }
         const n = payload.new as NotificacionDB;
         setItems(prev => [n, ...prev].slice(0, 20));
         setUnread(prev => prev + 1);
+        setShaking(true);
+        window.setTimeout(() => { if (alive) setShaking(false); }, 900);
+        playNotificationSound();
         toast(n.titulo, {
           description: n.descripcion ?? undefined,
           duration: 6000,
@@ -148,8 +153,9 @@ export default function NotificationBell({ userId, onNavigate, size = 'normal' }
     setUnread(0);
   }
 
-  const buttonSize = size === 'sm' ? 'w-9 h-9' : 'w-10 h-10';
-  const iconSize = size === 'sm' ? 'w-4 h-4' : 'w-5 h-5';
+  const buttonSize = size === 'sm' ? 'w-10 h-10' : 'w-12 h-12';
+  const iconSize = size === 'sm' ? 'w-5 h-5' : 'w-6 h-6';
+  const hasUnread = unread > 0;
 
   if (!userId) return null;
 
@@ -159,13 +165,21 @@ export default function NotificationBell({ userId, onNavigate, size = 'normal' }
         ref={triggerRef}
         onClick={() => setOpen(o => !o)}
         className={`${buttonSize} rounded-full card-panel flex items-center justify-center transition-all duration-300 active:scale-95 relative ${
-          open ? 'text-[#FFFFFF] bg-[#1C1C1C] shadow-[0_0_15px_rgba(245,166,35,0.15)]' : 'text-[#FFFFFF]/40 hover:text-[#FFFFFF]'
+          open
+            ? 'text-[#FFFFFF] bg-[#1C1C1C] shadow-[0_0_18px_rgba(245,166,35,0.35)] ring-1 ring-[#F5A623]/40'
+            : hasUnread
+              ? 'text-[#F5A623] shadow-[0_0_14px_rgba(245,166,35,0.25)] ring-1 ring-[#F5A623]/30 hover:text-[#FFB94D]'
+              : 'text-[#FFFFFF]/60 hover:text-[#FFFFFF]'
         }`}
         title="Notificaciones"
+        aria-label={hasUnread ? `Notificaciones (${unread} sin leer)` : 'Notificaciones'}
       >
-        <Bell className={`${iconSize} transition-transform duration-300 ${open ? 'scale-110' : 'hover:scale-110'}`} />
-        {unread > 0 && (
-          <span className="absolute top-1.5 right-1.5 min-w-[16px] h-[16px] px-1 bg-[#F5A623] text-black text-[9px] font-bold rounded-full flex items-center justify-center shadow-[0_0_8px_rgba(245,166,35,0.8)]">
+        <Bell
+          className={`${iconSize} transition-transform duration-300 ${open ? 'scale-110' : 'hover:scale-110'} ${shaking ? 'bell-shake' : ''}`}
+          fill={hasUnread ? 'currentColor' : 'none'}
+        />
+        {hasUnread && (
+          <span className="badge-pulse absolute -top-1 -right-1 min-w-[20px] h-[20px] px-1.5 bg-[#F5A623] text-black text-[11px] font-extrabold rounded-full flex items-center justify-center border-2 border-[#0A0A0A]">
             {unread > 9 ? '9+' : unread}
           </span>
         )}

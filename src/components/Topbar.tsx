@@ -3,6 +3,7 @@ import { Search, Bell, X, CheckCircle2, MessageSquare, LayoutDashboard, Map, Tre
 import { toast } from 'sonner';
 import { obtenerNotificaciones, marcarLeida, marcarTodasLeidas, contarNoLeidas, type NotificacionDB, type TipoNotificacion } from '../lib/notifications';
 import { supabase, isSupabaseReady } from '../lib/supabase';
+import { playNotificationSound } from '../lib/notificationSound';
 import CreditsBadge from './credits/CreditsBadge';
 
 interface TopbarProps {
@@ -72,6 +73,7 @@ export default function Topbar({ setCurrentPage, userId, onMobileMenuToggle }: T
   const [searchQuery, setSearchQuery] = useState('');
   const [notifications, setNotifications] = useState<NotificacionDB[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [shaking, setShaking] = useState(false);
 
   const searchInputRef = useRef<HTMLInputElement>(null);
 
@@ -108,6 +110,9 @@ export default function Topbar({ setCurrentPage, userId, onMobileMenuToggle }: T
           const n = payload.new as NotificacionDB;
           setNotifications(prev => [n, ...prev].slice(0, 20));
           setUnreadCount(prev => prev + 1);
+          setShaking(true);
+          window.setTimeout(() => { if (alive) setShaking(false); }, 900);
+          playNotificationSound();
           const page = n.accion_url ? URL_TO_PAGE[n.accion_url] : undefined;
           toast(n.titulo, {
             description: n.descripcion ?? undefined,
@@ -210,11 +215,23 @@ export default function Topbar({ setCurrentPage, userId, onMobileMenuToggle }: T
           <div className="relative">
             <button
               onClick={() => setShowNotifications(!showNotifications)}
-              className={`w-10 h-10 rounded-full card-panel flex items-center justify-center transition-all duration-300 active:scale-95 relative ${showNotifications ? 'text-[#FFFFFF] bg-[#1C1C1C] shadow-[0_0_15px_rgba(245,166,35,0.15)]' : 'text-[#FFFFFF]/40 hover:text-[#FFFFFF]'}`}
+              className={`w-12 h-12 rounded-full card-panel flex items-center justify-center transition-all duration-300 active:scale-95 relative ${
+                showNotifications
+                  ? 'text-[#FFFFFF] bg-[#1C1C1C] shadow-[0_0_18px_rgba(245,166,35,0.35)] ring-1 ring-[#F5A623]/40'
+                  : unreadCount > 0
+                    ? 'text-[#F5A623] shadow-[0_0_14px_rgba(245,166,35,0.25)] ring-1 ring-[#F5A623]/30 hover:text-[#FFB94D]'
+                    : 'text-[#FFFFFF]/60 hover:text-[#FFFFFF]'
+              }`}
+              aria-label={unreadCount > 0 ? `Notificaciones (${unreadCount} sin leer)` : 'Notificaciones'}
             >
-              <Bell className={`w-5 h-5 transition-transform duration-300 ${showNotifications ? 'scale-110' : 'hover:scale-110'}`} />
+              <Bell
+                className={`w-6 h-6 transition-transform duration-300 ${showNotifications ? 'scale-110' : 'hover:scale-110'} ${shaking ? 'bell-shake' : ''}`}
+                fill={unreadCount > 0 ? 'currentColor' : 'none'}
+              />
               {unreadCount > 0 && (
-                <span className="absolute top-2 right-2 w-2 h-2 bg-[#F5A623] rounded-full shadow-[0_0_8px_rgba(245,166,35,0.8)]" />
+                <span className="badge-pulse absolute -top-1 -right-1 min-w-[20px] h-[20px] px-1.5 bg-[#F5A623] text-black text-[11px] font-extrabold rounded-full flex items-center justify-center border-2 border-[#0A0A0A]">
+                  {unreadCount > 9 ? '9+' : unreadCount}
+                </span>
               )}
             </button>
 
