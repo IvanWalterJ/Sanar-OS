@@ -13,6 +13,16 @@
 import { GoogleGenAI } from '@google/genai';
 import type { ImageFormat, ImageQuality } from './campanasTypes';
 import { OPENAI_IMAGE_SIZE, IMAGE_QUALITY_DEFAULT } from './campanasTypes';
+import { supabase } from './supabase';
+
+// Error tipado para que la UI muestre el modal de "comprar creditos"
+export class InsufficientCreditsError extends Error {
+  code = 'INSUFFICIENT_CREDITS' as const;
+  constructor(msg = 'No tenes creditos suficientes') {
+    super(msg);
+    this.name = 'InsufficientCreditsError';
+  }
+}
 
 // ─── Modelos Gemini (cascada de fallback) ────────────────────────────────────
 
@@ -106,10 +116,18 @@ async function tryOpenAI(
     referenceImages: refs.length > 0 ? refs : undefined,
   };
 
+  // Inyectar el JWT del usuario para que el endpoint pueda consumir credito.
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (supabase) {
+    const { data } = await supabase.auth.getSession();
+    const token = data.session?.access_token;
+    if (token) headers.Authorization = `Bearer ${token}`;
+  }
+
   const resp = await withTimeout(
     fetch('/api/ai/image', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       body: JSON.stringify(payload),
     }),
     OPENAI_TIMEOUT_MS,
@@ -118,8 +136,15 @@ async function tryOpenAI(
 
   if (!resp.ok) {
     const text = await resp.text().catch(() => '');
-    let parsed: OpenAIImageResponse | null = null;
-    try { parsed = JSON.parse(text) as OpenAIImageResponse; } catch { /* noop */ }
+    let parsed: (OpenAIImageResponse & { code?: string }) | null = null;
+    try { parsed = JSON.parse(text) as OpenAIImageResponse & { code?: string }; } catch { /* noop */ }
+
+    // 402 = INSUFFICIENT_CREDITS · NO degradar a Gemini (es una decision de negocio,
+    // no una falla tecnica · el usuario debe comprar creditos)
+    if (resp.status === 402 || parsed?.code === 'INSUFFICIENT_CREDITS') {
+      throw new InsufficientCreditsError(parsed?.error || 'Sin creditos');
+    }
+
     throw new Error(parsed?.error || `HTTP ${resp.status}: ${text.slice(0, 200)}`);
   }
 
@@ -259,6 +284,17 @@ export async function generateImageWithFallback(
     });
     return result;
   } catch (err) {
+    // INSUFFICIENT_CREDITS · cortar la cascada (es decision de negocio, no falla)
+    if (err instanceof InsufficientCreditsError) {
+      onProgress?.({
+        modelName: 'OpenAI gpt-image-2',
+        attempt: 1,
+        total: TOTAL_MODELS,
+        status: 'failed',
+        error: 'Sin creditos',
+      });
+      throw err;
+    }
     openaiError = err instanceof Error ? err : new Error(String(err));
     onProgress?.({
       modelName: 'OpenAI gpt-image-2',
