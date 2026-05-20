@@ -5,6 +5,7 @@ import { obtenerNotificaciones, marcarLeida, marcarTodasLeidas, contarNoLeidas, 
 import { supabase, isSupabaseReady } from '../lib/supabase';
 import { playNotificationSound } from '../lib/notificationSound';
 import CreditsBadge from './credits/CreditsBadge';
+import { CREDITS_ENABLED } from '../lib/featureFlags';
 
 interface TopbarProps {
   setCurrentPage: (page: string) => void;
@@ -209,8 +210,8 @@ export default function Topbar({ setCurrentPage, userId, onMobileMenuToggle }: T
         </div>
 
         <div className="flex items-center gap-4">
-          {/* Credits balance · click → modal de compra */}
-          <CreditsBadge userId={userId} variant="expanded" />
+          {/* Credits balance · click → modal de compra · oculto via flag mientras el sistema esta apagado */}
+          {CREDITS_ENABLED && <CreditsBadge userId={userId} variant="expanded" />}
 
           <div className="relative">
             <button
